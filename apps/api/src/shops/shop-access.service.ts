@@ -20,8 +20,7 @@ export class ShopAccessService {
       member?.role === 'cashier' &&
       permission !== 'read' &&
       permission !== 'sell';
-    const reportsDenied =
-      permission === 'reports' && member?.role !== 'owner';
+    const reportsDenied = permission === 'reports' && member?.role !== 'owner';
     if (!member || cashierDenied || reportsDenied)
       throw new ForbiddenException();
     return member;
