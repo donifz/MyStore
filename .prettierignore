@@ -7,3 +7,8 @@ docs/superpowers/plans
 
 **/test-results
 **/playwright-report
+
+**/.next
+**/*.tsbuildinfo
+
+**/next-env.d.ts

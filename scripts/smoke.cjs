@@ -30,6 +30,11 @@ async function main() {
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
   }
+  const publicPage = await fetch(base + '/');
+  assert.equal(publicPage.status, 200);
+  assert.ok(
+    (await publicPage.text()).includes('Найдите своё в магазинах рядом'),
+  );
   const shop = '/shops/11111111-1111-4111-8111-111111111111';
   const barcode = `SMOKE${randomUUID().replaceAll('-', '')}`;
   const variant = await call(shop + '/variants', {
