@@ -13,10 +13,16 @@ export class ApiError extends Error {
 }
 export async function api<T>(
   path: string,
-  options: { method?: string; body?: unknown; key?: string } = {},
+  options: {
+    method?: string;
+    body?: unknown;
+    key?: string;
+    signal?: AbortSignal;
+  } = {},
 ): Promise<T> {
   const r = await fetch('/api' + path, {
     method: options.method ?? 'GET',
+    signal: options.signal,
     credentials: 'same-origin',
     headers: {
       'content-type': 'application/json',

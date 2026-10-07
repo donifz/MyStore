@@ -13,6 +13,9 @@ export type VariantInput = {
   salePriceMinor: number;
 };
 export type Variant = {
+  description: string;
+  category: string;
+  published: boolean;
   id: string;
   name: string;
   barcode: string;
@@ -27,6 +30,9 @@ export class VariantsService {
       name: row.name,
       barcode: row.barcode,
       salePriceMinor: Number(row.sale_price_minor),
+      description: row.description,
+      category: row.category,
+      published: row.published,
     };
   }
   async list(
@@ -90,14 +96,40 @@ export class VariantsService {
     barcode: string,
   ): Promise<Variant | null> {
     const [row] = await this.db.query(
-      'SELECT id,name,barcode,sale_price_minor FROM variants WHERE shop_id=$1 AND barcode=$2',
+      'SELECT id,name,barcode,sale_price_minor,description,category,published FROM variants WHERE shop_id=$1 AND barcode=$2',
       [shopId, barcode],
     );
     return row ? this.dto(row) : null;
   }
+  async updateVariant(
+    shopId: string,
+    id: string,
+    input: {
+      name: string;
+      salePriceMinor: number;
+      description: string;
+      category: string;
+      published: boolean;
+    },
+  ) {
+    const [row] = await this.db.query(
+      'UPDATE variants SET name=$3,sale_price_minor=$4,description=$5,category=$6,published=$7 WHERE shop_id=$1 AND id=$2 RETURNING *',
+      [
+        shopId,
+        id,
+        input.name.trim(),
+        input.salePriceMinor,
+        input.description.trim(),
+        input.category.trim(),
+        input.published,
+      ],
+    );
+    if (!row) throw new NotFoundException();
+    return this.dto(row);
+  }
   async getById(shopId: string, id: string) {
     const [row] = await this.db.query(
-      'SELECT id,name,barcode,sale_price_minor FROM variants WHERE shop_id=$1 AND id=$2',
+      'SELECT id,name,barcode,sale_price_minor,description,category,published FROM variants WHERE shop_id=$1 AND id=$2',
       [shopId, id],
     );
     if (!row) throw new NotFoundException();

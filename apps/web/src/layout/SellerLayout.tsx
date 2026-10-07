@@ -74,6 +74,9 @@ export default function SellerLayout() {
           </select>
         </div>
         <nav>
+          {shop.role === 'owner' && (
+            <NavLink to={base + '/storefront'}>Витрина</NavLink>
+          )}
           <NavLink to={base + '/products'}>Товары</NavLink>
           {shop.role !== 'cashier' && (
             <NavLink to={base + '/receiving'}>Приёмка</NavLink>

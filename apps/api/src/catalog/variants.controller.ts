@@ -6,11 +6,13 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import {
+  IsBoolean,
   IsInt,
   IsOptional,
   IsString,
@@ -33,6 +35,13 @@ export class VariantDto {
   @Matches(/^[\x21-\x7E]+$/)
   barcode?: string;
   @IsInt() @Min(0) @Max(Number.MAX_SAFE_INTEGER) salePriceMinor!: number;
+}
+class EditVariantDto {
+  @IsString() @MinLength(1) @MaxLength(200) @Matches(/\S/) name!: string;
+  @IsInt() @Min(0) @Max(Number.MAX_SAFE_INTEGER) salePriceMinor!: number;
+  @IsString() @MaxLength(2000) description!: string;
+  @IsString() @MaxLength(80) category!: string;
+  @IsBoolean() published!: boolean;
 }
 class BarcodeQuery {
   @IsString() @MinLength(1) @MaxLength(64) code!: string;
@@ -84,6 +93,15 @@ export class VariantsController {
     const variant = await this.variants.findByBarcode(shopId, query.code);
     if (!variant) throw new NotFoundException();
     return variant;
+  }
+  @Put(':variantId') async update(
+    @Param('shopId', ParseUUIDPipe) shopId: string,
+    @Param('variantId', ParseUUIDPipe) id: string,
+    @Req() req: UserRequest,
+    @Body() body: EditVariantDto,
+  ) {
+    await this.access.requireMembership(req.userId, shopId, 'catalog');
+    return this.variants.updateVariant(shopId, id, body);
   }
   @Get(':variantId') async get(
     @Param('shopId', ParseUUIDPipe) shopId: string,

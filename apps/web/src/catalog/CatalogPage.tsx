@@ -82,7 +82,13 @@ export default function CatalogPage() {
               {data?.items.map((v) => (
                 <tr key={v.id}>
                   <td>
-                    <strong>{v.name}</strong>
+                    {role !== 'cashier' ? (
+                      <Link to={v.id + '/edit'}>
+                        <strong>{v.name}</strong>
+                      </Link>
+                    ) : (
+                      <strong>{v.name}</strong>
+                    )}
                     <small className="code">{v.barcode}</small>
                   </td>
                   <td>{formatSom(v.salePriceMinor)}</td>
