@@ -55,7 +55,7 @@ Test apps/api/test/web-auth.e2e-spec.ts, apps/api/test/catalog-list.e2e-spec.ts.
 - browser-security: validateOrigin(origin:string|undefined):void; csrfFor(token:string):string через HMAC с отдельной purpose-меткой. Login проверяет Origin; изменения с cookie также проверяют x-csrf-token. WEB_ORIGINS содержит явный allowlist; без конфигурации production запуск отклоняется. Bearer без cookie сохраняет существующий контракт.
 
 - [ ] Написать тесты cookie login/logout, истечения, 403 на отсутствующий/чужой Origin и CSRF; bearer-регрессия; чужой магазин; пагинация и literal-поиск %, _, ведущих нулей. Проверить `expect(cashierItem).not.toHaveProperty('stockValueMinor')`.
-- [ ] Запустить `npm test -- --runTestsByPath test/web-auth.e2e-spec.ts test/catalog-list.e2e-spec.ts` из apps/api; ожидаются FAIL новых маршрутов.
+- [ ] Запустить `npm run test:e2e -- --runTestsByPath test/web-auth.e2e-spec.ts test/catalog-list.e2e-spec.ts` из apps/api; ожидаются FAIL новых маршрутов.
 - [ ] Реализовать указанные интерфейсы. Расширить UserRequest способом аутентификации и token; не выводить cookie в логи. Поиск параметризованный, wildcards экранируются.
 - [ ] Повторить команду; PASS всех новых тестов и `npm test` корня — прежних 40 проверок.
 - [ ] Коммит `feat: add browser sessions and scoped catalog listing`.
@@ -76,7 +76,7 @@ Test apps/api/test/shifts.e2e-spec.ts.
 - Таблицы cash_registers (shop_id UNIQUE), cash_shifts (composite shop/id FK, partial UNIQUE register WHERE closed_at IS NULL), pos_sales (shop,document,shift), payment_records (shop,document,shift,actor,kind sale|refund,method cash|card,amount_minor). Все ссылки проверяют магазин; платежные записи неизменяемы. Таблицы касс создаются для существующих магазинов; ensure-register через INSERT ON CONFLICT поддерживает новые.
 
 - [ ] Написать тесты: `expect(openResults.filter(r=>r.status===201)).toHaveLength(1)`; повтор ключа не открывает вторую смену; cashier не читает чужой отчёт; owner закрывает чужую смену только с комментарием; actual 900 и expected 1000 дают discrepancy -100.
-- [ ] Запустить `npm test -- --runTestsByPath test/shifts.e2e-spec.ts` в apps/api; FAIL.
+- [ ] Запустить `npm run test:e2e -- --runTestsByPath test/shifts.e2e-spec.ts` в apps/api; FAIL.
 - [ ] Реализовать миграцию и сервисы; ограничить деньги MAX_SAFE_INTEGER. Блокировать смену при закрытии, считать ожидаемые деньги из payment_records, отклонять переполнение. Комментарий при расхождении обязателен, длина 1..500 после trim.
 - [ ] Повторить тест; PASS. Повторно выполнить миграции на тестовой базе; без изменений старых документов.
 - [ ] Коммит `feat: add cash shifts and payment ledger`.
@@ -96,7 +96,7 @@ Test apps/api/test/pos-sales.e2e-spec.ts.
 - Не более 100 уникальных строк; количество 1..1e9, деньги MAX_SAFE_INTEGER. GET истории возвращает returnedQuantity=0 до добавления возвратов.
 
 - [ ] Написать тесты приход10/продажа2/остаток8; cash увеличивает ожидаемые деньги, card нет; повтор даёт один payment; закрытая/чужая смена 409/403. Внести ошибку после stock-записи: `expect(await countPayments()).toBe(0)`, остаток прежний. Конкурентная продажа последней единицы и гонка закрытия не создают платежей после closed_at.
-- [ ] Запустить `npm test -- --runTestsByPath test/pos-sales.e2e-spec.ts test/sales.e2e-spec.ts`; FAIL новых кассовых тестов.
+- [ ] Запустить `npm run test:e2e -- --runTestsByPath test/pos-sales.e2e-spec.ts test/sales.e2e-spec.ts`; FAIL новых кассовых тестов.
 - [ ] Выделить только транзакционное ядро SalesService, не менять старые DTO. Новая операция: idempotency → смена FOR UPDATE → остатки в UUID-порядке → документ/строки → связь/платёж; всё на одном соединении.
 - [ ] Повторить команду; PASS; затем тесты смен.
 - [ ] Коммит `feat: post POS sales with atomic payments and history`.
@@ -114,7 +114,7 @@ Test apps/api/test/returns.e2e-spec.ts.
 - Новые return_documents/return_lines сохраняют исходные FK, condition, цену, восстановленную стоимость, актёра и reason 1..500. stock_documents допускает return. Годные строки создают положительное движение; defective сохраняется в return_lines без доступного stock-движения.
 
 - [ ] Написать тесты: продано2, возврат1 -> returnedQuantity1/остаток9; второй возврат2 ->409. Два конкурентных возврата последней единицы дают один успех. После нового прихода восстанавливается прежняя себестоимость. Для cost=100, qty=3 последовательные возвраты1 дают стоимость33,34,33; дефект возвращает деньги, но не доступный запас. Legacy refundMoney=true ->409; cashier/manager ->403.
-- [ ] Запустить `npm test -- --runTestsByPath test/returns.e2e-spec.ts`; FAIL.
+- [ ] Запустить `npm run test:e2e -- --runTestsByPath test/returns.e2e-spec.ts`; FAIL.
 - [ ] Реализовать порядок блокировок: idempotency → смена при выплате → sale_lines по id → stock по variantId. Возвращённое количество считать по всем состояниям товара. Стоимость очередной части = halfUp(C*(r+q)/Q) − halfUp(C*r/Q), bigint. Проверять итоговую стоимость/количество на overflow. Обновить returnedQuantity в истории.
 - [ ] Повторить тест; PASS. Проверить rollback платежа, возврата и остатка при ошибке.
 - [ ] Коммит `feat: add scoped returns with historical cost recovery`.
