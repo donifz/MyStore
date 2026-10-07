@@ -22,7 +22,7 @@ import { Type } from 'class-transformer';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { ShopAccessService } from '../shops/shop-access.service';
 import { SalesService } from './sales.service';
-class SaleLineDto {
+export class SaleLineDto {
   @IsUUID() variantId!: string;
   @IsInt() @Min(1) @Max(1000000000) quantity!: number;
   @IsInt()

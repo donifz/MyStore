@@ -5,3 +5,5 @@ dist/
 !.env.example
 .superpowers/
 coverage/
+test-results/
+playwright-report/

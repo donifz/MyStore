@@ -21,6 +21,7 @@ services:
       SESSION_SECRET: ${SESSION_SECRET:?Set a random SESSION_SECRET}
       NODE_ENV: production
       PORT: 3001
+      WEB_ORIGINS: ${WEB_ORIGINS:?Set WEB_ORIGINS to browser origin}
     ports:
       - '127.0.0.1:3001:3001'
     depends_on:

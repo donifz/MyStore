@@ -4,3 +4,6 @@ node_modules
 .env.*
 .superpowers
 **/dist
+
+**/test-results
+**/playwright-report

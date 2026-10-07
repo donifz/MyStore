@@ -20,6 +20,7 @@ import {
   MinLength,
   Matches,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { ShopAccessService } from '../shops/shop-access.service';
 import { VariantsService } from './variants.service';
@@ -36,6 +37,11 @@ export class VariantDto {
 class BarcodeQuery {
   @IsString() @MinLength(1) @MaxLength(64) code!: string;
 }
+class ListQuery {
+  @IsOptional() @IsString() @MaxLength(128) q = '';
+  @Type(() => Number) @IsInt() @Min(1) @Max(1000000) page = 1;
+  @Type(() => Number) @IsInt() @Min(1) @Max(100) pageSize = 25;
+}
 @Controller('shops/:shopId/variants')
 @UseGuards(AuthGuard)
 export class VariantsController {
@@ -43,6 +49,24 @@ export class VariantsController {
     private readonly access: ShopAccessService,
     private readonly variants: VariantsService,
   ) {}
+  @Get() async list(
+    @Param('shopId', ParseUUIDPipe) shopId: string,
+    @Req() req: UserRequest,
+    @Query() query: ListQuery,
+  ) {
+    const member = await this.access.requireMembership(
+      req.userId,
+      shopId,
+      'read',
+    );
+    return this.variants.list(
+      shopId,
+      query.q,
+      query.page,
+      query.pageSize,
+      member.role !== 'cashier',
+    );
+  }
   @Post() async create(
     @Param('shopId', ParseUUIDPipe) shopId: string,
     @Req() req: UserRequest,

@@ -4,3 +4,6 @@ node_modules
 package-lock.json
 docs/superpowers/specs
 docs/superpowers/plans
+
+**/test-results
+**/playwright-report

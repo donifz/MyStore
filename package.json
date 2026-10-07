@@ -2,17 +2,19 @@
   "name": "mystore",
   "private": true,
   "workspaces": [
-    "apps/api"
+    "apps/api",
+    "apps/web"
   ],
   "engines": {
     "node": ">=24.15 <25"
   },
   "scripts": {
-    "build": "npm run build --workspace apps/api",
-    "test": "npm run test:e2e --workspace apps/api",
-    "typecheck": "npm run typecheck --workspace apps/api",
+    "build": "npm run build --workspaces",
+    "test": "npm run test:e2e --workspace apps/api && npm run test --workspace apps/web",
+    "typecheck": "npm run typecheck --workspaces",
     "format:check": "prettier --check .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "dev:web": "npm run dev --workspace apps/web"
   },
   "devDependencies": {
     "prettier": "^3.9.9"
