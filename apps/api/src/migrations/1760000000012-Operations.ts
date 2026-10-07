@@ -41,6 +41,9 @@ export class Operations1760000000012 implements MigrationInterface {
       );
       CREATE INDEX audit_log_shop_date ON audit_log(shop_id,created_at DESC,id);
 
+      ALTER TABLE online_orders
+        ADD COLUMN status_changed_by uuid REFERENCES users(id);
+
       CREATE TABLE fiscal_receipts (
         shop_id uuid NOT NULL REFERENCES shops(id),
         sale_id uuid NOT NULL,
@@ -80,7 +83,7 @@ export class Operations1760000000012 implements MigrationInterface {
       BEGIN
         IF TG_OP='INSERT' OR OLD.status IS DISTINCT FROM NEW.status THEN
           INSERT INTO audit_log(shop_id,actor_id,action,entity_type,entity_id,details)
-          VALUES(NEW.shop_id,NEW.issued_by,'status:'||NEW.status,'online_order',NEW.id,
+          VALUES(NEW.shop_id,NEW.status_changed_by,'status:'||NEW.status,'online_order',NEW.id,
             jsonb_build_object('previous',CASE WHEN TG_OP='INSERT' THEN NULL ELSE OLD.status END,'totalMinor',NEW.total_minor));
           INSERT INTO notifications(shop_id,kind,title,body,entity_id)
           VALUES(NEW.shop_id,'order',
@@ -114,29 +117,16 @@ export class Operations1760000000012 implements MigrationInterface {
       CREATE TRIGGER product_moderation_events AFTER UPDATE OF status ON product_publication_revisions
       FOR EACH ROW EXECUTE FUNCTION product_moderation_events();
 
-      CREATE FUNCTION audit_variant_update() RETURNS trigger LANGUAGE plpgsql AS $$
-      BEGIN
-        IF OLD.sale_price_minor IS DISTINCT FROM NEW.sale_price_minor OR OLD.published IS DISTINCT FROM NEW.published THEN
-          INSERT INTO audit_log(shop_id,action,entity_type,entity_id,details)
-          VALUES(NEW.shop_id,'updated','variant',NEW.id,
-            jsonb_build_object('priceBefore',OLD.sale_price_minor,'priceAfter',NEW.sale_price_minor,
-              'publishedBefore',OLD.published,'publishedAfter',NEW.published));
-        END IF;
-        RETURN NEW;
-      END $$;
-      CREATE TRIGGER audit_variant_updates AFTER UPDATE ON variants
-      FOR EACH ROW EXECUTE FUNCTION audit_variant_update();
     `);
   }
 
   async down(q: QueryRunner) {
     await q.query(`
-      DROP TRIGGER IF EXISTS audit_variant_updates ON variants;
-      DROP FUNCTION IF EXISTS audit_variant_update();
       DROP TRIGGER IF EXISTS product_moderation_events ON product_publication_revisions;
       DROP FUNCTION IF EXISTS product_moderation_events();
       DROP TRIGGER IF EXISTS order_status_events ON online_orders;
       DROP FUNCTION IF EXISTS audit_order_status();
+      ALTER TABLE online_orders DROP COLUMN status_changed_by;
       DROP TRIGGER IF EXISTS audit_payments ON payment_records;
       DROP FUNCTION IF EXISTS audit_payment();
       DROP TRIGGER IF EXISTS audit_stock_documents ON stock_documents;

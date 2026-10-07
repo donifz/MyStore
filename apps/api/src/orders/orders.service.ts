@@ -241,6 +241,7 @@ export class OrdersService {
   async status(
     shop: string,
     id: string,
+    actor: string,
     status: 'confirmed' | 'ready' | 'cancelled',
   ) {
     // A terminal expired state must commit even when the requested transition cannot.
@@ -253,15 +254,17 @@ export class OrdersService {
         status === 'cancelled' &&
         ['new', 'confirmed', 'ready'].includes(o.status)
       )
-        return this.receiptDto(await this.expiry.release(tx, o, 'cancelled'));
+        return this.receiptDto(
+          await this.expiry.release(tx, o, 'cancelled', actor),
+        );
       if (!(
         (o.status === 'new' && status === 'confirmed') ||
         (o.status === 'confirmed' && status === 'ready')
       ))
         throw new ConflictException('Invalid order transition');
       const [[updated]] = await tx.query(
-        'UPDATE online_orders SET status=$3,expires_at=NULL,updated_at=now() WHERE shop_id=$1 AND id=$2 RETURNING *',
-        [shop, id, status],
+        'UPDATE online_orders SET status=$3,status_changed_by=$4,expires_at=NULL,updated_at=now() WHERE shop_id=$1 AND id=$2 RETURNING *',
+        [shop, id, status, actor],
       );
       return this.receiptDto(updated);
     });
@@ -317,7 +320,7 @@ export class OrdersService {
           true,
         );
         const [[updated]] = await tx.query(
-          "UPDATE online_orders SET status='issued',sale_id=$3,issued_by=$4,updated_at=now() WHERE shop_id=$1 AND id=$2 RETURNING *",
+          "UPDATE online_orders SET status='issued',sale_id=$3,issued_by=$4,status_changed_by=$4,updated_at=now() WHERE shop_id=$1 AND id=$2 RETURNING *",
           [shop, id, sale.id, actor],
         );
         return { ...this.receiptDto(updated), saleId: sale.id };

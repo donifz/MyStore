@@ -14,6 +14,7 @@ export class OrderExpirationService {
     tx: EntityManager,
     order: any,
     status: 'expired' | 'cancelled',
+    actor?: string,
   ) {
     const lines = await tx.query(
       'SELECT variant_id,quantity FROM online_order_lines WHERE shop_id=$1 AND order_id=$2 ORDER BY variant_id',
@@ -30,8 +31,8 @@ export class OrderExpirationService {
         [order.shop_id, l.variant_id, l.quantity],
       );
     const [[updated]] = await tx.query(
-      'UPDATE online_orders SET status=$3,expires_at=NULL,updated_at=now() WHERE shop_id=$1 AND id=$2 RETURNING *',
-      [order.shop_id, order.id, status],
+      'UPDATE online_orders SET status=$3,status_changed_by=$4,expires_at=NULL,updated_at=now() WHERE shop_id=$1 AND id=$2 RETURNING *',
+      [order.shop_id, order.id, status, actor ?? null],
     );
     return updated;
   }

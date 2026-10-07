@@ -181,6 +181,24 @@ export class VariantsService {
         (k) => before[k] !== row[k],
       );
       if (changed) await stageProduct(tx, row, actor);
+      if (
+        before.sale_price_minor !== row.sale_price_minor ||
+        before.published !== row.published
+      )
+        await tx.query(
+          `INSERT INTO audit_log(shop_id,actor_id,action,entity_type,entity_id,details)
+           VALUES($1,$2,'updated','variant',$3,
+             jsonb_build_object('priceBefore',$4,'priceAfter',$5,'publishedBefore',$6,'publishedAfter',$7))`,
+          [
+            shopId,
+            actor,
+            id,
+            before.sale_price_minor,
+            row.sale_price_minor,
+            before.published,
+            row.published,
+          ],
+        );
       const [pending] = await tx.query(
         "SELECT 1 FROM product_publication_revisions WHERE variant_id=$1 AND status='pending'",
         [id],
