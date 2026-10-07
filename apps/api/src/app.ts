@@ -28,9 +28,18 @@ import { PosSalesService } from './pos/pos-sales.service';
 import { SalesHistoryService } from './pos/sales-history.service';
 import { ReturnsController } from './pos/returns.controller';
 import { ReturnsService } from './pos/returns.service';
+import { StorefrontService } from './storefront/storefront.service';
+import {
+  PublicStorefrontController,
+  StorefrontSettingsController,
+  PartnersController,
+} from './storefront/storefront.controller';
 export async function createApp(db: DataSource) {
   @Module({
     controllers: [
+      PublicStorefrontController,
+      StorefrontSettingsController,
+      PartnersController,
       AuthController,
       WebAuthController,
       ShopsController,
@@ -43,6 +52,7 @@ export async function createApp(db: DataSource) {
     ],
     providers: [
       { provide: DATABASE, useValue: db },
+      StorefrontService,
       AuthService,
       AuthGuard,
       ShopAccessService,
@@ -87,6 +97,9 @@ export async function createApp(db: DataSource) {
           return next();
         if (
           req.path === '/' ||
+          req.path === '/partner' ||
+          req.path === '/shops' ||
+          /^\/shops\/[^/]+(?:\/products\/[^/]+)?\/?$/.test(req.path) ||
           req.path === '/seller' ||
           req.path.startsWith('/seller/')
         ) {

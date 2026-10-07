@@ -1,4 +1,4 @@
-import { Routes, Route, Link } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { SessionProvider } from './auth/SessionProvider';
 import LoginPage from './auth/LoginPage';
 import SellerLayout, { ShopSelect } from './layout/SellerLayout';
@@ -10,23 +10,29 @@ import ShiftPage from './pos/ShiftPage';
 import SalesHistoryPage from './pos/SalesHistoryPage';
 import ReturnPage from './pos/ReturnPage';
 import SaleDetailPage from './pos/SaleDetailPage';
+import PublicLayout from './storefront/PublicLayout';
+import CatalogPublicPage from './storefront/CatalogPublicPage';
+import StoresPage from './storefront/StoresPage';
+import ProductPage from './storefront/ProductPage';
+import PartnerPage from './storefront/PartnerPage';
+import StorefrontSettingsPage from './storefront/StorefrontSettingsPage';
+import EditVariantPage from './catalog/EditVariantPage';
 export default function App() {
   return (
     <SessionProvider>
       <Routes>
-        <Route
-          path="/"
-          element={
-            <main className="chooser">
-              <h1>MyStore</h1>
-              <p>Магазины, товары и общие остатки</p>
-              <Link to="/seller">Войти для продавцов</Link>
-            </main>
-          }
-        />
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<CatalogPublicPage />} />
+          <Route path="/shops" element={<StoresPage />} />
+          <Route path="/shops/:slug" element={<CatalogPublicPage />} />
+          <Route path="/shops/:slug/products/:id" element={<ProductPage />} />
+          <Route path="/partner" element={<PartnerPage />} />
+        </Route>
         <Route path="/seller/login" element={<LoginPage />} />
         <Route path="/seller" element={<ShopSelect />} />
         <Route path="/seller/:shopId" element={<SellerLayout />}>
+          <Route path="storefront" element={<StorefrontSettingsPage />} />
+          <Route path="products/:id/edit" element={<EditVariantPage />} />
           <Route path="shift" element={<ShiftPage />} />
           <Route path="sales" element={<SalesHistoryPage />} />
           <Route path="sales/:saleId" element={<SaleDetailPage />} />

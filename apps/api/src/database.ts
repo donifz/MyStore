@@ -6,6 +6,7 @@ import { Inventory1760000000002 } from './migrations/1760000000002-Inventory';
 import { Sales1760000000003 } from './migrations/1760000000003-Sales';
 import { Pos1760000000004 } from './migrations/1760000000004-Pos';
 import { Returns1760000000005 } from './migrations/1760000000005-Returns';
+import { Storefront1760000000006 } from './migrations/1760000000006-Storefront';
 export const DATABASE = Symbol('DATABASE');
 export function buildDataSource(url: string) {
   return new DataSource({
@@ -19,6 +20,7 @@ export function buildDataSource(url: string) {
       Sales1760000000003,
       Pos1760000000004,
       Returns1760000000005,
+      Storefront1760000000006,
     ],
   });
 }

@@ -7,6 +7,9 @@ export type Me = {
   shops: Shop[];
 };
 export type Variant = {
+  description?: string;
+  category?: string;
+  published?: boolean;
   id: string;
   name: string;
   barcode: string;
