@@ -84,6 +84,7 @@ export default function Checkout() {
     sending.current = true;
     setBusy(true);
     setError('');
+    const hadPendingKey = Boolean(c.checkoutKey);
     try {
       const key = c.checkoutKey || crypto.randomUUID();
       c.setKey(key);
@@ -122,7 +123,9 @@ export default function Checkout() {
           setUnknown(false);
         } catch (lookup) {
           if (lookup instanceof PublicError && lookup.status === 404) {
-            c.setKey('');
+            // A rejected retry cannot prove an earlier interrupted request
+            // will never arrive. Reuse its key until a receipt is recovered.
+            if (!hadPendingKey) c.setKey('');
             setUnknown(false);
             setError(
               e.status === 409

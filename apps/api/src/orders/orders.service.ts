@@ -66,7 +66,6 @@ export class OrdersService {
       );
     const digest = hash(input.checkoutKey.toLowerCase()),
       fingerprint = hash(JSON.stringify(payload));
-    await this.expiry.expire();
     return this.db.transaction(async (tx) => {
       await tx.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [
         'public-order:' + digest,
@@ -85,6 +84,8 @@ export class OrdersService {
         [payload.storeSlug],
       );
       if (!shop) throw new NotFoundException('Store unavailable');
+      // Keep recovery behind this key lock throughout expiry catch-up.
+      await this.expiry.expireForCheckout(tx, shop.id);
       await tx.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [
         'order-phone:' + shop.id + ':' + payload.phone,
       ]);
@@ -189,7 +190,7 @@ export class OrdersService {
     };
   }
   async list(shop: string, page: number, pageSize: number) {
-    await this.expiry.expire();
+    await this.expiry.expire(shop);
     const [count] = await this.db.query(
       'SELECT count(*)::int total FROM online_orders WHERE shop_id=$1',
       [shop],
@@ -206,7 +207,7 @@ export class OrdersService {
     };
   }
   async detail(shop: string, id: string) {
-    await this.expiry.expire();
+    await this.expiry.expire(shop);
     const [o] = await this.db.query(
       'SELECT * FROM online_orders WHERE shop_id=$1 AND id=$2',
       [shop, id],
@@ -243,7 +244,7 @@ export class OrdersService {
     status: 'confirmed' | 'ready' | 'cancelled',
   ) {
     // A terminal expired state must commit even when the requested transition cannot.
-    await this.expiry.expire();
+    await this.expiry.expire(shop);
     const result = await this.db.transaction(async (tx) => {
       const o = await this.lock(tx, shop, id);
       if (o.status === status) return this.receiptDto(o);

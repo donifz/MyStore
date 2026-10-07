@@ -35,11 +35,14 @@ export class OrderExpirationService {
     );
     return updated;
   }
-  async expire() {
-    for (let i = 0; i < 100; i++) {
+  async expire(shop?: string) {
+    // Each transaction is bounded to one order; drain all available overdue
+    // work before startup completes. Checkout scopes catch-up to its shop.
+    for (;;) {
       const found = await this.db.transaction(async (tx) => {
         const [o] = await tx.query(
-          "SELECT * FROM online_orders WHERE status='new' AND expires_at<=now() ORDER BY expires_at,id LIMIT 1 FOR UPDATE SKIP LOCKED",
+          "SELECT * FROM online_orders WHERE status='new' AND expires_at<=now() AND ($1::uuid IS NULL OR shop_id=$1) ORDER BY expires_at,id LIMIT 1 FOR UPDATE SKIP LOCKED",
+          [shop ?? null],
         );
         if (!o) return false;
         await this.release(tx, o, 'expired');
@@ -47,5 +50,25 @@ export class OrderExpirationService {
       });
       if (!found) break;
     }
+  }
+  async expireForCheckout(tx: EntityManager, shop: string) {
+    // Acquire every relevant order lock before any stock lock, then lock the
+    // union of variants in sorted order. This avoids both nested pool waits
+    // and cross-order stock lock inversions during a checkout transaction.
+    const orders = await tx.query(
+      "SELECT * FROM online_orders WHERE shop_id=$1 AND status='new' AND expires_at<=now() ORDER BY id FOR UPDATE",
+      [shop],
+    );
+    if (!orders.length) return;
+    const lines = await tx.query(
+      'SELECT DISTINCT variant_id FROM online_order_lines WHERE shop_id=$1 AND order_id=ANY($2::uuid[]) ORDER BY variant_id',
+      [shop, orders.map((o: any) => o.id)],
+    );
+    await this.stock.lock(
+      tx,
+      shop,
+      lines.map((l: any) => l.variant_id),
+    );
+    for (const order of orders) await this.release(tx, order, 'expired');
   }
 }

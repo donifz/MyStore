@@ -2,6 +2,8 @@ import request from 'supertest';
 import { randomUUID } from 'node:crypto';
 import { createApp } from '../src/app';
 import { setup, teardown, fixture } from './helpers';
+import { OrdersService } from '../src/orders/orders.service';
+import { OrderExpirationService } from '../src/orders/order-expiration.service';
 
 describe('online orders and shared stock', () => {
   let c: Awaited<ReturnType<typeof setup>>, v: any, slug: string;
@@ -173,6 +175,113 @@ describe('online orders and shared stock', () => {
     for (let i = 0; i < 3; i++) await checkout(input(1)).expect(201);
     await checkout(input(1)).expect(429);
     expect((await balance()).reserved).toBe('3');
+  });
+  it('waits for creation paused in expiry instead of returning a missing receipt', async () => {
+    const service = c.app.get(OrdersService),
+      expiry = c.app.get(OrderExpirationService);
+    let release!: () => void, entered!: () => void;
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    const started = new Promise<void>((r) => {
+      entered = r;
+    });
+    const spy = jest
+      .spyOn(expiry, 'expireForCheckout')
+      .mockImplementationOnce(async () => {
+        entered();
+        await gate;
+      });
+    const body = input();
+    const creating = service.create(body as any);
+    await started;
+    let settled = false;
+    const recovering = service
+      .receipt(body.checkoutKey)
+      .catch((e) => e)
+      .then((r) => {
+        settled = true;
+        return r;
+      });
+    await new Promise((r) => setTimeout(r, 100));
+    const premature = settled;
+    release();
+    const [created, recovered] = await Promise.all([creating, recovering]);
+    spy.mockRestore();
+    expect(premature).toBe(false);
+    expect(recovered).toEqual(created);
+    expect((await balance()).reserved).toBe('2');
+  });
+  it('drains an overdue backlog larger than a sweep batch before checkout', async () => {
+    await privatePost('receivings', {
+      lines: [{ variantId: v.id, quantity: 100, unitCostMinor: 8000 }],
+    }).expect(201);
+    await c.db.query(
+      "INSERT INTO online_orders(id,shop_id,checkout_hash,fingerprint,store_name,name,phone,fulfillment,address,comment,total_minor,expires_at) SELECT gen_random_uuid(),$1,md5(n::text),md5(n::text),'Test Shop','Backlog','996700123456','pickup','','',15000,now()-interval '1 minute' FROM generate_series(1,101) n",
+      [fixture.shop],
+    );
+    await c.db.query(
+      'INSERT INTO online_order_lines(shop_id,order_id,variant_id,name,barcode,quantity,unit_price_minor) SELECT shop_id,id,$1,$2,$3,1,15000 FROM online_orders',
+      [v.id, v.name, v.barcode],
+    );
+    await c.db.query(
+      'UPDATE stock_balances SET reserved=101 WHERE variant_id=$1',
+      [v.id],
+    );
+    await c.app.get(OrderExpirationService).expire();
+    expect((await balance()).reserved).toBe('0');
+    await c.db.query(
+      "UPDATE online_orders SET status='new',expires_at=now()-interval '1 minute'",
+    );
+    await c.db.query(
+      'UPDATE stock_balances SET reserved=101 WHERE variant_id=$1',
+      [v.id],
+    );
+    expect((await checkout(input(105)).expect(201)).body.totalMinor).toBe(
+      1575000,
+    );
+  });
+  it('handles more simultaneous checkouts than pooled database connections', async () => {
+    await privatePost('receivings', {
+      lines: [{ variantId: v.id, quantity: 10, unitCostMinor: 8000 }],
+    }).expect(201);
+    const responses = await Promise.all(
+      Array.from({ length: 12 }, (_, i) =>
+        checkout({ ...input(1), phone: `996700${String(i).padStart(6, '0')}` }),
+      ),
+    );
+    expect(responses.map((r) => r.status)).toEqual(Array(12).fill(201));
+    expect((await balance()).reserved).toBe('12');
+  });
+  it('separates proxied clients on Render and ignores forged earlier addresses', async () => {
+    const previous = process.env.RENDER;
+    let proxied: Awaited<ReturnType<typeof createApp>> | undefined;
+    try {
+      process.env.RENDER = 'true';
+      proxied = await createApp(c.db);
+      await proxied.init();
+      const lookup = (forwarded: string) =>
+        request(proxied!.getHttpServer())
+          .post('/public/orders/receipt')
+          .set('origin', 'http://localhost:5173')
+          .set('x-forwarded-for', forwarded)
+          .send({ checkoutKey: randomUUID() });
+      for (let i = 0; i < 20; i++) await lookup('192.0.2.1').expect(404);
+      await lookup('198.51.100.99, 192.0.2.1').expect(429);
+      await lookup('192.0.2.2').expect(404);
+    } finally {
+      if (previous === undefined) delete process.env.RENDER;
+      else process.env.RENDER = previous;
+      await proxied?.close();
+    }
+    for (let i = 0; i < 20; i++)
+      await request(http())
+        .post('/public/orders/receipt')
+        .set('origin', 'http://localhost:5173')
+        .set('x-forwarded-for', `192.0.2.${i + 1}`)
+        .send({ checkoutKey: randomUUID() })
+        .expect(404);
+    await receipt(randomUUID()).expect(429);
   });
   it('tenant/role guards protect contacts and management', async () => {
     const o = (await checkout(input()).expect(201)).body;

@@ -196,6 +196,57 @@ async function shopForCart(request: APIRequestContext, name: string) {
   });
   return { shop, headers, v, url: `/shops/${profile.slug}/products/${v.id}` };
 }
+test('keeps an uncertain checkout key after a rejected recovery retry', async ({
+  page,
+  request,
+}) => {
+  const a = await shopForCart(request, 'Повтор заказа');
+  await page.goto(a.url);
+  await page.getByRole('button', { name: 'В корзину', exact: true }).click();
+  await page.getByRole('link', { name: /Корзина \(/ }).click();
+  await page.getByLabel('Ваше имя').fill('Покупатель');
+  await page.getByLabel('Ваш телефон').fill('+996700555555');
+  await page.route('**/api/public/orders', (route) => route.abort('failed'));
+  await page
+    .getByRole('button', { name: 'Подтвердить заказ', exact: true })
+    .click();
+  await expect(
+    page.getByRole('alert').filter({ hasText: 'Результат неизвестен' }),
+  ).toBeVisible();
+  const key = await page.evaluate(() =>
+    sessionStorage.getItem('mystore-checkout-key'),
+  );
+  await page.unroute('**/api/public/orders');
+  await page
+    .getByRole('button', { name: 'Проверить заказ', exact: true })
+    .click();
+  await expect(
+    page.getByRole('alert').filter({ hasText: 'Заказ пока не найден' }),
+  ).toBeVisible();
+  await page.getByLabel('Ваш телефон').fill('invalid');
+  await page
+    .getByRole('button', { name: 'Подтвердить заказ', exact: true })
+    .click();
+  await expect(
+    page.getByRole('alert').filter({ hasText: 'Проверьте имя' }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() => sessionStorage.getItem('mystore-checkout-key')),
+  ).toBe(key);
+  await page.getByLabel('Ваш телефон').fill('+996700555555');
+  let sentKey: string | undefined;
+  await page.route('**/api/public/orders', async (route) => {
+    sentKey = route.request().postDataJSON().checkoutKey;
+    await route.continue();
+  });
+  await page
+    .getByRole('button', { name: 'Подтвердить заказ', exact: true })
+    .click();
+  await expect(
+    page.getByRole('heading', { name: 'Заказ принят' }),
+  ).toBeVisible();
+  expect(sentKey).toBe(key);
+});
 test('requires explicit other-shop replacement and allows correcting a rejected price', async ({
   page,
   request,

@@ -87,6 +87,11 @@ export async function createApp(
   })
   class AppModule {}
   const app = await NestFactory.create(AppModule, { logger: false });
+  // Render's public ingress appends the connecting client address. Trust
+  // only that final hop, never caller-supplied earlier forwarded addresses.
+  // Direct/local deployments continue to ignore forwarded headers.
+  if (process.env.RENDER === 'true')
+    app.getHttpAdapter().getInstance().set('trust proxy', 1);
   if (process.env.NODE_ENV === 'production' && !process.env.WEB_ORIGINS)
     throw new Error('WEB_ORIGINS required');
   app.use(express.json({ limit: '1mb' }));

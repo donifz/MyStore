@@ -37,7 +37,7 @@
 - Consumes StockService.lock(tx,shopId,ids), SalesService.normalize(lines), ShiftsService.lockOpen(tx,shopId,shiftId,actorId).
 - Produces POST /public/orders {checkoutKey,storeSlug,name,phone,fulfillment,address,comment,lines}; POST /public/orders/receipt {checkoutKey}; receipt {id,status,totalMinor,expiresAt,storeName} without contacts.
 - Produces GET /shops/:shopId/orders (paginated), GET /shops/:shopId/orders/:id (contact/line snapshots), POST /shops/:shopId/orders/:id/status {status:'confirmed'|'ready'|'cancelled'}, POST .../issue {shiftId,method:'cash'|'card'} with Idempotency-Key.
-- Produces OrderExpirationService.expire(): Promise<void>; PosSalesService.postInTransaction(tx,shopId,actorId,shiftId,method,lines,agreedPrice=false).
+- Produces OrderExpirationService.expire(shop?: string): Promise<void>, draining overdue work in single-order transactions, and expireForCheckout(tx,shop) locking overdue orders before their sorted stock union; PosSalesService.postInTransaction(tx,shopId,actorId,shiftId,method,lines,agreedPrice=false).
 
 - [ ] Write real-DB API tests for creating/retrying/conflicting checkout, receipt privacy, validation, hidden/current-price rejection, all-line rollback, stock competition, cancellation/expiry, tenant/role guards, snapshot-price issuing, concurrent exactly-once issuing and payment/return compatibility.
 - [ ] Run `bash /tmp/mystore-order-tests.sh npm run test:e2e --workspace apps/api -- --runInBand orders`; expect missing-route 404 assertions.
