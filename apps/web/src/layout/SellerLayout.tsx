@@ -98,6 +98,7 @@ export default function SellerLayout() {
             </>
           )}
           <NavLink to={base + '/orders'}>Заказы</NavLink>
+          <NavLink to={base + '/operations'}>Уведомления</NavLink>
           <NavLink to={base + '/pos'}>Касса</NavLink>
           <NavLink to={base + '/shift'}>Смена</NavLink>
           <NavLink to={base + '/sales'}>Продажи и возвраты</NavLink>

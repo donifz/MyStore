@@ -24,6 +24,7 @@ import BarcodeLabelsPage from './catalog/BarcodeLabelsPage';
 import AdminPage from './platform/AdminPage';
 import StockOperationsPage from './inventory/StockOperationsPage';
 import ReportsPage from './reports/ReportsPage';
+import OperationsPage from './operations/OperationsPage';
 export default function App() {
   return (
     <SessionProvider>
@@ -51,6 +52,7 @@ export default function App() {
           <Route path="receiving" element={<ReceivingPage />} />
           <Route path="inventory" element={<StockOperationsPage />} />
           <Route path="reports" element={<ReportsPage />} />
+          <Route path="operations" element={<OperationsPage />} />
           <Route path="products" element={<CatalogPage />} />
           <Route path="products/capture" element={<CapturePage />} />
           <Route path="labels" element={<BarcodeLabelsPage />} />
