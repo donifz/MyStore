@@ -998,6 +998,7 @@ fieldset {
   .market-header {
     padding: 20px;
     gap: 15px;
+    flex-wrap: wrap;
   }
   .market-country {
     display: none;
@@ -1081,4 +1082,88 @@ fieldset {
   .market-title h1 {
     font-size: 32px;
   }
+}
+
+.checkout-panel {
+  max-width: 650px;
+  margin: 24px 0;
+  padding: 28px;
+}
+.checkout-panel fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 18px;
+}
+.checkout-panel label {
+  display: grid;
+  gap: 8px;
+}
+.cart-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 16px 0;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+}
+.cart-row input {
+  max-width: 100px;
+}
+.buy-actions {
+  margin: 20px 0;
+}
+.buy-actions button,
+.checkout-panel > button {
+  margin-right: 12px;
+  margin-bottom: 12px;
+}
+
+.order-detail {
+  padding: 26px;
+}
+.order-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 20px 0;
+}
+
+.capture-panel {
+  padding: 28px;
+  max-width: 680px;
+}
+.capture-panel fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 18px;
+}
+.capture-panel label {
+  display: grid;
+  gap: 8px;
+}
+.capture-photo {
+  max-width: 100%;
+  width: 320px;
+  max-height: 320px;
+  object-fit: contain;
+  border-radius: 14px;
+  background: #f5f3ef;
+}
+.capture-panel button {
+  margin-right: 12px;
+}
+.product-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.checkout-panel p,
+.capture-panel p {
+  overflow-wrap: anywhere;
 }

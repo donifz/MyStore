@@ -136,7 +136,13 @@ export default async function Catalog({
               href={'/shops/' + v.store.slug + '/products/' + v.id}
             >
               <div className="product-cover" aria-hidden="true">
-                <span>{v.name.slice(0, 1).toUpperCase()}</span>
+                <>
+                  {v.photoUrl ? (
+                    <img src={v.photoUrl} alt="" loading="lazy" />
+                  ) : (
+                    <span>{v.name.slice(0, 1).toUpperCase()}</span>
+                  )}
+                </>
                 <small>{v.category || 'Товар магазина'}</small>
               </div>
               <div className="product-copy">

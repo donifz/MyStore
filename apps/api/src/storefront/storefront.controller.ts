@@ -29,6 +29,7 @@ import { Request, Response } from 'express';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { AuthService } from '../auth/auth.service';
 import { validateOrigin } from '../auth/browser-security';
+import { CaptureService } from '../catalog/capture.service';
 import { StorefrontService } from './storefront.service';
 class PageQuery {
   @IsOptional() @IsString() @MaxLength(128) q = '';
@@ -56,7 +57,18 @@ class RegisterDto {
 }
 @Controller('public')
 export class PublicStorefrontController {
-  constructor(private readonly service: StorefrontService) {}
+  constructor(
+    private readonly service: StorefrontService,
+    private readonly capture: CaptureService,
+  ) {}
+  @Get('stores/:slug/products/:id/photo') async photo(
+    @Param('slug') slug: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Res() res: Response,
+  ) {
+    res.setHeader('Cache-Control', 'no-store');
+    res.type('image/jpeg').send(await this.capture.photo(null, id, slug));
+  }
   @Get('stores') stores(
     @Query() q: PageQuery,
     @Res({ passthrough: true }) res: Response,

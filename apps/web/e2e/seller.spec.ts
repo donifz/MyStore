@@ -174,9 +174,14 @@ test('two windows post one ordinary draft exactly once before storage events arr
     ),
   );
   await login(page);
-  const salesBefore = (
-    await (await page.request.get('/api/shops/' + shop + '/pos/sales')).json()
-  ).total;
+  const salesBefore = await page.evaluate(
+    async (url) => {
+      const r = await fetch(url, { credentials: 'same-origin' });
+      if (!r.ok) throw new Error('History request failed: ' + r.status);
+      return (await r.json()).total as number;
+    },
+    '/api/shops/' + shop + '/pos/sales',
+  );
   await page.getByRole('link', { name: 'Добавить товар' }).click();
   await page.getByLabel('Название', { exact: true }).fill('Рюкзак Concurrent');
   await page.getByLabel('Штрихкод', { exact: true }).fill('0012345678929');

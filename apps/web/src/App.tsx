@@ -1,3 +1,5 @@
+import CapturePage from './catalog/CapturePage';
+import OrdersPage from './orders/OrdersPage';
 import { Routes, Route } from 'react-router-dom';
 import { SessionProvider } from './auth/SessionProvider';
 import LoginPage from './auth/LoginPage';
@@ -33,6 +35,8 @@ export default function App() {
         <Route path="/seller/:shopId" element={<SellerLayout />}>
           <Route path="storefront" element={<StorefrontSettingsPage />} />
           <Route path="products/:id/edit" element={<EditVariantPage />} />
+          <Route path="orders" element={<OrdersPage />} />
+          <Route path="orders/:id" element={<OrdersPage />} />
           <Route path="shift" element={<ShiftPage />} />
           <Route path="sales" element={<SalesHistoryPage />} />
           <Route path="sales/:saleId" element={<SaleDetailPage />} />
@@ -40,6 +44,7 @@ export default function App() {
           <Route path="pos" element={<SalePage />} />
           <Route path="receiving" element={<ReceivingPage />} />
           <Route path="products" element={<CatalogPage />} />
+          <Route path="products/capture" element={<CapturePage />} />
           <Route path="products/new" element={<CreateVariantPage />} />
         </Route>
         <Route

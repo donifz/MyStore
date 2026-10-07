@@ -29,6 +29,7 @@ describe('public Next handler boundary', () => {
     '/shops/shop-a',
     '/shops/shop-a/products/abc',
     '/partner',
+    '/cart',
     '/_next/static/chunk.js',
     '/robots.txt',
     '/sitemap.xml',

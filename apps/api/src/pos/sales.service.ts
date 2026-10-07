@@ -44,6 +44,7 @@ export class SalesService {
     shopId: string,
     actorId: string,
     normalized: SaleLine[],
+    reservedOrder = false,
   ): Promise<SaleResult> {
     const total = safeMoney(
       normalized.reduce(
@@ -59,13 +60,23 @@ export class SalesService {
     const id = randomUUID();
     for (const line of normalized) {
       const row = rows.get(line.variantId)!;
-      if (Number(row.sale_price_minor) !== line.expectedUnitPriceMinor)
+      if (
+        !reservedOrder &&
+        Number(row.sale_price_minor) !== line.expectedUnitPriceMinor
+      )
         throw new ConflictException({
           message: 'Price changed',
           variantId: line.variantId,
           currentUnitPriceMinor: Number(row.sale_price_minor),
         });
-      if (Number(row.physical) - Number(row.reserved) < line.quantity)
+      if (reservedOrder && Number(row.reserved) < line.quantity)
+        throw new ConflictException('Order reservation missing');
+      if (
+        Number(row.physical) -
+          Number(row.reserved) +
+          (reservedOrder ? line.quantity : 0) <
+        line.quantity
+      )
         throw new ConflictException({
           message: 'Insufficient available stock',
           variantId: line.variantId,
@@ -83,8 +94,14 @@ export class SalesService {
       const q = BigInt(line.quantity);
       const cost = (2n * value * q + physical) / (2n * physical);
       await tx.query(
-        'UPDATE stock_balances SET physical=physical-$3,stock_value_minor=stock_value_minor-$4 WHERE shop_id=$1 AND variant_id=$2',
-        [shopId, line.variantId, line.quantity, safeMoney(cost)],
+        'UPDATE stock_balances SET physical=physical-$3,reserved=reserved-$5,stock_value_minor=stock_value_minor-$4 WHERE shop_id=$1 AND variant_id=$2',
+        [
+          shopId,
+          line.variantId,
+          line.quantity,
+          safeMoney(cost),
+          reservedOrder ? line.quantity : 0,
+        ],
       );
       await tx.query(
         'INSERT INTO stock_movements(id,shop_id,document_id,variant_id,quantity,value_minor)VALUES($1,$2,$3,$4,$5,$6)',

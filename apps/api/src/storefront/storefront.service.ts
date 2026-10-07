@@ -123,6 +123,9 @@ export class StorefrontService {
   private productDto(r: any, detail = false) {
     return {
       id: r.id,
+      ...(r.has_photo
+        ? { photoUrl: `/api/public/stores/${r.slug}/products/${r.id}/photo` }
+        : {}),
       name: r.name,
       description: r.description,
       category: r.category,
@@ -138,7 +141,7 @@ export class StorefrontService {
       },
     };
   }
-  private select = `SELECT v.id,v.name,v.description,v.category,v.sale_price_minor,COALESCE(b.physical,0)-COALESCE(b.reserved,0) available,s.slug,s.name shop_name,s.city,s.phone,s.address,s.hours FROM variants v JOIN shops s ON s.id=v.shop_id LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id`;
+  private select = `SELECT v.id,(v.photo_data IS NOT NULL) has_photo,v.name,v.description,v.category,v.sale_price_minor,COALESCE(b.physical,0)-COALESCE(b.reserved,0) available,s.slug,s.name shop_name,s.city,s.phone,s.address,s.hours FROM variants v JOIN shops s ON s.id=v.shop_id LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id`;
   async products(query: PublicQuery) {
     const { q, page, pageSize, store, category, inStock, sort } = query;
     if (store) await this.store(store);

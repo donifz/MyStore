@@ -79,8 +79,14 @@ export default function SellerLayout() {
           )}
           <NavLink to={base + '/products'}>Товары</NavLink>
           {shop.role !== 'cashier' && (
-            <NavLink to={base + '/receiving'}>Приёмка</NavLink>
+            <>
+              <NavLink to={base + '/products/capture'}>
+                Скан / фото товара
+              </NavLink>
+              <NavLink to={base + '/receiving'}>Приёмка</NavLink>
+            </>
           )}
+          <NavLink to={base + '/orders'}>Заказы</NavLink>
           <NavLink to={base + '/pos'}>Касса</NavLink>
           <NavLink to={base + '/shift'}>Смена</NavLink>
           <NavLink to={base + '/sales'}>Продажи и возвраты</NavLink>

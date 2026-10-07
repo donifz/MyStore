@@ -1,0 +1,9 @@
+# Photo receiving
+
+User steering adds a seller button «Скан / фото товара». Owner/manager photographs or chooses an image, manually enters name, purchase price, sale price, quantity (default 1), optional category/description and existing barcode. Confirmation creates the product, automatic article and barcode if blank, and a receiving document in one idempotent transaction. No automatic recognition is claimed. Existing USB scanner input stays usable.
+
+Normalize client image to JPEG <=512 KiB. Server decodes with sharp, limits input pixels to 16 million, resizes within 1024x1024, strips metadata, re-encodes JPEG <=512 KiB; reject invalid/oversized images. Store bytes in PostgreSQL so existing free Render deployment needs no persistent disk or third-party storage. Limit JSON body to 1 MiB. Public image endpoint serves only published shop/products, image/jpeg and nosniff; private image endpoint requires membership. Public DTO contains only an image URL, never purchase price.
+
+Automatic article uses PostgreSQL sequence, prefix MS- and eight-digit minimum padding, unique per shop. Existing products receive articles too. Existing Code128-compatible internal barcode generation remains. User confirms after photo preview and all entered fields. Disable mutation while submission is uncertain and retry identical saved body/key; a reload recovers the immutable submission through existing draft machinery. A receipt is never duplicated and capture failure leaves neither product nor stock. After success show article/barcode, quantity and photo; keep existing plain product creation supported.
+
+Verify real DB transaction/idempotency/guards/privacy/image validation, and browser file upload -> review -> confirm -> stock/photo plus existing order flow. Thermal automatic printing and AI recognition are separate later work.

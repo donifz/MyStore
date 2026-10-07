@@ -9,6 +9,7 @@ export type Store = {
   hours?: string;
 };
 export type Product = {
+  photoUrl?: string;
   id: string;
   name: string;
   description: string;

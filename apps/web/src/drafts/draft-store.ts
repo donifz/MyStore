@@ -1,7 +1,14 @@
 export type DraftScope = {
   userId: string;
   shopId: string;
-  kind: 'receiving' | 'sale' | 'return' | 'shift-open' | 'shift-close';
+  kind:
+    | 'receiving'
+    | 'sale'
+    | 'return'
+    | 'shift-open'
+    | 'shift-close'
+    | 'order-issue'
+    | 'capture';
 };
 export type DraftLine = {
   id: string;

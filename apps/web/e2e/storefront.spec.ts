@@ -58,7 +58,7 @@ test('partner creates a draft, publishes inventory and buyers browse without log
       }),
     ).toBeVisible();
     await expect(
-      publicPage.getByText('Нет в наличии', { exact: true }),
+      publicPage.locator('p.stock').filter({ hasText: 'Нет в наличии' }),
     ).toBeVisible();
     await expect(
       publicPage.getByRole('link', { name: 'Связаться с магазином' }),
