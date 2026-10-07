@@ -21,7 +21,7 @@ export class HealthController {
     try {
       await this.db.query('SELECT 1');
       const [outbox] = await this.db.query(
-        "SELECT count(*)::int pending,COALESCE(EXTRACT(EPOCH FROM (now()-min(created_at))),0)::int oldest_seconds FROM outbox_events WHERE processed_at IS NULL",
+        'SELECT count(*)::int pending,COALESCE(EXTRACT(EPOCH FROM (now()-min(created_at))),0)::int oldest_seconds FROM outbox_events WHERE processed_at IS NULL',
       );
       return {
         ok: true,

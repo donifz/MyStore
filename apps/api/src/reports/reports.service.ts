@@ -12,12 +12,8 @@ export class ReportsService {
   constructor(@Inject(DATABASE) private readonly db: DataSource) {}
 
   private range(from?: string, to?: string) {
-    const start = from
-      ? new Date(from)
-      : new Date('1970-01-01T00:00:00.000Z');
-    const end = to
-      ? new Date(to)
-      : new Date('9999-12-31T23:59:59.999Z');
+    const start = from ? new Date(from) : new Date('1970-01-01T00:00:00.000Z');
+    const end = to ? new Date(to) : new Date('9999-12-31T23:59:59.999Z');
     if (
       Number.isNaN(start.getTime()) ||
       Number.isNaN(end.getTime()) ||
