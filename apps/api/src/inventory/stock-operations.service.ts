@@ -204,7 +204,7 @@ export class StockOperationsService {
         );
         await tx.query(
           'INSERT INTO defective_movements(id,shop_id,variant_id,document_id,quantity,value_minor) VALUES($1,$2,$3,$4,$5,$6)',
-          [randomUUID(), shop, variantId, -Number(q), -cost],
+          [randomUUID(), shop, variantId, id, -Number(q), -cost],
         );
         return {
           id,
