@@ -29,6 +29,9 @@ export function ShopSelect() {
         </NavLink>
       ))}
       {!s.user.shops.length && <p>Доступ к магазину пока не выдан.</p>}
+      {s.user.platformAdmin && (
+        <NavLink to="/platform/admin">Кабинет платформы</NavLink>
+      )}
     </main>
   );
 }
@@ -74,6 +77,9 @@ export default function SellerLayout() {
           </select>
         </div>
         <nav>
+          {s.user.platformAdmin && (
+            <NavLink to="/platform/admin">Кабинет платформы</NavLink>
+          )}
           {shop.role === 'owner' && (
             <NavLink to={base + '/storefront'}>Витрина</NavLink>
           )}

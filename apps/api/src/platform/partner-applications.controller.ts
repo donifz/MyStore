@@ -53,6 +53,10 @@ class DecisionDto {
 class PageQuery {
   @Type(() => Number) @IsInt() @Min(1) @Max(1000000) page = 1;
   @Type(() => Number) @IsInt() @Min(1) @Max(100) pageSize = 25;
+  @IsOptional() @IsString() @MaxLength(128) q = '';
+  @IsOptional() @IsIn(['', 'new', 'in_review', 'approved', 'rejected']) status =
+    '';
+  @IsOptional() @IsString() @MaxLength(80) city = '';
 }
 
 @Controller('partners')
@@ -91,7 +95,15 @@ export class AdminApplicationsController {
 
   @Get() async list(@Req() req: UserRequest, @Query() q: PageQuery) {
     await this.admins.requireAdmin(req.userId);
-    return this.applications.list(q.page, q.pageSize);
+    return this.applications.list(q.page, q.pageSize, q.q, q.status, q.city);
+  }
+
+  @Get(':id') async detail(
+    @Req() req: UserRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    await this.admins.requireAdmin(req.userId);
+    return this.applications.detail(id);
   }
 
   @Post(':id/decision') async decide(

@@ -31,7 +31,13 @@ export default function LoginPage() {
     }
   }
   if (s.loading) return <p className="loading">Загрузка…</p>;
-  if (s.user) return <Navigate to="/seller" replace />;
+  if (s.user)
+    return (
+      <Navigate
+        to={s.user.platformAdmin ? '/platform/admin' : '/seller'}
+        replace
+      />
+    );
   return (
     <div className="login-wrap">
       <form onSubmit={submit} className="login-card">

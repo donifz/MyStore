@@ -68,15 +68,38 @@ export class PartnerApplicationsService {
     }
   }
 
-  async list(page = 1, pageSize = 25) {
+  async list(page = 1, pageSize = 25, search = '', status = '', city = '') {
+    const params = [
+      '%' + search.replace(/[\\%_]/g, '\\$&') + '%',
+      status,
+      city,
+    ];
+    const where =
+      "(shop_name ILIKE $1 OR email ILIKE $1) AND ($2='' OR status=$2) AND ($3='' OR city=$3)";
     const [count] = await this.db.query(
-      'SELECT count(*)::int total FROM partner_applications',
+      'SELECT count(*)::int total FROM partner_applications WHERE ' + where,
+      params,
     );
     const items = await this.db.query(
-      'SELECT id,shop_name,email,phone,city,address,category,status,rejection_reason,shop_id,created_at,updated_at FROM partner_applications ORDER BY created_at DESC,id LIMIT $1 OFFSET $2',
-      [pageSize, (page - 1) * pageSize],
+      'SELECT id,shop_name,email,phone,city,address,category,status,rejection_reason,shop_id,created_at,updated_at FROM partner_applications WHERE ' +
+        where +
+        ' ORDER BY created_at DESC,id LIMIT $4 OFFSET $5',
+      [...params, pageSize, (page - 1) * pageSize],
     );
     return { items, total: count.total, page, pageSize };
+  }
+
+  async detail(id: string) {
+    const [application] = await this.db.query(
+      'SELECT id,shop_name,email,phone,city,address,category,status,rejection_reason,shop_id,created_at,updated_at FROM partner_applications WHERE id=$1',
+      [id],
+    );
+    if (!application) throw new NotFoundException();
+    const events = await this.db.query(
+      'SELECT status,actor_id,reason,created_at FROM partner_application_events WHERE application_id=$1 ORDER BY created_at,id',
+      [id],
+    );
+    return { ...application, events };
   }
 
   async decide(id: string, actor: string, input: DecisionInput) {

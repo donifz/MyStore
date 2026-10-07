@@ -21,6 +21,7 @@ import PartnerPage from './storefront/PartnerPage';
 import StorefrontSettingsPage from './storefront/StorefrontSettingsPage';
 import EditVariantPage from './catalog/EditVariantPage';
 import BarcodeLabelsPage from './catalog/BarcodeLabelsPage';
+import AdminPage from './platform/AdminPage';
 export default function App() {
   return (
     <SessionProvider>
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="/partner" element={<PartnerPage />} />
         </Route>
         <Route path="/seller/login" element={<LoginPage />} />
+        <Route path="/platform/admin" element={<AdminPage />} />
         <Route path="/seller" element={<ShopSelect />} />
         <Route path="/seller/:shopId" element={<SellerLayout />}>
           <Route path="storefront" element={<StorefrontSettingsPage />} />

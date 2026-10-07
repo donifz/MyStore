@@ -203,7 +203,9 @@ export async function createApp(
           req.path === '/shops' ||
           /^\/shops\/[^/]+(?:\/products\/[^/]+)?\/?$/.test(req.path) ||
           req.path === '/seller' ||
-          req.path.startsWith('/seller/')
+          req.path.startsWith('/seller/') ||
+          req.path === '/platform/admin' ||
+          req.path.startsWith('/platform/admin/')
         ) {
           res.setHeader('Cache-Control', 'no-store');
           return res.sendFile(resolve(webDir, 'index.html'));

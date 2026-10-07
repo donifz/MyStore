@@ -129,6 +129,7 @@ describe('online orders and shared stock', () => {
         salePriceMinor: 100,
       }).expect(201)
     ).body;
+    await approveTestProduct(c.db, other.id);
     const b = input();
     b.lines.push({
       variantId: other.id,

@@ -5,6 +5,7 @@ export type Me = {
   email: string;
   csrfToken: string;
   shops: Shop[];
+  platformAdmin?: boolean;
 };
 export type Variant = {
   sku?: string;
@@ -13,6 +14,8 @@ export type Variant = {
   category?: string;
   subcategory?: string;
   published?: boolean;
+  publicationStatus?: 'pending' | 'approved' | 'unpublished';
+  rejectionReason?: string;
   id: string;
   name: string;
   barcode: string;
