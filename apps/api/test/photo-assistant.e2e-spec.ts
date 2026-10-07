@@ -85,15 +85,8 @@ describe('photo product suggestions', () => {
         (p: any) => p.inlineData?.mimeType === 'image/jpeg',
       ),
     ).toBe(true);
-    expect(
-      payload.generationConfig.responseFormat.text.schema.properties.category
-        .enum,
-    ).toEqual(['Посуда', 'Другое']);
-    for (const property of Object.values(
-      payload.generationConfig.responseFormat.text.schema.properties,
-    ) as any[]) {
-      expect(property).not.toHaveProperty('maxLength');
-    }
+    expect(payload.generationConfig.responseMimeType).toBe('application/json');
+    expect(payload.generationConfig).not.toHaveProperty('responseFormat');
     expect(String(options!.body)).not.toContain('Чужая категория');
     expect(String(options!.body)).not.toContain('owner@example.test');
     const [counts] = await c.db.query(

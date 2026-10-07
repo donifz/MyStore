@@ -209,34 +209,7 @@ export class PhotoAssistantService implements OnApplicationBootstrap {
             ],
             generationConfig: {
               maxOutputTokens: 1024,
-              responseFormat: {
-                text: {
-                  mimeType: 'application/json',
-                  schema: {
-                    type: 'object',
-                    additionalProperties: false,
-                    properties: {
-                      recognized: { type: 'boolean' },
-                      name: { type: 'string' },
-                      description: { type: 'string' },
-                      category: { type: 'string', enum: categories },
-                      confidence: {
-                        type: 'string',
-                        enum: ['low', 'medium', 'high'],
-                      },
-                      warning: { type: 'string' },
-                    },
-                    required: [
-                      'recognized',
-                      'name',
-                      'description',
-                      'category',
-                      'confidence',
-                      'warning',
-                    ],
-                  },
-                },
-              },
+              responseMimeType: 'application/json',
             },
           }),
         },
