@@ -246,3 +246,38 @@ it('refreshes a product quantity on the polling interval and on focus', async ()
   });
   expect(screen.getByText('В наличии: 1 шт.').isConnected).toBe(true);
 });
+
+it('preserves every minor unit of an existing price when saving without edits', async () => {
+  let submittedPrice = 0;
+  vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+    if (init?.method === 'PUT')
+      submittedPrice = JSON.parse(String(init.body)).salePriceMinor;
+    return new Response(
+      JSON.stringify(
+        url.endsWith('/me')
+          ? {
+              userId: 'u',
+              email: 'owner@example.test',
+              csrfToken: 'c',
+              shops: [{ id: 's', name: 'Store', role: 'owner' }],
+            }
+          : {
+              id: 'v',
+              name: 'Чашка',
+              barcode: '123',
+              salePriceMinor: Number.MAX_SAFE_INTEGER,
+              description: '',
+              category: '',
+              published: true,
+            },
+      ),
+    );
+  });
+  open('/seller/s/products/v/edit');
+  await screen.findByLabelText('Цена продажи, сом');
+  await userEvent
+    .setup()
+    .click(screen.getByRole('button', { name: 'Сохранить изменения' }));
+  await screen.findByRole('status');
+  expect(submittedPrice).toBe(Number.MAX_SAFE_INTEGER);
+});

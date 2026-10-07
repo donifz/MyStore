@@ -25,7 +25,8 @@ export default function EditVariantPage() {
   useEffect(() => {
     if (r.data) {
       setName(r.data.name);
-      setPrice(String(r.data.salePriceMinor / 100));
+      const minor = BigInt(r.data.salePriceMinor);
+      setPrice(`${minor / 100n}.${String(minor % 100n).padStart(2, '0')}`);
       setDescription(r.data.description ?? '');
       setCategory(r.data.category ?? '');
       setPublished(r.data.published ?? true);
