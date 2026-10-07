@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { EntityManager } from 'typeorm';
 import { randomUUID } from 'node:crypto';
 import { IdempotencyService } from '../common/idempotency.service';
 import { SalesService, SaleLine } from './sales.service';
@@ -25,33 +26,52 @@ export class PosSalesService {
       shopId,
       key,
       { kind: 'pos-sale', actorId, shiftId, method, lines: normalized },
-      async (tx) => {
-        await this.shifts.lockOpen(tx, shopId, shiftId, actorId);
-        const sale = await this.sales.postInTransaction(
+      (tx) =>
+        this.postInTransaction(
           tx,
           shopId,
           actorId,
+          shiftId,
+          method,
           normalized,
-        );
-        await tx.query(
-          'INSERT INTO pos_sales(shop_id,document_id,shift_id) VALUES($1,$2,$3)',
-          [shopId, sale.id, shiftId],
-        );
-        await tx.query(
-          "INSERT INTO payment_records(id,shop_id,document_id,shift_id,actor_id,kind,method,amount_minor) VALUES($1,$2,$3,$4,$5,'sale',$6,$7)",
-          [
-            randomUUID(),
-            shopId,
-            sale.id,
-            shiftId,
-            actorId,
-            method,
-            sale.totalMinor,
-          ],
-        );
-        await this.shifts.lockOpen(tx, shopId, shiftId, actorId);
-        return { ...sale, shiftId, method };
-      },
+        ),
     );
+  }
+  // agreedPrice is internal only: the caller holds the reserved order row lock.
+  async postInTransaction(
+    tx: EntityManager,
+    shopId: string,
+    actorId: string,
+    shiftId: string,
+    method: PaymentMethod,
+    normalized: SaleLine[],
+    agreedPrice = false,
+  ) {
+    await this.shifts.lockOpen(tx, shopId, shiftId, actorId);
+    const sale = await this.sales.postInTransaction(
+      tx,
+      shopId,
+      actorId,
+      normalized,
+      agreedPrice,
+    );
+    await tx.query(
+      'INSERT INTO pos_sales(shop_id,document_id,shift_id) VALUES($1,$2,$3)',
+      [shopId, sale.id, shiftId],
+    );
+    await tx.query(
+      "INSERT INTO payment_records(id,shop_id,document_id,shift_id,actor_id,kind,method,amount_minor) VALUES($1,$2,$3,$4,$5,'sale',$6,$7)",
+      [
+        randomUUID(),
+        shopId,
+        sale.id,
+        shiftId,
+        actorId,
+        method,
+        sale.totalMinor,
+      ],
+    );
+    await this.shifts.lockOpen(tx, shopId, shiftId, actorId);
+    return { ...sale, shiftId, method };
   }
 }

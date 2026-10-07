@@ -1,3 +1,4 @@
+import BuyButton from '../../../../../components/BuyButton';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
@@ -66,7 +67,13 @@ export default async function ProductPage({ params }: Props) {
       </Link>
       <article className="product-detail">
         <div className="product-cover detail-cover" aria-hidden="true">
-          <span>{v.name.slice(0, 1)}</span>
+          <>
+            {v.photoUrl ? (
+              <img src={v.photoUrl} alt="" />
+            ) : (
+              <span>{v.name.slice(0, 1)}</span>
+            )}
+          </>
           <small>{v.category || 'Товар магазина'}</small>
         </div>
         <div>
@@ -79,6 +86,7 @@ export default async function ProductPage({ params }: Props) {
           {v.description && (
             <p className="product-description">{v.description}</p>
           )}
+          <BuyButton product={v} />
           <div className="contact-card">
             <Link href={'/shops/' + v.store.slug}>
               <h2>{v.store.name}</h2>

@@ -35,12 +35,23 @@ import {
   StorefrontSettingsController,
   PartnersController,
 } from './storefront/storefront.controller';
+import { OrdersService } from './orders/orders.service';
+import { OrderExpirationService } from './orders/order-expiration.service';
+import {
+  OrdersController,
+  PublicOrdersController,
+} from './orders/orders.controller';
+import { CaptureService } from './catalog/capture.service';
+import { CaptureController } from './catalog/capture.controller';
 export async function createApp(
   db: DataSource,
   publicHandler?: express.RequestHandler,
 ) {
   @Module({
     controllers: [
+      CaptureController,
+      PublicOrdersController,
+      OrdersController,
       PublicStorefrontController,
       StorefrontSettingsController,
       PartnersController,
@@ -56,6 +67,9 @@ export async function createApp(
     ],
     providers: [
       { provide: DATABASE, useValue: db },
+      CaptureService,
+      OrdersService,
+      OrderExpirationService,
       StorefrontService,
       AuthService,
       AuthGuard,
@@ -75,6 +89,7 @@ export async function createApp(
   const app = await NestFactory.create(AppModule, { logger: false });
   if (process.env.NODE_ENV === 'production' && !process.env.WEB_ORIGINS)
     throw new Error('WEB_ORIGINS required');
+  app.use(express.json({ limit: '1mb' }));
   app.use(
     (
       req: express.Request,
@@ -132,6 +147,7 @@ export async function createApp(
           (['GET', 'HEAD'].includes(req.method) &&
             (req.path === '/' ||
               req.path === '/partner' ||
+              req.path === '/cart' ||
               req.path === '/shops' ||
               /^\/shops\/[^/]+(?:\/products\/[^/]+)?\/?$/.test(req.path)))
         ) {

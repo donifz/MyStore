@@ -42,9 +42,14 @@ export default function CatalogPage() {
           <p className="muted">Цены и доступные остатки</p>
         </div>
         {role !== 'cashier' && (
-          <Link className="primary button" to="new">
-            Добавить товар
-          </Link>
+          <div className="order-actions">
+            <Link className="button" to="capture">
+              Скан / фото товара
+            </Link>
+            <Link className="primary button" to="new">
+              Добавить товар
+            </Link>
+          </div>
         )}
       </div>
       <section className="panel">

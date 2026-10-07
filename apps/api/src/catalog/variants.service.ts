@@ -13,6 +13,8 @@ export type VariantInput = {
   salePriceMinor: number;
 };
 export type Variant = {
+  sku: string;
+  photoUrl?: string;
   description: string;
   category: string;
   published: boolean;
@@ -24,9 +26,13 @@ export type Variant = {
 @Injectable()
 export class VariantsService {
   constructor(@Inject(DATABASE) private readonly db: DataSource) {}
-  private dto(row: any): Variant {
+  dto(row: any): Variant {
     return {
       id: row.id,
+      sku: row.sku,
+      ...(row.has_photo || row.photo_data
+        ? { photoUrl: `/api/shops/${row.shop_id}/variants/${row.id}/photo` }
+        : {}),
       name: row.name,
       barcode: row.barcode,
       salePriceMinor: Number(row.sale_price_minor),
@@ -49,7 +55,7 @@ export class VariantsService {
       [shopId, pattern],
     );
     const rows = await this.db.query(
-      'SELECT v.id,v.name,v.barcode,v.sale_price_minor,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.stock_value_minor,0) stock_value_minor FROM variants v LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id WHERE ' +
+      'SELECT v.id,v.sku,v.name,v.barcode,v.sale_price_minor,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.stock_value_minor,0) stock_value_minor FROM variants v LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id WHERE ' +
         filter +
         ' ORDER BY v.name,v.id LIMIT $3 OFFSET $4',
       [shopId, pattern, pageSize, (page - 1) * pageSize],
@@ -57,6 +63,7 @@ export class VariantsService {
     return {
       items: rows.map((r: any) => ({
         id: r.id,
+        sku: r.sku,
         name: r.name,
         barcode: r.barcode,
         salePriceMinor: Number(r.sale_price_minor),
@@ -96,7 +103,7 @@ export class VariantsService {
     barcode: string,
   ): Promise<Variant | null> {
     const [row] = await this.db.query(
-      'SELECT id,name,barcode,sale_price_minor,description,category,published FROM variants WHERE shop_id=$1 AND barcode=$2',
+      'SELECT id,shop_id,sku,name,barcode,sale_price_minor,description,category,published,(photo_data IS NOT NULL) has_photo FROM variants WHERE shop_id=$1 AND barcode=$2',
       [shopId, barcode],
     );
     return row ? this.dto(row) : null;
@@ -112,7 +119,7 @@ export class VariantsService {
       published: boolean;
     },
   ) {
-    const [row] = await this.db.query(
+    const [[row]] = await this.db.query(
       'UPDATE variants SET name=$3,sale_price_minor=$4,description=$5,category=$6,published=$7 WHERE shop_id=$1 AND id=$2 RETURNING *',
       [
         shopId,
@@ -129,7 +136,7 @@ export class VariantsService {
   }
   async getById(shopId: string, id: string) {
     const [row] = await this.db.query(
-      'SELECT id,name,barcode,sale_price_minor,description,category,published FROM variants WHERE shop_id=$1 AND id=$2',
+      'SELECT id,shop_id,sku,name,barcode,sale_price_minor,description,category,published,(photo_data IS NOT NULL) has_photo FROM variants WHERE shop_id=$1 AND id=$2',
       [shopId, id],
     );
     if (!row) throw new NotFoundException();

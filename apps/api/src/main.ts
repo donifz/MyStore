@@ -1,3 +1,4 @@
+import { OrderExpirationService } from './orders/order-expiration.service';
 import { buildDataSource } from './database';
 import { createApp } from './app';
 import { existsSync } from 'node:fs';
@@ -25,8 +26,23 @@ async function main() {
     : undefined;
   const app = await createApp(db, publicHandler);
   app.enableShutdownHooks();
+  const expiration = app.get(OrderExpirationService);
+  await expiration.expire();
+  let sweeping = false;
+  const timer = setInterval(() => {
+    if (sweeping) return;
+    sweeping = true;
+    expiration
+      .expire()
+      .catch(() => console.error('Order expiry sweep failed'))
+      .finally(() => {
+        sweeping = false;
+      });
+  }, 60000);
+  timer.unref();
   await app.listen(Number(process.env.PORT ?? 3001), '0.0.0.0');
   const close = async () => {
+    clearInterval(timer);
     await app.close();
     if (storefront) await storefront.close();
     await db.destroy();

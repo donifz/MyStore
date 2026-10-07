@@ -9,12 +9,7 @@ export default defineConfig({
     launchOptions: {
       executablePath: process.env.E2E_BROWSER_PATH,
       args: process.env.E2E_BROWSER_PATH
-        ? [
-            '--no-sandbox',
-            '--disable-dev-shm-usage',
-            '--no-zygote',
-            '--single-process',
-          ]
+        ? ['--no-sandbox', '--disable-dev-shm-usage', '--no-zygote']
         : [],
     },
   },
