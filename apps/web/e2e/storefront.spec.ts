@@ -42,6 +42,7 @@ test('partner creates a draft, publishes inventory and buyers browse without log
   const buyer = await context.browser()!.newContext({
     baseURL: process.env.E2E_BASE_URL ?? 'http://127.0.0.1:3001',
     viewport: { width: 360, height: 800 },
+    javaScriptEnabled: false,
   });
   try {
     const publicPage = await buyer.newPage();

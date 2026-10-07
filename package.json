@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": [
     "apps/api",
-    "apps/web"
+    "apps/web",
+    "apps/storefront"
   ],
   "engines": {
     "node": ">=24.15 <25"

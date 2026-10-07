@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import express from 'express';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { randomBytes } from 'node:crypto';
 import { Module, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DataSource } from 'typeorm';
@@ -34,7 +35,10 @@ import {
   StorefrontSettingsController,
   PartnersController,
 } from './storefront/storefront.controller';
-export async function createApp(db: DataSource) {
+export async function createApp(
+  db: DataSource,
+  publicHandler?: express.RequestHandler,
+) {
   @Module({
     controllers: [
       PublicStorefrontController,
@@ -84,7 +88,63 @@ export async function createApp(db: DataSource) {
       next();
     },
   );
-  app.use(helmet());
+  if (publicHandler) {
+    app.use(
+      (
+        _req: express.Request,
+        res: express.Response,
+        next: express.NextFunction,
+      ) => {
+        res.locals.nonce = randomBytes(18).toString('base64');
+        next();
+      },
+    );
+  }
+  app.use(
+    helmet(
+      publicHandler
+        ? {
+            contentSecurityPolicy: {
+              directives: {
+                scriptSrc: [
+                  "'self'",
+                  (_req, res) =>
+                    `'nonce-${(res as express.Response).locals.nonce}'`,
+                ],
+              },
+            },
+          }
+        : undefined,
+    ),
+  );
+  if (publicHandler) {
+    app.use(
+      (
+        req: express.Request,
+        res: express.Response,
+        next: express.NextFunction,
+      ) => {
+        if (res.locals.apiRequest) return next();
+        if (
+          req.path.startsWith('/_next/') ||
+          req.path === '/robots.txt' ||
+          req.path === '/sitemap.xml' ||
+          (['GET', 'HEAD'].includes(req.method) &&
+            (req.path === '/' ||
+              req.path === '/partner' ||
+              req.path === '/shops' ||
+              /^\/shops\/[^/]+(?:\/products\/[^/]+)?\/?$/.test(req.path)))
+        ) {
+          req.headers['content-security-policy'] = String(
+            res.getHeader('Content-Security-Policy'),
+          );
+          req.headers['x-nonce'] = res.locals.nonce;
+          return publicHandler(req, res, next);
+        }
+        next();
+      },
+    );
+  }
   const webDir = resolve(__dirname, '../../web/dist');
   if (existsSync(resolve(webDir, 'index.html'))) {
     app.use(

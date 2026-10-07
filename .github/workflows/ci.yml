@@ -30,6 +30,8 @@ jobs:
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm run build
+      - name: Server-rendered public HTTP checks
+        run: node scripts/storefront-ssr-test.cjs
       - run: npm test
       - run: docker compose --env-file .env.example config --quiet
       - name: Install test browser
