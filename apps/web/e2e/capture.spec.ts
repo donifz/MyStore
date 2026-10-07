@@ -63,9 +63,9 @@ test('applies AI suggestions only after review and keeps prices, quantity and ba
   await expect(page.getByLabel('Название', { exact: true })).toHaveValue(
     'Красная чашка',
   );
-  await expect(page.getByLabel('Категория', { exact: true })).toHaveValue(
-    'Посуда',
-  );
+  await expect(
+    page.getByRole('combobox', { name: 'Категория', exact: true }),
+  ).toHaveValue('Посуда');
   await expect(page.getByLabel('Описание', { exact: true })).toHaveValue(
     'Чашка красного цвета.',
   );
