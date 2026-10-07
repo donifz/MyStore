@@ -35,12 +35,13 @@
 **Files:**
 - Create: `apps/api/src/migrations/1760000000010-Moderation.ts`
 - Create: `apps/api/src/platform/platform-admin.service.ts`
+- Create: `apps/api/src/platform/admin-session.controller.ts`
 - Create: `apps/api/src/scripts/set-platform-admin.ts`
 - Modify: `apps/api/src/auth/auth.service.ts`
 - Modify: `apps/api/src/app.ts`
 - Test: `apps/api/test/platform-admin.e2e-spec.ts`
 
-**Interfaces:** `PlatformAdminService.requireAdmin(userId: string): Promise<void>`; `AuthService.me()` includes `platformAdmin: boolean`.
+**Interfaces:** `PlatformAdminService.requireAdmin(userId: string): Promise<void>`; `GET /platform/admin/session` requires admin; `AuthService.me()` includes `platformAdmin: boolean`.
 
 - [ ] Add a failing integration test: a shop owner receives 403 from an admin endpoint; a provisioned admin receives 200 even without membership, and `/auth/me` reports the role.
 - [ ] Run that test against a dedicated `*_test` PostgreSQL database and confirm the expected failure.
@@ -53,7 +54,7 @@
 - Create: `apps/api/src/platform/partner-applications.service.ts`
 - Create: `apps/api/src/platform/partner-applications.controller.ts`
 - Modify: `apps/api/src/migrations/1760000000010-Moderation.ts`
-- Modify: `apps/api/src/storefront/storefront.controller.ts`
+- Modify: `apps/api/src/storefront/storefront.controller.ts` (retire direct registration route)
 - Modify: `apps/api/src/app.ts`
 - Test: `apps/api/test/partner-applications.e2e-spec.ts`
 
@@ -61,8 +62,8 @@
 
 - [ ] Write failing HTTP tests for normalized duplicate email, owner/anonymous denial, approval creating one hidden shop/invite, rejection reason, repeat/concurrent decisions, token expiry/reuse, and no active user before activation.
 - [ ] Verify the focused suite fails for missing routes and state.
-- [ ] Add `partner_applications`, `partner_application_events`, and `partner_invitations` with unique pending email and token hash. Implement transaction and row-lock guarded transitions, invite activation and rate limit.
-- [ ] Run focused and existing storefront tests; commit only task files.
+- [ ] Add `partner_applications`, `partner_application_events`, and `partner_invitations` with unique pending email and token hash; reject applications for an email already owned by a user, and retire the old direct registration path. Implement transaction and row-lock guarded transitions, invite activation and rate limit.
+- [ ] Run focused tests and update existing registration tests to the reviewed application flow; commit only task files.
 
 ### Task 3: Buyer-facing application form
 
@@ -87,13 +88,14 @@
 - Modify: `apps/api/src/catalog/variants.service.ts`
 - Modify: `apps/api/src/catalog/capture.service.ts`
 - Modify: `apps/api/src/storefront/storefront.service.ts`
+- Modify: `apps/api/src/orders/orders.service.ts`
 - Test: `apps/api/test/product-moderation.e2e-spec.ts`
 
 **Interfaces:** `product_publications` stores approved editorial fields/photo; `product_publication_revisions` stores pending/rejected candidates. Public queries join approved fields and live price/stock. Seller edits update accounting fields and stage editorial changes.
 
-- [ ] Write failing integration tests: existing published card remains visible after migration, new card is hidden, editorial edit leaves old copy public, price/stock update is immediate, rejection retains approved copy, photo route serves approved image.
+- [ ] Write failing integration tests: existing published card remains visible after migration, new card is hidden, editorial edit leaves old copy public, price/stock update is immediate, rejection retains approved copy, photo route serves approved image, checkout snapshots the approved public name with live price.
 - [ ] Verify failures reflect absent snapshots and publication gates.
-- [ ] Backfill approved snapshots for existing published cards; stage new/edited editorial fields, read public approved snapshot; keep POS/accounting variant values and order historical snapshots unchanged.
+- [ ] Backfill approved snapshots for existing published cards; stage new/edited editorial fields, read public approved snapshot; create new order lines from approved editorial fields and live price/stock; keep POS/accounting variant values and existing historical order lines unchanged.
 - [ ] Run product/storefront/order suites and migration test; commit task files.
 
 ### Task 5: Administrative moderation API and audit
