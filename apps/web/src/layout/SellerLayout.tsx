@@ -101,6 +101,9 @@ export default function SellerLayout() {
           <NavLink to={base + '/pos'}>Касса</NavLink>
           <NavLink to={base + '/shift'}>Смена</NavLink>
           <NavLink to={base + '/sales'}>Продажи и возвраты</NavLink>
+          {shop.role === 'owner' && (
+            <NavLink to={base + '/reports'}>Отчёты</NavLink>
+          )}
         </nav>
         <div className="sidebar-bottom">
           <small>{s.user.email}</small>

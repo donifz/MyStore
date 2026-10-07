@@ -55,6 +55,8 @@ import {
 import { PartnerApplicationsService } from './platform/partner-applications.service';
 import { ProductModerationService } from './platform/product-moderation.service';
 import { ProductModerationController } from './platform/product-moderation.controller';
+import { ReportsController } from './reports/reports.controller';
+import { ReportsService } from './reports/reports.service';
 export async function createApp(
   db: DataSource,
   publicHandler?: express.RequestHandler,
@@ -80,6 +82,7 @@ export async function createApp(
       ShiftsController,
       PosSalesController,
       ReturnsController,
+      ReportsController,
     ],
     providers: [
       PlatformAdminService,
@@ -105,6 +108,7 @@ export async function createApp(
       PosSalesService,
       ReturnsService,
       SalesHistoryService,
+      ReportsService,
     ],
   })
   class AppModule {}
