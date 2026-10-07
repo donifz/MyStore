@@ -1,4 +1,9 @@
-import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { DATABASE } from '../database';
 
@@ -38,8 +43,7 @@ export class FiscalService {
 
   async request(shop: string, sale: string, actor: string) {
     const provider = (process.env.KKM_PROVIDER || '').trim();
-    if (!provider)
-      throw new ConflictException('KKM provider not configured');
+    if (!provider) throw new ConflictException('KKM provider not configured');
     if (process.env.NODE_ENV === 'production')
       throw new ConflictException(
         'KKM adapter is not certified for production yet',

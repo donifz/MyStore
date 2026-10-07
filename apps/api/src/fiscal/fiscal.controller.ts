@@ -1,4 +1,12 @@
-import { Controller, Get, Param, ParseUUIDPipe, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { ShopAccessService } from '../shops/shop-access.service';
 import { FiscalService } from './fiscal.service';
@@ -12,7 +20,10 @@ export class FiscalController {
   ) {}
 
   @Get('status')
-  async status(@Param('shopId', ParseUUIDPipe) shop: string, @Req() req: UserRequest) {
+  async status(
+    @Param('shopId', ParseUUIDPipe) shop: string,
+    @Req() req: UserRequest,
+  ) {
     await this.access.requireMembership(req.userId, shop, 'reports');
     return this.fiscal.status();
   }

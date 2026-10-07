@@ -12,9 +12,17 @@ export class ReportsService {
   constructor(@Inject(DATABASE) private readonly db: DataSource) {}
 
   private range(from?: string, to?: string) {
-    const start = from ? new Date(from) : new Date('1970-01-01T00:00:00.000Z');
-    const end = to ? new Date(to) : new Date('9999-12-31T23:59:59.999Z');
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start >= end)
+    const start = from
+      ? new Date(from)
+      : new Date('1970-01-01T00:00:00.000Z');
+    const end = to
+      ? new Date(to)
+      : new Date('9999-12-31T23:59:59.999Z');
+    if (
+      Number.isNaN(start.getTime()) ||
+      Number.isNaN(end.getTime()) ||
+      start >= end
+    )
       throw new BadRequestException('Invalid report period');
     return [start.toISOString(), end.toISOString()] as const;
   }
@@ -62,7 +70,8 @@ export class ReportsService {
        FROM cash_shifts WHERE shop_id=$1 AND closed_at >= $2 AND closed_at < $3`,
       [shop, start, end],
     );
-    const sales = Number(trade.sales), returns = Number(trade.returns);
+    const sales = Number(trade.sales),
+      returns = Number(trade.returns);
     const cost = Number(trade.sold_cost) - Number(trade.returned_cost);
     const revenue = sales - returns;
     return {
@@ -93,13 +102,29 @@ export class ReportsService {
     let headers: string[];
     let rows: any[];
     if (kind === 'products') {
-      headers = ['sku','name','barcode','category','subcategory','sale_price_minor','published'];
+      headers = [
+        'sku',
+        'name',
+        'barcode',
+        'category',
+        'subcategory',
+        'sale_price_minor',
+        'published',
+      ];
       rows = await this.db.query(
         'SELECT sku,name,barcode,category,subcategory,sale_price_minor,published FROM variants WHERE shop_id=$1 ORDER BY name,id',
         [shop],
       );
     } else if (kind === 'stock') {
-      headers = ['sku','name','barcode','physical','reserved','available','stock_value_minor'];
+      headers = [
+        'sku',
+        'name',
+        'barcode',
+        'physical',
+        'reserved',
+        'available',
+        'stock_value_minor',
+      ];
       rows = await this.db.query(
         `SELECT v.sku,v.name,v.barcode,b.physical,b.reserved,b.physical-b.reserved available,b.stock_value_minor
          FROM stock_balances b JOIN variants v ON v.shop_id=b.shop_id AND v.id=b.variant_id
@@ -107,7 +132,14 @@ export class ReportsService {
         [shop],
       );
     } else if (kind === 'sales') {
-      headers = ['id','created_at','total_minor','payment_kind','payment_method','payment_amount_minor'];
+      headers = [
+        'id',
+        'created_at',
+        'total_minor',
+        'payment_kind',
+        'payment_method',
+        'payment_amount_minor',
+      ];
       rows = await this.db.query(
         `SELECT d.id,d.created_at,d.total_minor,p.kind payment_kind,p.method payment_method,p.amount_minor payment_amount_minor
          FROM stock_documents d LEFT JOIN payment_records p ON p.shop_id=d.shop_id AND p.document_id=d.id
@@ -115,7 +147,17 @@ export class ReportsService {
         [shop],
       );
     } else if (kind === 'orders') {
-      headers = ['id','created_at','status','name','phone','fulfillment','address','total_minor','sale_id'];
+      headers = [
+        'id',
+        'created_at',
+        'status',
+        'name',
+        'phone',
+        'fulfillment',
+        'address',
+        'total_minor',
+        'sale_id',
+      ];
       rows = await this.db.query(
         'SELECT id,created_at,status,name,phone,fulfillment,address,total_minor,sale_id FROM online_orders WHERE shop_id=$1 ORDER BY created_at DESC,id',
         [shop],

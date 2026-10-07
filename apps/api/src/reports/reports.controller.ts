@@ -42,7 +42,10 @@ export class ReportsController {
     await this.access.requireMembership(req.userId, shop, 'reports');
     const csv = await this.reports.export(shop, kind);
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="mystore-${kind}.csv"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="mystore-${kind}.csv"`,
+    );
     res.send(csv);
   }
 }

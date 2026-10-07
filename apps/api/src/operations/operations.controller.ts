@@ -1,4 +1,13 @@
-import { Controller, Get, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { ShopAccessService } from '../shops/shop-access.service';
 import { NotificationsService } from './notifications.service';
