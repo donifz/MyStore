@@ -3,6 +3,7 @@ import {
   GatewayTimeoutException,
   Inject,
   Injectable,
+  OnApplicationBootstrap,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
@@ -39,7 +40,7 @@ const invalid = () =>
 
 // Never expose Google's free-form message or metadata: either can echo secrets.
 async function providerErrorIds(response: Response) {
-  const unknown = { rpc: 'UNKNOWN', reason: 'UNKNOWN' };
+  const unknown = { rpc: 'UNKNOWN', reason: 'UNKNOWN', hint: '' };
   const reader = response.body?.getReader();
   if (!reader) return unknown;
   const chunks: Uint8Array[] = [];
@@ -53,6 +54,8 @@ async function providerErrorIds(response: Response) {
       chunks.push(value);
     }
     const error = JSON.parse(Buffer.concat(chunks).toString('utf8'))?.error;
+    const message =
+      typeof error?.message === 'string' ? error.message.slice(0, 2048) : '';
     const statuses = [
       'INVALID_ARGUMENT',
       'FAILED_PRECONDITION',
@@ -73,8 +76,18 @@ async function providerErrorIds(response: Response) {
       reason: Array.isArray(error?.details)
         ? (error.details
             .map((d: any) => d?.reason)
-            .find((r: any) => reasons.includes(r)) ?? 'UNKNOWN')
-        : 'UNKNOWN',
+            .find((r: any) => reasons.includes(r)) ??
+          (/API key not valid|invalid API key|API key expired/i.test(message)
+            ? 'API_KEY_INVALID'
+            : 'UNKNOWN'))
+        : /API key not valid|invalid API key|API key expired/i.test(message)
+          ? 'API_KEY_INVALID'
+          : 'UNKNOWN',
+      hint: /Unknown name ["']maxLength["']/i.test(message)
+        ? 'UNSUPPORTED_MAX_LENGTH'
+        : /Unknown name ["']responseFormat["']/i.test(message)
+          ? 'UNSUPPORTED_RESPONSE_FORMAT'
+          : '',
     };
   } catch {
     return unknown;
@@ -84,9 +97,39 @@ async function providerErrorIds(response: Response) {
 }
 
 @Injectable()
-export class PhotoAssistantService {
+export class PhotoAssistantService implements OnApplicationBootstrap {
   private active = 0;
   constructor(@Inject(DATABASE) private readonly db: DataSource) {}
+  async onApplicationBootstrap() {
+    if (process.env.PHOTO_AI_DIAGNOSTIC_ON_STARTUP !== 'true') return;
+    const config = this.config();
+    if (!config) {
+      console.warn('photo_ai_key_probe status=NOT_CONFIGURED');
+      return;
+    }
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${config.model}`,
+        {
+          method: 'GET',
+          redirect: 'error',
+          signal: AbortSignal.timeout(5000),
+          headers: { 'x-goog-api-key': config.key },
+        },
+      );
+      const ids = response.ok
+        ? { rpc: 'OK', reason: 'UNKNOWN', hint: '' }
+        : await providerErrorIds(response);
+      if (response.ok) await response.body?.cancel().catch(() => undefined);
+      console.warn(
+        `photo_ai_key_probe status=${response.status} model=${config.model} rpc=${ids.rpc} reason=${ids.reason}${ids.hint ? ` hint=${ids.hint}` : ''}`,
+      );
+    } catch {
+      console.warn(
+        `photo_ai_key_probe status=NETWORK_ERROR model=${config.model}`,
+      );
+    }
+  }
   private config() {
     const key = process.env.GEMINI_API_KEY?.trim();
     const model =
@@ -201,7 +244,7 @@ export class PhotoAssistantService {
       if (!response.ok) {
         const ids = await providerErrorIds(response);
         console.warn(
-          `photo_ai_provider_failure status=${response.status} model=${config.model} rpc=${ids.rpc} reason=${ids.reason}`,
+          `photo_ai_provider_failure status=${response.status} model=${config.model} rpc=${ids.rpc} reason=${ids.reason}${ids.hint ? ` hint=${ids.hint}` : ''}`,
         );
         if (signal.aborted) throw new Error('provider error read timed out');
         if (['API_KEY_INVALID', 'API_KEY_EXPIRED'].includes(ids.reason))
