@@ -73,17 +73,21 @@ it('displays public product availability and contact purchase without cost field
   ).toBe('tel:+996700123456');
   expect(screen.queryByText(/себестоимость/i)).toBeNull();
 });
-it('shows confirmation after partner signup and does not keep the password in storage', async () => {
-  mock({ created: true });
+it('shows confirmation after a partner application without requesting a password', async () => {
+  mock({ status: 'new' });
   open('/partner');
   const u = userEvent.setup();
   await u.type(await screen.findByLabelText('Название магазина'), 'Дом');
   await u.type(screen.getByLabelText('Email'), 'new@example.test');
-  await u.type(screen.getByLabelText('Пароль'), 'partner-test-password');
-  await u.click(screen.getByRole('button', { name: 'Создать магазин' }));
-  await screen.findByText('Магазин создан. Войдите, чтобы настроить витрину.');
+  await u.type(screen.getByLabelText('Телефон'), '+996700123456');
+  await u.type(screen.getByLabelText('Город'), 'Ош');
+  await u.type(screen.getByLabelText('Категория бизнеса'), 'Подарки');
+  await u.click(screen.getByLabelText('Согласен с условиями подключения'));
+  await u.click(screen.getByRole('button', { name: 'Отправить заявку' }));
+  await screen.findByText(
+    'Заявка отправлена. Мы свяжемся с вами после проверки.',
+  );
   expect(screen.queryByLabelText('Пароль')).toBeNull();
-  expect(JSON.stringify(localStorage)).not.toContain('partner-test-password');
 });
 it('shows missing product as unavailable and offers catalog navigation', async () => {
   mock({}, 404);

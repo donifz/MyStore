@@ -168,6 +168,7 @@ export async function createApp(
           (['GET', 'HEAD'].includes(req.method) &&
             (req.path === '/' ||
               req.path === '/partner' ||
+              req.path === '/partner/activate' ||
               req.path === '/cart' ||
               req.path === '/shops' ||
               /^\/shops\/[^/]+(?:\/products\/[^/]+)?\/?$/.test(req.path)))
