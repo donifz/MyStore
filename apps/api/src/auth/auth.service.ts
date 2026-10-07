@@ -1,10 +1,39 @@
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  HttpException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { createHmac, randomBytes } from 'node:crypto';
 import { DataSource } from 'typeorm';
 import { DATABASE } from '../database';
 import { checkPassword, hashPassword } from './password';
 @Injectable()
 export class AuthService {
+  private attempts = new Map<string, { count: number; until: number }>();
+  limitLogin(ip: string) {
+    const now = Date.now();
+    for (const [k, v] of this.attempts)
+      if (v.until <= now) this.attempts.delete(k);
+    const row = this.attempts.get(ip) ?? { count: 0, until: now + 60000 };
+    if (
+      row.count >= 20 ||
+      (this.attempts.size >= 10000 && !this.attempts.has(ip))
+    )
+      throw new HttpException('Too many attempts', 429);
+    row.count++;
+    this.attempts.set(ip, row);
+  }
+  async me(userId: string) {
+    const [u] = await this.db.query('SELECT id,email FROM users WHERE id=$1', [
+      userId,
+    ]);
+    const shops = await this.db.query(
+      'SELECT s.id,s.name,m.role FROM shops s JOIN memberships m ON m.shop_id=s.id WHERE m.user_id=$1 ORDER BY s.name,s.id',
+      [userId],
+    );
+    return { userId: u.id, email: u.email, shops };
+  }
   private secret: string;
   private dummy: Promise<string>;
   constructor(@Inject(DATABASE) private readonly db: DataSource) {
