@@ -5,6 +5,7 @@ import { useDocument } from '../drafts/use-document';
 import { parseSom, formatSom } from '../api/money';
 import { errorText } from '../api/client';
 import { Variant } from '../api/types';
+import PhotoAssistant from './PhotoAssistant';
 async function photoFrom(file: File) {
   if (
     !['image/jpeg', 'image/png', 'image/webp'].includes(file.type) ||
@@ -59,6 +60,8 @@ function CaptureWorkspace({
     [description, setDescription] = useState(''),
     [photo, setPhoto] = useState(''),
     [loadingPhoto, setLoadingPhoto] = useState(false),
+    [recognizing, setRecognizing] = useState(false),
+    [categories, setCategories] = useState<string[]>([]),
     [review, setReview] = useState<CaptureBody | null>(null),
     [saved, setSaved] = useState<(Variant & { quantity: number }) | null>(null);
   const photoRevision = useRef(0),
@@ -202,7 +205,9 @@ function CaptureWorkspace({
         </section>
       ) : (
         <form className="panel capture-panel" onSubmit={check}>
-          <fieldset disabled={doc.busy || loadingPhoto || doc.blocked}>
+          <fieldset
+            disabled={doc.busy || loadingPhoto || recognizing || doc.blocked}
+          >
             <label>
               Фото товара
               <input
@@ -220,6 +225,17 @@ function CaptureWorkspace({
                 alt="Фото перед сохранением"
               />
             )}
+            <PhotoAssistant
+              shopId={shopId}
+              photo={photo}
+              onBusyChange={setRecognizing}
+              onCategories={setCategories}
+              onApply={(suggestion) => {
+                setName(suggestion.name);
+                setDescription(suggestion.description);
+                setCategory(suggestion.category);
+              }}
+            />
             <label>
               Название
               <input
@@ -270,19 +286,26 @@ function CaptureWorkspace({
             <label>
               Категория
               <input
+                list="capture-categories"
                 maxLength={80}
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               />
+              <datalist id="capture-categories">
+                {categories.map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
             </label>
-            <label>
-              Описание
+            <div className="capture-field">
+              <label htmlFor="capture-description">Описание</label>
               <textarea
+                id="capture-description"
                 maxLength={2000}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
-            </label>
+            </div>
             <p className="muted">
               При подтверждении товар поступит в учёт по закупочной цене. Для
               публикации на сайте магазин должен быть опубликован.

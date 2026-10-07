@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -7,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
-import sharp from 'sharp';
+import { normalizeProductPhoto } from './product-photo';
 import { DATABASE } from '../database';
 import { IdempotencyService } from '../common/idempotency.service';
 import { ReceivingService } from '../inventory/receiving.service';
@@ -27,37 +26,8 @@ export class CaptureService {
     private readonly receiving: ReceivingService,
     private readonly variants: VariantsService,
   ) {}
-  private async normalizePhoto(data: string) {
-    const match = /^data:image\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/.exec(data);
-    if (!match) throw new BadRequestException('JPEG photo required');
-    const bytes = Buffer.from(match[1], 'base64');
-    if (bytes.length > 524288)
-      throw new BadRequestException('Photo exceeds 512 KiB');
-    try {
-      const image = sharp(bytes, {
-          limitInputPixels: 16000000,
-          failOn: 'warning',
-        }),
-        metadata = await image.metadata();
-      if (metadata.format !== 'jpeg') throw Error('Invalid JPEG');
-      const normalized = await image
-        .rotate()
-        .resize({
-          width: 1024,
-          height: 1024,
-          fit: 'inside',
-          withoutEnlargement: true,
-        })
-        .jpeg({ quality: 80 })
-        .toBuffer();
-      if (normalized.length > 524288) throw Error('Photo too large');
-      return normalized;
-    } catch {
-      throw new BadRequestException('Invalid or oversized photo');
-    }
-  }
   async capture(shop: string, actor: string, key: string, input: CaptureInput) {
-    const photo = await this.normalizePhoto(input.photoDataUrl);
+    const photo = await normalizeProductPhoto(input.photoDataUrl);
     const { photoDataUrl, ...fields } = input;
     const payload = {
       ...fields,

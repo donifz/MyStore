@@ -16,6 +16,11 @@ import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { ShopAccessService } from '../shops/shop-access.service';
 import { VariantDto } from './variants.controller';
 import { CaptureService } from './capture.service';
+import { PhotoAssistantService } from './photo-assistant.service';
+import { AuthService } from '../auth/auth.service';
+class PhotoSuggestionDto {
+  @IsString() @MaxLength(700000) photoDataUrl!: string;
+}
 class CaptureDto extends VariantDto {
   @IsInt() @Min(0) @Max(Number.MAX_SAFE_INTEGER) unitCostMinor!: number;
   @IsInt() @Min(1) @Max(1000000) quantity!: number;
@@ -29,7 +34,29 @@ export class CaptureController {
   constructor(
     private readonly captureService: CaptureService,
     private readonly access: ShopAccessService,
+    private readonly assistant: PhotoAssistantService,
+    private readonly auth: AuthService,
   ) {}
+  @Get('photo-assistant') async assistantInfo(
+    @Param('shopId', ParseUUIDPipe) shop: string,
+    @Req() req: UserRequest,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.access.requireMembership(req.userId, shop, 'receive');
+    res.setHeader('Cache-Control', 'no-store');
+    return this.assistant.info(shop);
+  }
+  @Post('photo-assistant') async suggest(
+    @Param('shopId', ParseUUIDPipe) shop: string,
+    @Req() req: UserRequest,
+    @Body() body: PhotoSuggestionDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.access.requireMembership(req.userId, shop, 'receive');
+    this.auth.limitLogin(`photo-ai:${shop}:${req.userId}`);
+    res.setHeader('Cache-Control', 'no-store');
+    return this.assistant.suggest(shop, body.photoDataUrl);
+  }
   @Post('capture') async capture(
     @Param('shopId', ParseUUIDPipe) shop: string,
     @Req() req: UserRequest,

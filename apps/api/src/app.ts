@@ -42,6 +42,7 @@ import {
   PublicOrdersController,
 } from './orders/orders.controller';
 import { CaptureService } from './catalog/capture.service';
+import { PhotoAssistantService } from './catalog/photo-assistant.service';
 import { CaptureController } from './catalog/capture.controller';
 export async function createApp(
   db: DataSource,
@@ -68,6 +69,7 @@ export async function createApp(
     providers: [
       { provide: DATABASE, useValue: db },
       CaptureService,
+      PhotoAssistantService,
       OrdersService,
       OrderExpirationService,
       StorefrontService,
