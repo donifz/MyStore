@@ -1,5 +1,6 @@
 import request from 'supertest';
 import sharp from 'sharp';
+import { Logger } from '@nestjs/common';
 import { createApp } from '../src/app';
 import { setup, teardown, fixture } from './helpers';
 
@@ -148,6 +149,31 @@ describe('photo product suggestions', () => {
     }
     await infer().expect(429);
   });
+  it.each([
+    [400, 'AI_REQUEST_REJECTED', 'запрос'],
+    [401, 'AI_ACCESS_DENIED', 'доступ'],
+    [403, 'AI_ACCESS_DENIED', 'доступ'],
+    [404, 'AI_MODEL_UNAVAILABLE', 'модель'],
+    [429, 'AI_QUOTA_EXCEEDED', 'лимит'],
+    [503, 'AI_UNAVAILABLE', 'временно'],
+  ])(
+    'explains provider HTTP %s without leaking provider data',
+    async (status, code, message) => {
+      const log = jest
+        .spyOn(Logger.prototype, 'warn')
+        .mockImplementation(() => {});
+      provider(undefined, status as number);
+      const result = (await infer().expect(503)).body;
+      expect(result.code).toBe(code);
+      expect(result.message.toLowerCase()).toContain(message);
+      expect(JSON.stringify(result)).not.toContain('private provider details');
+      expect(log).toHaveBeenCalledWith(
+        `photo_ai_provider_failure status=${status} model=gemini-3.5-flash-lite`,
+      );
+      expect(JSON.stringify(log.mock.calls)).not.toContain('test-only');
+      expect(JSON.stringify(log.mock.calls)).not.toContain(photo);
+    },
+  );
   it('rejects oversized and truncated responses before offering suggestions', async () => {
     const upstream = jest
       .spyOn(global, 'fetch')
