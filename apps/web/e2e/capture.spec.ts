@@ -13,12 +13,19 @@ test('applies AI suggestions only after review and keeps prices, quantity and ba
       contentType: 'application/json',
       body: JSON.stringify(
         route.request().method() === 'GET'
-          ? { available: true, categories: ['Посуда', 'Другое'] }
+          ? {
+              available: true,
+              categories: [
+                { id: 'dishes', name: 'Посуда', builtIn: true, children: [] },
+                { id: 'other', name: 'Другое', builtIn: true, children: [] },
+              ],
+            }
           : {
               recognized: true,
               name: 'Красная чашка',
               description: 'Чашка красного цвета.',
               category: 'Посуда',
+              subcategory: '',
               confidence: 'low',
               warning: 'Проверьте материал.',
             },
@@ -56,9 +63,9 @@ test('applies AI suggestions only after review and keeps prices, quantity and ba
   await expect(page.getByLabel('Название', { exact: true })).toHaveValue(
     'Красная чашка',
   );
-  await expect(page.getByLabel('Категория', { exact: true })).toHaveValue(
-    'Посуда',
-  );
+  await expect(
+    page.getByRole('combobox', { name: 'Категория', exact: true }),
+  ).toHaveValue('Посуда');
   await expect(page.getByLabel('Описание', { exact: true })).toHaveValue(
     'Чашка красного цвета.',
   );
@@ -95,7 +102,12 @@ test('AI failure leaves manual product entry usable', async ({ page }) => {
       contentType: 'application/json',
       body: JSON.stringify(
         info
-          ? { available: true, categories: ['Другое'] }
+          ? {
+              available: true,
+              categories: [
+                { id: 'other', name: 'Другое', builtIn: true, children: [] },
+              ],
+            }
           : {
               code: 'AI_UNAVAILABLE',
               message:

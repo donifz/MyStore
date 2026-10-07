@@ -6,28 +6,15 @@ import {
   OnApplicationBootstrap,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { DataSource } from 'typeorm';
-import { DATABASE } from '../database';
 import { normalizeProductPhoto } from './product-photo';
+import { CategoriesService } from './categories.service';
 
-const defaults = [
-  'Продукты питания',
-  'Напитки',
-  'Посуда',
-  'Одежда',
-  'Обувь',
-  'Электроника',
-  'Бытовая химия',
-  'Косметика',
-  'Товары для дома',
-  'Детские товары',
-  'Канцтовары',
-];
 export type PhotoSuggestion = {
   recognized: boolean;
   name: string;
   description: string;
   category: string;
+  subcategory: string;
   confidence: 'low' | 'medium' | 'high';
   warning: string;
 };
@@ -99,7 +86,7 @@ async function providerErrorIds(response: Response) {
 @Injectable()
 export class PhotoAssistantService implements OnApplicationBootstrap {
   private active = 0;
-  constructor(@Inject(DATABASE) private readonly db: DataSource) {}
+  constructor(private readonly categoryService: CategoriesService) {}
   async onApplicationBootstrap() {
     if (process.env.PHOTO_AI_DIAGNOSTIC_ON_STARTUP !== 'true') return;
     const config = this.config();
@@ -139,14 +126,7 @@ export class PhotoAssistantService implements OnApplicationBootstrap {
       : null;
   }
   private async categories(shop: string) {
-    const rows = await this.db.query(
-      "SELECT DISTINCT category FROM variants WHERE shop_id=$1 AND category<>'' ORDER BY category LIMIT 100",
-      [shop],
-    );
-    const own = rows
-      .map((r: any) => r.category)
-      .filter((s: string) => s.length <= 80 && !/[\u0000-\u001f]/.test(s));
-    return [...new Set([...(own.length ? own : defaults), 'Другое'])];
+    return this.categoryService.list(shop);
   }
   async info(shop: string) {
     return {
@@ -195,7 +175,7 @@ export class PhotoAssistantService implements OnApplicationBootstrap {
                 parts: [
                   {
                     text:
-                      'Предложи название, краткое описание и категорию товара на фото. Разрешённые категории: ' +
+                      'Предложи название, краткое описание, категорию и подкатегорию товара на фото. Выбери категорию строго из списка, подкатегорию только из children выбранной категории. Для категории без подкатегорий укажи subcategory пустой строкой. Верни поля recognized,name,description,category,subcategory,confidence,warning. Список: ' +
                       JSON.stringify(categories),
                   },
                   {
@@ -305,6 +285,7 @@ export class PhotoAssistantService implements OnApplicationBootstrap {
         'name',
         'description',
         'category',
+        'subcategory',
         'confidence',
         'warning',
       ];
@@ -321,6 +302,7 @@ export class PhotoAssistantService implements OnApplicationBootstrap {
         ['name', 200],
         ['description', 2000],
         ['category', 80],
+        ['subcategory', 80],
         ['warning', 300],
       ] as const) {
         if (
@@ -331,9 +313,13 @@ export class PhotoAssistantService implements OnApplicationBootstrap {
           throw invalid();
         parsed[key] = parsed[key].trim();
       }
+      const selected = categories.find((c: any) => c.name === parsed.category);
       if (
-        !categories.includes(parsed.category) ||
-        (parsed.recognized && !parsed.name)
+        parsed.recognized &&
+        (!selected ||
+          (!selected.children.some((c: any) => c.name === parsed.subcategory) &&
+            parsed.subcategory !== '') ||
+          !parsed.name)
       )
         throw invalid();
       if (!parsed.recognized)
@@ -342,6 +328,7 @@ export class PhotoAssistantService implements OnApplicationBootstrap {
           name: '',
           description: '',
           category: '',
+          subcategory: '',
           confidence: 'low',
           warning:
             'Товар не удалось распознать. Сделайте более чёткое фото или заполните данные вручную.',

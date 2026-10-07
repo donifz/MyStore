@@ -1,18 +1,28 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
 import { parseSom } from '../api/money';
 import { Variant } from '../api/types';
 import { useSession } from '../auth/SessionProvider';
+import type { CategoryNode } from './PhotoAssistant';
 export default function CreateVariantPage() {
   const { shopId } = useParams(),
     session = useSession(),
     [name, setName] = useState(''),
     [barcode, setBarcode] = useState(''),
     [price, setPrice] = useState(''),
+    [category, setCategory] = useState(''),
+    [subcategory, setSubcategory] = useState(''),
+    [categories, setCategories] = useState<CategoryNode[]>([]),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [saved, setSaved] = useState<Variant | null>(null);
+  useEffect(() => {
+    if (shopId)
+      void api<CategoryNode[]>(`/shops/${shopId}/categories`)
+        .then((value) => setCategories(Array.isArray(value) ? value : []))
+        .catch((e) => setError(errorText(e)));
+  }, [shopId]);
   if (session.user?.shops.find((s) => s.id === shopId)?.role === 'cashier')
     return <p role="alert">Недостаточно прав для создания товара.</p>;
   async function submit(e: FormEvent) {
@@ -27,6 +37,8 @@ export default function CreateVariantPage() {
             name: name.trim(),
             ...(barcode ? { barcode } : {}),
             salePriceMinor: parseSom(price),
+            category,
+            subcategory,
           },
         }),
       );
@@ -86,6 +98,40 @@ export default function CreateVariantPage() {
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
               />
+            </label>
+            <label>
+              Категория
+              <select
+                value={category}
+                onChange={(e) => {
+                  setCategory(e.target.value);
+                  setSubcategory('');
+                }}
+              >
+                <option value="">Без категории</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Подкатегория
+              <select
+                value={subcategory}
+                onChange={(e) => setSubcategory(e.target.value)}
+                disabled={!category}
+              >
+                <option value="">Без подкатегории</option>
+                {categories
+                  .find((c) => c.name === category)
+                  ?.children.map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+              </select>
             </label>
             <p className="muted">
               Создание карточки не меняет остаток. Товар поступает через

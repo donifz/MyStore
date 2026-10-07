@@ -44,6 +44,8 @@ import {
 import { CaptureService } from './catalog/capture.service';
 import { PhotoAssistantService } from './catalog/photo-assistant.service';
 import { CaptureController } from './catalog/capture.controller';
+import { CategoriesController } from './catalog/categories.controller';
+import { CategoriesService } from './catalog/categories.service';
 export async function createApp(
   db: DataSource,
   publicHandler?: express.RequestHandler,
@@ -51,6 +53,7 @@ export async function createApp(
   @Module({
     controllers: [
       CaptureController,
+      CategoriesController,
       PublicOrdersController,
       OrdersController,
       PublicStorefrontController,
@@ -69,6 +72,7 @@ export async function createApp(
     providers: [
       { provide: DATABASE, useValue: db },
       CaptureService,
+      CategoriesService,
       PhotoAssistantService,
       OrdersService,
       OrderExpirationService,

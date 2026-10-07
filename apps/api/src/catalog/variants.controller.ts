@@ -35,12 +35,15 @@ export class VariantDto {
   @Matches(/^[\x21-\x7E]+$/)
   barcode?: string;
   @IsInt() @Min(0) @Max(Number.MAX_SAFE_INTEGER) salePriceMinor!: number;
+  @IsOptional() @IsString() @MaxLength(80) category?: string;
+  @IsOptional() @IsString() @MaxLength(80) subcategory?: string;
 }
 class EditVariantDto {
   @IsString() @MinLength(1) @MaxLength(200) @Matches(/\S/) name!: string;
   @IsInt() @Min(0) @Max(Number.MAX_SAFE_INTEGER) salePriceMinor!: number;
   @IsString() @MaxLength(2000) description!: string;
   @IsString() @MaxLength(80) category!: string;
+  @IsOptional() @IsString() @MaxLength(80) subcategory = '';
   @IsBoolean() published!: boolean;
 }
 class BarcodeQuery {

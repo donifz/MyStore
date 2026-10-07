@@ -11,11 +11,13 @@ import { DATABASE } from '../database';
 import { IdempotencyService } from '../common/idempotency.service';
 import { ReceivingService } from '../inventory/receiving.service';
 import { VariantsService, VariantInput } from './variants.service';
+import { CategoriesService } from './categories.service';
 export type CaptureInput = VariantInput & {
   unitCostMinor: number;
   quantity: number;
   photoDataUrl: string;
   category: string;
+  subcategory: string;
   description: string;
 };
 @Injectable()
@@ -25,14 +27,21 @@ export class CaptureService {
     private readonly ops: IdempotencyService,
     private readonly receiving: ReceivingService,
     private readonly variants: VariantsService,
+    private readonly categories: CategoriesService,
   ) {}
   async capture(shop: string, actor: string, key: string, input: CaptureInput) {
+    await this.categories.assertSelection(
+      shop,
+      input.category,
+      input.subcategory ?? '',
+    );
     const photo = await normalizeProductPhoto(input.photoDataUrl);
     const { photoDataUrl, ...fields } = input;
     const payload = {
       ...fields,
       name: fields.name.trim(),
       category: fields.category.trim(),
+      subcategory: (fields.subcategory ?? '').trim(),
       description: fields.description.trim(),
       photoHash: createHash('sha256').update(photoDataUrl).digest('hex'),
     };
@@ -48,7 +57,7 @@ export class CaptureService {
         let row: any;
         try {
           [row] = await tx.query(
-            'INSERT INTO variants(id,shop_id,name,barcode,sale_price_minor,category,description,photo_data) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *',
+            'INSERT INTO variants(id,shop_id,name,barcode,sale_price_minor,category,subcategory,description,photo_data) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *',
             [
               id,
               shop,
@@ -56,6 +65,7 @@ export class CaptureService {
               barcode,
               input.salePriceMinor,
               payload.category,
+              payload.subcategory,
               payload.description,
               photo,
             ],

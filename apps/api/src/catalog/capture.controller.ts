@@ -10,7 +10,14 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { IsInt, IsString, Max, MaxLength, Min } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { Response } from 'express';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { ShopAccessService } from '../shops/shop-access.service';
@@ -25,7 +32,8 @@ class CaptureDto extends VariantDto {
   @IsInt() @Min(0) @Max(Number.MAX_SAFE_INTEGER) unitCostMinor!: number;
   @IsInt() @Min(1) @Max(1000000) quantity!: number;
   @IsString() @MaxLength(700000) photoDataUrl!: string;
-  @IsString() @MaxLength(80) category!: string;
+  @IsString() @MaxLength(80) category = '';
+  @IsOptional() @IsString() @MaxLength(80) subcategory = '';
   @IsString() @MaxLength(2000) description!: string;
 }
 @Controller('shops/:shopId/variants')
