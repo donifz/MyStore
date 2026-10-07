@@ -32,7 +32,16 @@ export class AuthService {
       'SELECT s.id,s.name,m.role FROM shops s JOIN memberships m ON m.shop_id=s.id WHERE m.user_id=$1 ORDER BY s.name,s.id',
       [userId],
     );
-    return { userId: u.id, email: u.email, shops };
+    const [admin] = await this.db.query(
+      'SELECT EXISTS(SELECT 1 FROM platform_admins WHERE user_id=$1) AS enabled',
+      [userId],
+    );
+    return {
+      userId: u.id,
+      email: u.email,
+      shops,
+      platformAdmin: admin.enabled === true,
+    };
   }
   private secret: string;
   private dummy: Promise<string>;

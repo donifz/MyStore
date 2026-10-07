@@ -46,12 +46,15 @@ import { PhotoAssistantService } from './catalog/photo-assistant.service';
 import { CaptureController } from './catalog/capture.controller';
 import { CategoriesController } from './catalog/categories.controller';
 import { CategoriesService } from './catalog/categories.service';
+import { AdminSessionController } from './platform/admin-session.controller';
+import { PlatformAdminService } from './platform/platform-admin.service';
 export async function createApp(
   db: DataSource,
   publicHandler?: express.RequestHandler,
 ) {
   @Module({
     controllers: [
+      AdminSessionController,
       CaptureController,
       CategoriesController,
       PublicOrdersController,
@@ -70,6 +73,7 @@ export async function createApp(
       ReturnsController,
     ],
     providers: [
+      PlatformAdminService,
       { provide: DATABASE, useValue: db },
       CaptureService,
       CategoriesService,
