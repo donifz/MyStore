@@ -3,6 +3,7 @@ import {
   GatewayTimeoutException,
   Inject,
   Injectable,
+  Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
@@ -40,6 +41,7 @@ const invalid = () =>
 @Injectable()
 export class PhotoAssistantService {
   private active = 0;
+  private readonly logger = new Logger(PhotoAssistantService.name);
   constructor(@Inject(DATABASE) private readonly db: DataSource) {}
   private config() {
     const key = process.env.GEMINI_API_KEY?.trim();
@@ -153,11 +155,43 @@ export class PhotoAssistantService {
         },
       );
       if (!response.ok) {
-        await response.body?.cancel();
+        this.logger.warn(
+          `photo_ai_provider_failure status=${response.status} model=${config.model}`,
+        );
+        await response.body?.cancel().catch(() => undefined);
+        const errors: Record<number, { code: string; message: string }> = {
+          400: {
+            code: 'AI_REQUEST_REJECTED',
+            message:
+              'Google отклонил запрос распознавания. Нужно проверить ключ API и настройки запроса. Пока заполните товар вручную.',
+          },
+          401: {
+            code: 'AI_ACCESS_DENIED',
+            message:
+              'Google не разрешил доступ к распознаванию. Нужно проверить ключ API и его разрешения. Пока заполните товар вручную.',
+          },
+          403: {
+            code: 'AI_ACCESS_DENIED',
+            message:
+              'Google не разрешил доступ к распознаванию. Нужно проверить ключ API и его разрешения. Пока заполните товар вручную.',
+          },
+          404: {
+            code: 'AI_MODEL_UNAVAILABLE',
+            message:
+              'Выбранная модель распознавания недоступна для этого проекта Google. Нужно проверить настройку модели. Пока заполните товар вручную.',
+          },
+          429: {
+            code: 'AI_QUOTA_EXCEEDED',
+            message:
+              'Достигнут лимит Gemini для проекта Google. Повторите позже или проверьте квоты в Google AI Studio. Пока заполните товар вручную.',
+          },
+        };
         throw new ServiceUnavailableException({
-          code: 'AI_UNAVAILABLE',
-          message:
-            'Распознавание временно недоступно. Повторите позже или заполните товар вручную.',
+          ...(errors[response.status] ?? {
+            code: 'AI_UNAVAILABLE',
+            message:
+              'Распознавание временно недоступно. Повторите позже или заполните товар вручную.',
+          }),
         });
       }
       const reader = response.body?.getReader();
