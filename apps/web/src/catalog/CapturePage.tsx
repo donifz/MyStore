@@ -6,6 +6,7 @@ import { parseSom, formatSom } from '../api/money';
 import { errorText } from '../api/client';
 import { Variant } from '../api/types';
 import PhotoAssistant from './PhotoAssistant';
+import type { CategoryNode } from './PhotoAssistant';
 async function photoFrom(file: File) {
   if (
     !['image/jpeg', 'image/png', 'image/webp'].includes(file.type) ||
@@ -41,6 +42,7 @@ type CaptureBody = {
   photoDataUrl: string;
   barcode?: string;
   category: string;
+  subcategory: string;
   description: string;
 };
 function CaptureWorkspace({
@@ -57,11 +59,12 @@ function CaptureWorkspace({
     [quantity, setQuantity] = useState('1'),
     [barcode, setBarcode] = useState(''),
     [category, setCategory] = useState(''),
+    [subcategory, setSubcategory] = useState(''),
     [description, setDescription] = useState(''),
     [photo, setPhoto] = useState(''),
     [loadingPhoto, setLoadingPhoto] = useState(false),
     [recognizing, setRecognizing] = useState(false),
-    [categories, setCategories] = useState<string[]>([]),
+    [categories, setCategories] = useState<CategoryNode[]>([]),
     [review, setReview] = useState<CaptureBody | null>(null),
     [saved, setSaved] = useState<(Variant & { quantity: number }) | null>(null);
   const photoRevision = useRef(0),
@@ -103,6 +106,7 @@ function CaptureWorkspace({
         photoDataUrl: photo,
         ...(barcode.trim() ? { barcode: barcode.trim() } : {}),
         category,
+        subcategory,
         description,
       });
     } catch (e) {
@@ -234,6 +238,7 @@ function CaptureWorkspace({
                 setName(suggestion.name);
                 setDescription(suggestion.description);
                 setCategory(suggestion.category);
+                setSubcategory(suggestion.subcategory);
               }}
             />
             <label>
@@ -285,17 +290,37 @@ function CaptureWorkspace({
             </label>
             <label>
               Категория
-              <input
-                list="capture-categories"
-                maxLength={80}
+              <select
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              />
-              <datalist id="capture-categories">
+                onChange={(e) => {
+                  setCategory(e.target.value);
+                  setSubcategory('');
+                }}
+              >
+                <option value="">Выберите категорию</option>
                 {categories.map((c) => (
-                  <option key={c} value={c} />
+                  <option key={c.id} value={c.name}>
+                    {c.name}
+                  </option>
                 ))}
-              </datalist>
+              </select>
+            </label>
+            <label>
+              Подкатегория
+              <select
+                value={subcategory}
+                onChange={(e) => setSubcategory(e.target.value)}
+                disabled={!category}
+              >
+                <option value="">Без подкатегории</option>
+                {categories
+                  .find((c) => c.name === category)
+                  ?.children.map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+              </select>
             </label>
             <div className="capture-field">
               <label htmlFor="capture-description">Описание</label>

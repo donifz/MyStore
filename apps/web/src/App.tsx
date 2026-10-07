@@ -1,4 +1,5 @@
 import CapturePage from './catalog/CapturePage';
+import CategoriesPage from './catalog/CategoriesPage';
 import OrdersPage from './orders/OrdersPage';
 import { Routes, Route } from 'react-router-dom';
 import { SessionProvider } from './auth/SessionProvider';
@@ -45,6 +46,7 @@ export default function App() {
           <Route path="receiving" element={<ReceivingPage />} />
           <Route path="products" element={<CatalogPage />} />
           <Route path="products/capture" element={<CapturePage />} />
+          <Route path="categories" element={<CategoriesPage />} />
           <Route path="products/new" element={<CreateVariantPage />} />
         </Route>
         <Route

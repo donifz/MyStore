@@ -13,6 +13,7 @@ describe('photo product suggestions', () => {
     name: 'Красная чашка',
     description: 'Чашка красного цвета.',
     category: 'Посуда',
+    subcategory: '',
     confidence: 'medium',
     warning: 'Проверьте материал.',
   };

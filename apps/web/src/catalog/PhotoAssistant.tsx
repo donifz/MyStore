@@ -5,10 +5,17 @@ type Suggestion = {
   name: string;
   description: string;
   category: string;
+  subcategory: string;
   confidence: 'low' | 'medium' | 'high';
   warning: string;
 };
-type Info = { available: boolean; categories: string[] };
+export type CategoryNode = {
+  id: string;
+  name: string;
+  builtIn: boolean;
+  children: { id: string; name: string; builtIn?: boolean }[];
+};
+type Info = { available: boolean; categories: CategoryNode[] };
 export default function PhotoAssistant({
   shopId,
   photo,
@@ -20,7 +27,7 @@ export default function PhotoAssistant({
   photo: string;
   onApply: (s: Suggestion) => void;
   onBusyChange: (busy: boolean) => void;
-  onCategories: (categories: string[]) => void;
+  onCategories: (categories: CategoryNode[]) => void;
 }) {
   const [info, setInfo] = useState<Info | null>(null),
     [busy, setBusy] = useState(false),
@@ -138,7 +145,10 @@ export default function PhotoAssistant({
             <>
               <h3>{suggestion.name}</h3>
               <p>{suggestion.description}</p>
-              <p>Категория: {suggestion.category}</p>
+              <p>
+                Категория: {suggestion.category}
+                {suggestion.subcategory ? ` → ${suggestion.subcategory}` : ''}
+              </p>
               <p className="muted">
                 Уверенность:{' '}
                 {

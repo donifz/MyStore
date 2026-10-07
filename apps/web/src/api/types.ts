@@ -11,6 +11,7 @@ export type Variant = {
   photoUrl?: string;
   description?: string;
   category?: string;
+  subcategory?: string;
   published?: boolean;
   id: string;
   name: string;
