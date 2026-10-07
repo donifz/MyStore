@@ -1,6 +1,5 @@
 import request from 'supertest';
 import sharp from 'sharp';
-import { Logger } from '@nestjs/common';
 import { createApp } from '../src/app';
 import { setup, teardown, fixture } from './helpers';
 
@@ -159,21 +158,65 @@ describe('photo product suggestions', () => {
   ])(
     'explains provider HTTP %s without leaking provider data',
     async (status, code, message) => {
-      const log = jest
-        .spyOn(Logger.prototype, 'warn')
-        .mockImplementation(() => {});
+      const log = jest.spyOn(console, 'warn').mockImplementation(() => {});
       provider(undefined, status as number);
       const result = (await infer().expect(503)).body;
       expect(result.code).toBe(code);
       expect(result.message.toLowerCase()).toContain(message);
       expect(JSON.stringify(result)).not.toContain('private provider details');
       expect(log).toHaveBeenCalledWith(
-        `photo_ai_provider_failure status=${status} model=gemini-3.5-flash-lite`,
+        `photo_ai_provider_failure status=${status} model=gemini-3.5-flash-lite rpc=UNKNOWN reason=UNKNOWN`,
       );
       expect(JSON.stringify(log.mock.calls)).not.toContain('test-only');
       expect(JSON.stringify(log.mock.calls)).not.toContain(photo);
     },
   );
+  it.each([
+    ['INVALID_ARGUMENT', 'API_KEY_INVALID', 'AI_KEY_INVALID'],
+    ['INVALID_ARGUMENT', 'API_KEY_EXPIRED', 'AI_KEY_INVALID'],
+    ['FAILED_PRECONDITION', undefined, 'AI_PROJECT_REQUIREMENTS'],
+    ['INVALID_ARGUMENT', 'API_KEY_SERVICE_BLOCKED', 'AI_ACCESS_DENIED'],
+  ])(
+    'classifies safe Google error identifiers for %s/%s',
+    async (status, reason, code) => {
+      const log = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      jest.spyOn(global, 'fetch').mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            error: {
+              status,
+              message: 'private test-only details',
+              details: [{ reason, metadata: { key: 'private' } }],
+            },
+          }),
+          { status: 400 },
+        ),
+      );
+      const result = (await infer().expect(503)).body;
+      expect(result.code).toBe(code);
+      expect(JSON.stringify(result)).not.toContain('private');
+      expect(log).toHaveBeenCalledWith(
+        `photo_ai_provider_failure status=400 model=gemini-3.5-flash-lite rpc=${status} reason=${reason ?? 'UNKNOWN'}`,
+      );
+      expect(JSON.stringify(log.mock.calls)).not.toContain('private');
+    },
+  );
+  it.each([
+    'not JSON',
+    'x'.repeat(8193),
+    JSON.stringify({
+      error: { status: 'private', details: [{ reason: 'private' }] },
+    }),
+  ])('bounds and redacts untrusted error bodies', async (body) => {
+    const log = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(new Response(body, { status: 400 }));
+    expect((await infer().expect(503)).body.code).toBe('AI_REQUEST_REJECTED');
+    expect(log).toHaveBeenCalledWith(
+      'photo_ai_provider_failure status=400 model=gemini-3.5-flash-lite rpc=UNKNOWN reason=UNKNOWN',
+    );
+  });
   it('rejects oversized and truncated responses before offering suggestions', async () => {
     const upstream = jest
       .spyOn(global, 'fetch')

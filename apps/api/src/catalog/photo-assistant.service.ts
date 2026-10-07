@@ -3,7 +3,6 @@ import {
   GatewayTimeoutException,
   Inject,
   Injectable,
-  Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
@@ -38,10 +37,55 @@ const invalid = () =>
       'Не удалось получить надёжное описание. Попробуйте другое фото или заполните товар вручную.',
   });
 
+// Never expose Google's free-form message or metadata: either can echo secrets.
+async function providerErrorIds(response: Response) {
+  const unknown = { rpc: 'UNKNOWN', reason: 'UNKNOWN' };
+  const reader = response.body?.getReader();
+  if (!reader) return unknown;
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > 8192) return unknown;
+      chunks.push(value);
+    }
+    const error = JSON.parse(Buffer.concat(chunks).toString('utf8'))?.error;
+    const statuses = [
+      'INVALID_ARGUMENT',
+      'FAILED_PRECONDITION',
+      'PERMISSION_DENIED',
+      'NOT_FOUND',
+      'RESOURCE_EXHAUSTED',
+      'UNAVAILABLE',
+    ];
+    const reasons = [
+      'API_KEY_INVALID',
+      'API_KEY_EXPIRED',
+      'API_KEY_SERVICE_BLOCKED',
+      'API_KEY_HTTP_REFERRER_BLOCKED',
+      'API_KEY_IP_ADDRESS_BLOCKED',
+    ];
+    return {
+      rpc: statuses.includes(error?.status) ? error.status : 'UNKNOWN',
+      reason: Array.isArray(error?.details)
+        ? (error.details
+            .map((d: any) => d?.reason)
+            .find((r: any) => reasons.includes(r)) ?? 'UNKNOWN')
+        : 'UNKNOWN',
+    };
+  } catch {
+    return unknown;
+  } finally {
+    await reader.cancel().catch(() => undefined);
+  }
+}
+
 @Injectable()
 export class PhotoAssistantService {
   private active = 0;
-  private readonly logger = new Logger(PhotoAssistantService.name);
   constructor(@Inject(DATABASE) private readonly db: DataSource) {}
   private config() {
     const key = process.env.GEMINI_API_KEY?.trim();
@@ -155,10 +199,29 @@ export class PhotoAssistantService {
         },
       );
       if (!response.ok) {
-        this.logger.warn(
-          `photo_ai_provider_failure status=${response.status} model=${config.model}`,
+        const ids = await providerErrorIds(response);
+        console.warn(
+          `photo_ai_provider_failure status=${response.status} model=${config.model} rpc=${ids.rpc} reason=${ids.reason}`,
         );
-        await response.body?.cancel().catch(() => undefined);
+        if (signal.aborted) throw new Error('provider error read timed out');
+        if (['API_KEY_INVALID', 'API_KEY_EXPIRED'].includes(ids.reason))
+          throw new ServiceUnavailableException({
+            code: 'AI_KEY_INVALID',
+            message:
+              'Google сообщил, что ключ API недействителен или истёк. Нужно заменить GEMINI_API_KEY в настройках сервера. Пока заполните товар вручную.',
+          });
+        if (ids.reason.endsWith('_BLOCKED'))
+          throw new ServiceUnavailableException({
+            code: 'AI_ACCESS_DENIED',
+            message:
+              'Ограничения ключа API блокируют доступ к Gemini. Нужно проверить разрешения ключа в Google AI Studio. Пока заполните товар вручную.',
+          });
+        if (ids.rpc === 'FAILED_PRECONDITION')
+          throw new ServiceUnavailableException({
+            code: 'AI_PROJECT_REQUIREMENTS',
+            message:
+              'Проект Google не соответствует условиям доступа к Gemini. Проверьте доступность API и настройки проекта в Google AI Studio. Пока заполните товар вручную.',
+          });
         const errors: Record<number, { code: string; message: string }> = {
           400: {
             code: 'AI_REQUEST_REJECTED',
