@@ -174,6 +174,9 @@ test('two windows post one ordinary draft exactly once before storage events arr
     ),
   );
   await login(page);
+  const salesBefore = (
+    await (await page.request.get('/api/shops/' + shop + '/pos/sales')).json()
+  ).total;
   await page.getByRole('link', { name: 'Добавить товар' }).click();
   await page.getByLabel('Название', { exact: true }).fill('Рюкзак Concurrent');
   await page.getByLabel('Штрихкод', { exact: true }).fill('0012345678929');
@@ -227,7 +230,7 @@ test('two windows post one ordinary draft exactly once before storage events arr
   await expect(page.getByText('4 шт.', { exact: true })).toBeVisible();
   await page.goto(root + '/sales');
   await expect(page.getByRole('link', { name: 'Открыть продажу' })).toHaveCount(
-    1,
+    salesBefore + 1,
   );
   await other.close();
 });
