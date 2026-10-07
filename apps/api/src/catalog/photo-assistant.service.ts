@@ -217,14 +217,14 @@ export class PhotoAssistantService implements OnApplicationBootstrap {
                     additionalProperties: false,
                     properties: {
                       recognized: { type: 'boolean' },
-                      name: { type: 'string', maxLength: 200 },
-                      description: { type: 'string', maxLength: 2000 },
+                      name: { type: 'string' },
+                      description: { type: 'string' },
                       category: { type: 'string', enum: categories },
                       confidence: {
                         type: 'string',
                         enum: ['low', 'medium', 'high'],
                       },
-                      warning: { type: 'string', maxLength: 300 },
+                      warning: { type: 'string' },
                     },
                     required: [
                       'recognized',
