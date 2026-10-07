@@ -74,10 +74,31 @@ function ShiftWorkspace({
       {s.current && 'occupied' in s.current && (
         <p className="notice">Касса занята другим сотрудником.</p>
       )}
+      {opening.draft.submission && (
+        <section className="panel form-panel">
+          <h2>Подтвердить исходное открытие</h2>
+          <p>
+            Начальные наличные:{' '}
+            {formatSom(opening.draft.submission.body.openingCashMinor)}
+          </p>
+          <button
+            className="primary"
+            disabled={opening.busy || opening.blocked || !opening.online}
+            onClick={() => void open()}
+          >
+            Повторить открытие
+          </button>
+        </section>
+      )}
       {closing.draft.submission && !shift && (
         <button
           className="primary"
-          disabled={closing.busy || closing.blocked || !closing.online}
+          disabled={
+            closing.busy ||
+            closing.blocked ||
+            !closing.online ||
+            !!opening.draft.submission
+          }
           onClick={() => void submitClose()}
         >
           Повторить закрытие
@@ -123,7 +144,13 @@ function ShiftWorkspace({
                 Фактические наличные, сом
                 <input
                   inputMode="decimal"
-                  value={actual}
+                  value={
+                    closing.draft.submission
+                      ? (
+                          closing.draft.submission.body.actualCashMinor / 100
+                        ).toFixed(2)
+                      : actual
+                  }
                   onChange={(e) => setActual(e.target.value)}
                   disabled={!!closing.draft.submission}
                 />
@@ -132,7 +159,7 @@ function ShiftWorkspace({
                 Комментарий к закрытию
                 <textarea
                   maxLength={500}
-                  value={comment}
+                  value={closing.draft.submission?.body.comment ?? comment}
                   onChange={(e) => setComment(e.target.value)}
                   disabled={!!closing.draft.submission}
                 />
@@ -143,7 +170,12 @@ function ShiftWorkspace({
               </p>
               <button
                 className="primary"
-                disabled={closing.busy || closing.blocked || !closing.online}
+                disabled={
+                  closing.busy ||
+                  closing.blocked ||
+                  !closing.online ||
+                  !!opening.draft.submission
+                }
                 onClick={() => void submitClose()}
               >
                 {closing.draft.submission
@@ -155,7 +187,9 @@ function ShiftWorkspace({
         </>
       ) : (
         !s.current &&
-        !s.loading && (
+        !s.loading &&
+        !opening.draft.submission &&
+        !closing.draft.submission && (
           <section className="panel form-panel">
             <h2>Открыть смену</h2>
             <label>

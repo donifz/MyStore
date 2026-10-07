@@ -1,6 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 import { Draft, load, save, clear, clearUser, storageKey } from './draft-store';
 import { submitDocument } from './document-state';
+import { ApiError } from '../api/client';
 const scope = { userId: 'alice', shopId: 'shop', kind: 'sale' as const };
 const make = (): Draft => ({
   version: 1,
@@ -42,7 +43,7 @@ it('keeps unknown result and retries the exact saved payload after reload', asyn
   expect(load(scope)).toBeNull();
 });
 it('isolates users, protects newer revisions, and clears only logged-out user', () => {
-  const d = make();
+  const d = { ...make(), submission: null };
   save(d);
   expect(load({ ...scope, userId: 'bob' })).toBeNull();
   const newer = { ...d, revision: 'new' };
@@ -86,3 +87,79 @@ it('storage quota failure prevents transmission', async () => {
   ).rejects.toThrow();
   expect(sent).toBe(false);
 });
+it('arbitrates two ordinary draft snapshots before events arrive and captures one immutable request', async () => {
+  const ordinary = { ...make(), submission: null };
+  save(ordinary);
+  const other = load(scope)!;
+  const requests: { key: string; body: any }[] = [];
+  const sent = async (key: string, body: any) => {
+    requests.push({ key, body });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    return { id: 'doc' };
+  };
+  await Promise.all([
+    submitDocument(
+      {
+        ...ordinary,
+        submission: {
+          key: 'window-A',
+          body: { method: 'cash' },
+          status: 'pending',
+        },
+      },
+      sent,
+    ),
+    submitDocument(
+      {
+        ...other,
+        submission: {
+          key: 'window-B',
+          body: { method: 'card' },
+          status: 'pending',
+        },
+      },
+      sent,
+    ),
+  ]);
+  expect(new Set(requests.map((r) => r.key)).size).toBe(1);
+  expect(requests.map((r) => r.body)).toEqual([
+    { method: 'cash' },
+    { method: 'cash' },
+  ]);
+});
+it('rejects a stale copy after settlement before its storage event arrives', async () => {
+  const d = make();
+  save(d);
+  await submitDocument(d, async () => ({ id: 'doc' }));
+  const sent = vi.fn();
+  await expect(submitDocument(d, sent)).rejects.toThrow();
+  expect(sent).not.toHaveBeenCalled();
+});
+it('prevents replacing the financial payload of a pending operation with edits', () => {
+  const d = make();
+  save(d);
+  expect(() =>
+    save({ ...d, submission: null, lines: [] }, d.revision),
+  ).toThrow();
+  expect(load(scope)?.submission?.key).toBe('same-key');
+});
+
+it.each([
+  new ApiError(409, 'Key reused with different request', {}),
+  new ApiError(403, 'Forbidden', {}),
+])(
+  'keeps the frozen request when a retry is not proof of rollback: %s',
+  async (error) => {
+    const d = make();
+    save(d);
+    await expect(
+      submitDocument(d, async () => {
+        throw error;
+      }),
+    ).rejects.toBe(error);
+    expect(load(scope)?.submission).toEqual({
+      ...d.submission,
+      status: 'unknown',
+    });
+  },
+);

@@ -9,6 +9,7 @@ import ReceivingPage from './receiving/ReceivingPage';
 import ShiftPage from './pos/ShiftPage';
 import SalesHistoryPage from './pos/SalesHistoryPage';
 import ReturnPage from './pos/ReturnPage';
+import SaleDetailPage from './pos/SaleDetailPage';
 export default function App() {
   return (
     <SessionProvider>
@@ -28,6 +29,7 @@ export default function App() {
         <Route path="/seller/:shopId" element={<SellerLayout />}>
           <Route path="shift" element={<ShiftPage />} />
           <Route path="sales" element={<SalesHistoryPage />} />
+          <Route path="sales/:saleId" element={<SaleDetailPage />} />
           <Route path="sales/:saleId/return" element={<ReturnPage />} />
           <Route path="pos" element={<SalePage />} />
           <Route path="receiving" element={<ReceivingPage />} />

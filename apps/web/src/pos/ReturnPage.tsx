@@ -22,11 +22,25 @@ function ReturnWorkspace({
     [reason, setReason] = useState(''),
     [refund, setRefund] = useState(true),
     [method, setMethod] = useState<'cash' | 'card'>('cash');
+  const pending = doc.draft.submission?.body;
+  const sourceSaleId: string = pending?.saleId ?? saleId;
+  const shownSelections: Record<string, Selection> = pending
+    ? Object.fromEntries(
+        pending.lines.map((line: { saleLineId: string } & Selection) => [
+          line.saleLineId,
+          line,
+        ]),
+      )
+    : selections;
+  const shownReason = pending?.reason ?? reason;
+  const shownRefund = pending?.refundMoney ?? refund;
+  const shownMethod = pending?.method ?? method;
   const shift = useCurrentShift(shopId, doc.success),
     active = shift.current && 'id' in shift.current ? shift.current : null;
   useEffect(() => {
     let alive = true;
-    api<SaleDetail>(`/shops/${shopId}/pos/sales/${saleId}`)
+    setSale(null);
+    api<SaleDetail>(`/shops/${shopId}/pos/sales/${sourceSaleId}`)
       .then((data) => {
         if (alive) {
           setSale(data);
@@ -39,7 +53,7 @@ function ReturnWorkspace({
     return () => {
       alive = false;
     };
-  }, [shopId, saleId, doc.success]);
+  }, [shopId, sourceSaleId, doc.success]);
   async function submit() {
     if (doc.draft.submission) {
       await doc.send(`/shops/${shopId}/pos/returns`, doc.draft.submission.body);
@@ -70,7 +84,8 @@ function ReturnWorkspace({
   const total =
     sale?.lines.reduce(
       (n, l) =>
-        n + BigInt(selections[l.id]?.quantity ?? 0) * BigInt(l.unitPriceMinor),
+        n +
+        BigInt(shownSelections[l.id]?.quantity ?? 0) * BigInt(l.unitPriceMinor),
       0n,
     ) ?? 0n;
   return (
@@ -98,8 +113,8 @@ function ReturnWorkspace({
         {doc.blocked && <button onClick={doc.reload}>Обновить черновик</button>}
         {doc.draft.submission && (
           <p className="notice">
-            Неподтверждённый возврат зафиксирован. Повтор использует исходные
-            данные.
+            Неподтверждённый возврат по продаже {sourceSaleId} зафиксирован.
+            Показаны исходные данные; повтор отправит их без изменений.
           </p>
         )}
         {sale?.lines.map((l) => (
@@ -118,7 +133,7 @@ function ReturnWorkspace({
                 type="number"
                 min={0}
                 max={l.quantity - l.returnedQuantity}
-                value={selections[l.id]?.quantity ?? 0}
+                value={shownSelections[l.id]?.quantity ?? 0}
                 disabled={frozen}
                 onChange={(e) => {
                   const q = Number(e.target.value);
@@ -141,7 +156,7 @@ function ReturnWorkspace({
               Состояние {l.name}
               <select
                 disabled={frozen}
-                value={selections[l.id]?.condition ?? 'resellable'}
+                value={shownSelections[l.id]?.condition ?? 'resellable'}
                 onChange={(e) =>
                   setSelections((x) => ({
                     ...x,
@@ -162,7 +177,7 @@ function ReturnWorkspace({
           <label>
             Причина возврата
             <textarea
-              value={reason}
+              value={shownReason}
               maxLength={500}
               disabled={frozen}
               onChange={(e) => setReason(e.target.value)}
@@ -172,7 +187,7 @@ function ReturnWorkspace({
             <label className="checkbox">
               <input
                 type="checkbox"
-                checked={refund}
+                checked={shownRefund}
                 disabled={frozen}
                 onChange={(e) => setRefund(e.target.checked)}
               />
@@ -184,11 +199,11 @@ function ReturnWorkspace({
               возврат.
             </p>
           )}
-          {refund && sale?.method && (
+          {shownRefund && sale?.method && (
             <label>
               Способ возврата денег
               <select
-                value={method}
+                value={shownMethod}
                 disabled={frozen}
                 onChange={(e) => setMethod(e.target.value as 'cash' | 'card')}
               >

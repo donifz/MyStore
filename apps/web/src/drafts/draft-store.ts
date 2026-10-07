@@ -86,20 +86,62 @@ export function load(scope: DraftScope): Draft | null {
   validate(d, scope);
   return d;
 }
-export function save(draft: Draft, expectedRevision?: string): void {
+export function save(
+  draft: Draft,
+  expectedRevision?: string,
+  settlement = false,
+): void {
   validate(draft, draft.scope);
   const existing = load(draft.scope);
   if (existing && existing.revision !== (expectedRevision ?? draft.revision))
     throw new Error('Черновик изменён в другом окне. Обновите его.');
+  if (
+    existing?.submission &&
+    !settlement &&
+    (draft.revision !== existing.revision ||
+      !draft.submission ||
+      draft.submission.key !== existing.submission.key ||
+      draft.submission.path !== existing.submission.path ||
+      JSON.stringify(draft.submission.body) !==
+        JSON.stringify(existing.submission.body) ||
+      JSON.stringify(draft.lines) !== JSON.stringify(existing.lines))
+  )
+    throw new Error(
+      'Неподтверждённая операция зафиксирована. Повторите исходный запрос.',
+    );
+  if (
+    !existing &&
+    localStorage.getItem(storageKey(draft.scope) + ':settled') ===
+      (expectedRevision ?? draft.revision)
+  )
+    throw new Error(
+      'Операция уже подтверждена в другом окне. Обновите черновик.',
+    );
   localStorage.setItem(storageKey(draft.scope), JSON.stringify(draft));
 }
 export function clear(scope: DraftScope, expectedRevision: string) {
   const current = load(scope);
-  if (current?.revision === expectedRevision)
+  if (current?.revision === expectedRevision) {
+    localStorage.setItem(storageKey(scope) + ':settled', expectedRevision);
     localStorage.removeItem(storageKey(scope));
+  }
 }
 export function clearUser(userId: string) {
   for (const key of Object.keys(localStorage))
     if (key.startsWith('mystore:draft:' + userId + ':'))
       localStorage.removeItem(key);
+}
+
+// Web Locks serialize capture, editing and settlement across same-origin tabs.
+export async function withDraftLock<T>(
+  scope: DraftScope,
+  work: () => T | Promise<T>,
+): Promise<T> {
+  if (!navigator.locks)
+    return Promise.reject(
+      new Error(
+        'Для безопасной работы кассы нужен браузер с Web Locks и HTTPS (либо localhost).',
+      ),
+    );
+  return await navigator.locks.request(storageKey(scope), work);
 }

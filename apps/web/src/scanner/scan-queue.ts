@@ -1,7 +1,7 @@
 import { Variant } from '../api/types';
 export function createScanQueue(
   lookup: (code: string) => Promise<Variant>,
-  onVariant: (v: Variant) => void,
+  onVariant: (v: Variant) => unknown,
   onError: (e: unknown) => void,
 ) {
   let chain = Promise.resolve(),
@@ -13,7 +13,7 @@ export function createScanQueue(
         if (!active) return;
         try {
           const variant = await lookup(code);
-          if (active) onVariant(variant);
+          if (active) await onVariant(variant);
         } catch (e) {
           if (active) onError(e);
         }

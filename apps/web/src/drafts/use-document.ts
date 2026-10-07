@@ -6,6 +6,7 @@ import {
   DraftScope,
   load,
   save,
+  withDraftLock,
   storageKey,
 } from './draft-store';
 import { submitDocument } from './document-state';
@@ -40,18 +41,36 @@ export function useDocument(scope: DraftScope) {
     } | null>(null);
   const ref = useRef(draft);
   ref.current = draft;
-  function change(lines: DraftLine[]) {
-    if (ref.current.submission || blocked || busy) return;
+  const sending = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  async function change(
+    update: DraftLine[] | ((lines: DraftLine[]) => DraftLine[]),
+  ) {
+    if (ref.current.submission || blocked || sending.current) return;
     try {
-      const next = { ...ref.current, revision: crypto.randomUUID(), lines };
-      save(next, ref.current.revision);
-      ref.current = next;
-      setDraft(next);
-      setSuccess('');
-      setError('');
+      await withDraftLock(scope, () => {
+        if (!mounted.current || ref.current.submission || sending.current)
+          return;
+        const lines =
+          typeof update === 'function' ? update(ref.current.lines) : update;
+        const next = { ...ref.current, revision: crypto.randomUUID(), lines };
+        save(next, ref.current.revision);
+        ref.current = next;
+        setDraft(next);
+        setSuccess('');
+        setError('');
+      });
     } catch (e) {
-      setError(errorText(e));
-      setBlocked(true);
+      if (mounted.current) {
+        setError(errorText(e));
+        setBlocked(true);
+      }
     }
   }
   const queue = useRef<ReturnType<typeof createScanQueue> | null>(null);
@@ -61,23 +80,19 @@ export function useDocument(scope: DraftScope) {
         api<Variant>(
           `/shops/${scope.shopId}/variants/by-barcode?code=${encodeURIComponent(code)}`,
         ),
-      (v) => {
-        const lines = ref.current.lines;
-        const existing = lines.find((x) => x.id === v.id);
-        if (existing) {
-          if (existing.quantity >= 1e9) {
-            setError('Слишком большое количество.');
-            return;
-          }
-          change(
-            lines.map((x) =>
+      (v) =>
+        change((lines) => {
+          const existing = lines.find((x) => x.id === v.id);
+          if (existing) {
+            if (existing.quantity >= 1e9)
+              throw new Error('Слишком большое количество.');
+            return lines.map((x) =>
               x.id === v.id ? { ...x, quantity: x.quantity + 1 } : x,
-            ),
-          );
-        } else if (lines.length >= 100)
-          setError('В документе допускается до 100 товаров.');
-        else
-          change([
+            );
+          }
+          if (lines.length >= 100)
+            throw new Error('В документе допускается до 100 товаров.');
+          return [
             ...lines,
             {
               id: v.id,
@@ -87,8 +102,8 @@ export function useDocument(scope: DraftScope) {
               priceMinor: v.salePriceMinor,
               ...(scope.kind === 'receiving' ? { unitCostText: '' } : {}),
             },
-          ]);
-      },
+          ];
+        }),
       (e) =>
         setError(
           e instanceof ApiError && e.status === 404
@@ -128,7 +143,8 @@ export function useDocument(scope: DraftScope) {
     }
   }
   async function send(path: string, body: unknown) {
-    if (busy || blocked || !online) return;
+    if (sending.current || blocked || !online) return;
+    sending.current = true;
     setBusy(true);
     setError('');
     setSuccess('');
@@ -139,17 +155,20 @@ export function useDocument(scope: DraftScope) {
         : {
             ...ref.current,
             submission: {
-              key: crypto.randomUUID(),
+              key: ref.current.revision,
               path,
               body,
               status: 'pending',
             },
           };
-      save(pending);
-      setDraft(pending);
-      ref.current = pending;
-      const result = await submitDocument<{ id: string }>(pending, (key, b) =>
-        api(pending.submission!.path ?? path, { method: 'POST', key, body: b }),
+      const result = await submitDocument<{ id: string }>(
+        pending,
+        (key, b, savedPath) =>
+          api(savedPath ?? path, { method: 'POST', key, body: b }),
+        (captured) => {
+          ref.current = captured;
+          if (mounted.current) setDraft(captured);
+        },
       );
       const next = load(scope) ?? freshDraft(scope);
       setDraft(next);
@@ -176,6 +195,7 @@ export function useDocument(scope: DraftScope) {
         setBlocked(true);
       }
     } finally {
+      sending.current = false;
       setBusy(false);
     }
   }

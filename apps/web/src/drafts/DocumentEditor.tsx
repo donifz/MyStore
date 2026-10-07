@@ -70,8 +70,8 @@ export default function DocumentEditor({
               onChange={(e) => {
                 const n = Number(e.target.value);
                 if (Number.isInteger(n) && n >= 1 && n <= 1e9)
-                  doc.change(
-                    doc.draft.lines.map((x) =>
+                  doc.change((lines) =>
+                    lines.map((x) =>
                       x.id === l.id ? { ...x, quantity: n } : x,
                     ),
                   );
@@ -85,15 +85,14 @@ export default function DocumentEditor({
                 inputMode="decimal"
                 value={l.unitCostText ?? ''}
                 disabled={disabled}
-                onChange={(e) =>
-                  doc.change(
-                    doc.draft.lines.map((x) =>
-                      x.id === l.id
-                        ? { ...x, unitCostText: e.target.value }
-                        : x,
+                onChange={(e) => {
+                  const value = e.currentTarget.value;
+                  void doc.change((lines) =>
+                    lines.map((x) =>
+                      x.id === l.id ? { ...x, unitCostText: value } : x,
                     ),
-                  )
-                }
+                  );
+                }}
               />
             </label>
           )}
@@ -103,7 +102,7 @@ export default function DocumentEditor({
             aria-label={'Удалить ' + l.name}
             disabled={disabled}
             onClick={() =>
-              doc.change(doc.draft.lines.filter((x) => x.id !== l.id))
+              doc.change((lines) => lines.filter((x) => x.id !== l.id))
             }
           >
             ×

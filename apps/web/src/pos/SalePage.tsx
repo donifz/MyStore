@@ -77,7 +77,7 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
           <label>
             Способ оплаты
             <select
-              value={method}
+              value={doc.draft.submission?.body.method ?? method}
               disabled={doc.busy || !!doc.draft.submission}
               onChange={(e) => setMethod(e.target.value as 'cash' | 'card')}
             >

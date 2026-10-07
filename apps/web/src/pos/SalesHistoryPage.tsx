@@ -55,11 +55,9 @@ export default function SalesHistoryPage() {
             </p>
             <small className="code">{sale.id}</small>
           </div>
-          {owner && (
-            <Link className="button" to={sale.id + '/return'}>
-              Открыть продажу
-            </Link>
-          )}
+          <Link className="button" to={sale.id}>
+            Открыть продажу
+          </Link>
         </section>
       ))}
       {data && !data.items.length && (
