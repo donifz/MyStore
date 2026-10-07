@@ -269,6 +269,110 @@ td:first-child {
   margin-top: 6px;
   overflow-wrap: anywhere;
 }
+.barcode-preview {
+  display: grid;
+  gap: 16px;
+  justify-items: start;
+}
+.barcode-label {
+  width: 58mm;
+  height: 40mm;
+  padding: 2.5mm;
+  background: #fff;
+  color: #111;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 1mm 2mm;
+  overflow: hidden;
+  align-content: stretch;
+  font-family: Arial, sans-serif;
+}
+.barcode-label:not(:first-child) {
+  display: none;
+}
+.barcode-product-name {
+  font-size: 9pt;
+  line-height: 1.15;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.barcode-price {
+  font-size: 10pt;
+  white-space: nowrap;
+}
+.barcode-sku {
+  grid-column: 1 / -1;
+  font-size: 7pt;
+  line-height: 1.1;
+}
+.barcode-symbol {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 15mm;
+  min-height: 0;
+  fill: #000;
+}
+.barcode-value {
+  grid-column: 1 / -1;
+  text-align: center;
+  letter-spacing: 0.15mm;
+  font-family: monospace;
+  font-size: 7pt;
+  line-height: 1;
+  white-space: nowrap;
+}
+.barcode-label-actions {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+}
+.barcode-label-actions label {
+  width: 100px;
+  margin: 0;
+}
+.barcode-label-actions input {
+  padding: 8px;
+}
+.barcode-error {
+  grid-column: 1 / -1;
+  font-size: 8pt;
+}
+.barcode-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: #172b3d88;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.barcode-dialog {
+  max-width: min(100%, 560px);
+  max-height: 90vh;
+  overflow: auto;
+  background: #fff;
+  padding: 24px;
+}
+.barcode-dialog-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.barcode-dialog-heading h2 {
+  margin: 0;
+}
+.selected-labels {
+  display: grid;
+  gap: 22px;
+  margin-top: 22px;
+}
+.selected-label {
+  display: flex;
+  align-items: end;
+  gap: 20px;
+}
 .stock {
   background: #edf7f1;
   color: #217448;
@@ -286,6 +390,49 @@ td:first-child {
   align-items: center;
   gap: 15px;
   margin-top: 20px;
+}
+@media print {
+  @page {
+    size: 58mm 40mm;
+    margin: 0;
+  }
+  body * {
+    display: none !important;
+  }
+  #root:has(.barcode-preview),
+  #root *:has(.barcode-preview) {
+    display: contents !important;
+  }
+  #root .barcode-preview,
+  #root .barcode-preview * {
+    display: revert !important;
+  }
+  #root .barcode-preview {
+    display: block !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  #root .selected-label .barcode-preview {
+    position: static !important;
+  }
+  #root .barcode-preview .barcode-label {
+    display: grid !important;
+    margin: 0;
+    break-after: page;
+    page-break-after: always;
+  }
+  .barcode-preview .barcode-label:last-of-type {
+    break-after: auto;
+    page-break-after: auto;
+  }
+  .selected-label:not(:last-child) .barcode-label:last-of-type {
+    break-after: page;
+    page-break-after: always;
+  }
+  #root .barcode-preview .no-print {
+    display: none !important;
+  }
 }
 .error {
   background: #fff0ef;

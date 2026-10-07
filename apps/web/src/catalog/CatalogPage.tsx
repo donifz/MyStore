@@ -4,6 +4,7 @@ import { api, errorText } from '../api/client';
 import { Page, Variant } from '../api/types';
 import { formatSom } from '../api/money';
 import { useSession } from '../auth/SessionProvider';
+import BarcodeLabel from './BarcodeLabel';
 export default function CatalogPage() {
   const { shopId } = useParams(),
     session = useSession(),
@@ -11,7 +12,8 @@ export default function CatalogPage() {
     [page, setPage] = useState(1),
     [data, setData] = useState<Page<Variant> | null>(null),
     [error, setError] = useState(''),
-    [loading, setLoading] = useState(false);
+    [loading, setLoading] = useState(false),
+    [barcodeProduct, setBarcodeProduct] = useState<Variant | null>(null);
   const role = session.user?.shops.find((x) => x.id === shopId)?.role;
   useEffect(() => {
     let alive = true;
@@ -81,6 +83,7 @@ export default function CatalogPage() {
                 <th>Цена</th>
                 <th>Доступно</th>
                 <th>Резерв</th>
+                <th className="no-print">Этикетка</th>
               </tr>
             </thead>
             <tbody>
@@ -103,6 +106,11 @@ export default function CatalogPage() {
                     </span>
                   </td>
                   <td>{v.reserved} шт.</td>
+                  <td className="no-print">
+                    <button type="button" onClick={() => setBarcodeProduct(v)}>
+                      Штрихкод
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -129,6 +137,33 @@ export default function CatalogPage() {
           </button>
         </div>
       </section>
+      {barcodeProduct && (
+        <div
+          className="barcode-dialog-backdrop"
+          role="presentation"
+          onClick={() => setBarcodeProduct(null)}
+        >
+          <section
+            className="barcode-dialog panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Этикетка: ${barcodeProduct.name}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="barcode-dialog-heading">
+              <h2>Этикетка товара</h2>
+              <button
+                type="button"
+                aria-label="Закрыть"
+                onClick={() => setBarcodeProduct(null)}
+              >
+                ×
+              </button>
+            </div>
+            <BarcodeLabel product={barcodeProduct} />
+          </section>
+        </div>
+      )}
     </>
   );
 }

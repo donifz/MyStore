@@ -7,6 +7,7 @@ import { errorText } from '../api/client';
 import { Variant } from '../api/types';
 import PhotoAssistant from './PhotoAssistant';
 import type { CategoryNode } from './PhotoAssistant';
+import BarcodeLabel from './BarcodeLabel';
 async function photoFrom(file: File) {
   if (
     !['image/jpeg', 'image/png', 'image/webp'].includes(file.type) ||
@@ -138,7 +139,7 @@ function CaptureWorkspace({
         </p>
       )}
       {saved ? (
-        <section className="panel capture-panel">
+        <section className="panel capture-panel barcode-print-container">
           <p role="status" className="success">
             Товар создан и принят: {saved.quantity} шт.
           </p>
@@ -153,6 +154,7 @@ function CaptureWorkspace({
           <p>Артикул: {saved.sku}</p>
           <p>Штрихкод: {saved.barcode}</p>
           <p>Цена продажи: {formatSom(saved.salePriceMinor)}</p>
+          <BarcodeLabel product={saved} />
           <button
             onClick={() => {
               setSaved(null);

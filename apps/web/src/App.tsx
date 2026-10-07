@@ -20,6 +20,7 @@ import ProductPage from './storefront/ProductPage';
 import PartnerPage from './storefront/PartnerPage';
 import StorefrontSettingsPage from './storefront/StorefrontSettingsPage';
 import EditVariantPage from './catalog/EditVariantPage';
+import BarcodeLabelsPage from './catalog/BarcodeLabelsPage';
 export default function App() {
   return (
     <SessionProvider>
@@ -46,6 +47,7 @@ export default function App() {
           <Route path="receiving" element={<ReceivingPage />} />
           <Route path="products" element={<CatalogPage />} />
           <Route path="products/capture" element={<CapturePage />} />
+          <Route path="labels" element={<BarcodeLabelsPage />} />
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="products/new" element={<CreateVariantPage />} />
         </Route>

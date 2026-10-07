@@ -5,6 +5,7 @@ import { parseSom } from '../api/money';
 import { Variant } from '../api/types';
 import { useSession } from '../auth/SessionProvider';
 import type { CategoryNode } from './PhotoAssistant';
+import BarcodeLabel from './BarcodeLabel';
 export default function CreateVariantPage() {
   const { shopId } = useParams(),
     session = useSession(),
@@ -54,7 +55,7 @@ export default function CreateVariantPage() {
         ← Товары
       </Link>
       <h1>Новый товар</h1>
-      <section className="panel form-panel">
+      <section className="panel form-panel barcode-print-container">
         {saved ? (
           <>
             <p role="status" className="success">
@@ -63,6 +64,7 @@ export default function CreateVariantPage() {
             <p>
               {saved.name} · {saved.barcode}
             </p>
+            <BarcodeLabel product={saved} />
             <Link
               to={'/seller/' + shopId + '/receiving'}
               className="primary button"
