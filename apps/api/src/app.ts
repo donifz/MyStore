@@ -18,6 +18,7 @@ import { VariantsService } from './catalog/variants.service';
 import { VariantsController } from './catalog/variants.controller';
 import { StockService } from './inventory/stock.service';
 import { ReceivingService } from './inventory/receiving.service';
+import { StockOperationsService } from './inventory/stock-operations.service';
 import { InventoryController } from './inventory/inventory.controller';
 import { IdempotencyService } from './common/idempotency.service';
 import { SalesService } from './pos/sales.service';
@@ -97,6 +98,7 @@ export async function createApp(
       VariantsService,
       StockService,
       ReceivingService,
+      StockOperationsService,
       IdempotencyService,
       SalesService,
       ShiftsService,
@@ -204,8 +206,7 @@ export async function createApp(
           /^\/shops\/[^/]+(?:\/products\/[^/]+)?\/?$/.test(req.path) ||
           req.path === '/seller' ||
           req.path.startsWith('/seller/') ||
-          req.path === '/platform/admin' ||
-          req.path.startsWith('/platform/admin/')
+          req.path === '/platform/admin'
         ) {
           res.setHeader('Cache-Control', 'no-store');
           return res.sendFile(resolve(webDir, 'index.html'));

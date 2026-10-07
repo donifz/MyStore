@@ -96,6 +96,23 @@ export class ReturnsService {
             .filter((p) => p.line.condition === 'resellable')
             .map((p) => p.row.variant_id),
         );
+        const defectiveIds = [
+          ...new Set(
+            parts
+              .filter((p) => p.line.condition === 'defective')
+              .map((p) => p.row.variant_id as string),
+          ),
+        ].sort();
+        for (const variantId of defectiveIds) {
+          await tx.query(
+            'INSERT INTO defective_balances(shop_id,variant_id) VALUES($1,$2) ON CONFLICT DO NOTHING',
+            [shopId, variantId],
+          );
+          await tx.query(
+            'SELECT quantity FROM defective_balances WHERE shop_id=$1 AND variant_id=$2 FOR UPDATE',
+            [shopId, variantId],
+          );
+        }
         const id = randomUUID();
         await tx.query(
           "INSERT INTO stock_documents(id,shop_id,actor_id,kind,total_minor) VALUES($1,$2,$3,'return',$4)",
@@ -118,6 +135,15 @@ export class ReturnsService {
             await tx.query(
               'INSERT INTO stock_movements(id,shop_id,document_id,variant_id,quantity,value_minor) VALUES($1,$2,$3,$4,$5,$6)',
               [randomUUID(), shopId, id, row.variant_id, l.quantity, cost],
+            );
+          } else {
+            await tx.query(
+              'UPDATE defective_balances SET quantity=quantity+$3,value_minor=value_minor+$4 WHERE shop_id=$1 AND variant_id=$2',
+              [shopId, row.variant_id, l.quantity, cost],
+            );
+            await tx.query(
+              'INSERT INTO defective_movements(id,shop_id,variant_id,document_id,quantity,value_minor) VALUES($1,$2,$3,$4,$5,$6)',
+              [randomUUID(), shopId, row.variant_id, id, l.quantity, cost],
             );
           }
           await tx.query(

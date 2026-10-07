@@ -94,6 +94,7 @@ export default function SellerLayout() {
                 Скан / фото товара
               </NavLink>
               <NavLink to={base + '/receiving'}>Приёмка</NavLink>
+              <NavLink to={base + '/inventory'}>Инвентаризация</NavLink>
             </>
           )}
           <NavLink to={base + '/orders'}>Заказы</NavLink>
