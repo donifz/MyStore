@@ -33,7 +33,6 @@ import { StorefrontService } from './storefront/storefront.service';
 import {
   PublicStorefrontController,
   StorefrontSettingsController,
-  PartnersController,
 } from './storefront/storefront.controller';
 import { OrdersService } from './orders/orders.service';
 import { OrderExpirationService } from './orders/order-expiration.service';
@@ -48,6 +47,11 @@ import { CategoriesController } from './catalog/categories.controller';
 import { CategoriesService } from './catalog/categories.service';
 import { AdminSessionController } from './platform/admin-session.controller';
 import { PlatformAdminService } from './platform/platform-admin.service';
+import {
+  AdminApplicationsController,
+  PartnerApplicationsController,
+} from './platform/partner-applications.controller';
+import { PartnerApplicationsService } from './platform/partner-applications.service';
 export async function createApp(
   db: DataSource,
   publicHandler?: express.RequestHandler,
@@ -55,13 +59,14 @@ export async function createApp(
   @Module({
     controllers: [
       AdminSessionController,
+      AdminApplicationsController,
+      PartnerApplicationsController,
       CaptureController,
       CategoriesController,
       PublicOrdersController,
       OrdersController,
       PublicStorefrontController,
       StorefrontSettingsController,
-      PartnersController,
       AuthController,
       WebAuthController,
       ShopsController,
@@ -74,6 +79,7 @@ export async function createApp(
     ],
     providers: [
       PlatformAdminService,
+      PartnerApplicationsService,
       { provide: DATABASE, useValue: db },
       CaptureService,
       CategoriesService,

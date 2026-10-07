@@ -1,15 +1,12 @@
 import {
   BadRequestException,
-  ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { randomUUID } from 'node:crypto';
 import { DATABASE } from '../database';
-import { hashPassword } from '../auth/password';
 export type ProfileInput = {
   description: string;
   city: string;
@@ -67,35 +64,6 @@ export class StorefrontService {
       ],
     );
     return this.profile(shopId);
-  }
-  async register(input: { email: string; password: string; shopName: string }) {
-    try {
-      await this.db.transaction(async (q) => {
-        const user = randomUUID(),
-          shop = randomUUID();
-        await q.query(
-          'INSERT INTO users(id,email,password_hash) VALUES($1,$2,$3)',
-          [
-            user,
-            input.email.trim().toLowerCase(),
-            await hashPassword(input.password),
-          ],
-        );
-        await q.query('INSERT INTO shops(id,name) VALUES($1,$2)', [
-          shop,
-          input.shopName.trim(),
-        ]);
-        await q.query(
-          "INSERT INTO memberships(shop_id,user_id,role) VALUES($1,$2,'owner')",
-          [shop, user],
-        );
-      });
-    } catch (e: any) {
-      if (e.code === '23505')
-        throw new ConflictException('Registration unavailable for this email');
-      throw e;
-    }
-    return { created: true };
   }
   async stores(q: string, page: number, pageSize: number) {
     const params = [escaped(q)];
