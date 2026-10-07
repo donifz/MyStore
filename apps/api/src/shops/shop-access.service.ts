@@ -22,7 +22,8 @@ export class ShopAccessService {
       permission !== 'sell';
     const reportsDenied =
       permission === 'reports' && member?.role !== 'owner';
-    if (!member || cashierDenied || reportsDenied) throw new ForbiddenException();
+    if (!member || cashierDenied || reportsDenied)
+      throw new ForbiddenException();
     return member;
   }
 }
