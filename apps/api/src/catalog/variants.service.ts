@@ -8,6 +8,7 @@ import { DataSource } from 'typeorm';
 import { randomUUID, randomBytes } from 'node:crypto';
 import { DATABASE } from '../database';
 import { CategoriesService } from './categories.service';
+import { stageProduct } from '../platform/product-publication';
 export type VariantInput = {
   name: string;
   barcode?: string;
@@ -22,6 +23,7 @@ export type Variant = {
   category: string;
   subcategory: string;
   published: boolean;
+  publicationStatus?: string;
   id: string;
   name: string;
   barcode: string;
@@ -47,6 +49,9 @@ export class VariantsService {
       category: row.category,
       subcategory: row.subcategory ?? '',
       published: row.published,
+      ...(row.publication_status
+        ? { publicationStatus: row.publication_status }
+        : {}),
     };
   }
   async list(
@@ -85,7 +90,11 @@ export class VariantsService {
       pageSize,
     };
   }
-  async createVariant(shopId: string, input: VariantInput): Promise<Variant> {
+  async createVariant(
+    shopId: string,
+    input: VariantInput,
+    actor: string,
+  ): Promise<Variant> {
     await this.categories.assertSelection(
       shopId,
       input.category ?? '',
@@ -94,19 +103,23 @@ export class VariantsService {
     const barcode =
       input.barcode ?? `MS${randomBytes(12).toString('hex').toUpperCase()}`;
     try {
-      const [row] = await this.db.query(
-        'INSERT INTO variants(id,shop_id,name,barcode,sale_price_minor,category,subcategory)VALUES($1,$2,$3,$4,$5,$6,$7)RETURNING *',
-        [
-          randomUUID(),
-          shopId,
-          input.name.trim(),
-          barcode,
-          input.salePriceMinor,
-          input.category?.trim() ?? '',
-          input.subcategory?.trim() ?? '',
-        ],
-      );
-      return this.dto(row);
+      const row = await this.db.transaction(async (tx) => {
+        const [created] = await tx.query(
+          'INSERT INTO variants(id,shop_id,name,barcode,sale_price_minor,category,subcategory)VALUES($1,$2,$3,$4,$5,$6,$7)RETURNING *',
+          [
+            randomUUID(),
+            shopId,
+            input.name.trim(),
+            barcode,
+            input.salePriceMinor,
+            input.category?.trim() ?? '',
+            input.subcategory?.trim() ?? '',
+          ],
+        );
+        await stageProduct(tx, created, actor);
+        return created;
+      });
+      return this.dto({ ...row, publication_status: 'pending' });
     } catch (e: any) {
       if (e.code === '23505')
         throw new ConflictException('Barcode already exists');
@@ -134,31 +147,57 @@ export class VariantsService {
       subcategory?: string;
       published: boolean;
     },
+    actor: string,
   ) {
     await this.categories.assertSelection(
       shopId,
       input.category,
       input.subcategory ?? '',
     );
-    const [[row]] = await this.db.query(
-      'UPDATE variants SET name=$3,sale_price_minor=$4,description=$5,category=$6,subcategory=$7,published=$8 WHERE shop_id=$1 AND id=$2 RETURNING *',
-      [
-        shopId,
-        id,
-        input.name.trim(),
-        input.salePriceMinor,
-        input.description.trim(),
-        input.category.trim(),
-        (input.subcategory ?? '').trim(),
-        input.published,
-      ],
-    );
-    if (!row) throw new NotFoundException();
-    return this.dto(row);
+    return this.db.transaction(async (tx) => {
+      const [before] = await tx.query(
+        'SELECT * FROM variants WHERE shop_id=$1 AND id=$2 FOR UPDATE',
+        [shopId, id],
+      );
+      if (!before) throw new NotFoundException();
+      const [row] = await tx.query(
+        'UPDATE variants SET name=$3,sale_price_minor=$4,description=$5,category=$6,subcategory=$7,published=$8 WHERE shop_id=$1 AND id=$2 RETURNING *',
+        [
+          shopId,
+          id,
+          input.name.trim(),
+          input.salePriceMinor,
+          input.description.trim(),
+          input.category.trim(),
+          (input.subcategory ?? '').trim(),
+          input.published,
+        ],
+      );
+      const changed = ['name', 'description', 'category', 'subcategory'].some(
+        (k) => before[k] !== row[k],
+      );
+      if (changed) await stageProduct(tx, row, actor);
+      const [pending] = await tx.query(
+        "SELECT 1 FROM product_publication_revisions WHERE variant_id=$1 AND status='pending'",
+        [id],
+      );
+      const [approved] = await tx.query(
+        'SELECT 1 FROM product_publications WHERE variant_id=$1',
+        [id],
+      );
+      return this.dto({
+        ...row,
+        publication_status: pending
+          ? 'pending'
+          : approved
+            ? 'approved'
+            : 'unpublished',
+      });
+    });
   }
   async getById(shopId: string, id: string) {
     const [row] = await this.db.query(
-      'SELECT id,shop_id,sku,name,barcode,sale_price_minor,description,category,subcategory,published,(photo_data IS NOT NULL) has_photo FROM variants WHERE shop_id=$1 AND id=$2',
+      "SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.sale_price_minor,v.description,v.category,v.subcategory,v.published,(v.photo_data IS NOT NULL) has_photo,CASE WHEN EXISTS(SELECT 1 FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='pending') THEN 'pending' WHEN EXISTS(SELECT 1 FROM product_publications p WHERE p.variant_id=v.id) THEN 'approved' ELSE 'unpublished' END publication_status FROM variants v WHERE v.shop_id=$1 AND v.id=$2",
       [shopId, id],
     );
     if (!row) throw new NotFoundException();

@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { randomUUID } from 'node:crypto';
 import { createApp } from '../src/app';
-import { setup, teardown, fixture } from './helpers';
+import { setup, teardown, fixture, approveTestProduct } from './helpers';
 describe('public storefront', () => {
   let c: Awaited<ReturnType<typeof setup>>;
   const profile = {
@@ -29,13 +29,15 @@ describe('public storefront', () => {
     ).body;
   }
   async function variant(name = 'Чашка%', price = 15000) {
-    return (
+    const item = (
       await request(http())
         .post(`/shops/${fixture.shop}/variants`)
         .auth(c.owner, { type: 'bearer' })
         .send({ name, salePriceMinor: price })
         .expect(201)
     ).body;
+    await approveTestProduct(c.db, item.id);
+    return item;
   }
   it('keeps existing shops hidden, restricts profile to owner and validates publication', async () => {
     const r = await request(http()).get('/public/stores').expect(200);
@@ -178,6 +180,7 @@ describe('public storefront', () => {
       .auth(c.owner, { type: 'bearer' })
       .send(edit)
       .expect(200);
+    await approveTestProduct(c.db, v.id);
     const cat = await request(http())
       .get('/public/products?category=' + encodeURIComponent('Посуда'))
       .expect(200);

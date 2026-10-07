@@ -52,6 +52,8 @@ import {
   PartnerApplicationsController,
 } from './platform/partner-applications.controller';
 import { PartnerApplicationsService } from './platform/partner-applications.service';
+import { ProductModerationService } from './platform/product-moderation.service';
+import { ProductModerationController } from './platform/product-moderation.controller';
 export async function createApp(
   db: DataSource,
   publicHandler?: express.RequestHandler,
@@ -60,6 +62,7 @@ export async function createApp(
     controllers: [
       AdminSessionController,
       AdminApplicationsController,
+      ProductModerationController,
       PartnerApplicationsController,
       CaptureController,
       CategoriesController,
@@ -80,6 +83,7 @@ export async function createApp(
     providers: [
       PlatformAdminService,
       PartnerApplicationsService,
+      ProductModerationService,
       { provide: DATABASE, useValue: db },
       CaptureService,
       CategoriesService,

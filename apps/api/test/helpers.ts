@@ -9,6 +9,17 @@ export const fixture = {
   owner: '33333333-3333-4333-8333-333333333333',
   cashier: '44444444-4444-4444-8444-444444444444',
 };
+// Existing accounting/checkout suites use an approved public fixture.
+// Moderation transitions themselves are exercised in product-moderation.e2e-spec.ts.
+export async function approveTestProduct(db: DataSource, id: string) {
+  await db.query(
+    `INSERT INTO product_publications(variant_id,shop_id,name,description,category,subcategory,photo_data)
+     SELECT id,shop_id,name,description,category,subcategory,photo_data FROM variants WHERE id=$1
+     ON CONFLICT(variant_id) DO UPDATE SET name=excluded.name,description=excluded.description,
+       category=excluded.category,subcategory=excluded.subcategory,photo_data=excluded.photo_data,approved_at=now()`,
+    [id],
+  );
+}
 export async function setup(
   factory: (db: DataSource) => Promise<INestApplication>,
 ) {

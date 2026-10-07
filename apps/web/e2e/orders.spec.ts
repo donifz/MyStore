@@ -1,5 +1,6 @@
 import { test, expect, APIRequestContext } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
+import { approveProduct, reviewedPartner } from './review-fixtures';
 
 test('shopper checkout recovers receipt and seller issues reserved stock once', async ({
   page,
@@ -7,16 +8,12 @@ test('shopper checkout recovers receipt and seller issues reserved stock once', 
 }) => {
   const email = `orders-${randomUUID()}@example.test`,
     password = 'orders-browser-password';
-  const registered = await request.post('/api/partners/register', {
-    headers: { origin: process.env.E2E_BASE_URL ?? 'http://127.0.0.1:3001' },
-    data: { email, password, shopName: 'Заказы у дома' },
-  });
-  expect(registered.ok()).toBeTruthy();
-  const token = (
-    await (
-      await request.post('/api/auth/login', { data: { email, password } })
-    ).json()
-  ).token;
+  const token = await reviewedPartner(
+    request,
+    email,
+    password,
+    'Заказы у дома',
+  );
   const headers = { authorization: `Bearer ${token}` };
   const me = await (await request.get('/api/auth/me', { headers })).json(),
     shop = me.shops[0].id;
@@ -39,6 +36,7 @@ test('shopper checkout recovers receipt and seller issues reserved stock once', 
       data: { name: 'Чашка для заказа', salePriceMinor: 15000 },
     })
   ).json();
+  await approveProduct(request, variant.id);
   expect(
     (
       await request.post(`/api/shops/${shop}/receivings`, {
@@ -159,15 +157,7 @@ test('shopper checkout recovers receipt and seller issues reserved stock once', 
 async function shopForCart(request: APIRequestContext, name: string) {
   const email = `cart-${randomUUID()}@example.test`,
     password = 'cart-browser-password';
-  await request.post('/api/partners/register', {
-    headers: { origin: process.env.E2E_BASE_URL ?? 'http://127.0.0.1:3001' },
-    data: { email, password, shopName: name },
-  });
-  const token = (
-      await (
-        await request.post('/api/auth/login', { data: { email, password } })
-      ).json()
-    ).token,
+  const token = await reviewedPartner(request, email, password, name),
     headers = { authorization: `Bearer ${token}` };
   const shop = (await (await request.get('/api/auth/me', { headers })).json())
     .shops[0].id;
@@ -190,6 +180,7 @@ async function shopForCart(request: APIRequestContext, name: string) {
       data: { name, salePriceMinor: 15000 },
     })
   ).json();
+  await approveProduct(request, v.id);
   await request.post(`/api/shops/${shop}/receivings`, {
     headers: { ...headers, 'idempotency-key': randomUUID() },
     data: { lines: [{ variantId: v.id, quantity: 5, unitCostMinor: 8000 }] },

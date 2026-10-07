@@ -85,7 +85,7 @@ export class VariantsController {
     @Body() body: VariantDto,
   ) {
     await this.access.requireMembership(req.userId, shopId, 'catalog');
-    return this.variants.createVariant(shopId, body);
+    return this.variants.createVariant(shopId, body, req.userId);
   }
   @Get('by-barcode') async barcode(
     @Param('shopId', ParseUUIDPipe) shopId: string,
@@ -104,7 +104,7 @@ export class VariantsController {
     @Body() body: EditVariantDto,
   ) {
     await this.access.requireMembership(req.userId, shopId, 'catalog');
-    return this.variants.updateVariant(shopId, id, body);
+    return this.variants.updateVariant(shopId, id, body, req.userId);
   }
   @Get(':variantId') async get(
     @Param('shopId', ParseUUIDPipe) shopId: string,

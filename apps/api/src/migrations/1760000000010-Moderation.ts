@@ -41,12 +41,44 @@ export class Moderation1760000000010 implements MigrationInterface {
         expires_at timestamptz NOT NULL,
         used_at timestamptz
       );
+      CREATE TABLE product_publications (
+        variant_id uuid PRIMARY KEY REFERENCES variants(id) ON DELETE CASCADE,
+        shop_id uuid NOT NULL REFERENCES shops(id),
+        name text NOT NULL,
+        description text NOT NULL,
+        category text NOT NULL,
+        subcategory text NOT NULL,
+        photo_data bytea,
+        approved_at timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE INDEX product_publications_shop_category ON product_publications(shop_id,category);
+      CREATE TABLE product_publication_revisions (
+        id uuid PRIMARY KEY,
+        variant_id uuid NOT NULL REFERENCES variants(id) ON DELETE CASCADE,
+        shop_id uuid NOT NULL REFERENCES shops(id),
+        name text NOT NULL,
+        description text NOT NULL,
+        category text NOT NULL,
+        subcategory text NOT NULL,
+        photo_data bytea,
+        status text NOT NULL CHECK(status IN ('pending','approved','rejected')),
+        submitted_by uuid REFERENCES users(id),
+        decided_by uuid REFERENCES users(id),
+        reason text,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        decided_at timestamptz
+      );
+      CREATE UNIQUE INDEX product_revisions_one_pending ON product_publication_revisions(variant_id) WHERE status='pending';
+      CREATE INDEX product_revisions_pending_date ON product_publication_revisions(created_at,id) WHERE status='pending';
+      INSERT INTO product_publications(variant_id,shop_id,name,description,category,subcategory,photo_data)
+        SELECT id,shop_id,name,description,category,subcategory,photo_data
+        FROM variants WHERE published;
     `);
   }
 
   async down(q: QueryRunner) {
     await q.query(
-      'DROP TABLE partner_invitations,partner_application_events,partner_applications,platform_admins',
+      'DROP TABLE product_publication_revisions,product_publications,partner_invitations,partner_application_events,partner_applications,platform_admins',
     );
   }
 }
