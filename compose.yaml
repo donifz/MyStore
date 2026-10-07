@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: mystore
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: mystore
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U mystore -d mystore']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  api:
+    build: .
+    environment:
+      DATABASE_URL: ${DATABASE_URL_CONTAINER:?Set DATABASE_URL_CONTAINER with URL-encoded credentials}
+      SESSION_SECRET: ${SESSION_SECRET:?Set a random SESSION_SECRET}
+      NODE_ENV: production
+      PORT: 3001
+    ports:
+      - '127.0.0.1:3001:3001'
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  postgres_data:

@@ -1,0 +1,59 @@
+name: API checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: mystore
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: mystore_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U mystore -d mystore_test"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgres://mystore:test-only@localhost:5432/mystore_test
+      SESSION_SECRET: ci-only-randomness-not-production-secret-00001
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test
+      - run: docker compose --env-file .env.example config --quiet
+        env:
+          SESSION_SECRET: ci-only-randomness-not-production-secret-00001
+
+      - name: Build production image
+        run: docker build -t mystore-api:ci .
+      - name: Prepare isolated container smoke database
+        env:
+          DATABASE_URL: postgres://mystore:test-only@localhost:5432/mystore_smoke
+          ALLOW_DEMO_SEED: 'yes'
+          SEED_PASSWORD: ci-only-smoke-password
+          NODE_ENV: development
+        run: |
+          node -e "const {Client}=require('pg'); (async()=>{const c=new Client({connectionString:process.env.TEST_DATABASE_URL});await c.connect();await c.query('CREATE DATABASE mystore_smoke');await c.end()})().catch(e=>{console.error(e.message);process.exit(1)})"
+          npm run migration:run --workspace apps/api
+          npm run seed --workspace apps/api
+      - name: Run image and test HTTP flow
+        env:
+          SMOKE_PASSWORD: ci-only-smoke-password
+        run: |
+          docker run -d --name mystore-api-ci --network host -e DATABASE_URL=postgres://mystore:test-only@localhost:5432/mystore_smoke -e SESSION_SECRET="$SESSION_SECRET" mystore-api:ci
+          node scripts/smoke.cjs
+      - name: Container logs and cleanup
+        if: always()
+        run: |
+          docker logs mystore-api-ci || true
+          docker rm -f mystore-api-ci || true

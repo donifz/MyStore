@@ -1,0 +1,72 @@
+import {
+  Body,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+  Matches,
+} from 'class-validator';
+import { AuthGuard, UserRequest } from '../auth/auth.guard';
+import { ShopAccessService } from '../shops/shop-access.service';
+import { VariantsService } from './variants.service';
+export class VariantDto {
+  @IsString() @MinLength(1) @MaxLength(200) @Matches(/\S/) name!: string;
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(64)
+  @Matches(/^[\x21-\x7E]+$/)
+  barcode?: string;
+  @IsInt() @Min(0) @Max(Number.MAX_SAFE_INTEGER) salePriceMinor!: number;
+}
+class BarcodeQuery {
+  @IsString() @MinLength(1) @MaxLength(64) code!: string;
+}
+@Controller('shops/:shopId/variants')
+@UseGuards(AuthGuard)
+export class VariantsController {
+  constructor(
+    private readonly access: ShopAccessService,
+    private readonly variants: VariantsService,
+  ) {}
+  @Post() async create(
+    @Param('shopId', ParseUUIDPipe) shopId: string,
+    @Req() req: UserRequest,
+    @Body() body: VariantDto,
+  ) {
+    await this.access.requireMembership(req.userId, shopId, 'catalog');
+    return this.variants.createVariant(shopId, body);
+  }
+  @Get('by-barcode') async barcode(
+    @Param('shopId', ParseUUIDPipe) shopId: string,
+    @Req() req: UserRequest,
+    @Query() query: BarcodeQuery,
+  ) {
+    await this.access.requireMembership(req.userId, shopId, 'read');
+    const variant = await this.variants.findByBarcode(shopId, query.code);
+    if (!variant) throw new NotFoundException();
+    return variant;
+  }
+  @Get(':variantId') async get(
+    @Param('shopId', ParseUUIDPipe) shopId: string,
+    @Param('variantId', ParseUUIDPipe) id: string,
+    @Req() req: UserRequest,
+  ) {
+    await this.access.requireMembership(req.userId, shopId, 'read');
+    return this.variants.getById(shopId, id);
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "name": "@mystore/api",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/main.js",
+    "dev": "npm run build && concurrently -k \"tsc -p tsconfig.build.json --watch --preserveWatchOutput\" \"node --watch dist/main.js\"",
+    "test:e2e": "jest --runInBand",
+    "migration:run": "tsx src/scripts/migrate.ts",
+    "seed": "tsx src/scripts/seed.ts"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.0",
+    "@nestjs/core": "^11.1.0",
+    "@nestjs/platform-express": "^11.1.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "helmet": "^8.1.0",
+    "pg": "^8.16.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "typeorm": "^0.3.28"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.0.0",
+    "@types/supertest": "^6.0.3",
+    "concurrently": "^10.0.5",
+    "jest": "^30.2.0",
+    "supertest": "^7.1.0",
+    "ts-jest": "^29.4.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.3"
+  }
+}
