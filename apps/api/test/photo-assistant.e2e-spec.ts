@@ -1,6 +1,7 @@
 import request from 'supertest';
 import sharp from 'sharp';
 import { createApp } from '../src/app';
+import { PhotoAssistantService } from '../src/catalog/photo-assistant.service';
 import { setup, teardown, fixture } from './helpers';
 
 describe('photo product suggestions', () => {
@@ -202,6 +203,35 @@ describe('photo product suggestions', () => {
     },
   );
   it.each([
+    [
+      'API key not valid. Please pass a valid API key.',
+      'AI_KEY_INVALID',
+      'reason=API_KEY_INVALID',
+    ],
+    [
+      'Invalid JSON payload received. Unknown name "maxLength" at generationConfig.responseFormat.text.schema.',
+      'AI_REQUEST_REJECTED',
+      'hint=UNSUPPORTED_MAX_LENGTH',
+    ],
+  ])(
+    'classifies known Google error messages without logging free-form text',
+    async (message, code, diagnostic) => {
+      const log = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      jest
+        .spyOn(global, 'fetch')
+        .mockResolvedValue(
+          new Response(
+            JSON.stringify({ error: { status: 'INVALID_ARGUMENT', message } }),
+            { status: 400 },
+          ),
+        );
+      const result = (await infer().expect(503)).body;
+      expect(result.code).toBe(code);
+      expect(log.mock.calls[0][0]).toContain(diagnostic);
+      expect(JSON.stringify(log.mock.calls)).not.toContain(message);
+    },
+  );
+  it.each([
     'not JSON',
     'x'.repeat(8193),
     JSON.stringify({
@@ -216,6 +246,32 @@ describe('photo product suggestions', () => {
     expect(log).toHaveBeenCalledWith(
       'photo_ai_provider_failure status=400 model=gemini-3.5-flash-lite rpc=UNKNOWN reason=UNKNOWN',
     );
+  });
+  it('probes the configured model without sending a photo or revealing the API key', async () => {
+    process.env.PHOTO_AI_DIAGNOSTIC_ON_STARTUP = 'true';
+    const log = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const upstream = jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ name: 'models/gemini-3.5-flash-lite' }), {
+        status: 200,
+      }),
+    );
+    try {
+      await c.app.get(PhotoAssistantService).onApplicationBootstrap();
+      expect(upstream).toHaveBeenCalledTimes(1);
+      const [url, options] = upstream.mock.calls[0];
+      expect(String(url)).toBe(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite',
+      );
+      expect(options?.method).toBe('GET');
+      expect(options?.body).toBeUndefined();
+      expect(log).toHaveBeenCalledWith(
+        'photo_ai_key_probe status=200 model=gemini-3.5-flash-lite rpc=OK reason=UNKNOWN',
+      );
+      expect(JSON.stringify(log.mock.calls)).not.toContain('test-only');
+      expect(JSON.stringify(log.mock.calls)).not.toContain(photo);
+    } finally {
+      delete process.env.PHOTO_AI_DIAGNOSTIC_ON_STARTUP;
+    }
   });
   it('rejects oversized and truncated responses before offering suggestions', async () => {
     const upstream = jest
