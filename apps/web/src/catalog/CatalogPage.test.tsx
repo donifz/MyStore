@@ -9,7 +9,7 @@ afterEach(() => {
 });
 function server(role = 'cashier') {
   let calls: string[] = [];
-  vi.stubGlobal('fetch', async (url: string) => {
+  vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
     calls.push(url);
     let body: any = url.endsWith('/me')
       ? {
@@ -18,24 +18,34 @@ function server(role = 'cashier') {
           csrfToken: 'csrf',
           shops: [{ id: shop, name: 'Магазин', role }],
         }
-      : url.includes('/variants')
-        ? {
-            items: [
-              {
-                id: 'variant',
-                name: 'Рюкзак',
-                barcode: '00123',
-                salePriceMinor: 15000,
-                physical: 10,
-                reserved: 0,
-                available: 10,
-              },
-            ],
-            total: 1,
-            page: 1,
-            pageSize: 25,
-          }
-        : {};
+      : url.endsWith('/categories')
+        ? []
+        : url.endsWith('/variants') && init?.method === 'POST'
+          ? {
+              id: 'created-variant',
+              name: 'Сумка',
+              barcode: 'MS0123456789ABCDEF01234567',
+              sku: 'MS-00000001',
+              salePriceMinor: 15025,
+            }
+          : url.includes('/variants')
+            ? {
+                items: [
+                  {
+                    id: 'variant',
+                    name: 'Рюкзак',
+                    barcode: '00123',
+                    salePriceMinor: 15000,
+                    physical: 10,
+                    reserved: 0,
+                    available: 10,
+                  },
+                ],
+                total: 1,
+                page: 1,
+                pageSize: 25,
+              }
+            : {};
     return new Response(JSON.stringify(body), {
       status: 200,
       headers: { 'content-type': 'application/json' },
@@ -70,6 +80,23 @@ it('foreign shop URL never loads foreign catalog', async () => {
   await screen.findByText('Нет доступа к магазину');
   expect(calls.some((x) => x.includes('/shops/foreign/'))).toBe(false);
 });
+it('lets a cashier preview and print a product barcode label', async () => {
+  server();
+  const app = await import('../App');
+  const print = vi.spyOn(window, 'print').mockImplementation(() => {});
+  render(
+    <MemoryRouter initialEntries={['/seller/' + shop + '/products']}>
+      <app.default />
+    </MemoryRouter>,
+  );
+  const u = userEvent.setup();
+  await screen.findByText('Рюкзак');
+  await u.click(screen.getByRole('button', { name: 'Штрихкод' }));
+  expect(screen.getByRole('dialog', { name: 'Этикетка: Рюкзак' })).toBeTruthy();
+  expect(screen.getAllByText('00123')).toHaveLength(2);
+  await u.click(screen.getByRole('button', { name: 'Печать этикетки' }));
+  expect(print).toHaveBeenCalledOnce();
+});
 it('creation does not silently receive stock', async () => {
   const calls = server('owner');
   const app = await import('../App').catch(() => null);
@@ -85,5 +112,7 @@ it('creation does not silently receive stock', async () => {
   await u.type(screen.getByLabelText('Цена продажи, сом'), '150,25');
   await u.click(screen.getByRole('button', { name: 'Сохранить товар' }));
   await screen.findByText('Товар создан. Остаток не изменён.');
+  expect(screen.getByRole('button', { name: 'Печать этикетки' })).toBeTruthy();
+  expect(screen.getByRole('img', { name: 'Штрихкод' })).toBeTruthy();
   expect(calls.some((x) => x.includes('/receivings'))).toBe(false);
 });

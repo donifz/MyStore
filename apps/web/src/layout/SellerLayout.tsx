@@ -78,6 +78,7 @@ export default function SellerLayout() {
             <NavLink to={base + '/storefront'}>Витрина</NavLink>
           )}
           <NavLink to={base + '/products'}>Товары</NavLink>
+          <NavLink to={base + '/labels'}>Печать этикеток</NavLink>
           {shop.role !== 'cashier' && (
             <NavLink to={base + '/categories'}>Категории</NavLink>
           )}
