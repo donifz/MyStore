@@ -89,6 +89,11 @@ describe('photo product suggestions', () => {
       payload.generationConfig.responseFormat.text.schema.properties.category
         .enum,
     ).toEqual(['Посуда', 'Другое']);
+    for (const property of Object.values(
+      payload.generationConfig.responseFormat.text.schema.properties,
+    ) as any[]) {
+      expect(property).not.toHaveProperty('maxLength');
+    }
     expect(String(options!.body)).not.toContain('Чужая категория');
     expect(String(options!.body)).not.toContain('owner@example.test');
     const [counts] = await c.db.query(
