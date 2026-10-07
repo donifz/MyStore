@@ -1142,7 +1142,8 @@ fieldset {
   display: grid;
   gap: 18px;
 }
-.capture-panel label {
+.capture-panel label,
+.capture-field {
   display: grid;
   gap: 8px;
 }
