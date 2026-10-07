@@ -57,6 +57,11 @@ import { ProductModerationService } from './platform/product-moderation.service'
 import { ProductModerationController } from './platform/product-moderation.controller';
 import { ReportsController } from './reports/reports.controller';
 import { ReportsService } from './reports/reports.service';
+import { OperationsController } from './operations/operations.controller';
+import { NotificationsService } from './operations/notifications.service';
+import { HealthController } from './operations/health.controller';
+import { FiscalController } from './fiscal/fiscal.controller';
+import { FiscalService } from './fiscal/fiscal.service';
 export async function createApp(
   db: DataSource,
   publicHandler?: express.RequestHandler,
@@ -83,6 +88,9 @@ export async function createApp(
       PosSalesController,
       ReturnsController,
       ReportsController,
+      OperationsController,
+      HealthController,
+      FiscalController,
     ],
     providers: [
       PlatformAdminService,
@@ -109,6 +117,8 @@ export async function createApp(
       ReturnsService,
       SalesHistoryService,
       ReportsService,
+      NotificationsService,
+      FiscalService,
     ],
   })
   class AppModule {}
