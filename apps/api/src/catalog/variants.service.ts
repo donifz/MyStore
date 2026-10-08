@@ -188,7 +188,7 @@ export class VariantsService {
         await tx.query(
           `INSERT INTO audit_log(shop_id,actor_id,action,entity_type,entity_id,details)
            VALUES($1,$2,'updated','variant',$3,
-             jsonb_build_object('priceBefore',$4,'priceAfter',$5,'publishedBefore',$6,'publishedAfter',$7))`,
+             jsonb_build_object('priceBefore',$4::bigint,'priceAfter',$5::bigint,'publishedBefore',$6::boolean,'publishedAfter',$7::boolean))`,
           [
             shopId,
             actor,
