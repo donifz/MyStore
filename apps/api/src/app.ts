@@ -42,6 +42,7 @@ import {
   PublicOrdersController,
 } from './orders/orders.controller';
 import { CaptureService } from './catalog/capture.service';
+import { BarcodeLookupService } from './catalog/barcode-lookup.service';
 import { PhotoAssistantService } from './catalog/photo-assistant.service';
 import { CaptureController } from './catalog/capture.controller';
 import { CategoriesController } from './catalog/categories.controller';
@@ -98,6 +99,7 @@ export async function createApp(
       ProductModerationService,
       { provide: DATABASE, useValue: db },
       CaptureService,
+      BarcodeLookupService,
       CategoriesService,
       PhotoAssistantService,
       OrdersService,

@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useSession } from '../auth/SessionProvider';
 import { useDocument } from '../drafts/use-document';
 import { parseSom, formatSom } from '../api/money';
-import { errorText } from '../api/client';
+import { api, errorText } from '../api/client';
 import { Variant } from '../api/types';
 import PhotoAssistant from './PhotoAssistant';
 import type { CategoryNode } from './PhotoAssistant';
@@ -59,6 +59,8 @@ function CaptureWorkspace({
     [price, setPrice] = useState(''),
     [quantity, setQuantity] = useState('1'),
     [barcode, setBarcode] = useState(''),
+    [barcodeBusy, setBarcodeBusy] = useState(false),
+    [barcodeHint, setBarcodeHint] = useState(''),
     [category, setCategory] = useState(''),
     [subcategory, setSubcategory] = useState(''),
     [description, setDescription] = useState(''),
@@ -84,6 +86,38 @@ function CaptureWorkspace({
       doc.setError(errorText(e));
     } finally {
       if (revision === photoRevision.current) setLoadingPhoto(false);
+    }
+  }
+  async function searchBarcode() {
+    const code = barcode.trim();
+    setBarcodeHint('');
+    if (!/^\\d{8,14}$/.test(code)) {
+      setBarcodeHint('Для поиска в каталоге нужен EAN/UPC из 8–14 цифр.');
+      return;
+    }
+    setBarcodeBusy(true);
+    try {
+      const result = await api<{
+        found: boolean;
+        source: 'shop' | 'openfoodfacts' | 'none';
+        name?: string;
+        brand?: string;
+        description?: string;
+        existing?: Variant;
+      }>(`/shops/${shopId}/variants/barcode-suggestion?code=${encodeURIComponent(code)}`);
+      if (result.source === 'shop' && result.existing) {
+        setBarcodeHint(`Товар уже есть в этом магазине: ${result.existing.name}. Добавьте его через обычную приёмку.`);
+      } else if (result.found && result.name) {
+        setName(result.name);
+        if (result.description) setDescription(result.description);
+        setBarcodeHint(`Найдено в Open Food Facts. Проверьте название и упаковку перед сохранением.`);
+      } else {
+        setBarcodeHint('Во внешнем каталоге товар не найден. Используйте фото или введите название вручную.');
+      }
+    } catch (e) {
+      setBarcodeHint('Поиск недоступен. Можно заполнить товар вручную.');
+    } finally {
+      setBarcodeBusy(false);
     }
   }
   function check(e: FormEvent) {
@@ -212,7 +246,7 @@ function CaptureWorkspace({
       ) : (
         <form className="panel capture-panel" onSubmit={check}>
           <fieldset
-            disabled={doc.busy || loadingPhoto || recognizing || doc.blocked}
+            disabled={doc.busy || loadingPhoto || recognizing || barcodeBusy || doc.blocked}
           >
             <label>
               Фото товара
@@ -286,10 +320,17 @@ function CaptureWorkspace({
               <input
                 maxLength={64}
                 value={barcode}
-                onChange={(e) => setBarcode(e.target.value)}
+                onChange={(e) => {
+                  setBarcode(e.target.value);
+                  setBarcodeHint('');
+                }}
                 placeholder="Сканируйте существующий или оставьте пустым"
               />
             </label>
+            <button type="button" onClick={() => void searchBarcode()} disabled={!barcode.trim() || barcodeBusy}>
+              {barcodeBusy ? 'Ищем товар…' : 'Найти по штрихкоду'}
+            </button>
+            {barcodeHint && <p role="status" className="muted">{barcodeHint}</p>
             <label>
               Категория
               <select
