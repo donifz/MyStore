@@ -177,228 +177,230 @@ export default function AdminPage() {
       </aside>
       <div className="admin-main">
         <main className="admin-workspace">
-      <header>
-        <div>
-          <h1>Админка MyStore</h1>
-          <p className="muted">Контроль партнёров, товаров и решений платформы</p>
-        </div>
-        <Link to="/seller">Мои магазины</Link>
-        <button
-          onClick={() =>
-            void session
-              .logout()
-              .then(() => window.location.assign('/seller/login'))
-              .catch((e) => setError(errorText(e)))
-          }
-        >
-          Выйти
-        </button>
-      </header>
-      <div className="admin-overview-stats">
-        <article className="panel">
-          <small>Заявки партнёров</small>
-          <h2>{applications.length}</h2>
-        </article>
-        <article className="panel">
-          <small>Ожидают решения</small>
-          <h2>
-            {applications.filter((a) =>
-              ['new', 'in_review'].includes(a.status),
-            ).length}
-          </h2>
-        </article>
-        <article className="panel">
-          <small>Карточки на модерации</small>
-          <h2>{products.length}</h2>
-        </article>
-        <article className="panel">
-          <small>Записи журнала</small>
-          <h2>{audit.length}</h2>
-        </article>
-      </div>
-      <nav aria-label="Разделы платформы" className="admin-tabs">
-        <button
-          aria-current={tab === 'applications' ? 'page' : undefined}
-          onClick={() => setTab('applications')}
-        >
-          Заявки ({applications.length})
-        </button>
-        <button
-          aria-current={tab === 'products' ? 'page' : undefined}
-          onClick={() => setTab('products')}
-        >
-          Товары ({products.length})
-        </button>
-        <button
-          aria-current={tab === 'audit' ? 'page' : undefined}
-          onClick={() => setTab('audit')}
-        >
-          Журнал решений
-        </button>
-      </nav>
-      {error && (
-        <p role="alert" className="error">
-          {error}
-        </p>
-      )}
-      {invitation && (
-        <div className="panel" role="status">
-          <strong>Ссылка для владельца</strong>
-          <p>
-            Передайте её заявителю по проверенному контакту. Она показывается
-            только сейчас и действует 7 дней.
-          </p>
-          <input
-            aria-label="Ссылка активации"
-            readOnly
-            value={invitation}
-            onFocus={(e) => e.target.select()}
-          />
+        <header>
+          <div>
+            <h1>Админка MyStore</h1>
+            <p className="muted">
+              Контроль партнёров, товаров и решений платформы
+            </p>
+          </div>
+          <Link to="/seller">Мои магазины</Link>
           <button
             onClick={() =>
-              void navigator.clipboard
-                .writeText(invitation)
+              void session
+                .logout()
+                .then(() => window.location.assign('/seller/login'))
                 .catch((e) => setError(errorText(e)))
             }
           >
-            Скопировать
+            Выйти
           </button>
+        </header>
+        <div className="admin-overview-stats">
+          <article className="panel">
+            <small>Заявки партнёров</small>
+            <h2>{applications.length}</h2>
+          </article>
+          <article className="panel">
+            <small>Ожидают решения</small>
+            <h2>
+              {applications.filter((a) =>
+                ['new', 'in_review'].includes(a.status),
+              ).length}
+            </h2>
+          </article>
+          <article className="panel">
+            <small>Карточки на модерации</small>
+            <h2>{products.length}</h2>
+          </article>
+          <article className="panel">
+            <small>Записи журнала</small>
+            <h2>{audit.length}</h2>
+          </article>
         </div>
-      )}
-      {loading ? (
-        <p>Загрузка…</p>
-      ) : tab === 'applications' ? (
-        <section>
-          <h2>Заявки партнёров</h2>
-          {!applications.length && <p>Заявок пока нет.</p>}
-          {applications.map((a) => (
-            <article className="panel" key={a.id}>
-              <h3>
-                {a.shop_name} · {a.status}
-              </h3>
-              <p>
-                {a.city} · {a.category} · {a.address}
-              </p>
-              <p>
-                <a href={`mailto:${a.email}`}>{a.email}</a> ·{' '}
-                <a href={`tel:${a.phone}`}>{a.phone}</a>
-              </p>
-              {a.rejection_reason && (
-                <p>Причина отказа: {a.rejection_reason}</p>
-              )}
-              {['new', 'in_review'].includes(a.status) && (
-                <>
-                  <label>
-                    Причина отказа
-                    <input
-                      value={reason}
-                      maxLength={500}
-                      onChange={(e) => setReason(e.target.value)}
-                    />
-                  </label>
-                  {a.status === 'new' && (
+        <nav aria-label="Разделы платформы" className="admin-tabs">
+          <button
+            aria-current={tab === 'applications' ? 'page' : undefined}
+            onClick={() => setTab('applications')}
+          >
+            Заявки ({applications.length})
+          </button>
+          <button
+            aria-current={tab === 'products' ? 'page' : undefined}
+            onClick={() => setTab('products')}
+          >
+            Товары ({products.length})
+          </button>
+          <button
+            aria-current={tab === 'audit' ? 'page' : undefined}
+            onClick={() => setTab('audit')}
+          >
+            Журнал решений
+          </button>
+        </nav>
+        {error && (
+          <p role="alert" className="error">
+            {error}
+          </p>
+        )}
+        {invitation && (
+          <div className="panel" role="status">
+            <strong>Ссылка для владельца</strong>
+            <p>
+              Передайте её заявителю по проверенному контакту. Она показывается
+              только сейчас и действует 7 дней.
+            </p>
+            <input
+              aria-label="Ссылка активации"
+              readOnly
+              value={invitation}
+              onFocus={(e) => e.target.select()}
+            />
+            <button
+              onClick={() =>
+                void navigator.clipboard
+                  .writeText(invitation)
+                  .catch((e) => setError(errorText(e)))
+              }
+            >
+              Скопировать
+            </button>
+          </div>
+        )}
+        {loading ? (
+          <p>Загрузка…</p>
+        ) : tab === 'applications' ? (
+          <section>
+            <h2>Заявки партнёров</h2>
+            {!applications.length && <p>Заявок пока нет.</p>}
+            {applications.map((a) => (
+              <article className="panel" key={a.id}>
+                <h3>
+                  {a.shop_name} · {a.status}
+                </h3>
+                <p>
+                  {a.city} · {a.category} · {a.address}
+                </p>
+                <p>
+                  <a href={`mailto:${a.email}`}>{a.email}</a> ·{' '}
+                  <a href={`tel:${a.phone}`}>{a.phone}</a>
+                </p>
+                {a.rejection_reason && (
+                  <p>Причина отказа: {a.rejection_reason}</p>
+                )}
+                {['new', 'in_review'].includes(a.status) && (
+                  <>
+                    <label>
+                      Причина отказа
+                      <input
+                        value={reason}
+                        maxLength={500}
+                        onChange={(e) => setReason(e.target.value)}
+                      />
+                    </label>
+                    {a.status === 'new' && (
+                      <button
+                        disabled={busy}
+                        onClick={() => void decideApplication(a, 'in_review')}
+                      >
+                        Взять в работу
+                      </button>
+                    )}
                     <button
                       disabled={busy}
-                      onClick={() => void decideApplication(a, 'in_review')}
+                      onClick={() => void decideApplication(a, 'approved')}
                     >
-                      Взять в работу
+                      Одобрить
                     </button>
-                  )}
-                  <button
-                    disabled={busy}
-                    onClick={() => void decideApplication(a, 'approved')}
-                  >
-                    Одобрить
-                  </button>
-                  <button
-                    disabled={busy || !reason.trim()}
-                    onClick={() => void decideApplication(a, 'rejected')}
-                  >
-                    Отклонить
-                  </button>
-                </>
-              )}
-            </article>
-          ))}
-        </section>
-      ) : tab === 'products' ? (
-        <section>
-          <h2>Карточки на проверке</h2>
-          {!products.length && <p>Нет карточек на проверке.</p>}
-          {products.map((p) => (
-            <article className="panel" key={p.revision_id}>
-              <h3>
-                {p.name} · {p.shop_name}
-              </h3>
-              <p>
-                {p.category} · {p.description}
+                    <button
+                      disabled={busy || !reason.trim()}
+                      onClick={() => void decideApplication(a, 'rejected')}
+                    >
+                      Отклонить
+                    </button>
+                  </>
+                )}
+              </article>
+            ))}
+          </section>
+        ) : tab === 'products' ? (
+          <section>
+            <h2>Карточки на проверке</h2>
+            {!products.length && <p>Нет карточек на проверке.</p>}
+            {products.map((p) => (
+              <article className="panel" key={p.revision_id}>
+                <h3>
+                  {p.name} · {p.shop_name}
+                </h3>
+                <p>
+                  {p.category} · {p.description}
+                </p>
+                <button onClick={() => void showProduct(p.revision_id)}>
+                  Посмотреть изменения
+                </button>
+              </article>
+            ))}
+            {selected && (
+              <article className="panel">
+                <h3>Предложено: {selected.name}</h3>
+                {selected.has_photo && (
+                  <img
+                    className="product-photo"
+                    src={`/api/platform/admin/products/revisions/${selected.revision_id}/photo`}
+                    alt="Фото для проверки"
+                  />
+                )}
+                <p>
+                  {selected.category} · {selected.description}
+                </p>
+                <h3>
+                  Сейчас на витрине:{' '}
+                  {selected.approved_name ?? 'Ещё не опубликовано'}
+                </h3>
+                {selected.approved_has_photo && (
+                  <img
+                    className="product-photo"
+                    src={`/api/platform/admin/products/revisions/${selected.revision_id}/photo?approved=true`}
+                    alt="Одобренное фото"
+                  />
+                )}
+                <p>
+                  {selected.approved_category} · {selected.approved_description}
+                </p>
+                <label>
+                  Причина отказа
+                  <input
+                    value={reason}
+                    maxLength={500}
+                    onChange={(e) => setReason(e.target.value)}
+                  />
+                </label>
+                <button
+                  disabled={busy}
+                  onClick={() => void decideProduct('approved')}
+                >
+                  Одобрить карточку
+                </button>
+                <button
+                  disabled={busy || !reason.trim()}
+                  onClick={() => void decideProduct('rejected')}
+                >
+                  Отклонить карточку
+                </button>
+              </article>
+            )}
+          </section>
+        ) : (
+          <section>
+            <h2>Журнал решений</h2>
+            {audit.map((a, i) => (
+              <p className="panel" key={`${a.entity_id}-${i}`}>
+                {new Date(a.created_at).toLocaleString('ru-RU')} · {a.kind} ·{' '}
+                {a.status} · {a.reason ?? 'Без причины'}
               </p>
-              <button onClick={() => void showProduct(p.revision_id)}>
-                Посмотреть изменения
-              </button>
-            </article>
-          ))}
-          {selected && (
-            <article className="panel">
-              <h3>Предложено: {selected.name}</h3>
-              {selected.has_photo && (
-                <img
-                  className="product-photo"
-                  src={`/api/platform/admin/products/revisions/${selected.revision_id}/photo`}
-                  alt="Фото для проверки"
-                />
-              )}
-              <p>
-                {selected.category} · {selected.description}
-              </p>
-              <h3>
-                Сейчас на витрине:{' '}
-                {selected.approved_name ?? 'Ещё не опубликовано'}
-              </h3>
-              {selected.approved_has_photo && (
-                <img
-                  className="product-photo"
-                  src={`/api/platform/admin/products/revisions/${selected.revision_id}/photo?approved=true`}
-                  alt="Одобренное фото"
-                />
-              )}
-              <p>
-                {selected.approved_category} · {selected.approved_description}
-              </p>
-              <label>
-                Причина отказа
-                <input
-                  value={reason}
-                  maxLength={500}
-                  onChange={(e) => setReason(e.target.value)}
-                />
-              </label>
-              <button
-                disabled={busy}
-                onClick={() => void decideProduct('approved')}
-              >
-                Одобрить карточку
-              </button>
-              <button
-                disabled={busy || !reason.trim()}
-                onClick={() => void decideProduct('rejected')}
-              >
-                Отклонить карточку
-              </button>
-            </article>
-          )}
-        </section>
-      ) : (
-        <section>
-          <h2>Журнал решений</h2>
-          {audit.map((a, i) => (
-            <p className="panel" key={`${a.entity_id}-${i}`}>
-              {new Date(a.created_at).toLocaleString('ru-RU')} · {a.kind} ·{' '}
-              {a.status} · {a.reason ?? 'Без причины'}
-            </p>
-          ))}
-        </section>
-      )}
+            ))}
+          </section>
+        )}
         </main>
       </div>
     </div>

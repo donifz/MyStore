@@ -19,7 +19,8 @@ type StoreSummary = {
 };
 export default function PartnerDashboard() {
   const session = useSession();
-  const shops = session.user?.shops.filter((shop) => shop.role === 'owner') ?? [];
+  const shops =
+    session.user?.shops.filter((shop) => shop.role === 'owner') ?? [];
   const [summaries, setSummaries] = useState<StoreSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -68,7 +69,11 @@ export default function PartnerDashboard() {
       <main className="chooser">
         <h1>Мои магазины</h1>
         {session.user.shops.map((shop) => (
-          <Link className="panel" key={shop.id} to={`/seller/${shop.id}/products`}>
+          <Link
+            className="panel"
+            key={shop.id}
+            to={`/seller/${shop.id}/products`}
+          >
             {shop.name}
           </Link>
         ))}
@@ -89,7 +94,9 @@ export default function PartnerDashboard() {
           MyStore<span>Панель партнёра</span>
         </Link>
         <nav aria-label="Разделы партнёра">
-          <Link className="active" to="/seller">Обзор</Link>
+          <Link className="active" to="/seller">
+            Обзор
+          </Link>
           <a href="#partner-shops">Мои магазины</a>
           <a href="#partner-shops">Товары и остатки</a>
           <a href="#partner-shops">Продажи и смены</a>
@@ -110,11 +117,17 @@ export default function PartnerDashboard() {
           <div className="partner-heading">
             <div>
               <h1>Панель партнёра MyStore</h1>
-              <p className="muted">Только ваши магазины, товары, продажи и смены</p>
+              <p className="muted">
+                Только ваши магазины, товары, продажи и смены
+              </p>
             </div>
             <span className="partner-access">Доступ к своим магазинам</span>
           </div>
-          {error && <p className="error" role="alert">{error}</p>}
+          {error && (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          )}
           <div className="partner-stats">
             <article className="panel">
               <small>Мои магазины</small>
@@ -127,7 +140,11 @@ export default function PartnerDashboard() {
             <article className="panel">
               <small>Выручка (за всё время)</small>
               <h2>
-                {loading ? '…' : error ? '—' : formatSom(total('revenueMinor'))}
+                {loading
+                  ? '…'
+                  : error
+                    ? '—'
+                    : formatSom(total('revenueMinor'))}
               </h2>
             </article>
             <article className="panel">
@@ -159,7 +176,9 @@ export default function PartnerDashboard() {
                     const base = `/seller/${shop.id}`;
                     return (
                       <tr key={shop.id}>
-                        <td><strong>{shop.name}</strong></td>
+                        <td>
+                          <strong>{shop.name}</strong>
+                        </td>
                         <td>{row?.physicalUnits ?? '—'}</td>
                         <td>{row ? formatSom(row.revenueMinor) : '—'}</td>
                         <td>{row?.openOrders ?? '—'}</td>
