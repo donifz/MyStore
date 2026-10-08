@@ -133,7 +133,14 @@ export default function AdminPage() {
     }
   }
   if (session.loading) return <p className="loading">Загрузка…</p>;
-  if (!session.user) return <Navigate to="/seller/login" replace />;
+  if (!session.user)
+    return (
+      <Navigate
+        to="/seller/login"
+        replace
+        state={{ from: '/platform/admin' }}
+      />
+    );
   if (!session.user.platformAdmin)
     return (
       <p role="alert" className="error">

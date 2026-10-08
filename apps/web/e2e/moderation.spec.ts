@@ -74,7 +74,12 @@ test('administrator approves a partner and a public card while the owner sees a 
     .filter({ hasText: 'Кружка для дома' })
     .getByRole('button', { name: 'Посмотреть изменения' })
     .click();
+  const proposed = page.getByRole('heading', {
+    name: 'Предложено: Кружка для дома',
+  });
+  await expect(proposed).toBeVisible();
   await page.getByRole('button', { name: 'Одобрить карточку' }).click();
+  await expect(proposed).toHaveCount(0);
   expect(
     (
       await request.get(
