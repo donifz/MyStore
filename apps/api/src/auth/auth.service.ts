@@ -11,7 +11,7 @@ import { checkPassword, hashPassword } from './password';
 @Injectable()
 export class AuthService {
   private attempts = new Map<string, { count: number; until: number }>();
-  limitLogin(ip: string, email: string) {
+  limitLogin(ip: string, email = '') {
     const now = Date.now();
     for (const [k, v] of this.attempts)
       if (v.until <= now) this.attempts.delete(k);
