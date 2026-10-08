@@ -152,7 +152,7 @@ small {
 }
 .shop-badge select {
   margin-top: 12px;
-  background: #172b3d;
+  background-color: #172b3d;
   color: #e2eaf1;
   border-color: #385368;
   font-size: 12px;
@@ -855,7 +855,7 @@ fieldset {
 }
 .market-filters input,
 .market-filters select {
-  background: #fffefb;
+  background-color: #fffefb;
   border-color: #dedfd4;
 }
 .market-filters .checkbox {
@@ -883,6 +883,8 @@ fieldset {
   box-shadow: 0 14px 30px #16382810;
 }
 .product-cover {
+  position: relative;
+  overflow: hidden;
   aspect-ratio: 1.1;
   background:
     radial-gradient(circle at 65% 35%, #edf1e2 0, transparent 60%), #e1e8d8;
@@ -899,6 +901,14 @@ fieldset {
   line-height: 1;
 }
 .product-cover small {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  padding: 9px 6px;
+  background: #e1e8d8;
+  text-align: center;
   text-transform: uppercase;
   letter-spacing: 1.5px;
   font-size: 9px;
@@ -1306,6 +1316,8 @@ fieldset {
   margin-right: 12px;
 }
 .product-cover img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
