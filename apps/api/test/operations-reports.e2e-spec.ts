@@ -66,6 +66,28 @@ describe('reports, notifications, audit and fiscal readiness', () => {
       ],
     }).expect(201);
 
+    const closeRequest = post('/pos/shifts/' + shift + '/close', {
+      actualCashMinor: 200,
+    });
+    const closedShift = await closeRequest.expect(201);
+    expect(closedShift.body).toMatchObject({
+      status: 'closed',
+      salesCashMinor: 400,
+      refundsCashMinor: 200,
+      expectedCashMinor: 200,
+      actualCashMinor: 200,
+      discrepancyMinor: 0,
+    });
+    const stock = await request(c.app.getHttpServer())
+      .get(root + '/stock/' + variant)
+      .auth(c.owner, { type: 'bearer' })
+      .expect(200);
+    expect(stock.body).toMatchObject({
+      physical: 4,
+      reserved: 0,
+      stockValueMinor: 400,
+    });
+
     const summary = await request(c.app.getHttpServer())
       .get(root + '/reports/summary')
       .auth(c.owner, { type: 'bearer' })
@@ -129,6 +151,38 @@ describe('reports, notifications, audit and fiscal readiness', () => {
       if (previousProvider === undefined) delete process.env.KKM_PROVIDER;
       else process.env.KKM_PROVIDER = previousProvider;
     }
+  });
+
+  it('rejects empty stock and payment documents', async () => {
+    const initial = await c.db.query(
+      'SELECT count(*)::int n FROM stock_documents WHERE shop_id=$1',
+      [fixture.shop],
+    );
+    await post('/receivings', { lines: [] }).expect(400);
+    const shift = (
+      await post('/pos/shifts', { openingCashMinor: 0 }).expect(201)
+    ).body.id;
+    await post('/pos/sales', {
+      shiftId: shift,
+      method: 'cash',
+      lines: [],
+    }).expect(400);
+    await post('/pos/returns', {
+      saleId: randomUUID(),
+      refundMoney: false,
+      reason: 'No items',
+      lines: [],
+    }).expect(400);
+    const final = await c.db.query(
+      'SELECT count(*)::int n FROM stock_documents WHERE shop_id=$1',
+      [fixture.shop],
+    );
+    expect(final[0].n).toBe(initial[0].n);
+    const payments = await c.db.query(
+      'SELECT count(*)::int n FROM payment_records WHERE shop_id=$1',
+      [fixture.shop],
+    );
+    expect(payments[0].n).toBe(0);
   });
 
   it('creates transactional order notification and outbox event', async () => {
