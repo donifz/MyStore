@@ -44,7 +44,6 @@ test('core layouts stay inside the viewport at supported widths', async ({
   }
 });
 
-
 test('seller navigation highlights only the current leaf section', async ({
   page,
 }) => {

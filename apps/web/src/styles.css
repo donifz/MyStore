@@ -1353,7 +1353,6 @@ fieldset {
   width: min(100%, 640px);
 }
 
-
 /* Shared layout hardening for seller/admin screens. */
 .content > *,
 .page-heading > *,
@@ -1651,7 +1650,6 @@ td code {
     margin-right: 0;
   }
 }
-
 
 /* Controls and action spacing. */
 select {
