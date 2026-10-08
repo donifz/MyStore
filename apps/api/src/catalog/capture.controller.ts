@@ -63,8 +63,7 @@ export class CaptureController {
     await this.access.requireMembership(req.userId, shop, 'receive');
     res.setHeader('Cache-Control', 'no-store');
     const existing = await this.variants.findByBarcode(shop, query.code);
-    if (existing)
-      return { source: 'shop', found: true, existing };
+    if (existing) return { source: 'shop', found: true, existing };
     this.auth.limitLogin(`barcode-lookup:${shop}:${req.userId}`);
     return this.barcodeLookup.lookup(query.code);
   }

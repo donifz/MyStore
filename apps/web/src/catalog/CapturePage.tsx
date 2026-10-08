@@ -108,13 +108,19 @@ function CaptureWorkspace({
         `/shops/${shopId}/variants/barcode-suggestion?code=${encodeURIComponent(code)}`,
       );
       if (result.source === 'shop' && result.existing) {
-        setBarcodeHint(`Товар уже есть в этом магазине: ${result.existing.name}. Добавьте его через обычную приёмку.`);
+        setBarcodeHint(
+          `Товар уже есть в этом магазине: ${result.existing.name}. Добавьте его через обычную приёмку.`,
+        );
       } else if (result.found && result.name) {
         setName(result.name);
         if (result.description) setDescription(result.description);
-        setBarcodeHint(`Найдено в Open Food Facts. Проверьте название и упаковку перед сохранением.`);
+        setBarcodeHint(
+          'Найдено в Open Food Facts. Проверьте название и упаковку перед сохранением.',
+        );
       } else {
-        setBarcodeHint('Во внешнем каталоге товар не найден. Используйте фото или введите название вручную.');
+        setBarcodeHint(
+          'Во внешнем каталоге товар не найден. Используйте фото или введите название вручную.',
+        );
       }
     } catch (e) {
       setBarcodeHint('Поиск недоступен. Можно заполнить товар вручную.');
@@ -248,7 +254,9 @@ function CaptureWorkspace({
       ) : (
         <form className="panel capture-panel" onSubmit={check}>
           <fieldset
-            disabled={doc.busy || loadingPhoto || recognizing || barcodeBusy || doc.blocked}
+            disabled={
+              doc.busy || loadingPhoto || recognizing || barcodeBusy || doc.blocked
+            }
           >
             <label>
               Фото товара
@@ -336,7 +344,11 @@ function CaptureWorkspace({
             >
               {barcodeBusy ? 'Ищем товар…' : 'Найти по штрихкоду'}
             </button>
-            {barcodeHint && <p role="status" className="muted">{barcodeHint}</p>
+            {barcodeHint && (
+              <p role="status" className="muted">
+                {barcodeHint}
+              </p>
+            )}
             <label>
               Категория
               <select

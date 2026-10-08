@@ -50,7 +50,9 @@ describe('photo receiving', () => {
     }) as unknown as typeof fetch;
     try {
       const response = await request(c.app.getHttpServer())
-        .get(`/shops/${fixture.shop}/variants/barcode-suggestion?code=1234567890123`)
+        .get(
+          `/shops/${fixture.shop}/variants/barcode-suggestion?code=1234567890123`,
+        )
         .auth(c.owner, { type: 'bearer' })
         .expect(200);
       expect(response.body).toMatchObject({
@@ -59,7 +61,9 @@ describe('photo receiving', () => {
         name: 'Test cereal',
         brand: 'Test Brand',
       });
-      const [stock] = await c.db.query('SELECT count(*)::int n FROM stock_documents');
+      const [stock] = await c.db.query(
+        'SELECT count(*)::int n FROM stock_documents',
+      );
       expect(stock.n).toBe(0);
     } finally {
       global.fetch = originalFetch;

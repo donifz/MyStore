@@ -10,7 +10,9 @@ export class BarcodeLookupService {
         {
           redirect: 'error',
           signal: AbortSignal.timeout(4500),
-          headers: { 'User-Agent': 'MyStore/1.0 (barcode product suggestions)' },
+          headers: {
+            'User-Agent': 'MyStore/1.0 (barcode product suggestions)',
+          },
         },
       );
       if (!response.ok) return { source: 'none', found: false };
