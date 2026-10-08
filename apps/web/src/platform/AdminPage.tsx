@@ -204,9 +204,11 @@ export default function AdminPage() {
             <article className="panel">
               <small>Ожидают решения</small>
               <h2>
-                {applications.filter((a) =>
-                  ['new', 'in_review'].includes(a.status),
-                ).length}
+                {
+                  applications.filter((a) =>
+                    ['new', 'in_review'].includes(a.status),
+                  ).length
+                }
               </h2>
             </article>
             <article className="panel">
@@ -247,8 +249,8 @@ export default function AdminPage() {
             <div className="panel" role="status">
               <strong>Ссылка для владельца</strong>
               <p>
-                Передайте её заявителю по проверенному контакту. Она показывается
-                только сейчас и действует 7 дней.
+                Передайте её заявителю по проверенному контакту. Она
+                показывается только сейчас и действует 7 дней.
               </p>
               <input
                 aria-label="Ссылка активации"
@@ -365,7 +367,8 @@ export default function AdminPage() {
                     />
                   )}
                   <p>
-                    {selected.approved_category} · {selected.approved_description}
+                    {selected.approved_category} ·{' '}
+                    {selected.approved_description}
                   </p>
                   <label>
                     Причина отказа
