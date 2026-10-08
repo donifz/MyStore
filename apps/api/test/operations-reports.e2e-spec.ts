@@ -66,9 +66,10 @@ describe('reports, notifications, audit and fiscal readiness', () => {
       ],
     }).expect(201);
 
-    const closedShift = await post('/pos/shifts/' + shift + '/close', {
+    const closeRequest = post('/pos/shifts/' + shift + '/close', {
       actualCashMinor: 200,
-    }).expect(201);
+    });
+    const closedShift = await closeRequest.expect(201);
     expect(closedShift.body).toMatchObject({
       status: 'closed',
       salesCashMinor: 400,

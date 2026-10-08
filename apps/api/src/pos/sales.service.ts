@@ -1,4 +1,8 @@
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { randomUUID } from 'node:crypto';
 import { IdempotencyService } from '../common/idempotency.service';

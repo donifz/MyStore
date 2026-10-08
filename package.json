@@ -15,6 +15,7 @@
     "typecheck": "npm run typecheck --workspaces",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
+    "hooks:install": "git config core.hooksPath .githooks",
     "dev:web": "npm run dev --workspace apps/web"
   },
   "devDependencies": {
