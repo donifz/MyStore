@@ -66,6 +66,27 @@ describe('reports, notifications, audit and fiscal readiness', () => {
       ],
     }).expect(201);
 
+    const closedShift = await post('/pos/shifts/' + shift + '/close', {
+      actualCashMinor: 200,
+    }).expect(201);
+    expect(closedShift.body).toMatchObject({
+      status: 'closed',
+      salesCashMinor: 400,
+      refundsCashMinor: 200,
+      expectedCashMinor: 200,
+      actualCashMinor: 200,
+      discrepancyMinor: 0,
+    });
+    const stock = await request(c.app.getHttpServer())
+      .get(root + '/stock/' + variant)
+      .auth(c.owner, { type: 'bearer' })
+      .expect(200);
+    expect(stock.body).toMatchObject({
+      physical: 4,
+      reserved: 0,
+      stockValueMinor: 400,
+    });
+
     const summary = await request(c.app.getHttpServer())
       .get(root + '/reports/summary')
       .auth(c.owner, { type: 'bearer' })
