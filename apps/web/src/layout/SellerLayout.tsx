@@ -81,47 +81,29 @@ export default function SellerLayout() {
             <NavLink to="/platform/admin">Кабинет платформы</NavLink>
           )}
           {shop.role === 'owner' && (
-            <NavLink end to={base + '/storefront'}>
-              Витрина
-            </NavLink>
+            <NavLink end to={base + '/storefront'}>Витрина</NavLink>
           )}
           <NavLink end to={base + '/products'}>Товары</NavLink>
-          <NavLink end to={base + '/labels'}>
-            Печать этикеток
-          </NavLink>
+          <NavLink end to={base + '/labels'}>Печать этикеток</NavLink>
           {shop.role !== 'cashier' && (
-            <NavLink end to={base + '/categories'}>
-              Категории
-            </NavLink>
+            <NavLink end to={base + '/categories'}>Категории</NavLink>
           )}
           {shop.role !== 'cashier' && (
             <>
               <NavLink end to={base + '/products/capture'}>
                 Скан / фото товара
               </NavLink>
-              <NavLink end to={base + '/receiving'}>
-                Приёмка
-              </NavLink>
-              <NavLink end to={base + '/inventory'}>
-                Инвентаризация
-              </NavLink>
+              <NavLink end to={base + '/receiving'}>Приёмка</NavLink>
+              <NavLink end to={base + '/inventory'}>Инвентаризация</NavLink>
             </>
           )}
           <NavLink to={base + '/orders'}>Заказы</NavLink>
-          <NavLink end to={base + '/operations'}>
-            Уведомления
-          </NavLink>
-          <NavLink end to={base + '/pos'}>
-            Касса
-          </NavLink>
-          <NavLink end to={base + '/shift'}>
-            Смена
-          </NavLink>
+          <NavLink end to={base + '/operations'}>Уведомления</NavLink>
+          <NavLink end to={base + '/pos'}>Касса</NavLink>
+          <NavLink end to={base + '/shift'}>Смена</NavLink>
           <NavLink to={base + '/sales'}>Продажи и возвраты</NavLink>
           {shop.role === 'owner' && (
-            <NavLink end to={base + '/reports'}>
-              Отчёты
-            </NavLink>
+            <NavLink end to={base + '/reports'}>Отчёты</NavLink>
           )}
         </nav>
         <div className="sidebar-bottom">
