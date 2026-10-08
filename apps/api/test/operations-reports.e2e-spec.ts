@@ -155,7 +155,7 @@ describe('reports, notifications, audit and fiscal readiness', () => {
 
   it('rejects empty receiving, sale and return documents without ledger writes', async () => {
     const initial = await c.db.query(
-      "SELECT count(*)::int n FROM stock_documents WHERE shop_id=$1",
+      'SELECT count(*)::int n FROM stock_documents WHERE shop_id=$1',
       [fixture.shop],
     );
     await post('/receivings', { lines: [] }).expect(400);
@@ -174,12 +174,12 @@ describe('reports, notifications, audit and fiscal readiness', () => {
       lines: [],
     }).expect(400);
     const final = await c.db.query(
-      "SELECT count(*)::int n FROM stock_documents WHERE shop_id=$1",
+      'SELECT count(*)::int n FROM stock_documents WHERE shop_id=$1',
       [fixture.shop],
     );
     expect(final[0].n).toBe(initial[0].n);
     const payments = await c.db.query(
-      "SELECT count(*)::int n FROM payment_records WHERE shop_id=$1",
+      'SELECT count(*)::int n FROM payment_records WHERE shop_id=$1',
       [fixture.shop],
     );
     expect(payments[0].n).toBe(0);

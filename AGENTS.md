@@ -3,11 +3,13 @@
 These instructions apply to every change in this repository, including code written by AI assistants.
 
 ## Priority and scope
+
 - MyStore is primarily a **point-of-sale and inventory system**. Protect cash, stock, financial history, and customer trust before adding marketplace features.
 - Keep each PR focused. Make separate commits for functional changes, regression tests, and formatting when practical.
 - Never claim a check passed unless it actually ran and passed. Never merge a failing PR.
 
 ## Required code quality gates
+
 1. Use the project's own Prettier configuration and installed version; do not guess JSX, CSS, or TypeScript formatting.
 2. After editing code, run `npx prettier --write <changed files>` (or `npm run format`) **before committing**.
 3. Run `npm run format:check` before every push and again after the last code change.
@@ -16,6 +18,7 @@ These instructions apply to every change in this repository, including code writ
 6. Do not alter formatting rules or disable checks just to make a failed build green.
 
 ## Cash register and inventory invariants
+
 - No empty receiving, sale, return, count, or write-off document.
 - Never use floating-point arithmetic for stored currency; use integer minor units and checked bounds.
 - All stock and payment changes for one operation must commit in one PostgreSQL transaction.
@@ -26,6 +29,7 @@ These instructions apply to every change in this repository, including code writ
 - Do not mark a sale fiscalized without a real authorized KKM response.
 
 ## Tests
+
 - For any inventory/POS change, test both the successful path and rejection/rollback paths.
 - Verify complete flows: receiving → stock → sale → return, and opening shift → payments/refunds → closing shift.
 - Assert resulting stock quantities, stock value, cash expectations, and ledger/payment row counts.
@@ -33,4 +37,5 @@ These instructions apply to every change in this repository, including code writ
 - For UI changes, add Playwright checks for navigation and responsive screens. Await successful login/navigation before asserting protected UI.
 
 ## Local pre-commit hook
+
 Run `npm run hooks:install` once in your local clone. The tracked `.githooks/pre-commit` hook runs `npm run format:check` and blocks commits with unformatted files. GitHub CI is the final independent gate.
