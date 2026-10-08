@@ -94,9 +94,7 @@ export default function PartnerDashboard() {
           MyStore<span>Панель партнёра</span>
         </Link>
         <nav aria-label="Разделы партнёра">
-          <Link className="active" to="/seller">
-            Обзор
-          </Link>
+          <Link className="active" to="/seller">Обзор</Link>
           <a href="#partner-shops">Мои магазины</a>
           <a href="#partner-shops">Товары и остатки</a>
           <a href="#partner-shops">Продажи и смены</a>
@@ -117,9 +115,7 @@ export default function PartnerDashboard() {
           <div className="partner-heading">
             <div>
               <h1>Панель партнёра MyStore</h1>
-              <p className="muted">
-                Только ваши магазины, товары, продажи и смены
-              </p>
+              <p className="muted">Только ваши магазины, товары, продажи и смены</p>
             </div>
             <span className="partner-access">Доступ к своим магазинам</span>
           </div>
@@ -176,9 +172,7 @@ export default function PartnerDashboard() {
                     const base = `/seller/${shop.id}`;
                     return (
                       <tr key={shop.id}>
-                        <td>
-                          <strong>{shop.name}</strong>
-                        </td>
+                        <td><strong>{shop.name}</strong></td>
                         <td>{row?.physicalUnits ?? '—'}</td>
                         <td>{row ? formatSom(row.revenueMinor) : '—'}</td>
                         <td>{row?.openOrders ?? '—'}</td>
