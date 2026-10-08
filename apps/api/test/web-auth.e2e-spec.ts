@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { createApp } from '../src/app';
+import { AuthService } from '../src/auth/auth.service';
 import { setup, teardown, fixture } from './helpers';
 describe('browser sessions', () => {
   let c: Awaited<ReturnType<typeof setup>>;
@@ -79,5 +80,16 @@ describe('browser sessions', () => {
       .get('/auth/me')
       .auth(token, { type: 'bearer' })
       .expect(200);
+  });
+  it('limits one account without prematurely blocking other users behind the same IP', () => {
+    const auth = c.app.get(AuthService);
+    for (let i = 0; i < 20; i++)
+      auth.limitLogin('shared-office-ip', 'owner@example.test');
+    expect(() =>
+      auth.limitLogin('shared-office-ip', 'owner@example.test'),
+    ).toThrow('Too many attempts');
+    expect(() =>
+      auth.limitLogin('shared-office-ip', 'cashier@example.test'),
+    ).not.toThrow();
   });
 });

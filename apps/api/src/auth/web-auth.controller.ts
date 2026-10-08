@@ -25,7 +25,7 @@ export class WebAuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     validateOrigin(req.headers.origin);
-    this.auth.limitLogin(req.ip ?? 'unknown');
+    this.auth.limitLogin(req.ip ?? 'unknown', body.email);
     const session = await this.auth.login(body.email, body.password);
     res.cookie('mystore_session', session.token, {
       httpOnly: true,

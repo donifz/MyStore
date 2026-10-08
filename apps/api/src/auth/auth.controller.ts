@@ -11,7 +11,7 @@ class LoginDto {
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
   @Post('login') async login(@Body() body: LoginDto, @Req() req: Request) {
-    this.auth.limitLogin(req.ip ?? 'unknown');
+    this.auth.limitLogin(req.ip ?? 'unknown', body.email);
     return this.auth.login(body.email, body.password);
   }
   @Post('logout') @UseGuards(AuthGuard) logout(@Req() req: Request) {
