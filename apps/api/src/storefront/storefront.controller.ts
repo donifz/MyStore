@@ -4,7 +4,6 @@ import {
   Get,
   Param,
   ParseUUIDPipe,
-  Post,
   Put,
   Query,
   Req,
@@ -14,21 +13,16 @@ import {
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
-  IsEmail,
   IsIn,
   IsInt,
   IsOptional,
   IsString,
-  Matches,
   Max,
   MaxLength,
   Min,
-  MinLength,
 } from 'class-validator';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
-import { AuthService } from '../auth/auth.service';
-import { validateOrigin } from '../auth/browser-security';
 import { CaptureService } from '../catalog/capture.service';
 import { StorefrontService } from './storefront.service';
 class PageQuery {
@@ -49,11 +43,6 @@ class ProfileDto {
   @IsString() @MaxLength(30) phone!: string;
   @IsString() @MaxLength(120) hours!: string;
   @IsBoolean() published!: boolean;
-}
-class RegisterDto {
-  @IsEmail() @MaxLength(254) email!: string;
-  @IsString() @MinLength(12) @MaxLength(256) password!: string;
-  @IsString() @MinLength(1) @MaxLength(200) @Matches(/\S/) shopName!: string;
 }
 @Controller('public')
 export class PublicStorefrontController {
@@ -117,17 +106,5 @@ export class StorefrontSettingsController {
   ) {
     await this.service.owner(req.userId, shop);
     return this.service.updateProfile(shop, body);
-  }
-}
-@Controller('partners')
-export class PartnersController {
-  constructor(
-    private readonly service: StorefrontService,
-    private readonly auth: AuthService,
-  ) {}
-  @Post('register') register(@Body() body: RegisterDto, @Req() req: Request) {
-    validateOrigin(req.headers.origin);
-    this.auth.limitLogin('registration:' + (req.ip ?? 'unknown'));
-    return this.service.register(body);
   }
 }

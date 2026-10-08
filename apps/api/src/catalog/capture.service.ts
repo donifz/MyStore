@@ -12,6 +12,7 @@ import { IdempotencyService } from '../common/idempotency.service';
 import { ReceivingService } from '../inventory/receiving.service';
 import { VariantsService, VariantInput } from './variants.service';
 import { CategoriesService } from './categories.service';
+import { stageProduct } from '../platform/product-publication';
 export type CaptureInput = VariantInput & {
   unitCostMinor: number;
   quantity: number;
@@ -75,6 +76,7 @@ export class CaptureService {
             throw new ConflictException('Barcode already exists');
           throw e;
         }
+        await stageProduct(tx, row, actor);
         const receiving = await this.receiving.postInTransaction(
           tx,
           shop,
@@ -88,7 +90,7 @@ export class CaptureService {
           ],
         );
         return {
-          ...this.variants.dto(row),
+          ...this.variants.dto({ ...row, publication_status: 'pending' }),
           receivingId: receiving.id,
           quantity: input.quantity,
         };
@@ -97,7 +99,7 @@ export class CaptureService {
   }
   async photo(shop: string | null, id: string, slug?: string) {
     const [r] = await this.db.query(
-      'SELECT v.photo_data FROM variants v JOIN shops s ON s.id=v.shop_id WHERE v.id=$1 AND ($2::uuid IS NULL OR v.shop_id=$2) AND ($3::text IS NULL OR (s.slug=$3 AND s.published AND v.published))',
+      'SELECT CASE WHEN $3::text IS NULL THEN v.photo_data ELSE p.photo_data END photo_data FROM variants v JOIN shops s ON s.id=v.shop_id LEFT JOIN product_publications p ON p.variant_id=v.id WHERE v.id=$1 AND ($2::uuid IS NULL OR v.shop_id=$2) AND ($3::text IS NULL OR (s.slug=$3 AND s.published AND v.published AND p.variant_id IS NOT NULL))',
       [id, shop, slug ?? null],
     );
     if (!r?.photo_data) throw new NotFoundException();

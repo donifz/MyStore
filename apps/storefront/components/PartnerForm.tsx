@@ -5,7 +5,11 @@ import { api, ApiError, errorText } from '../../web/src/api/client';
 export default function PartnerPage() {
   const [name, setName] = useState(''),
     [email, setEmail] = useState(''),
-    [password, setPassword] = useState(''),
+    [phone, setPhone] = useState(''),
+    [city, setCity] = useState(''),
+    [address, setAddress] = useState(''),
+    [category, setCategory] = useState(''),
+    [agreed, setAgreed] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [done, setDone] = useState(false);
@@ -14,16 +18,23 @@ export default function PartnerPage() {
     setBusy(true);
     setError('');
     try {
-      await api('/partners/register', {
+      await api('/partners/applications', {
         method: 'POST',
-        body: { shopName: name.trim(), email: email.trim(), password },
+        body: {
+          shopName: name.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+          city: city.trim(),
+          address: address.trim(),
+          category: category.trim(),
+          agreed,
+        },
       });
-      setPassword('');
       setDone(true);
     } catch (e) {
       setError(
         e instanceof ApiError && e.status === 409
-          ? 'Этот email уже используется. Войдите в свой аккаунт.'
+          ? 'Для этого email уже есть заявка или аккаунт.'
           : errorText(e),
       );
     } finally {
@@ -49,8 +60,8 @@ export default function PartnerPage() {
           <li>Общие остатки без повторного ввода</li>
         </ul>
         <p className="muted">
-          Онлайн-заказы, фото и печать этикеток будут добавлены следующими
-          этапами.
+          Отправьте заявку. Администратор свяжется с вами и после одобрения
+          пришлёт ссылку для активации кабинета.
         </p>
       </div>
       <div className="panel partner-form">
@@ -58,15 +69,11 @@ export default function PartnerPage() {
         {done ? (
           <>
             <p role="status" className="success">
-              Магазин создан. Войдите, чтобы настроить витрину.
+              Заявка отправлена. Мы свяжемся с вами после проверки.
             </p>
             <p>
-              Он пока скрыт от покупателей. Укажите контакты и включите
-              публикацию в разделе «Витрина».
+              Кабинет станет доступен после одобрения и активации по ссылке.
             </p>
-            <a className="primary button" href="/seller/login">
-              Войти в кабинет
-            </a>
           </>
         ) : (
           <form onSubmit={submit}>
@@ -93,27 +100,59 @@ export default function PartnerPage() {
                 />
               </label>
               <label>
-                Пароль
+                Телефон
                 <input
                   required
-                  type="password"
-                  minLength={12}
-                  maxLength={256}
-                  autoComplete="new-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  type="tel"
+                  minLength={7}
+                  maxLength={30}
+                  autoComplete="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                 />
               </label>
-              <p className="muted">
-                Минимум 12 символов. Сохраните пароль для входа.
-              </p>
+              <label>
+                Город
+                <input
+                  required
+                  maxLength={80}
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                />
+              </label>
+              <label>
+                Адрес
+                <input
+                  maxLength={250}
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+              </label>
+              <label>
+                Категория бизнеса
+                <input
+                  required
+                  maxLength={80}
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                />
+              </label>
+              <label>
+                <input
+                  required
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                />{' '}
+                Согласен с условиями подключения
+              </label>
               {error && (
                 <p role="alert" className="error">
                   {error}
                 </p>
               )}
               <button className="primary full-width">
-                {busy ? 'Создание…' : 'Создать магазин'}
+                {busy ? 'Отправка…' : 'Отправить заявку'}
               </button>
             </fieldset>
             <p>

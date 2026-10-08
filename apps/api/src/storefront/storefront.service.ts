@@ -1,15 +1,12 @@
 import {
   BadRequestException,
-  ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { randomUUID } from 'node:crypto';
 import { DATABASE } from '../database';
-import { hashPassword } from '../auth/password';
 export type ProfileInput = {
   description: string;
   city: string;
@@ -68,35 +65,6 @@ export class StorefrontService {
     );
     return this.profile(shopId);
   }
-  async register(input: { email: string; password: string; shopName: string }) {
-    try {
-      await this.db.transaction(async (q) => {
-        const user = randomUUID(),
-          shop = randomUUID();
-        await q.query(
-          'INSERT INTO users(id,email,password_hash) VALUES($1,$2,$3)',
-          [
-            user,
-            input.email.trim().toLowerCase(),
-            await hashPassword(input.password),
-          ],
-        );
-        await q.query('INSERT INTO shops(id,name) VALUES($1,$2)', [
-          shop,
-          input.shopName.trim(),
-        ]);
-        await q.query(
-          "INSERT INTO memberships(shop_id,user_id,role) VALUES($1,$2,'owner')",
-          [shop, user],
-        );
-      });
-    } catch (e: any) {
-      if (e.code === '23505')
-        throw new ConflictException('Registration unavailable for this email');
-      throw e;
-    }
-    return { created: true };
-  }
   async stores(q: string, page: number, pageSize: number) {
     const params = [escaped(q)];
     const where = 'published AND (name ILIKE $1 OR city ILIKE $1)';
@@ -141,11 +109,15 @@ export class StorefrontService {
       },
     };
   }
-  private select = `SELECT v.id,(v.photo_data IS NOT NULL) has_photo,v.name,v.description,v.category,v.sale_price_minor,COALESCE(b.physical,0)-COALESCE(b.reserved,0) available,s.slug,s.name shop_name,s.city,s.phone,s.address,s.hours FROM variants v JOIN shops s ON s.id=v.shop_id LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id`;
+  private from =
+    ' FROM variants v JOIN shops s ON s.id=v.shop_id JOIN product_publications p ON p.variant_id=v.id AND p.shop_id=s.id LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id';
+  private select =
+    `SELECT v.id,(p.photo_data IS NOT NULL) has_photo,p.name,p.description,p.category,v.sale_price_minor,COALESCE(b.physical,0)-COALESCE(b.reserved,0) available,s.slug,s.name shop_name,s.city,s.phone,s.address,s.hours` +
+    this.from;
   async products(query: PublicQuery) {
     const { q, page, pageSize, store, category, inStock, sort } = query;
     if (store) await this.store(store);
-    const where = `s.published AND v.published AND (v.name ILIKE $1 OR s.name ILIKE $1) AND ($2='' OR s.slug=$2) AND ($3='' OR v.category=$3) AND ($4=false OR COALESCE(b.physical,0)-COALESCE(b.reserved,0)>0)`;
+    const where = `s.published AND v.published AND (p.name ILIKE $1 OR s.name ILIKE $1) AND ($2='' OR s.slug=$2) AND ($3='' OR p.category=$3) AND ($4=false OR COALESCE(b.physical,0)-COALESCE(b.reserved,0)>0)`;
     const params = [escaped(q), store, category, inStock === 'true'];
     const rows = await this.db.query(
       this.select +
@@ -157,16 +129,15 @@ export class StorefrontService {
           : sort === 'price-desc'
             ? 'v.sale_price_minor DESC,'
             : '') +
-        ' v.name,v.id LIMIT $5 OFFSET $6',
+        ' p.name,v.id LIMIT $5 OFFSET $6',
       [...params, pageSize, (page - 1) * pageSize],
     );
     const [count] = await this.db.query(
-      'SELECT count(*)::int total FROM variants v JOIN shops s ON s.id=v.shop_id LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id WHERE ' +
-        where,
+      'SELECT count(*)::int total' + this.from + ' WHERE ' + where,
       params,
     );
     const cats = await this.db.query(
-      "SELECT DISTINCT v.category FROM variants v JOIN shops s ON s.id=v.shop_id WHERE s.published AND v.published AND v.category<>'' AND ($1='' OR s.slug=$1) ORDER BY v.category",
+      "SELECT DISTINCT p.category FROM product_publications p JOIN variants v ON v.id=p.variant_id JOIN shops s ON s.id=p.shop_id WHERE s.published AND v.published AND p.category<>'' AND ($1='' OR s.slug=$1) ORDER BY p.category",
       [store],
     );
     return {

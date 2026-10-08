@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { randomUUID } from 'node:crypto';
 import { createApp } from '../src/app';
-import { setup, teardown, fixture } from './helpers';
+import { setup, teardown, fixture, approveTestProduct } from './helpers';
 describe('public storefront', () => {
   let c: Awaited<ReturnType<typeof setup>>;
   const profile = {
@@ -29,13 +29,15 @@ describe('public storefront', () => {
     ).body;
   }
   async function variant(name = 'Чашка%', price = 15000) {
-    return (
+    const item = (
       await request(http())
         .post(`/shops/${fixture.shop}/variants`)
         .auth(c.owner, { type: 'bearer' })
         .send({ name, salePriceMinor: price })
         .expect(201)
     ).body;
+    await approveTestProduct(c.db, item.id);
+    return item;
   }
   it('keeps existing shops hidden, restricts profile to owner and validates publication', async () => {
     const r = await request(http()).get('/public/stores').expect(200);
@@ -178,6 +180,7 @@ describe('public storefront', () => {
       .auth(c.owner, { type: 'bearer' })
       .send(edit)
       .expect(200);
+    await approveTestProduct(c.db, v.id);
     const cat = await request(http())
       .get('/public/products?category=' + encodeURIComponent('Посуда'))
       .expect(200);
@@ -198,102 +201,6 @@ describe('public storefront', () => {
       .send({ ...profile, published: false })
       .expect(200);
     await request(http()).get(`/public/stores/${shop.slug}`).expect(404);
-  });
-  it('registers a draft store transactionally and preserves the first password on duplicate email', async () => {
-    const body = {
-      email: 'New@Example.test',
-      password: 'partner-test-password',
-      shopName: 'Новый магазин',
-    };
-    const r = await request(http())
-      .post('/partners/register')
-      .set('origin', 'http://localhost:5173')
-      .send(body)
-      .expect(201);
-    expect(r.body).toEqual({ created: true });
-    expect(r.headers['set-cookie']).toBeUndefined();
-    await request(http())
-      .post('/partners/register')
-      .set('origin', 'http://localhost:5173')
-      .send({
-        ...body,
-        email: 'new@example.test',
-        password: 'other-test-password',
-      })
-      .expect(409);
-    const login = await request(http())
-      .post('/auth/login')
-      .send({ email: 'new@example.test', password: body.password })
-      .expect(201);
-    const me = await request(http())
-      .get('/auth/me')
-      .auth(login.body.token, { type: 'bearer' })
-      .expect(200);
-    expect(me.body.shops).toEqual([
-      { id: expect.any(String), name: body.shopName, role: 'owner' },
-    ]);
-    await request(http())
-      .get(`/shops/${fixture.shop}/storefront`)
-      .auth(login.body.token, { type: 'bearer' })
-      .expect(403);
-    const shops = await request(http()).get('/public/stores').expect(200);
-    expect(shops.body.total).toBe(0);
-    const [n] = await c.db.query('SELECT count(*)::int n FROM shops');
-    expect(n.n).toBe(3);
-  });
-  it('rejects invalid credentials and cross-origin registration without writing records', async () => {
-    const body = {
-      email: 'new@example.test',
-      password: 'short',
-      shopName: 'Shop',
-    };
-    await request(http())
-      .post('/partners/register')
-      .set('origin', 'http://localhost:5173')
-      .send(body)
-      .expect(400);
-    await request(http())
-      .post('/partners/register')
-      .set('origin', 'https://attacker.test')
-      .send({ ...body, password: 'partner-test-password' })
-      .expect(403);
-    const [n] = await c.db.query('SELECT count(*)::int n FROM shops');
-    expect(n.n).toBe(2);
-  });
-  it('concurrent registrations produce one owner and one shop', async () => {
-    const body = {
-      email: 'one@example.test',
-      password: 'partner-test-password',
-      shopName: 'One',
-    };
-    const results = await Promise.all(
-      [1, 2].map(() =>
-        request(http())
-          .post('/partners/register')
-          .set('origin', 'http://localhost:5173')
-          .send(body),
-      ),
-    );
-    expect(results.map((r) => r.status).sort()).toEqual([201, 409]);
-    const [n] = await c.db.query(
-      "SELECT count(*)::int n FROM memberships WHERE role='owner'",
-    );
-    expect(n.n).toBe(2);
-    const [s] = await c.db.query('SELECT count(*)::int n FROM shops');
-    expect(s.n).toBe(3);
-  });
-  it('bounds registration attempts', async () => {
-    for (let i = 0; i < 21; i++) {
-      const r = await request(http())
-        .post('/partners/register')
-        .set('origin', 'http://localhost:5173')
-        .send({
-          email: 'owner@example.test',
-          password: 'partner-test-password',
-          shopName: 'Shop',
-        });
-      if (i === 20) expect(r.status).toBe(429);
-    }
   });
   it('requires actual digits in a public phone number', async () => {
     await request(http())

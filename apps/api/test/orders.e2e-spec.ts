@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { randomUUID } from 'node:crypto';
 import { createApp } from '../src/app';
-import { setup, teardown, fixture } from './helpers';
+import { setup, teardown, fixture, approveTestProduct } from './helpers';
 import { OrdersService } from '../src/orders/orders.service';
 import { OrderExpirationService } from '../src/orders/order-expiration.service';
 
@@ -68,6 +68,7 @@ describe('online orders and shared stock', () => {
         salePriceMinor: 15000,
       }).expect(201)
     ).body;
+    await approveTestProduct(c.db, v.id);
     await privatePost('receivings', {
       lines: [{ variantId: v.id, quantity: 5, unitCostMinor: 8000 }],
     }).expect(201);
@@ -128,6 +129,7 @@ describe('online orders and shared stock', () => {
         salePriceMinor: 100,
       }).expect(201)
     ).body;
+    await approveTestProduct(c.db, other.id);
     const b = input();
     b.lines.push({
       variantId: other.id,

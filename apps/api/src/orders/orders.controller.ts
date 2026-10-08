@@ -127,7 +127,7 @@ export class OrdersController {
     @Body() b: StatusDto,
   ) {
     await this.access.requireMembership(req.userId, shop, 'catalog');
-    return this.orders.status(shop, id, b.status);
+    return this.orders.status(shop, id, req.userId, b.status);
   }
   @Post(':id/issue') async issue(
     @Param('shopId', ParseUUIDPipe) shop: string,

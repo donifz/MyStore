@@ -18,6 +18,7 @@ import { VariantsService } from './catalog/variants.service';
 import { VariantsController } from './catalog/variants.controller';
 import { StockService } from './inventory/stock.service';
 import { ReceivingService } from './inventory/receiving.service';
+import { StockOperationsService } from './inventory/stock-operations.service';
 import { InventoryController } from './inventory/inventory.controller';
 import { IdempotencyService } from './common/idempotency.service';
 import { SalesService } from './pos/sales.service';
@@ -33,7 +34,6 @@ import { StorefrontService } from './storefront/storefront.service';
 import {
   PublicStorefrontController,
   StorefrontSettingsController,
-  PartnersController,
 } from './storefront/storefront.controller';
 import { OrdersService } from './orders/orders.service';
 import { OrderExpirationService } from './orders/order-expiration.service';
@@ -46,19 +46,38 @@ import { PhotoAssistantService } from './catalog/photo-assistant.service';
 import { CaptureController } from './catalog/capture.controller';
 import { CategoriesController } from './catalog/categories.controller';
 import { CategoriesService } from './catalog/categories.service';
+import { AdminSessionController } from './platform/admin-session.controller';
+import { PlatformAdminService } from './platform/platform-admin.service';
+import {
+  AdminApplicationsController,
+  PartnerApplicationsController,
+} from './platform/partner-applications.controller';
+import { PartnerApplicationsService } from './platform/partner-applications.service';
+import { ProductModerationService } from './platform/product-moderation.service';
+import { ProductModerationController } from './platform/product-moderation.controller';
+import { ReportsController } from './reports/reports.controller';
+import { ReportsService } from './reports/reports.service';
+import { OperationsController } from './operations/operations.controller';
+import { NotificationsService } from './operations/notifications.service';
+import { HealthController } from './operations/health.controller';
+import { FiscalController } from './fiscal/fiscal.controller';
+import { FiscalService } from './fiscal/fiscal.service';
 export async function createApp(
   db: DataSource,
   publicHandler?: express.RequestHandler,
 ) {
   @Module({
     controllers: [
+      AdminSessionController,
+      AdminApplicationsController,
+      ProductModerationController,
+      PartnerApplicationsController,
       CaptureController,
       CategoriesController,
       PublicOrdersController,
       OrdersController,
       PublicStorefrontController,
       StorefrontSettingsController,
-      PartnersController,
       AuthController,
       WebAuthController,
       ShopsController,
@@ -68,8 +87,15 @@ export async function createApp(
       ShiftsController,
       PosSalesController,
       ReturnsController,
+      ReportsController,
+      OperationsController,
+      HealthController,
+      FiscalController,
     ],
     providers: [
+      PlatformAdminService,
+      PartnerApplicationsService,
+      ProductModerationService,
       { provide: DATABASE, useValue: db },
       CaptureService,
       CategoriesService,
@@ -83,12 +109,16 @@ export async function createApp(
       VariantsService,
       StockService,
       ReceivingService,
+      StockOperationsService,
       IdempotencyService,
       SalesService,
       ShiftsService,
       PosSalesService,
       ReturnsService,
       SalesHistoryService,
+      ReportsService,
+      NotificationsService,
+      FiscalService,
     ],
   })
   class AppModule {}
@@ -158,6 +188,7 @@ export async function createApp(
           (['GET', 'HEAD'].includes(req.method) &&
             (req.path === '/' ||
               req.path === '/partner' ||
+              req.path === '/partner/activate' ||
               req.path === '/cart' ||
               req.path === '/shops' ||
               /^\/shops\/[^/]+(?:\/products\/[^/]+)?\/?$/.test(req.path)))
@@ -188,7 +219,8 @@ export async function createApp(
           req.path === '/shops' ||
           /^\/shops\/[^/]+(?:\/products\/[^/]+)?\/?$/.test(req.path) ||
           req.path === '/seller' ||
-          req.path.startsWith('/seller/')
+          req.path.startsWith('/seller/') ||
+          req.path === '/platform/admin'
         ) {
           res.setHeader('Cache-Control', 'no-store');
           return res.sendFile(resolve(webDir, 'index.html'));

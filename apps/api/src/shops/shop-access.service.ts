@@ -1,7 +1,8 @@
 import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { DATABASE } from '../database';
-export type ShopPermission = 'read' | 'receive' | 'sell' | 'catalog';
+type WritePermission = 'receive' | 'sell' | 'catalog' | 'reports';
+export type ShopPermission = 'read' | WritePermission;
 export type Membership = { role: 'owner' | 'manager' | 'cashier' };
 @Injectable()
 export class ShopAccessService {
@@ -15,12 +16,12 @@ export class ShopAccessService {
       'SELECT role FROM memberships WHERE shop_id=$1 AND user_id=$2',
       [shopId, userId],
     );
-    if (
-      !member ||
-      (member.role === 'cashier' &&
-        permission !== 'read' &&
-        permission !== 'sell')
-    )
+    const cashierDenied =
+      member?.role === 'cashier' &&
+      permission !== 'read' &&
+      permission !== 'sell';
+    const reportsDenied = permission === 'reports' && member?.role !== 'owner';
+    if (!member || cashierDenied || reportsDenied)
       throw new ForbiddenException();
     return member;
   }

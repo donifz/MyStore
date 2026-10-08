@@ -21,6 +21,10 @@ import PartnerPage from './storefront/PartnerPage';
 import StorefrontSettingsPage from './storefront/StorefrontSettingsPage';
 import EditVariantPage from './catalog/EditVariantPage';
 import BarcodeLabelsPage from './catalog/BarcodeLabelsPage';
+import AdminPage from './platform/AdminPage';
+import StockOperationsPage from './inventory/StockOperationsPage';
+import ReportsPage from './reports/ReportsPage';
+import OperationsPage from './operations/OperationsPage';
 export default function App() {
   return (
     <SessionProvider>
@@ -33,6 +37,7 @@ export default function App() {
           <Route path="/partner" element={<PartnerPage />} />
         </Route>
         <Route path="/seller/login" element={<LoginPage />} />
+        <Route path="/platform/admin" element={<AdminPage />} />
         <Route path="/seller" element={<ShopSelect />} />
         <Route path="/seller/:shopId" element={<SellerLayout />}>
           <Route path="storefront" element={<StorefrontSettingsPage />} />
@@ -45,6 +50,9 @@ export default function App() {
           <Route path="sales/:saleId/return" element={<ReturnPage />} />
           <Route path="pos" element={<SalePage />} />
           <Route path="receiving" element={<ReceivingPage />} />
+          <Route path="inventory" element={<StockOperationsPage />} />
+          <Route path="reports" element={<ReportsPage />} />
+          <Route path="operations" element={<OperationsPage />} />
           <Route path="products" element={<CatalogPage />} />
           <Route path="products/capture" element={<CapturePage />} />
           <Route path="labels" element={<BarcodeLabelsPage />} />

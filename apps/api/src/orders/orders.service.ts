@@ -102,7 +102,7 @@ export class OrdersService {
       );
       for (const line of payload.lines) {
         const [variant] = await tx.query(
-          'SELECT published FROM variants WHERE shop_id=$1 AND id=$2',
+          'SELECT v.published FROM variants v JOIN product_publications p ON p.variant_id=v.id AND p.shop_id=v.shop_id WHERE v.shop_id=$1 AND v.id=$2',
           [shop.id, line.variantId],
         );
         if (!variant?.published)
@@ -147,7 +147,7 @@ export class OrdersService {
       );
       for (const l of payload.lines) {
         await tx.query(
-          'INSERT INTO online_order_lines(shop_id,order_id,variant_id,name,barcode,quantity,unit_price_minor) SELECT $1,$2,id,name,barcode,$4,$5 FROM variants WHERE shop_id=$1 AND id=$3',
+          'INSERT INTO online_order_lines(shop_id,order_id,variant_id,name,barcode,quantity,unit_price_minor) SELECT $1,$2,v.id,p.name,v.barcode,$4,$5 FROM variants v JOIN product_publications p ON p.variant_id=v.id AND p.shop_id=v.shop_id WHERE v.shop_id=$1 AND v.id=$3',
           [shop.id, id, l.variantId, l.quantity, l.expectedUnitPriceMinor],
         );
         await tx.query(
@@ -241,6 +241,7 @@ export class OrdersService {
   async status(
     shop: string,
     id: string,
+    actor: string,
     status: 'confirmed' | 'ready' | 'cancelled',
   ) {
     // A terminal expired state must commit even when the requested transition cannot.
@@ -253,15 +254,17 @@ export class OrdersService {
         status === 'cancelled' &&
         ['new', 'confirmed', 'ready'].includes(o.status)
       )
-        return this.receiptDto(await this.expiry.release(tx, o, 'cancelled'));
+        return this.receiptDto(
+          await this.expiry.release(tx, o, 'cancelled', actor),
+        );
       if (!(
         (o.status === 'new' && status === 'confirmed') ||
         (o.status === 'confirmed' && status === 'ready')
       ))
         throw new ConflictException('Invalid order transition');
       const [[updated]] = await tx.query(
-        'UPDATE online_orders SET status=$3,expires_at=NULL,updated_at=now() WHERE shop_id=$1 AND id=$2 RETURNING *',
-        [shop, id, status],
+        'UPDATE online_orders SET status=$3,status_changed_by=$4,expires_at=NULL,updated_at=now() WHERE shop_id=$1 AND id=$2 RETURNING *',
+        [shop, id, status, actor],
       );
       return this.receiptDto(updated);
     });
@@ -317,7 +320,7 @@ export class OrdersService {
           true,
         );
         const [[updated]] = await tx.query(
-          "UPDATE online_orders SET status='issued',sale_id=$3,issued_by=$4,updated_at=now() WHERE shop_id=$1 AND id=$2 RETURNING *",
+          "UPDATE online_orders SET status='issued',sale_id=$3,issued_by=$4,status_changed_by=$4,updated_at=now() WHERE shop_id=$1 AND id=$2 RETURNING *",
           [shop, id, sale.id, actor],
         );
         return { ...this.receiptDto(updated), saleId: sale.id };

@@ -24,7 +24,9 @@ export default function EditVariantPage() {
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [saved, setSaved] = useState(false),
-    [savedPrice, setSavedPrice] = useState(0);
+    [savedPrice, setSavedPrice] = useState(0),
+    [publicationStatus, setPublicationStatus] =
+      useState<Variant['publicationStatus']>();
   useEffect(() => {
     if (r.data) {
       setName(r.data.name);
@@ -34,6 +36,7 @@ export default function EditVariantPage() {
       setCategory(r.data.category ?? '');
       setSubcategory(r.data.subcategory ?? '');
       setPublished(r.data.published ?? true);
+      setPublicationStatus(r.data.publicationStatus);
       setSaved(false);
     }
   }, [r.data]);
@@ -61,6 +64,7 @@ export default function EditVariantPage() {
         },
       });
       setSavedPrice(updated.salePriceMinor);
+      setPublicationStatus(updated.publicationStatus);
       setSaved(true);
     } catch (e) {
       setError(errorText(e));
@@ -157,9 +161,22 @@ export default function EditVariantPage() {
                 Показывать на витрине
               </label>
               <p className="muted">
-                Карточка будет доступна покупателям, когда магазин опубликован.
-                Изменение цены не меняет проведённые продажи.
+                Новая карточка и изменения названия, описания и категории
+                проходят проверку. Цена и наличие обновляются сразу после
+                сохранения.
               </p>
+              <p>
+                Публичная карточка:{' '}
+                {publicationStatus === 'pending'
+                  ? 'ожидает проверки'
+                  : publicationStatus === 'approved'
+                    ? 'одобрена'
+                    : 'ещё не опубликована'}
+                .
+              </p>
+              {r.data.rejectionReason && (
+                <p>Последний отказ: {r.data.rejectionReason}</p>
+              )}
               {saved && (
                 <p role="status" className="success">
                   Товар обновлён. Цена: {formatSom(savedPrice)}

@@ -2,7 +2,7 @@ import request from 'supertest';
 import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
 import { createApp } from '../src/app';
-import { setup, teardown, fixture } from './helpers';
+import { setup, teardown, fixture, approveTestProduct } from './helpers';
 describe('photo receiving', () => {
   let c: Awaited<ReturnType<typeof setup>>, photo: string;
   beforeAll(async () => {
@@ -102,6 +102,7 @@ describe('photo receiving', () => {
     await c.db.query('UPDATE shops SET published=true WHERE id=$1', [
       fixture.shop,
     ]);
+    await approveTestProduct(c.db, a.id);
     await request(c.app.getHttpServer()).get(url).expect(200);
     const product = (
       await request(c.app.getHttpServer())

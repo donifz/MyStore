@@ -1,9 +1,10 @@
 import { FormEvent, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { api, ApiError, errorText, setCsrf } from '../api/client';
 import { useSession } from './SessionProvider';
 export default function LoginPage() {
   const s = useSession(),
+    location = useLocation(),
     [email, setEmail] = useState(''),
     [password, setPassword] = useState(''),
     [error, setError] = useState(''),
@@ -31,7 +32,22 @@ export default function LoginPage() {
     }
   }
   if (s.loading) return <p className="loading">Загрузка…</p>;
-  if (s.user) return <Navigate to="/seller" replace />;
+  if (s.user) {
+    const from =
+      location.state &&
+      typeof location.state === 'object' &&
+      'from' in location.state
+        ? (location.state as { from?: string }).from
+        : undefined;
+    return (
+      <Navigate
+        to={
+          from === '/platform/admin' && s.user.platformAdmin ? from : '/seller'
+        }
+        replace
+      />
+    );
+  }
   return (
     <div className="login-wrap">
       <form onSubmit={submit} className="login-card">

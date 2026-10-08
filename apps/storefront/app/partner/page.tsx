@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 export function generateMetadata() {
   return metadata(
     'Стать партнёром — MyStore',
-    'Создайте магазин и опубликуйте витрину.',
+    'Отправьте заявку на подключение магазина к MyStore.',
     '/partner',
     true,
   );

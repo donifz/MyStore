@@ -11,18 +11,35 @@ import { checkPassword, hashPassword } from './password';
 @Injectable()
 export class AuthService {
   private attempts = new Map<string, { count: number; until: number }>();
-  limitLogin(ip: string) {
+  limitLogin(ip: string, email = '') {
     const now = Date.now();
     for (const [k, v] of this.attempts)
       if (v.until <= now) this.attempts.delete(k);
-    const row = this.attempts.get(ip) ?? { count: 0, until: now + 60000 };
+    const buckets = [
+      { key: `ip:${ip}`, limit: 100 },
+      {
+        key: `account:${ip}:${email.trim().toLowerCase()}`,
+        limit: 20,
+      },
+    ];
     if (
-      row.count >= 20 ||
-      (this.attempts.size >= 10000 && !this.attempts.has(ip))
+      this.attempts.size >= 10000 &&
+      buckets.some(({ key }) => !this.attempts.has(key))
     )
       throw new HttpException('Too many attempts', 429);
-    row.count++;
-    this.attempts.set(ip, row);
+    for (const { key, limit } of buckets) {
+      const row = this.attempts.get(key);
+      if (row && row.count >= limit)
+        throw new HttpException('Too many attempts', 429);
+    }
+    for (const { key } of buckets) {
+      const row = this.attempts.get(key) ?? {
+        count: 0,
+        until: now + 60000,
+      };
+      row.count++;
+      this.attempts.set(key, row);
+    }
   }
   async me(userId: string) {
     const [u] = await this.db.query('SELECT id,email FROM users WHERE id=$1', [
@@ -32,7 +49,16 @@ export class AuthService {
       'SELECT s.id,s.name,m.role FROM shops s JOIN memberships m ON m.shop_id=s.id WHERE m.user_id=$1 ORDER BY s.name,s.id',
       [userId],
     );
-    return { userId: u.id, email: u.email, shops };
+    const [admin] = await this.db.query(
+      'SELECT EXISTS(SELECT 1 FROM platform_admins WHERE user_id=$1) AS enabled',
+      [userId],
+    );
+    return {
+      userId: u.id,
+      email: u.email,
+      shops,
+      platformAdmin: admin.enabled === true,
+    };
   }
   private secret: string;
   private dummy: Promise<string>;

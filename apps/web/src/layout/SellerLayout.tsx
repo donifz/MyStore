@@ -29,6 +29,9 @@ export function ShopSelect() {
         </NavLink>
       ))}
       {!s.user.shops.length && <p>Доступ к магазину пока не выдан.</p>}
+      {s.user.platformAdmin && (
+        <NavLink to="/platform/admin">Кабинет платформы</NavLink>
+      )}
     </main>
   );
 }
@@ -74,6 +77,9 @@ export default function SellerLayout() {
           </select>
         </div>
         <nav>
+          {s.user.platformAdmin && (
+            <NavLink to="/platform/admin">Кабинет платформы</NavLink>
+          )}
           {shop.role === 'owner' && (
             <NavLink to={base + '/storefront'}>Витрина</NavLink>
           )}
@@ -88,12 +94,17 @@ export default function SellerLayout() {
                 Скан / фото товара
               </NavLink>
               <NavLink to={base + '/receiving'}>Приёмка</NavLink>
+              <NavLink to={base + '/inventory'}>Инвентаризация</NavLink>
             </>
           )}
           <NavLink to={base + '/orders'}>Заказы</NavLink>
+          <NavLink to={base + '/operations'}>Уведомления</NavLink>
           <NavLink to={base + '/pos'}>Касса</NavLink>
           <NavLink to={base + '/shift'}>Смена</NavLink>
           <NavLink to={base + '/sales'}>Продажи и возвраты</NavLink>
+          {shop.role === 'owner' && (
+            <NavLink to={base + '/reports'}>Отчёты</NavLink>
+          )}
         </nav>
         <div className="sidebar-bottom">
           <small>{s.user.email}</small>
