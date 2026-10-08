@@ -114,9 +114,7 @@ function CaptureWorkspace({
       } else if (result.found && result.name) {
         setName(result.name);
         if (result.description) setDescription(result.description);
-        setBarcodeHint(
-          'Найдено в Open Food Facts. Проверьте название и упаковку перед сохранением.',
-        );
+        setBarcodeHint('Найдено в Open Food Facts. Проверьте название и упаковку перед сохранением.');
       } else {
         setBarcodeHint(
           'Во внешнем каталоге товар не найден. Используйте фото или введите название вручную.',
@@ -255,7 +253,11 @@ function CaptureWorkspace({
         <form className="panel capture-panel" onSubmit={check}>
           <fieldset
             disabled={
-              doc.busy || loadingPhoto || recognizing || barcodeBusy || doc.blocked
+              doc.busy ||
+              loadingPhoto ||
+              recognizing ||
+              barcodeBusy ||
+              doc.blocked
             }
           >
             <label>

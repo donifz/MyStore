@@ -22,7 +22,10 @@ export class BarcodeLookupService {
       const p = body.product;
       const clean = (value: unknown, length: number) =>
         typeof value === 'string'
-          ? value.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, length)
+          ? value
+              .replace(/[\u0000-\u001f\u007f]/g, ' ')
+              .trim()
+              .slice(0, length)
           : '';
       const name = clean(p.product_name_ru || p.product_name, 200);
       if (!name) return { source: 'none', found: false };
