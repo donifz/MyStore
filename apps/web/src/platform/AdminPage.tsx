@@ -179,7 +179,7 @@ export default function AdminPage() {
         <main className="admin-workspace">
           <header>
             <div>
-              <h1>Админка MyStore</h1>
+              <h1>Администрирование MyStore</h1>
               <p className="muted">
                 Контроль партнёров, товаров и решений платформы
               </p>
