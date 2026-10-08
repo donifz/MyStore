@@ -1713,3 +1713,205 @@ select {
   color: #b6c7d5;
   font-weight: 400;
 }
+
+/* Partner overview: platform administration is a separate role and route. */
+.partner-shell {
+  display: grid;
+  grid-template-columns: 244px minmax(0, 1fr);
+  min-height: 100vh;
+  background: #f5f7f9;
+}
+.partner-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  padding: 24px 20px;
+  background: #172b3d;
+  color: #e2eaf1;
+}
+.partner-sidebar .brand {
+  color: #fff;
+}
+.partner-sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.partner-sidebar nav a {
+  padding: 12px 14px;
+  border-radius: 9px;
+  color: #b6c7d5;
+  text-decoration: none;
+}
+.partner-sidebar nav a.active,
+.partner-sidebar nav a:hover {
+  background: #255447;
+  color: #fff;
+}
+.partner-sidebar .sidebar-bottom {
+  margin-top: auto;
+}
+.partner-main {
+  min-width: 0;
+}
+.partner-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 30px;
+  background: #fff;
+  border-bottom: 1px solid #e4e9ed;
+}
+.partner-content {
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 32px;
+}
+.partner-heading,
+.partner-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+.partner-heading h1 {
+  margin: 0 0 8px;
+}
+.partner-access {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #e6f3eb;
+  color: #155c49;
+  white-space: nowrap;
+}
+.partner-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.partner-stats h2 {
+  margin-bottom: 0;
+}
+.partner-stores {
+  min-width: 0;
+}
+.partner-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+@media (max-width: 1100px) {
+  .partner-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .partner-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .partner-sidebar {
+    gap: 12px;
+  }
+  .partner-sidebar nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .partner-content {
+    padding: 18px;
+  }
+  .partner-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .partner-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The platform administrator has a dedicated navigation shell. */
+.admin-shell {
+  display: grid;
+  grid-template-columns: 244px minmax(0, 1fr);
+  min-height: 100vh;
+  background: #f5f7f9;
+}
+.admin-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding: 24px 20px;
+  background: #172b3d;
+}
+.admin-sidebar .brand {
+  color: #fff;
+}
+.admin-sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.admin-sidebar nav a,
+.admin-sidebar nav button {
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #b6c7d5;
+  text-align: left;
+  text-decoration: none;
+}
+.admin-sidebar nav a:hover,
+.admin-sidebar nav button:hover,
+.admin-sidebar nav button[aria-current='page'] {
+  background: #255447;
+  color: #fff;
+}
+.admin-main {
+  min-width: 0;
+}
+.admin-main .admin-workspace {
+  max-width: 1560px;
+  padding: 32px;
+}
+.admin-main .admin-workspace header {
+  margin-bottom: 26px;
+}
+.admin-overview-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.admin-overview-stats h2 {
+  margin: 8px 0 0;
+}
+@media (max-width: 1050px) {
+  .admin-overview-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .admin-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .admin-sidebar {
+    gap: 12px;
+  }
+  .admin-sidebar nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .admin-sidebar nav a,
+  .admin-sidebar nav button {
+    width: auto;
+  }
+  .admin-main .admin-workspace {
+    padding: 18px;
+  }
+  .admin-overview-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

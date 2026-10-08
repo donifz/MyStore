@@ -42,7 +42,11 @@ export default function LoginPage() {
     return (
       <Navigate
         to={
-          from === '/platform/admin' && s.user.platformAdmin ? from : '/seller'
+          from === '/platform/admin' && s.user.platformAdmin
+            ? from
+            : s.user.shops.length === 1
+              ? `/seller/${s.user.shops[0].id}/products`
+              : '/seller'
         }
         replace
       />

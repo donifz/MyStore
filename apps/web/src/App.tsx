@@ -4,7 +4,8 @@ import OrdersPage from './orders/OrdersPage';
 import { Routes, Route } from 'react-router-dom';
 import { SessionProvider } from './auth/SessionProvider';
 import LoginPage from './auth/LoginPage';
-import SellerLayout, { ShopSelect } from './layout/SellerLayout';
+import SellerLayout from './layout/SellerLayout';
+import PartnerDashboard from './layout/PartnerDashboard';
 import CatalogPage from './catalog/CatalogPage';
 import CreateVariantPage from './catalog/CreateVariantPage';
 import SalePage from './pos/SalePage';
@@ -38,7 +39,7 @@ export default function App() {
         </Route>
         <Route path="/seller/login" element={<LoginPage />} />
         <Route path="/platform/admin" element={<AdminPage />} />
-        <Route path="/seller" element={<ShopSelect />} />
+        <Route path="/seller" element={<PartnerDashboard />} />
         <Route path="/seller/:shopId" element={<SellerLayout />}>
           <Route path="storefront" element={<StorefrontSettingsPage />} />
           <Route path="products/:id/edit" element={<EditVariantPage />} />
