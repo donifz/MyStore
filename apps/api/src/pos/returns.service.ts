@@ -23,7 +23,8 @@ export class ReturnsService {
     key: string,
     input: ReturnInput,
   ): Promise<ReturnResult> {
-    if (!input.lines.length) throw new BadRequestException('At least one return line required');
+    if (!input.lines.length)
+      throw new BadRequestException('At least one return line required');
     const lines = input.lines
       .map((l) => ({
         ...l,

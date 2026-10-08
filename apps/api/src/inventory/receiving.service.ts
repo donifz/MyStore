@@ -26,7 +26,8 @@ export class ReceivingService {
     key: string,
     lines: ReceiveLine[],
   ): Promise<ReceiptResult> {
-    if (!lines.length) throw new BadRequestException('At least one receiving line required');
+    if (!lines.length)
+      throw new BadRequestException('At least one receiving line required');
     const normalized = lines
       .map((l) => ({
         variantId: l.variantId.toLowerCase(),

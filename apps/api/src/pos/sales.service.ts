@@ -31,7 +31,8 @@ export class SalesService {
     );
   }
   normalize(lines: SaleLine[]): SaleLine[] {
-    if (!lines.length) throw new BadRequestException('At least one sale line required');
+    if (!lines.length)
+      throw new BadRequestException('At least one sale line required');
     return lines
       .map((l) => ({
         variantId: l.variantId.toLowerCase(),
