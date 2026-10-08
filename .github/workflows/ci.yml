@@ -27,6 +27,10 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - name: Prettier exact diff
+        run: |
+          npx prettier --write apps/web/src/layout/PartnerDashboard.tsx apps/web/src/platform/AdminPage.tsx
+          git diff -- apps/web/src/layout/PartnerDashboard.tsx apps/web/src/platform/AdminPage.tsx
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm run build
