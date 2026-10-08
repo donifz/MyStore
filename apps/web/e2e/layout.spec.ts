@@ -25,6 +25,7 @@ test('core layouts stay inside the viewport at supported widths', async ({
 
   const protectedPages = [
     `/seller/${shop}/products`,
+    `/seller/${shop}/products/capture`,
     `/seller/${shop}/reports`,
     `/seller/${shop}/operations`,
     '/platform/admin',
@@ -41,4 +42,30 @@ test('core layouts stay inside the viewport at supported widths', async ({
     await page.goto('/shops');
     await expectNoPageOverflow(page);
   }
+});
+
+
+test('seller navigation highlights only the current leaf section', async ({
+  page,
+}) => {
+  await page.goto('/seller/login');
+  await page.getByLabel('Email').fill('owner@example.test');
+  await page.getByLabel('Пароль').fill('browser-test-password');
+  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+
+  await page.goto(`/seller/${shop}/products/capture`);
+  const nav = page.locator('.sidebar nav');
+  await expect(nav.locator('a.active')).toHaveCount(1);
+  await expect(
+    nav.getByRole('link', { name: 'Скан / фото товара', exact: true }),
+  ).toHaveClass(/active/);
+  await expect(
+    nav.getByRole('link', { name: 'Товары', exact: true }),
+  ).not.toHaveClass(/active/);
+
+  await page.goto(`/seller/${shop}/products`);
+  await expect(nav.locator('a.active')).toHaveCount(1);
+  await expect(
+    nav.getByRole('link', { name: 'Товары', exact: true }),
+  ).toHaveClass(/active/);
 });
