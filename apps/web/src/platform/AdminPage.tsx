@@ -148,9 +148,40 @@ export default function AdminPage() {
       </p>
     );
   return (
-    <main className="chooser admin-workspace">
+    <div className="admin-shell">
+      <aside className="admin-sidebar">
+        <Link className="brand" to="/platform/admin">
+          MyStore<span>Администрирование</span>
+        </Link>
+        <nav aria-label="Меню администратора">
+          <button
+            aria-current={tab === 'applications' ? 'page' : undefined}
+            onClick={() => setTab('applications')}
+          >
+            Партнёры и заявки
+          </button>
+          <button
+            aria-current={tab === 'products' ? 'page' : undefined}
+            onClick={() => setTab('products')}
+          >
+            Модерация товаров
+          </button>
+          <button
+            aria-current={tab === 'audit' ? 'page' : undefined}
+            onClick={() => setTab('audit')}
+          >
+            Журнал решений
+          </button>
+          <Link to="/seller">Мои магазины</Link>
+        </nav>
+      </aside>
+      <div className="admin-main">
+        <main className="admin-workspace">
       <header>
-        <h1>Администрирование MyStore</h1>
+        <div>
+          <h1>Админка MyStore</h1>
+          <p className="muted">Контроль партнёров, товаров и решений платформы</p>
+        </div>
         <Link to="/seller">Мои магазины</Link>
         <button
           onClick={() =>
@@ -163,6 +194,28 @@ export default function AdminPage() {
           Выйти
         </button>
       </header>
+      <div className="admin-overview-stats">
+        <article className="panel">
+          <small>Заявки партнёров</small>
+          <h2>{applications.length}</h2>
+        </article>
+        <article className="panel">
+          <small>Ожидают решения</small>
+          <h2>
+            {applications.filter((a) =>
+              ['new', 'in_review'].includes(a.status),
+            ).length}
+          </h2>
+        </article>
+        <article className="panel">
+          <small>Карточки на модерации</small>
+          <h2>{products.length}</h2>
+        </article>
+        <article className="panel">
+          <small>Записи журнала</small>
+          <h2>{audit.length}</h2>
+        </article>
+      </div>
       <nav aria-label="Разделы платформы" className="admin-tabs">
         <button
           aria-current={tab === 'applications' ? 'page' : undefined}
@@ -346,6 +399,8 @@ export default function AdminPage() {
           ))}
         </section>
       )}
-    </main>
+        </main>
+      </div>
+    </div>
   );
 }

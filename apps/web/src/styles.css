@@ -1829,3 +1829,89 @@ select {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* The platform administrator has a dedicated navigation shell. */
+.admin-shell {
+  display: grid;
+  grid-template-columns: 244px minmax(0, 1fr);
+  min-height: 100vh;
+  background: #f5f7f9;
+}
+.admin-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding: 24px 20px;
+  background: #172b3d;
+}
+.admin-sidebar .brand {
+  color: #fff;
+}
+.admin-sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.admin-sidebar nav a,
+.admin-sidebar nav button {
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #b6c7d5;
+  text-align: left;
+  text-decoration: none;
+}
+.admin-sidebar nav a:hover,
+.admin-sidebar nav button:hover,
+.admin-sidebar nav button[aria-current='page'] {
+  background: #255447;
+  color: #fff;
+}
+.admin-main {
+  min-width: 0;
+}
+.admin-main .admin-workspace {
+  max-width: 1560px;
+  padding: 32px;
+}
+.admin-main .admin-workspace header {
+  margin-bottom: 26px;
+}
+.admin-overview-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.admin-overview-stats h2 {
+  margin: 8px 0 0;
+}
+@media (max-width: 1050px) {
+  .admin-overview-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .admin-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .admin-sidebar {
+    gap: 12px;
+  }
+  .admin-sidebar nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .admin-sidebar nav a,
+  .admin-sidebar nav button {
+    width: auto;
+  }
+  .admin-main .admin-workspace {
+    padding: 18px;
+  }
+  .admin-overview-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
