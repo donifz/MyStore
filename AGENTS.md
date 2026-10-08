@@ -11,7 +11,7 @@ These instructions apply to every change in this repository, including code writ
 ## Required code quality gates
 
 1. Use the project's own Prettier configuration and installed version; do not guess JSX, CSS, or TypeScript formatting.
-2. After editing code, run `npx prettier --write <changed files>` (or `npm run format`) **before committing**.
+2. After editing code, run `npx prettier --write path/to/changed-file.ts` (or `npm run format`) **before committing**.
 3. Run `npm run format:check` before every push and again after the last code change.
 4. Run `npm run typecheck`, `npm run build`, and relevant tests before requesting merge.
 5. Check GitHub Actions after pushing; fix its failures in the same PR.

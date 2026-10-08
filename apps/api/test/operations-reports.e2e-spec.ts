@@ -153,7 +153,7 @@ describe('reports, notifications, audit and fiscal readiness', () => {
     }
   });
 
-  it('rejects empty receiving, sale and return documents without ledger writes', async () => {
+  it('rejects empty stock and payment documents', async () => {
     const initial = await c.db.query(
       'SELECT count(*)::int n FROM stock_documents WHERE shop_id=$1',
       [fixture.shop],
