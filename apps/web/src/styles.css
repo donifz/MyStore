@@ -1696,7 +1696,6 @@ select {
   }
 }
 
-
 .sidebar nav:has(a[href$='/products/capture'].active)
   a[href$='/products'].active {
   background: transparent;
