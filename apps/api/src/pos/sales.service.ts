@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { randomUUID } from 'node:crypto';
 import { IdempotencyService } from '../common/idempotency.service';
@@ -31,6 +31,7 @@ export class SalesService {
     );
   }
   normalize(lines: SaleLine[]): SaleLine[] {
+    if (!lines.length) throw new BadRequestException('At least one sale line required');
     return lines
       .map((l) => ({
         variantId: l.variantId.toLowerCase(),
