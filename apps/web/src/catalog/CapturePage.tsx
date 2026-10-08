@@ -91,7 +91,7 @@ function CaptureWorkspace({
   async function searchBarcode() {
     const code = barcode.trim();
     setBarcodeHint('');
-    if (!/^\\d{8,14}$/.test(code)) {
+    if (!/^\d{8,14}$/.test(code)) {
       setBarcodeHint('Для поиска в каталоге нужен EAN/UPC из 8–14 цифр.');
       return;
     }
@@ -104,7 +104,9 @@ function CaptureWorkspace({
         brand?: string;
         description?: string;
         existing?: Variant;
-      }>(`/shops/${shopId}/variants/barcode-suggestion?code=${encodeURIComponent(code)}`);
+      }>(
+        `/shops/${shopId}/variants/barcode-suggestion?code=${encodeURIComponent(code)}`,
+      );
       if (result.source === 'shop' && result.existing) {
         setBarcodeHint(`Товар уже есть в этом магазине: ${result.existing.name}. Добавьте его через обычную приёмку.`);
       } else if (result.found && result.name) {
@@ -327,7 +329,11 @@ function CaptureWorkspace({
                 placeholder="Сканируйте существующий или оставьте пустым"
               />
             </label>
-            <button type="button" onClick={() => void searchBarcode()} disabled={!barcode.trim() || barcodeBusy}>
+            <button
+              type="button"
+              onClick={() => void searchBarcode()}
+              disabled={!barcode.trim() || barcodeBusy}
+            >
               {barcodeBusy ? 'Ищем товар…' : 'Найти по штрихкоду'}
             </button>
             {barcodeHint && <p role="status" className="muted">{barcodeHint}</p>
