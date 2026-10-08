@@ -35,6 +35,40 @@ describe('photo receiving', () => {
       .auth(token ?? c.owner, { type: 'bearer' })
       .set('idempotency-key', key)
       .send(b);
+  it('suggests barcode product data without modifying stock', async () => {
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: 1,
+        product: {
+          product_name: 'Test cereal',
+          brands: 'Test Brand',
+          generic_name: 'Grain product',
+        },
+      }),
+    }) as unknown as typeof fetch;
+    try {
+      const response = await request(c.app.getHttpServer())
+        .get(
+          `/shops/${fixture.shop}/variants/barcode-suggestion?code=1234567890123`,
+        )
+        .auth(c.owner, { type: 'bearer' })
+        .expect(200);
+      expect(response.body).toMatchObject({
+        found: true,
+        source: 'openfoodfacts',
+        name: 'Test cereal',
+        brand: 'Test Brand',
+      });
+      const [stock] = await c.db.query(
+        'SELECT count(*)::int n FROM stock_documents',
+      );
+      expect(stock.n).toBe(0);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
   it('creates codes, image, receipt and stock atomically and retries exactly once', async () => {
     const key = randomUUID(),
       a = (await capture(body(), key).expect(201)).body,

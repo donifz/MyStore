@@ -5,6 +5,7 @@ import {
   Headers,
   Param,
   ParseUUIDPipe,
+  Query,
   Post,
   Req,
   Res,
@@ -12,6 +13,7 @@ import {
 } from '@nestjs/common';
 import {
   IsInt,
+  Matches,
   IsOptional,
   IsString,
   Max,
@@ -25,8 +27,13 @@ import { VariantDto } from './variants.controller';
 import { CaptureService } from './capture.service';
 import { PhotoAssistantService } from './photo-assistant.service';
 import { AuthService } from '../auth/auth.service';
+import { VariantsService } from './variants.service';
+import { BarcodeLookupService } from './barcode-lookup.service';
 class PhotoSuggestionDto {
   @IsString() @MaxLength(700000) photoDataUrl!: string;
+}
+class BarcodeLookupQuery {
+  @IsString() @Matches(/^\d{8,14}$/) code!: string;
 }
 class CaptureDto extends VariantDto {
   @IsInt() @Min(0) @Max(Number.MAX_SAFE_INTEGER) unitCostMinor!: number;
@@ -44,7 +51,22 @@ export class CaptureController {
     private readonly access: ShopAccessService,
     private readonly assistant: PhotoAssistantService,
     private readonly auth: AuthService,
+    private readonly variants: VariantsService,
+    private readonly barcodeLookup: BarcodeLookupService,
   ) {}
+  @Get('barcode-suggestion') async barcodeSuggestion(
+    @Param('shopId', ParseUUIDPipe) shop: string,
+    @Req() req: UserRequest,
+    @Query() query: BarcodeLookupQuery,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.access.requireMembership(req.userId, shop, 'receive');
+    res.setHeader('Cache-Control', 'no-store');
+    const existing = await this.variants.findByBarcode(shop, query.code);
+    if (existing) return { source: 'shop', found: true, existing };
+    this.auth.limitLogin(`barcode-lookup:${shop}:${req.userId}`);
+    return this.barcodeLookup.lookup(query.code);
+  }
   @Get('photo-assistant') async assistantInfo(
     @Param('shopId', ParseUUIDPipe) shop: string,
     @Req() req: UserRequest,
