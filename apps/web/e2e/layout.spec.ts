@@ -51,6 +51,9 @@ test('seller navigation highlights only the current leaf section', async ({
   await page.getByLabel('Email').fill('owner@example.test');
   await page.getByLabel('Пароль').fill('browser-test-password');
   await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Товары', exact: true }),
+  ).toBeVisible();
 
   await page.goto(`/seller/${shop}/products/capture`);
   const nav = page.locator('.sidebar nav');
