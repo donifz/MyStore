@@ -1696,7 +1696,7 @@ select {
   }
 }
 
-.sidebar nav:has(a[href$='/products/capture'].active) a[href$='/products'].active {
+.sidebar:has(a[href$='/products/capture'].active) a[href$='/products'].active {
   background: transparent;
   color: #b6c7d5;
   font-weight: 400;
