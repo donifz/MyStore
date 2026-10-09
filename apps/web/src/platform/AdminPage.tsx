@@ -53,9 +53,9 @@ export default function AdminPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'overview' | 'applications' | 'products' | 'audit'>(
-    'overview',
-  );
+  const [tab, setTab] = useState<
+    'overview' | 'applications' | 'products' | 'audit'
+  >('overview');
   const [search, setSearch] = useState('');
   async function load() {
     const [a, p, h] = await Promise.all([
@@ -175,7 +175,9 @@ export default function AdminPage() {
     <AdminCard
       title="Заявки партнёров"
       subtitle="Регистрация и проверка партнёров платформы"
-      action={<button onClick={() => setTab('applications')}>Все заявки →</button>}
+      action={
+        <button onClick={() => setTab('applications')}>Все заявки →</button>
+      }
     >
       {!visibleApps.length ? (
         <AdminEmpty>Заявок пока нет</AdminEmpty>
@@ -197,7 +199,9 @@ export default function AdminPage() {
                   <td>
                     <strong>{a.shop_name}</strong>
                     <small>{a.email}</small>
-                    <small>{a.city} · {a.address}</small>
+                    <small>
+                      {a.city} · {a.address}
+                    </small>
                   </td>
                   <td>{a.category}</td>
                   <td>
@@ -218,14 +222,27 @@ export default function AdminPage() {
                     {['new', 'in_review'].includes(a.status) ? (
                       <div className="admin-kit-actions">
                         {a.status === 'new' && (
-                          <button disabled={busy} onClick={() => void decideApplication(a, 'in_review')}>
+                          <button
+                            disabled={busy}
+                            onClick={() =>
+                              void decideApplication(a, 'in_review')
+                            }
+                          >
                             Проверить
                           </button>
                         )}
-                        <button className="admin-kit-approve" disabled={busy} onClick={() => void decideApplication(a, 'approved')}>
+                        <button
+                          className="admin-kit-approve"
+                          disabled={busy}
+                          onClick={() => void decideApplication(a, 'approved')}
+                        >
                           Одобрить
                         </button>
-                        <button className="admin-kit-reject" disabled={busy || !reason.trim()} onClick={() => void decideApplication(a, 'rejected')}>
+                        <button
+                          className="admin-kit-reject"
+                          disabled={busy || !reason.trim()}
+                          onClick={() => void decideApplication(a, 'rejected')}
+                        >
                           Отклонить
                         </button>
                       </div>
@@ -253,15 +270,32 @@ export default function AdminPage() {
       ) : (
         <div className="admin-kit-scroll">
           <table className="admin-kit-table">
-            <thead><tr><th>Товар</th><th>Магазин</th><th>Категория</th><th>Статус</th><th>Действие</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Товар</th>
+                <th>Магазин</th>
+                <th>Категория</th>
+                <th>Статус</th>
+                <th>Действие</th>
+              </tr>
+            </thead>
             <tbody>
               {visibleProducts.map((p) => (
                 <tr key={p.revision_id}>
-                  <td><strong>{p.name}</strong><small>{p.description}</small></td>
+                  <td>
+                    <strong>{p.name}</strong>
+                    <small>{p.description}</small>
+                  </td>
                   <td>{p.shop_name}</td>
                   <td>{p.category || 'Не указана'}</td>
-                  <td><AdminStatus>На проверке</AdminStatus></td>
-                  <td><button onClick={() => void showProduct(p.revision_id)}>Посмотреть</button></td>
+                  <td>
+                    <AdminStatus>На проверке</AdminStatus>
+                  </td>
+                  <td>
+                    <button onClick={() => void showProduct(p.revision_id)}>
+                      Посмотреть
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -276,30 +310,47 @@ export default function AdminPage() {
       <aside className="admin-kit-sidebar">
         <Link className="admin-kit-brand" to="/platform/admin">
           <span className="admin-kit-brand-logo">◈</span>
-          <span>MyStore<small>Администрирование</small></span>
+          <span>
+            MyStore<small>Администрирование</small>
+          </span>
         </Link>
         <nav aria-label="Меню администратора">
-          <button aria-current={tab === 'overview' ? 'page' : undefined} onClick={() => setTab('overview')}>
+          <button
+            aria-current={tab === 'overview' ? 'page' : undefined}
+            onClick={() => setTab('overview')}
+          >
             <span aria-hidden="true">▦</span> Обзор
           </button>
-          <button aria-current={tab === 'applications' ? 'page' : undefined} onClick={() => setTab('applications')}>
+          <button
+            aria-current={tab === 'applications' ? 'page' : undefined}
+            onClick={() => setTab('applications')}
+          >
             <span aria-hidden="true">♙</span> Партнёры
             {waiting.length > 0 && <b>{waiting.length}</b>}
           </button>
-          <button aria-current={tab === 'products' ? 'page' : undefined} onClick={() => setTab('products')}>
+          <button
+            aria-current={tab === 'products' ? 'page' : undefined}
+            onClick={() => setTab('products')}
+          >
             <span aria-hidden="true">◈</span> Модерация
             {products.length > 0 && <b>{products.length}</b>}
           </button>
-          <button aria-current={tab === 'audit' ? 'page' : undefined} onClick={() => setTab('audit')}>
+          <button
+            aria-current={tab === 'audit' ? 'page' : undefined}
+            onClick={() => setTab('audit')}
+          >
             <span aria-hidden="true">▤</span> Аудит
           </button>
-          <Link to="/seller"><span aria-hidden="true">▣</span> Мои магазины</Link>
+          <Link to="/seller">
+            <span aria-hidden="true">▣</span> Мои магазины
+          </Link>
         </nav>
         <div className="admin-kit-sidebar-bottom">
           <span>{session.user.email}</span>
           <button
             onClick={() =>
-              void session.logout()
+              void session
+                .logout()
                 .then(() => window.location.assign('/seller/login'))
                 .catch((e) => setError(errorText(e)))
             }
@@ -321,7 +372,9 @@ export default function AdminPage() {
           </label>
           <div className="admin-kit-identity">
             <span className="admin-kit-avatar">АД</span>
-            <span>Админ<small>Суперадминистратор</small></span>
+            <span>
+              Админ<small>Суперадминистратор</small>
+            </span>
           </div>
         </header>
         <main className="admin-kit-content">
@@ -334,11 +387,29 @@ export default function AdminPage() {
               {new Date().toLocaleDateString('ru-RU', { dateStyle: 'long' })}
             </span>
           </div>
-          {error && <p className="error" role="alert">{error}</p>}
+          {error && (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          )}
           {invitation && (
-            <AdminCard title="Ссылка для владельца" subtitle="Передайте по проверенному контакту. Действует 7 дней.">
-              <input aria-label="Ссылка активации" readOnly value={invitation} onFocus={(e) => e.target.select()} />
-              <button onClick={() => void navigator.clipboard.writeText(invitation).catch((e) => setError(errorText(e)))}>
+            <AdminCard
+              title="Ссылка для владельца"
+              subtitle="Передайте по проверенному контакту. Действует 7 дней."
+            >
+              <input
+                aria-label="Ссылка активации"
+                readOnly
+                value={invitation}
+                onFocus={(e) => e.target.select()}
+              />
+              <button
+                onClick={() =>
+                  void navigator.clipboard
+                    .writeText(invitation)
+                    .catch((e) => setError(errorText(e)))
+                }
+              >
                 Скопировать
               </button>
             </AdminCard>
@@ -348,10 +419,32 @@ export default function AdminPage() {
           ) : (
             <>
               <div className="admin-kit-metrics">
-                <AdminMetric symbol="▣" label="Заявки партнёров" value={applications.length} note="Всего в загруженной выборке" />
-                <AdminMetric symbol="♙" tone="amber" label="Ожидают проверки" value={waiting.length} note="Новые и на рассмотрении" />
-                <AdminMetric symbol="▤" label="Товары на модерации" value={products.length} note="Ожидают решения" />
-                <AdminMetric symbol="◷" tone="blue" label="Решения в журнале" value={audit.length} note="Записи в загруженной выборке" />
+                <AdminMetric
+                  symbol="▣"
+                  label="Заявки партнёров"
+                  value={applications.length}
+                  note="Всего в загруженной выборке"
+                />
+                <AdminMetric
+                  symbol="♙"
+                  tone="amber"
+                  label="Ожидают проверки"
+                  value={waiting.length}
+                  note="Новые и на рассмотрении"
+                />
+                <AdminMetric
+                  symbol="▤"
+                  label="Товары на модерации"
+                  value={products.length}
+                  note="Ожидают решения"
+                />
+                <AdminMetric
+                  symbol="◷"
+                  tone="blue"
+                  label="Решения в журнале"
+                  value={audit.length}
+                  note="Записи в загруженной выборке"
+                />
               </div>
               {tab === 'overview' ? (
                 <div className="admin-kit-grid">
@@ -360,13 +453,26 @@ export default function AdminPage() {
                     {productsTable}
                   </div>
                   <div className="admin-kit-secondary">
-                    <AdminCard title="Продажи" subtitle="Аналитика по магазинам платформы">
-                      <AdminEmpty>Данные продаж пока не подключены к административному API</AdminEmpty>
+                    <AdminCard
+                      title="Продажи"
+                      subtitle="Аналитика по магазинам платформы"
+                    >
+                      <AdminEmpty>
+                        Данные продаж пока не подключены к административному API
+                      </AdminEmpty>
                     </AdminCard>
-                    <AdminCard title="Популярные категории" subtitle="По продажам магазинов">
-                      <AdminEmpty>Появятся после подключения аналитики продаж</AdminEmpty>
+                    <AdminCard
+                      title="Популярные категории"
+                      subtitle="По продажам магазинов"
+                    >
+                      <AdminEmpty>
+                        Появятся после подключения аналитики продаж
+                      </AdminEmpty>
                     </AdminCard>
-                    <AdminCard title="Недавняя активность" subtitle="Решения администрации">
+                    <AdminCard
+                      title="Недавняя активность"
+                      subtitle="Решения администрации"
+                    >
                       {!audit.length ? (
                         <AdminEmpty>Событий пока нет</AdminEmpty>
                       ) : (
@@ -375,8 +481,14 @@ export default function AdminPage() {
                             <div key={event.entity_id + index}>
                               <span className="admin-kit-activity-dot">✓</span>
                               <div>
-                                <strong>{event.kind} · {event.status}</strong>
-                                <small>{new Date(event.created_at).toLocaleString('ru-RU')}</small>
+                                <strong>
+                                  {event.kind} · {event.status}
+                                </strong>
+                                <small>
+                                  {new Date(event.created_at).toLocaleString(
+                                    'ru-RU',
+                                  )}
+                                </small>
                                 {event.reason && <p>{event.reason}</p>}
                               </div>
                             </div>
@@ -390,7 +502,11 @@ export default function AdminPage() {
                 <>
                   <label className="admin-kit-reason">
                     Причина отклонения (для отказа обязательно)
-                    <input value={reason} maxLength={500} onChange={(e) => setReason(e.target.value)} />
+                    <input
+                      value={reason}
+                      maxLength={500}
+                      onChange={(e) => setReason(e.target.value)}
+                    />
                   </label>
                   {applicationsTable}
                 </>
@@ -398,7 +514,10 @@ export default function AdminPage() {
                 <>
                   {productsTable}
                   {selected && (
-                    <AdminCard title={`Предложено: ${selected.name}`} subtitle={selected.shop_name}>
+                    <AdminCard
+                      title={`Предложено: ${selected.name}`}
+                      subtitle={selected.shop_name}
+                    >
                       {selected.has_photo && (
                         <img
                           className="product-photo"
@@ -406,8 +525,13 @@ export default function AdminPage() {
                           alt="Фото для проверки"
                         />
                       )}
-                      <p>{selected.category} · {selected.description}</p>
-                      <h3>Сейчас на витрине: {selected.approved_name ?? 'Ещё не опубликовано'}</h3>
+                      <p>
+                        {selected.category} · {selected.description}
+                      </p>
+                      <h3>
+                        Сейчас на витрине:{' '}
+                        {selected.approved_name ?? 'Ещё не опубликовано'}
+                      </h3>
                       {selected.approved_has_photo && (
                         <img
                           className="product-photo"
@@ -415,20 +539,42 @@ export default function AdminPage() {
                           alt="Одобренное фото"
                         />
                       )}
-                      <p>{selected.approved_category} · {selected.approved_description}</p>
+                      <p>
+                        {selected.approved_category} ·{' '}
+                        {selected.approved_description}
+                      </p>
                       <label className="admin-kit-reason">
                         Причина отказа
-                        <input value={reason} maxLength={500} onChange={(e) => setReason(e.target.value)} />
+                        <input
+                          value={reason}
+                          maxLength={500}
+                          onChange={(e) => setReason(e.target.value)}
+                        />
                       </label>
                       <div className="admin-kit-actions">
-                        <button className="admin-kit-approve" disabled={busy} onClick={() => void decideProduct('approved')}>Одобрить карточку</button>
-                        <button className="admin-kit-reject" disabled={busy || !reason.trim()} onClick={() => void decideProduct('rejected')}>Отклонить карточку</button>
+                        <button
+                          className="admin-kit-approve"
+                          disabled={busy}
+                          onClick={() => void decideProduct('approved')}
+                        >
+                          Одобрить карточку
+                        </button>
+                        <button
+                          className="admin-kit-reject"
+                          disabled={busy || !reason.trim()}
+                          onClick={() => void decideProduct('rejected')}
+                        >
+                          Отклонить карточку
+                        </button>
                       </div>
                     </AdminCard>
                   )}
                 </>
               ) : (
-                <AdminCard title="Журнал решений" subtitle="История действий модерации">
+                <AdminCard
+                  title="Журнал решений"
+                  subtitle="История действий модерации"
+                >
                   {!audit.length ? (
                     <AdminEmpty>Решений пока нет</AdminEmpty>
                   ) : (
@@ -437,8 +583,14 @@ export default function AdminPage() {
                         <div key={event.entity_id + index}>
                           <span className="admin-kit-activity-dot">✓</span>
                           <div>
-                            <strong>{event.kind} · {event.status}</strong>
-                            <small>{new Date(event.created_at).toLocaleString('ru-RU')}</small>
+                            <strong>
+                              {event.kind} · {event.status}
+                            </strong>
+                            <small>
+                              {new Date(event.created_at).toLocaleString(
+                                'ru-RU',
+                              )}
+                            </small>
                             {event.reason && <p>{event.reason}</p>}
                           </div>
                         </div>
