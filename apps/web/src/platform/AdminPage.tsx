@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { api, errorText } from '../api/client';
 import { useSession } from '../auth/SessionProvider';
+import { AdminCard, AdminEmpty, AdminMetric, AdminStatus } from './AdminKit';
 
 type Application = {
   id: string;
@@ -52,9 +53,10 @@ export default function AdminPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'applications' | 'products' | 'audit'>(
-    'applications',
+  const [tab, setTab] = useState<'overview' | 'applications' | 'products' | 'audit'>(
+    'overview',
   );
+  const [search, setSearch] = useState('');
   async function load() {
     const [a, p, h] = await Promise.all([
       api<Page<Application>>('/platform/admin/applications'),
@@ -147,262 +149,305 @@ export default function AdminPage() {
         Нет доступа к кабинету платформы.
       </p>
     );
+  const waiting = applications.filter((a) =>
+    ['new', 'in_review'].includes(a.status),
+  );
+  const visibleApps = applications.filter((a) =>
+    [a.shop_name, a.email, a.city].some((value) =>
+      value.toLowerCase().includes(search.toLowerCase()),
+    ),
+  );
+  const visibleProducts = products.filter((p) =>
+    [p.name, p.shop_name, p.category].some((value) =>
+      value.toLowerCase().includes(search.toLowerCase()),
+    ),
+  );
+  const appStatus = (status: Application['status']) =>
+    status === 'approved'
+      ? 'Одобрена'
+      : status === 'rejected'
+        ? 'Отклонена'
+        : status === 'in_review'
+          ? 'Проверяется'
+          : 'Новая';
+
+  const applicationsTable = (
+    <AdminCard
+      title="Заявки партнёров"
+      subtitle="Регистрация и проверка партнёров платформы"
+      action={<button onClick={() => setTab('applications')}>Все заявки →</button>}
+    >
+      {!visibleApps.length ? (
+        <AdminEmpty>Заявок пока нет</AdminEmpty>
+      ) : (
+        <div className="admin-kit-scroll">
+          <table className="admin-kit-table">
+            <thead>
+              <tr>
+                <th>Партнёр</th>
+                <th>Тип</th>
+                <th>Статус</th>
+                <th>Дата</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleApps.map((a) => (
+                <tr key={a.id}>
+                  <td>
+                    <strong>{a.shop_name}</strong>
+                    <small>{a.email}</small>
+                    <small>{a.city} · {a.address}</small>
+                  </td>
+                  <td>{a.category}</td>
+                  <td>
+                    <AdminStatus
+                      tone={
+                        a.status === 'approved'
+                          ? 'green'
+                          : a.status === 'rejected'
+                            ? 'red'
+                            : 'amber'
+                      }
+                    >
+                      {appStatus(a.status)}
+                    </AdminStatus>
+                  </td>
+                  <td>{new Date(a.created_at).toLocaleDateString('ru-RU')}</td>
+                  <td>
+                    {['new', 'in_review'].includes(a.status) ? (
+                      <div className="admin-kit-actions">
+                        {a.status === 'new' && (
+                          <button disabled={busy} onClick={() => void decideApplication(a, 'in_review')}>
+                            Проверить
+                          </button>
+                        )}
+                        <button className="admin-kit-approve" disabled={busy} onClick={() => void decideApplication(a, 'approved')}>
+                          Одобрить
+                        </button>
+                        <button className="admin-kit-reject" disabled={busy || !reason.trim()} onClick={() => void decideApplication(a, 'rejected')}>
+                          Отклонить
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="muted">Решение принято</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </AdminCard>
+  );
+
+  const productsTable = (
+    <AdminCard
+      title="Модерация товаров"
+      subtitle="Карточки магазинов на проверке"
+      action={<button onClick={() => setTab('products')}>Все товары →</button>}
+    >
+      {!visibleProducts.length ? (
+        <AdminEmpty>Нет карточек на проверке</AdminEmpty>
+      ) : (
+        <div className="admin-kit-scroll">
+          <table className="admin-kit-table">
+            <thead><tr><th>Товар</th><th>Магазин</th><th>Категория</th><th>Статус</th><th>Действие</th></tr></thead>
+            <tbody>
+              {visibleProducts.map((p) => (
+                <tr key={p.revision_id}>
+                  <td><strong>{p.name}</strong><small>{p.description}</small></td>
+                  <td>{p.shop_name}</td>
+                  <td>{p.category || 'Не указана'}</td>
+                  <td><AdminStatus>На проверке</AdminStatus></td>
+                  <td><button onClick={() => void showProduct(p.revision_id)}>Посмотреть</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </AdminCard>
+  );
+
   return (
-    <div className="admin-shell">
-      <aside className="admin-sidebar">
-        <Link className="brand" to="/platform/admin">
-          MyStore<span>Администрирование</span>
+    <div className="admin-kit-shell">
+      <aside className="admin-kit-sidebar">
+        <Link className="admin-kit-brand" to="/platform/admin">
+          <span className="admin-kit-brand-logo">◈</span>
+          <span>MyStore<small>Администрирование</small></span>
         </Link>
         <nav aria-label="Меню администратора">
-          <button
-            aria-current={tab === 'applications' ? 'page' : undefined}
-            onClick={() => setTab('applications')}
-          >
-            Партнёры и заявки
+          <button aria-current={tab === 'overview' ? 'page' : undefined} onClick={() => setTab('overview')}>
+            <span aria-hidden="true">▦</span> Обзор
           </button>
-          <button
-            aria-current={tab === 'products' ? 'page' : undefined}
-            onClick={() => setTab('products')}
-          >
-            Модерация товаров
+          <button aria-current={tab === 'applications' ? 'page' : undefined} onClick={() => setTab('applications')}>
+            <span aria-hidden="true">♙</span> Партнёры
+            {waiting.length > 0 && <b>{waiting.length}</b>}
           </button>
-          <button
-            aria-current={tab === 'audit' ? 'page' : undefined}
-            onClick={() => setTab('audit')}
-          >
-            Журнал решений
+          <button aria-current={tab === 'products' ? 'page' : undefined} onClick={() => setTab('products')}>
+            <span aria-hidden="true">◈</span> Модерация
+            {products.length > 0 && <b>{products.length}</b>}
           </button>
-          <Link to="/seller">Мои магазины</Link>
+          <button aria-current={tab === 'audit' ? 'page' : undefined} onClick={() => setTab('audit')}>
+            <span aria-hidden="true">▤</span> Аудит
+          </button>
+          <Link to="/seller"><span aria-hidden="true">▣</span> Мои магазины</Link>
         </nav>
+        <div className="admin-kit-sidebar-bottom">
+          <span>{session.user.email}</span>
+          <button
+            onClick={() =>
+              void session.logout()
+                .then(() => window.location.assign('/seller/login'))
+                .catch((e) => setError(errorText(e)))
+            }
+          >
+            Выйти
+          </button>
+        </div>
       </aside>
-      <div className="admin-main">
-        <main className="admin-workspace">
-          <header>
+      <div className="admin-kit-main">
+        <header className="admin-kit-topbar">
+          <label className="admin-kit-search">
+            <span aria-hidden="true">⌕</span>
+            <input
+              aria-label="Поиск по заявкам и товарам"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Поиск партнёров, магазинов, товаров..."
+            />
+          </label>
+          <div className="admin-kit-identity">
+            <span className="admin-kit-avatar">АД</span>
+            <span>Админ<small>Суперадминистратор</small></span>
+          </div>
+        </header>
+        <main className="admin-kit-content">
+          <div className="admin-kit-heading">
             <div>
               <h1>Администрирование MyStore</h1>
-              <p className="muted">
-                Контроль партнёров, товаров и решений платформы
-              </p>
+              <p>Контроль партнёров, магазинов и операций</p>
             </div>
-            <Link to="/seller">Мои магазины</Link>
-            <button
-              onClick={() =>
-                void session
-                  .logout()
-                  .then(() => window.location.assign('/seller/login'))
-                  .catch((e) => setError(errorText(e)))
-              }
-            >
-              Выйти
-            </button>
-          </header>
-          <div className="admin-overview-stats">
-            <article className="panel">
-              <small>Заявки партнёров</small>
-              <h2>{applications.length}</h2>
-            </article>
-            <article className="panel">
-              <small>Ожидают решения</small>
-              <h2>
-                {
-                  applications.filter((a) =>
-                    ['new', 'in_review'].includes(a.status),
-                  ).length
-                }
-              </h2>
-            </article>
-            <article className="panel">
-              <small>Карточки на модерации</small>
-              <h2>{products.length}</h2>
-            </article>
-            <article className="panel">
-              <small>Записи журнала</small>
-              <h2>{audit.length}</h2>
-            </article>
+            <span className="admin-kit-date">
+              {new Date().toLocaleDateString('ru-RU', { dateStyle: 'long' })}
+            </span>
           </div>
-          <nav aria-label="Разделы платформы" className="admin-tabs">
-            <button
-              aria-current={tab === 'applications' ? 'page' : undefined}
-              onClick={() => setTab('applications')}
-            >
-              Заявки ({applications.length})
-            </button>
-            <button
-              aria-current={tab === 'products' ? 'page' : undefined}
-              onClick={() => setTab('products')}
-            >
-              Товары ({products.length})
-            </button>
-            <button
-              aria-current={tab === 'audit' ? 'page' : undefined}
-              onClick={() => setTab('audit')}
-            >
-              Журнал решений
-            </button>
-          </nav>
-          {error && (
-            <p role="alert" className="error">
-              {error}
-            </p>
-          )}
+          {error && <p className="error" role="alert">{error}</p>}
           {invitation && (
-            <div className="panel" role="status">
-              <strong>Ссылка для владельца</strong>
-              <p>
-                Передайте её заявителю по проверенному контакту. Она
-                показывается только сейчас и действует 7 дней.
-              </p>
-              <input
-                aria-label="Ссылка активации"
-                readOnly
-                value={invitation}
-                onFocus={(e) => e.target.select()}
-              />
-              <button
-                onClick={() =>
-                  void navigator.clipboard
-                    .writeText(invitation)
-                    .catch((e) => setError(errorText(e)))
-                }
-              >
+            <AdminCard title="Ссылка для владельца" subtitle="Передайте по проверенному контакту. Действует 7 дней.">
+              <input aria-label="Ссылка активации" readOnly value={invitation} onFocus={(e) => e.target.select()} />
+              <button onClick={() => void navigator.clipboard.writeText(invitation).catch((e) => setError(errorText(e)))}>
                 Скопировать
               </button>
-            </div>
+            </AdminCard>
           )}
           {loading ? (
-            <p>Загрузка…</p>
-          ) : tab === 'applications' ? (
-            <section>
-              <h2>Заявки партнёров</h2>
-              {!applications.length && <p>Заявок пока нет.</p>}
-              {applications.map((a) => (
-                <article className="panel" key={a.id}>
-                  <h3>
-                    {a.shop_name} · {a.status}
-                  </h3>
-                  <p>
-                    {a.city} · {a.category} · {a.address}
-                  </p>
-                  <p>
-                    <a href={`mailto:${a.email}`}>{a.email}</a> ·{' '}
-                    <a href={`tel:${a.phone}`}>{a.phone}</a>
-                  </p>
-                  {a.rejection_reason && (
-                    <p>Причина отказа: {a.rejection_reason}</p>
-                  )}
-                  {['new', 'in_review'].includes(a.status) && (
-                    <>
-                      <label>
-                        Причина отказа
-                        <input
-                          value={reason}
-                          maxLength={500}
-                          onChange={(e) => setReason(e.target.value)}
-                        />
-                      </label>
-                      {a.status === 'new' && (
-                        <button
-                          disabled={busy}
-                          onClick={() => void decideApplication(a, 'in_review')}
-                        >
-                          Взять в работу
-                        </button>
-                      )}
-                      <button
-                        disabled={busy}
-                        onClick={() => void decideApplication(a, 'approved')}
-                      >
-                        Одобрить
-                      </button>
-                      <button
-                        disabled={busy || !reason.trim()}
-                        onClick={() => void decideApplication(a, 'rejected')}
-                      >
-                        Отклонить
-                      </button>
-                    </>
-                  )}
-                </article>
-              ))}
-            </section>
-          ) : tab === 'products' ? (
-            <section>
-              <h2>Карточки на проверке</h2>
-              {!products.length && <p>Нет карточек на проверке.</p>}
-              {products.map((p) => (
-                <article className="panel" key={p.revision_id}>
-                  <h3>
-                    {p.name} · {p.shop_name}
-                  </h3>
-                  <p>
-                    {p.category} · {p.description}
-                  </p>
-                  <button onClick={() => void showProduct(p.revision_id)}>
-                    Посмотреть изменения
-                  </button>
-                </article>
-              ))}
-              {selected && (
-                <article className="panel">
-                  <h3>Предложено: {selected.name}</h3>
-                  {selected.has_photo && (
-                    <img
-                      className="product-photo"
-                      src={`/api/platform/admin/products/revisions/${selected.revision_id}/photo`}
-                      alt="Фото для проверки"
-                    />
-                  )}
-                  <p>
-                    {selected.category} · {selected.description}
-                  </p>
-                  <h3>
-                    Сейчас на витрине:{' '}
-                    {selected.approved_name ?? 'Ещё не опубликовано'}
-                  </h3>
-                  {selected.approved_has_photo && (
-                    <img
-                      className="product-photo"
-                      src={`/api/platform/admin/products/revisions/${selected.revision_id}/photo?approved=true`}
-                      alt="Одобренное фото"
-                    />
-                  )}
-                  <p>
-                    {selected.approved_category} ·{' '}
-                    {selected.approved_description}
-                  </p>
-                  <label>
-                    Причина отказа
-                    <input
-                      value={reason}
-                      maxLength={500}
-                      onChange={(e) => setReason(e.target.value)}
-                    />
-                  </label>
-                  <button
-                    disabled={busy}
-                    onClick={() => void decideProduct('approved')}
-                  >
-                    Одобрить карточку
-                  </button>
-                  <button
-                    disabled={busy || !reason.trim()}
-                    onClick={() => void decideProduct('rejected')}
-                  >
-                    Отклонить карточку
-                  </button>
-                </article>
-              )}
-            </section>
+            <p role="status">Загрузка данных…</p>
           ) : (
-            <section>
-              <h2>Журнал решений</h2>
-              {audit.map((a, i) => (
-                <p className="panel" key={`${a.entity_id}-${i}`}>
-                  {new Date(a.created_at).toLocaleString('ru-RU')} · {a.kind} ·{' '}
-                  {a.status} · {a.reason ?? 'Без причины'}
-                </p>
-              ))}
-            </section>
+            <>
+              <div className="admin-kit-metrics">
+                <AdminMetric symbol="▣" label="Заявки партнёров" value={applications.length} note="Всего в загруженной выборке" />
+                <AdminMetric symbol="♙" tone="amber" label="Ожидают проверки" value={waiting.length} note="Новые и на рассмотрении" />
+                <AdminMetric symbol="▤" label="Товары на модерации" value={products.length} note="Ожидают решения" />
+                <AdminMetric symbol="◷" tone="blue" label="Решения в журнале" value={audit.length} note="Записи в загруженной выборке" />
+              </div>
+              {tab === 'overview' ? (
+                <div className="admin-kit-grid">
+                  <div className="admin-kit-primary">
+                    {applicationsTable}
+                    {productsTable}
+                  </div>
+                  <div className="admin-kit-secondary">
+                    <AdminCard title="Продажи" subtitle="Аналитика по магазинам платформы">
+                      <AdminEmpty>Данные продаж пока не подключены к административному API</AdminEmpty>
+                    </AdminCard>
+                    <AdminCard title="Популярные категории" subtitle="По продажам магазинов">
+                      <AdminEmpty>Появятся после подключения аналитики продаж</AdminEmpty>
+                    </AdminCard>
+                    <AdminCard title="Недавняя активность" subtitle="Решения администрации">
+                      {!audit.length ? (
+                        <AdminEmpty>Событий пока нет</AdminEmpty>
+                      ) : (
+                        <div className="admin-kit-activity">
+                          {audit.slice(0, 7).map((event, index) => (
+                            <div key={event.entity_id + index}>
+                              <span className="admin-kit-activity-dot">✓</span>
+                              <div>
+                                <strong>{event.kind} · {event.status}</strong>
+                                <small>{new Date(event.created_at).toLocaleString('ru-RU')}</small>
+                                {event.reason && <p>{event.reason}</p>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </AdminCard>
+                  </div>
+                </div>
+              ) : tab === 'applications' ? (
+                <>
+                  <label className="admin-kit-reason">
+                    Причина отклонения (для отказа обязательно)
+                    <input value={reason} maxLength={500} onChange={(e) => setReason(e.target.value)} />
+                  </label>
+                  {applicationsTable}
+                </>
+              ) : tab === 'products' ? (
+                <>
+                  {productsTable}
+                  {selected && (
+                    <AdminCard title={`Предложено: ${selected.name}`} subtitle={selected.shop_name}>
+                      {selected.has_photo && (
+                        <img
+                          className="product-photo"
+                          src={`/api/platform/admin/products/revisions/${selected.revision_id}/photo`}
+                          alt="Фото для проверки"
+                        />
+                      )}
+                      <p>{selected.category} · {selected.description}</p>
+                      <h3>Сейчас на витрине: {selected.approved_name ?? 'Ещё не опубликовано'}</h3>
+                      {selected.approved_has_photo && (
+                        <img
+                          className="product-photo"
+                          src={`/api/platform/admin/products/revisions/${selected.revision_id}/photo?approved=true`}
+                          alt="Одобренное фото"
+                        />
+                      )}
+                      <p>{selected.approved_category} · {selected.approved_description}</p>
+                      <label className="admin-kit-reason">
+                        Причина отказа
+                        <input value={reason} maxLength={500} onChange={(e) => setReason(e.target.value)} />
+                      </label>
+                      <div className="admin-kit-actions">
+                        <button className="admin-kit-approve" disabled={busy} onClick={() => void decideProduct('approved')}>Одобрить карточку</button>
+                        <button className="admin-kit-reject" disabled={busy || !reason.trim()} onClick={() => void decideProduct('rejected')}>Отклонить карточку</button>
+                      </div>
+                    </AdminCard>
+                  )}
+                </>
+              ) : (
+                <AdminCard title="Журнал решений" subtitle="История действий модерации">
+                  {!audit.length ? (
+                    <AdminEmpty>Решений пока нет</AdminEmpty>
+                  ) : (
+                    <div className="admin-kit-activity">
+                      {audit.map((event, index) => (
+                        <div key={event.entity_id + index}>
+                          <span className="admin-kit-activity-dot">✓</span>
+                          <div>
+                            <strong>{event.kind} · {event.status}</strong>
+                            <small>{new Date(event.created_at).toLocaleString('ru-RU')}</small>
+                            {event.reason && <p>{event.reason}</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </AdminCard>
+              )}
+            </>
           )}
         </main>
       </div>
