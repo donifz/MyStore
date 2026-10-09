@@ -7,6 +7,11 @@ import { PlatformAdminService } from './platform-admin.service';
 export class AdminSessionController {
   constructor(private readonly admins: PlatformAdminService) {}
 
+  @Get('overview') async overview(@Req() req: UserRequest) {
+    await this.admins.requireAdmin(req.userId);
+    return this.admins.overview();
+  }
+
   @Get('session') async session(@Req() req: UserRequest) {
     await this.admins.requireAdmin(req.userId);
     return { platformAdmin: true };

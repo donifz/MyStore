@@ -26,7 +26,7 @@ test('administrator approves a partner and a public card while the owner sees a 
   await expect(
     page.getByRole('heading', { name: 'Администрирование MyStore' }),
   ).toBeVisible();
-  const card = page.locator('article').filter({ hasText: email });
+  const card = page.locator('tr').filter({ hasText: email });
   await card.getByRole('button', { name: 'Одобрить', exact: true }).click();
   const link = await page.getByLabel('Ссылка активации').inputValue();
   expect(link).toMatch(/\/partner\/activate\?token=[a-f0-9]{64}$/);
@@ -68,11 +68,11 @@ test('administrator approves a partner and a public card while the owner sees a 
     ).status(),
   ).toBe(404);
   await page.goto('/platform/admin');
-  await page.getByRole('button', { name: /Товары \(/ }).click();
+  await page.getByRole('button', { name: 'Модерация' }).click();
   await page
-    .locator('article')
+    .locator('tr')
     .filter({ hasText: 'Кружка для дома' })
-    .getByRole('button', { name: 'Посмотреть изменения' })
+    .getByRole('button', { name: 'Посмотреть' })
     .click();
   const proposed = page.getByRole('heading', {
     name: 'Предложено: Кружка для дома',
