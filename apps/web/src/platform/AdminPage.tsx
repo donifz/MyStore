@@ -445,7 +445,7 @@ export default function AdminPage() {
           ) : (
             <>
               <div className="admin-kit-metrics">
-                <AdminMetric symbol="▣" label="Активные магазины" value={overview?.shopCount ?? '—'} note="Магазинов на платформе" />
+                <AdminMetric symbol="▣" label="Магазины платформы" value={overview?.shopCount ?? '—'} note="Магазинов на платформе" />
                 <AdminMetric symbol="♙" tone="amber" label="Партнёры на модерации" value={overview?.pendingPartners ?? '—'} note="Ожидают решения" />
                 <AdminMetric symbol="▤" label="Продажи за сегодня" value={overview ? money(overview.todaySalesMinor) : '—'} note="Платежи с учётом возвратов" />
                 <AdminMetric symbol="◷" tone="blue" label="Открытые смены" value={overview?.openShifts ?? '—'} note="На всех магазинах" />
@@ -518,7 +518,7 @@ export default function AdminPage() {
                         </>
                       )}
                     </AdminCard>
-                    <AdminCard title="Популярные категории" subtitle="Валовые продажи товаров за 7 дней">
+                    <AdminCard title="Популярные категории" subtitle="Валовые продажи по топ-5 категориям">
                       {!overview?.categories.length ? (
                         <AdminEmpty>Продаж по категориям пока нет</AdminEmpty>
                       ) : (
