@@ -64,7 +64,6 @@ const money = (minor: number) =>
     maximumFractionDigits: 0,
   }).format(minor / 100) + ' сом';
 
-
 export default function AdminPage() {
   const session = useSession();
   const [overview, setOverview] = useState<AdminOverview | null>(null);
@@ -445,10 +444,32 @@ export default function AdminPage() {
           ) : (
             <>
               <div className="admin-kit-metrics">
-                <AdminMetric symbol="▣" label="Магазины платформы" value={overview?.shopCount ?? '—'} note="Магазинов на платформе" />
-                <AdminMetric symbol="♙" tone="amber" label="Партнёры на модерации" value={overview?.pendingPartners ?? '—'} note="Ожидают решения" />
-                <AdminMetric symbol="▤" label="Продажи за сегодня" value={overview ? money(overview.todaySalesMinor) : '—'} note="Платежи с учётом возвратов" />
-                <AdminMetric symbol="◷" tone="blue" label="Открытые смены" value={overview?.openShifts ?? '—'} note="На всех магазинах" />
+                <AdminMetric
+                  symbol="▣"
+                  label="Магазины платформы"
+                  value={overview?.shopCount ?? '—'}
+                  note="Магазинов на платформе"
+                />
+                <AdminMetric
+                  symbol="♙"
+                  tone="amber"
+                  label="Партнёры на модерации"
+                  value={overview?.pendingPartners ?? '—'}
+                  note="Ожидают решения"
+                />
+                <AdminMetric
+                  symbol="▤"
+                  label="Продажи за сегодня"
+                  value={overview ? money(overview.todaySalesMinor) : '—'}
+                  note="Платежи с учётом возвратов"
+                />
+                <AdminMetric
+                  symbol="◷"
+                  tone="blue"
+                  label="Открытые смены"
+                  value={overview?.openShifts ?? '—'}
+                  note="На всех магазинах"
+                />
               </div>
               {tab === 'overview' ? (
                 <div className="admin-kit-grid">
@@ -456,9 +477,14 @@ export default function AdminPage() {
                     {applicationsTable}
                     {productsTable}
 
-                    <AdminCard title="Магазины" subtitle="Текущие остатки и последние смены">
+                    <AdminCard
+                      title="Магазины"
+                      subtitle="Текущие остатки и последние смены"
+                    >
                       {!overview?.shops.length ? (
-                        <AdminEmpty>Магазины пока не зарегистрированы</AdminEmpty>
+                        <AdminEmpty>
+                          Магазины пока не зарегистрированы
+                        </AdminEmpty>
                       ) : (
                         <div className="admin-kit-scroll">
                           <table className="admin-kit-table">
@@ -474,13 +500,27 @@ export default function AdminPage() {
                             <tbody>
                               {overview.shops.map((shop) => (
                                 <tr key={shop.id}>
-                                  <td><strong>{shop.name}</strong></td>
+                                  <td>
+                                    <strong>{shop.name}</strong>
+                                  </td>
                                   <td>{shop.ownerEmail ?? 'Не указан'}</td>
                                   <td>{shop.units} шт.</td>
-                                  <td>{shop.lastShiftAt ? new Date(shop.lastShiftAt).toLocaleString('ru-RU') : 'Нет смен'}</td>
                                   <td>
-                                    <AdminStatus tone={shop.shiftOpen ? 'green' : 'neutral'}>
-                                      {shop.shiftOpen ? 'Открыта' : 'Нет открытой смены'}
+                                    {shop.lastShiftAt
+                                      ? new Date(
+                                          shop.lastShiftAt,
+                                        ).toLocaleString('ru-RU')
+                                      : 'Нет смен'}
+                                  </td>
+                                  <td>
+                                    <AdminStatus
+                                      tone={
+                                        shop.shiftOpen ? 'green' : 'neutral'
+                                      }
+                                    >
+                                      {shop.shiftOpen
+                                        ? 'Открыта'
+                                        : 'Нет открытой смены'}
                                     </AdminStatus>
                                   </td>
                                 </tr>
@@ -492,21 +532,41 @@ export default function AdminPage() {
                     </AdminCard>
                   </div>
                   <div className="admin-kit-secondary">
-
-                    <AdminCard title="Продажи" subtitle="Последние 7 дней с учётом возвратов">
+                    <AdminCard
+                      title="Продажи"
+                      subtitle="Последние 7 дней с учётом возвратов"
+                    >
                       {overview && (
                         <>
                           <strong className="admin-kit-chart-total">
-                            {money(overview.sales.reduce((sum, point) => sum + point.totalMinor, 0))}
+                            {money(
+                              overview.sales.reduce(
+                                (sum, point) => sum + point.totalMinor,
+                                0,
+                              ),
+                            )}
                           </strong>
-                          <div className="admin-kit-chart" aria-label="График продаж за 7 дней">
+                          <div
+                            className="admin-kit-chart"
+                            aria-label="График продаж за 7 дней"
+                          >
                             {overview.sales.map((point) => {
-                              const max = Math.max(1, ...overview.sales.map((x) => Math.max(0, x.totalMinor)));
+                              const max = Math.max(
+                                1,
+                                ...overview.sales.map((x) =>
+                                  Math.max(0, x.totalMinor),
+                                ),
+                              );
                               return (
-                                <div key={point.day} className="admin-kit-chart-column">
+                                <div
+                                  key={point.day}
+                                  className="admin-kit-chart-column"
+                                >
                                   <div className="admin-kit-chart-bar">
                                     <span
-                                      style={{ height: `${Math.max(2, 100 * Math.max(0, point.totalMinor) / max)}%` }}
+                                      style={{
+                                        height: `${Math.max(2, (100 * Math.max(0, point.totalMinor)) / max)}%`,
+                                      }}
                                       title={`${point.day}: ${money(point.totalMinor)}`}
                                     />
                                   </div>
@@ -518,18 +578,31 @@ export default function AdminPage() {
                         </>
                       )}
                     </AdminCard>
-                    <AdminCard title="Популярные категории" subtitle="Валовые продажи по топ-5 категориям">
+                    <AdminCard
+                      title="Популярные категории"
+                      subtitle="Валовые продажи по топ-5 категориям"
+                    >
                       {!overview?.categories.length ? (
                         <AdminEmpty>Продаж по категориям пока нет</AdminEmpty>
                       ) : (
                         <div className="admin-kit-category-bars">
                           {overview.categories.map((category) => {
-                            const total = overview.categories.reduce((sum, item) => sum + item.totalMinor, 0);
-                            const share = total ? Math.round(100 * category.totalMinor / total) : 0;
+                            const total = overview.categories.reduce(
+                              (sum, item) => sum + item.totalMinor,
+                              0,
+                            );
+                            const share = total
+                              ? Math.round((100 * category.totalMinor) / total)
+                              : 0;
                             return (
                               <div key={category.name}>
-                                <span>{category.name}<small>{share}%</small></span>
-                                <div><span style={{ width: `${share}%` }} /></div>
+                                <span>
+                                  {category.name}
+                                  <small>{share}%</small>
+                                </span>
+                                <div>
+                                  <span style={{ width: `${share}%` }} />
+                                </div>
                               </div>
                             );
                           })}

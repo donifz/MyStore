@@ -56,7 +56,9 @@ describe('platform administration', () => {
     expect(overview.body.shopCount).toBeGreaterThanOrEqual(1);
     expect(overview.body.sales).toHaveLength(7);
     expect(overview.body.shops).toEqual(
-      expect.arrayContaining([expect.objectContaining({ name: expect.any(String) })]),
+      expect.arrayContaining([
+        expect.objectContaining({ name: expect.any(String) }),
+      ]),
     );
   });
 });
