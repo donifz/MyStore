@@ -25,12 +25,12 @@ export class PlatformAdminService {
           AND created_at < current_date + interval '1 day'),0) today_sales_minor`,
     );
     const sales = await this.db.query(
-      `SELECT to_char(d.day,'YYYY-MM-DD') day,
+      `SELECT to_char(d.business_day,'YYYY-MM-DD') date_label,
         COALESCE(sum(CASE WHEN p.kind='sale' THEN p.amount_minor ELSE -p.amount_minor END),0) total_minor
-        FROM generate_series(current_date - interval '6 days', current_date, interval '1 day') d(day)
-        LEFT JOIN payment_records p ON p.created_at >= d.day
-          AND p.created_at < d.day + interval '1 day'
-        GROUP BY d.day ORDER BY d.day`,
+        FROM generate_series(current_date - interval '6 days', current_date, interval '1 day') d(business_day)
+        LEFT JOIN payment_records p ON p.created_at >= d.business_day
+          AND p.created_at < d.business_day + interval '1 day'
+        GROUP BY d.business_day ORDER BY d.business_day`,
     );
     const categories = await this.db.query(
       `SELECT COALESCE(NULLIF(trim(v.category),''),'Без категории') name,
@@ -66,7 +66,7 @@ export class PlatformAdminService {
       pendingProducts: Number(summary.pending_products),
       todaySalesMinor: Number(summary.today_sales_minor),
       sales: sales.map((row: any) => ({
-        day: row.day,
+        day: row.date_label,
         totalMinor: Number(row.total_minor),
       })),
       categories: categories.map((row: any) => ({

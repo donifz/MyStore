@@ -9,12 +9,7 @@ export class AdminSessionController {
 
   @Get('overview') async overview(@Req() req: UserRequest) {
     await this.admins.requireAdmin(req.userId);
-    try {
-      return await this.admins.overview();
-    } catch (error) {
-      console.error('Admin overview query failed', error);
-      throw error;
-    }
+    return this.admins.overview();
   }
 
   @Get('session') async session(@Req() req: UserRequest) {
