@@ -42,8 +42,32 @@ type Audit = {
 };
 type Page<T> = { items: T[]; total: number };
 
+type AdminOverview = {
+  shopCount: number;
+  openShifts: number;
+  pendingPartners: number;
+  pendingProducts: number;
+  todaySalesMinor: number;
+  sales: { day: string; totalMinor: number }[];
+  categories: { name: string; totalMinor: number }[];
+  shops: {
+    id: string;
+    name: string;
+    ownerEmail: string | null;
+    units: number;
+    shiftOpen: boolean;
+    lastShiftAt: string | null;
+  }[];
+};
+const money = (minor: number) =>
+  new Intl.NumberFormat('ru-RU', {
+    maximumFractionDigits: 0,
+  }).format(minor / 100) + ' сом';
+
+
 export default function AdminPage() {
   const session = useSession();
+  const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [audit, setAudit] = useState<Audit[]>([]);
@@ -58,14 +82,16 @@ export default function AdminPage() {
   >('overview');
   const [search, setSearch] = useState('');
   async function load() {
-    const [a, p, h] = await Promise.all([
+    const [a, p, h, summary] = await Promise.all([
       api<Page<Application>>('/platform/admin/applications'),
       api<Page<Product>>('/platform/admin/products'),
       api<Page<Audit>>('/platform/admin/audit'),
+      api<AdminOverview>('/platform/admin/overview'),
     ]);
     setApplications(a.items);
     setProducts(p.items);
     setAudit(h.items);
+    setOverview(summary);
     setLoading(false);
   }
   useEffect(() => {
@@ -419,55 +445,96 @@ export default function AdminPage() {
           ) : (
             <>
               <div className="admin-kit-metrics">
-                <AdminMetric
-                  symbol="▣"
-                  label="Заявки партнёров"
-                  value={applications.length}
-                  note="Всего в загруженной выборке"
-                />
-                <AdminMetric
-                  symbol="♙"
-                  tone="amber"
-                  label="Ожидают проверки"
-                  value={waiting.length}
-                  note="Новые и на рассмотрении"
-                />
-                <AdminMetric
-                  symbol="▤"
-                  label="Товары на модерации"
-                  value={products.length}
-                  note="Ожидают решения"
-                />
-                <AdminMetric
-                  symbol="◷"
-                  tone="blue"
-                  label="Решения в журнале"
-                  value={audit.length}
-                  note="Записи в загруженной выборке"
-                />
+                <AdminMetric symbol="▣" label="Активные магазины" value={overview?.shopCount ?? '—'} note="Магазинов на платформе" />
+                <AdminMetric symbol="♙" tone="amber" label="Партнёры на модерации" value={overview?.pendingPartners ?? '—'} note="Ожидают решения" />
+                <AdminMetric symbol="▤" label="Продажи за сегодня" value={overview ? money(overview.todaySalesMinor) : '—'} note="Платежи с учётом возвратов" />
+                <AdminMetric symbol="◷" tone="blue" label="Открытые смены" value={overview?.openShifts ?? '—'} note="На всех магазинах" />
               </div>
               {tab === 'overview' ? (
                 <div className="admin-kit-grid">
                   <div className="admin-kit-primary">
                     {applicationsTable}
                     {productsTable}
+
+                    <AdminCard title="Магазины" subtitle="Текущие остатки и последние смены">
+                      {!overview?.shops.length ? (
+                        <AdminEmpty>Магазины пока не зарегистрированы</AdminEmpty>
+                      ) : (
+                        <div className="admin-kit-scroll">
+                          <table className="admin-kit-table">
+                            <thead>
+                              <tr>
+                                <th>Магазин</th>
+                                <th>Владелец</th>
+                                <th>Остатки</th>
+                                <th>Последняя смена</th>
+                                <th>Статус</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {overview.shops.map((shop) => (
+                                <tr key={shop.id}>
+                                  <td><strong>{shop.name}</strong></td>
+                                  <td>{shop.ownerEmail ?? 'Не указан'}</td>
+                                  <td>{shop.units} шт.</td>
+                                  <td>{shop.lastShiftAt ? new Date(shop.lastShiftAt).toLocaleString('ru-RU') : 'Нет смен'}</td>
+                                  <td>
+                                    <AdminStatus tone={shop.shiftOpen ? 'green' : 'neutral'}>
+                                      {shop.shiftOpen ? 'Открыта' : 'Нет открытой смены'}
+                                    </AdminStatus>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </AdminCard>
                   </div>
                   <div className="admin-kit-secondary">
-                    <AdminCard
-                      title="Продажи"
-                      subtitle="Аналитика по магазинам платформы"
-                    >
-                      <AdminEmpty>
-                        Данные продаж пока не подключены к административному API
-                      </AdminEmpty>
+
+                    <AdminCard title="Продажи" subtitle="Последние 7 дней с учётом возвратов">
+                      {overview && (
+                        <>
+                          <strong className="admin-kit-chart-total">
+                            {money(overview.sales.reduce((sum, point) => sum + point.totalMinor, 0))}
+                          </strong>
+                          <div className="admin-kit-chart" aria-label="График продаж за 7 дней">
+                            {overview.sales.map((point) => {
+                              const max = Math.max(1, ...overview.sales.map((x) => Math.max(0, x.totalMinor)));
+                              return (
+                                <div key={point.day} className="admin-kit-chart-column">
+                                  <div className="admin-kit-chart-bar">
+                                    <span
+                                      style={{ height: `${Math.max(2, 100 * Math.max(0, point.totalMinor) / max)}%` }}
+                                      title={`${point.day}: ${money(point.totalMinor)}`}
+                                    />
+                                  </div>
+                                  <small>{point.day.slice(5)}</small>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </>
+                      )}
                     </AdminCard>
-                    <AdminCard
-                      title="Популярные категории"
-                      subtitle="По продажам магазинов"
-                    >
-                      <AdminEmpty>
-                        Появятся после подключения аналитики продаж
-                      </AdminEmpty>
+                    <AdminCard title="Популярные категории" subtitle="Валовые продажи товаров за 7 дней">
+                      {!overview?.categories.length ? (
+                        <AdminEmpty>Продаж по категориям пока нет</AdminEmpty>
+                      ) : (
+                        <div className="admin-kit-category-bars">
+                          {overview.categories.map((category) => {
+                            const total = overview.categories.reduce((sum, item) => sum + item.totalMinor, 0);
+                            const share = total ? Math.round(100 * category.totalMinor / total) : 0;
+                            return (
+                              <div key={category.name}>
+                                <span>{category.name}<small>{share}%</small></span>
+                                <div><span style={{ width: `${share}%` }} /></div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </AdminCard>
                     <AdminCard
                       title="Недавняя активность"
