@@ -1,3 +1,6 @@
+import { Alert } from '../../../../../components/ui';
+import Price from '../../../../../components/storefront/Price';
+import StockBadge from '../../../../../components/storefront/StockBadge';
 import BuyButton from '../../../../../components/BuyButton';
 import Link from 'next/link';
 import { headers } from 'next/headers';
@@ -48,46 +51,48 @@ export default async function ProductPage({ params }: Props) {
     if (e instanceof PublicApiError && (e.status === 404 || e.status === 400))
       notFound();
     return (
-      <section role="alert" className="market-empty">
+      <Alert variant="error">
         <h1>Не удалось загрузить товар</h1>
         <p>Попробуйте позднее.</p>
-      </section>
+      </Alert>
     );
   }
+  const phone = v.store.phone?.replace(/[^\d+]/g, '');
   return (
-    <>
+    <div className="sf-stack">
       <Refresh />
       <script
         type="application/ld+json"
         nonce={(await headers()).get('x-nonce') || undefined}
         dangerouslySetInnerHTML={{ __html: productJson(v) }}
       />
-      <Link className="back-link" href={'/shops/' + v.store.slug}>
+      <Link className="sf-back" href={'/shops/' + v.store.slug}>
         ← {v.store.name}
       </Link>
-      <article className="product-detail">
-        <div className="product-cover detail-cover" aria-hidden="true">
-          <>
-            {v.photoUrl ? (
-              <img src={v.photoUrl} alt="" />
-            ) : (
-              <span>{v.name.slice(0, 1)}</span>
-            )}
-          </>
-          <small>{v.category || 'Товар магазина'}</small>
+      <article className="sf-product-detail">
+        <div className="sf-product-cover sf-detail-cover" aria-hidden="true">
+          {v.photoUrl ? (
+            <img src={v.photoUrl} alt="" />
+          ) : (
+            <span className="sf-product-placeholder">{v.name.slice(0, 1)}</span>
+          )}
+          <span className="sf-product-category">
+            {v.category || 'Товар магазина'}
+          </span>
         </div>
-        <div>
-          <p className="eyebrow">{v.category || v.store.city}</p>
-          <h1>{v.name}</h1>
-          <p className="detail-price">{formatSom(v.salePriceMinor)}</p>
-          <p className={'stock ' + (!v.available ? 'empty' : '')}>
-            {v.available ? `В наличии: ${v.available} шт.` : 'Нет в наличии'}
-          </p>
+        <div className="sf-stack">
+          <div>
+            <p className="sf-eyebrow">{v.category || v.store.city}</p>
+            <h1>{v.name}</h1>
+            <Price minor={v.salePriceMinor} className="sf-detail-price" />
+            <StockBadge available={v.available} detailed />
+          </div>
           {v.description && (
-            <p className="product-description">{v.description}</p>
+            <p className="sf-product-description">{v.description}</p>
           )}
           <BuyButton product={v} />
-          <div className="contact-card">
+          <section className="sf-panel sf-contact">
+            <p className="sf-eyebrow">Ваш продавец</p>
             <Link href={'/shops/' + v.store.slug}>
               <h2>{v.store.name}</h2>
             </Link>
@@ -96,19 +101,21 @@ export default async function ProductPage({ params }: Props) {
               {v.store.address ? ' · ' + v.store.address : ''}
             </p>
             {v.store.hours && <p>{v.store.hours}</p>}
-            <a
-              className="primary button full-width"
-              href={'tel:' + v.store.phone?.replace(/[^\d+]/g, '')}
-            >
-              Связаться с магазином
-            </a>
-            <p className="muted">
+            {phone && (
+              <a
+                className="sf-button sf-button--primary sf-full"
+                href={'tel:' + phone}
+              >
+                Связаться с магазином
+              </a>
+            )}
+            <p className="sf-muted">
               Покупку, самовывоз и доставку согласуйте с продавцом. Наличие
               может измениться до покупки.
             </p>
-          </div>
+          </section>
         </div>
       </article>
-    </>
+    </div>
   );
 }

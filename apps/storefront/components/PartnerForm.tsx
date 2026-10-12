@@ -1,5 +1,6 @@
 'use client';
 import { FormEvent, useState } from 'react';
+import { Button, Input, Checkbox, Alert } from './ui';
 
 import { api, ApiError, errorText } from '../../web/src/api/client';
 export default function PartnerPage() {
@@ -42,9 +43,9 @@ export default function PartnerPage() {
     }
   }
   return (
-    <section className="partner-grid">
-      <div className="partner-intro">
-        <p className="eyebrow">Ваш магазин на MyStore</p>
+    <section className="sf-partner-grid">
+      <div className="sf-partner-intro">
+        <p className="sf-eyebrow">Ваш магазин на MyStore</p>
         <h1>
           Один товар.
           <br />
@@ -59,18 +60,18 @@ export default function PartnerPage() {
           <li>Приёмка и касса со сканером</li>
           <li>Общие остатки без повторного ввода</li>
         </ul>
-        <p className="muted">
+        <p className="sf-muted">
           Отправьте заявку. Администратор свяжется с вами и после одобрения
           пришлёт ссылку для активации кабинета.
         </p>
       </div>
-      <div className="panel partner-form">
+      <div className="sf-panel sf-partner-form">
         <h2>Стать партнёром</h2>
         {done ? (
           <>
-            <p role="status" className="success">
+            <Alert variant="success">
               Заявка отправлена. Мы свяжемся с вами после проверки.
-            </p>
+            </Alert>
             <p>
               Кабинет станет доступен после одобрения и активации по ссылке.
             </p>
@@ -78,82 +79,69 @@ export default function PartnerPage() {
         ) : (
           <form onSubmit={submit}>
             <fieldset disabled={busy}>
-              <label>
-                Название магазина
-                <input
-                  required
-                  maxLength={200}
-                  autoComplete="organization"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </label>
-              <label>
-                Email
-                <input
-                  required
-                  type="email"
-                  maxLength={254}
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </label>
-              <label>
-                Телефон
-                <input
-                  required
-                  type="tel"
-                  minLength={7}
-                  maxLength={30}
-                  autoComplete="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
-              </label>
-              <label>
-                Город
-                <input
-                  required
-                  maxLength={80}
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                />
-              </label>
-              <label>
-                Адрес
-                <input
-                  maxLength={250}
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                />
-              </label>
-              <label>
-                Категория бизнеса
-                <input
-                  required
-                  maxLength={80}
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                />
-              </label>
-              <label>
-                <input
-                  required
-                  type="checkbox"
-                  checked={agreed}
-                  onChange={(e) => setAgreed(e.target.checked)}
-                />{' '}
-                Согласен с условиями подключения
-              </label>
-              {error && (
-                <p role="alert" className="error">
-                  {error}
-                </p>
-              )}
-              <button className="primary full-width">
+              <Input
+                id="partner-name"
+                label="Название магазина"
+                required
+                maxLength={200}
+                autoComplete="organization"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+              <Input
+                id="partner-email"
+                label="Email"
+                required
+                type="email"
+                maxLength={254}
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <Input
+                id="partner-phone"
+                label="Телефон"
+                required
+                type="tel"
+                minLength={7}
+                maxLength={30}
+                autoComplete="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+              <Input
+                id="partner-city"
+                label="Город"
+                required
+                maxLength={80}
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+              />
+              <Input
+                id="partner-address"
+                label="Адрес"
+                maxLength={250}
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+              />
+              <Input
+                id="partner-category"
+                label="Категория бизнеса"
+                required
+                maxLength={80}
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              />
+              <Checkbox
+                label="Согласен с условиями подключения"
+                required
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+              />
+              {error && <Alert variant="error">{error}</Alert>}
+              <Button type="submit" className="sf-full" loading={busy}>
                 {busy ? 'Отправка…' : 'Отправить заявку'}
-              </button>
+              </Button>
             </fieldset>
             <p>
               Уже есть аккаунт? <a href="/seller/login">Войти</a>

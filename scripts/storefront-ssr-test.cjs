@@ -122,6 +122,14 @@ const seen = [];
       detail.doc.querySelector('a[href^="tel:"]')?.getAttribute('href'),
       'tel:+996700123456',
     );
+    delete store.phone;
+    const noPhone = await get('/shops/shop-a/products/' + id);
+    assert.equal(
+      noPhone.doc.querySelector('a[href^="tel:"]'),
+      null,
+      'Absent phone must not create a broken contact link',
+    );
+    store.phone = '+996700123456';
     available = 0;
     const fresh = await get('/shops/shop-a/products/' + id);
     assert(fresh.doc.body.textContent.includes('Нет в наличии'));
@@ -177,12 +185,31 @@ const seen = [];
     assert(
       !outage.doc.body.textContent.includes('Товары пока не опубликованы.'),
     );
+    const kit = await get('/ui-kit');
+    assert.equal(
+      kit.response.status,
+      200,
+      'UI kit remains available during API outage',
+    );
+    assert(
+      kit.doc.querySelector('meta[name="robots"]').content.includes('noindex'),
+    );
+    const kitNonce = kit.response.headers
+      .get('content-security-policy')
+      .match(/'nonce-([^']+)'/)[1];
+    for (const script of kit.doc.querySelectorAll('script:not([src])'))
+      assert.equal(
+        script.getAttribute('nonce'),
+        kitNonce,
+        'UI-kit interactivity needs CSP nonce',
+      );
     failed = false;
     const sitemap = await get('/sitemap.xml');
     assert(
       sitemap.html.includes('https://storefront.example.test/shops/shop-a'),
     );
     assert(!sitemap.html.includes('/seller'));
+    assert(!sitemap.html.includes('/ui-kit'));
     const robots = await get('/robots.txt');
     assert(robots.html.includes('Disallow: /seller'));
     assert(robots.html.includes('Disallow: /api'));

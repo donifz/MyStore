@@ -36,6 +36,9 @@ jobs:
       - run: docker compose --env-file .env.example config --quiet
       - name: Install test browser
         run: npx playwright install --with-deps chromium
+      - name: Storefront UI and responsive browser checks
+        working-directory: apps/storefront
+        run: npx playwright test
       - name: Build production image
         run: docker build -t mystore-api:ci .
       - name: Create isolated smoke and browser databases
@@ -70,7 +73,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: browser-results
-          path: apps/web/test-results
+          path: |
+            apps/web/test-results
+            apps/storefront/test-results
       - name: Container logs and cleanup
         if: always()
         run: |

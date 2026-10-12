@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { LinkButton } from './ui';
 export default function Pagination({
   path,
   params,
@@ -18,29 +18,29 @@ export default function Pagination({
     return path + '?' + p;
   };
   return (
-    <nav className="pagination" aria-label="Страницы каталога">
+    <nav className="sf-pagination" aria-label="Страницы каталога">
       {page > 1 ? (
-        <Link
-          className="button"
+        <LinkButton
+          variant="secondary"
           aria-label="Предыдущая страница"
           href={href(page - 1)}
         >
-          Назад
-        </Link>
+          ← Назад
+        </LinkButton>
       ) : (
-        <span>Назад</span>
+        <span className="sf-muted">Назад</span>
       )}
       <span>Страница {page}</span>
       {page * 24 < total ? (
-        <Link
-          className="button"
+        <LinkButton
+          variant="secondary"
           aria-label="Следующая страница"
           href={href(page + 1)}
         >
-          Далее
-        </Link>
+          Далее →
+        </LinkButton>
       ) : (
-        <span>Далее</span>
+        <span className="sf-muted">Далее</span>
       )}
     </nav>
   );

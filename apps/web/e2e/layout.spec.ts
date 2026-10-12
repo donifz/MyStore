@@ -73,3 +73,29 @@ test('seller navigation highlights only the current leaf section', async ({
   await expect(productsLink).toHaveClass(/active/);
   await expect(productsLink).toHaveCSS('font-weight', '600');
 });
+
+test('admin heading keeps the date inside its tablet container', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 721, height: 900 });
+  await page.goto('/seller/login');
+  await page.getByLabel('Email').fill('owner@example.test');
+  await page.getByLabel('Пароль').fill('browser-test-password');
+  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Товары', exact: true }),
+  ).toBeVisible();
+  await page.goto('/platform/admin');
+  await expect(
+    page.getByRole('heading', {
+      name: 'Администрирование MyStore',
+      exact: true,
+    }),
+  ).toBeVisible();
+  const heading = await page.locator('.admin-kit-heading').boundingBox();
+  const date = await page.locator('.admin-kit-date').boundingBox();
+  expect(date!.x + date!.width).toBeLessThanOrEqual(
+    heading!.x + heading!.width + 1,
+  );
+  await expectNoPageOverflow(page);
+});

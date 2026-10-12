@@ -1,7 +1,17 @@
 'use client';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { formatSom } from '../lib/public-api';
+import {
+  Button,
+  LinkButton,
+  Input,
+  Select,
+  Textarea,
+  Alert,
+  EmptyState,
+  Skeleton,
+} from './ui';
+import Price from './storefront/Price';
 import { useCart } from './CartProvider';
 type Receipt = {
   id: string;
@@ -151,15 +161,25 @@ export default function Checkout() {
     }
   }
   if (!c.ready || checking)
-    return <p role="status">Проверяем корзину и заказ…</p>;
+    return (
+      <section className="sf-stack" aria-busy="true">
+        <p role="status">Проверяем корзину и заказ…</p>
+        <Skeleton />
+        <Skeleton />
+      </section>
+    );
   if (receipt)
     return (
-      <section className="panel checkout-panel">
-        <p className="eyebrow">{receipt.storeName}</p>
-        <h1>Заказ принят</h1>
-        <p>Номер: {receipt.id}</p>
-        <p role="status">{statuses[receipt.status]}</p>
-        <p>Товары: {formatSom(receipt.totalMinor)}</p>
+      <section className="sf-panel sf-stack sf-receipt">
+        <div>
+          <p className="sf-eyebrow">{receipt.storeName}</p>
+          <h1>Заказ принят</h1>
+          <p>Номер: {receipt.id}</p>
+        </div>
+        <Alert variant="success">{statuses[receipt.status]}</Alert>
+        <p>
+          Товары: <Price minor={receipt.totalMinor} />
+        </p>
         <p>Оплата при получении. Доставку согласуйте с магазином.</p>
         {receipt.expiresAt && (
           <p>
@@ -167,143 +187,174 @@ export default function Checkout() {
             {new Date(receipt.expiresAt).toLocaleString('ru-RU')}.
           </p>
         )}
-        <button disabled={checking} onClick={() => void recover()}>
-          Обновить статус
-        </button>
-        <button
-          onClick={() => {
-            c.setKey('');
-            setReceipt(null);
-          }}
-        >
-          Новый заказ
-        </button>
-        <Link href="/shops">Магазины</Link>
+        <div className="sf-actions">
+          <Button
+            variant="secondary"
+            disabled={checking}
+            onClick={() => void recover()}
+          >
+            Обновить статус
+          </Button>
+          <Button
+            onClick={() => {
+              c.setKey('');
+              setReceipt(null);
+            }}
+          >
+            Новый заказ
+          </Button>
+          <LinkButton href="/shops" variant="ghost">
+            Магазины
+          </LinkButton>
+        </div>
       </section>
     );
   const total = Number(
     c.items.reduce((n, l) => n + BigInt(l.quantity) * BigInt(l.price), 0n),
   );
   return (
-    <>
-      <h1>Корзина</h1>
-      {c.error && <p role="alert">{c.error}</p>}
-      {error && <p role="alert">{error}</p>}
+    <div className="sf-stack">
+      <div>
+        <p className="sf-eyebrow">Ваши находки</p>
+        <h1>Корзина</h1>
+        {c.items.length > 0 && (
+          <p className="sf-muted">Магазин: {c.items[0].storeName}</p>
+        )}
+      </div>
+      {c.error && <Alert variant="error">{c.error}</Alert>}
+      {error && <Alert variant="error">{error}</Alert>}
       {c.checkoutKey && (
-        <button disabled={busy} onClick={() => void recover()}>
-          Проверить заказ
-        </button>
+        <div>
+          <Button
+            variant="secondary"
+            disabled={busy}
+            onClick={() => void recover()}
+          >
+            Проверить заказ
+          </Button>
+        </div>
       )}
       {!c.items.length ? (
-        <div className="market-empty">
-          <p>Корзина пока пуста.</p>
-          <Link href="/">Выбрать товары</Link>
-          <button
-            onClick={() => {
-              c.clear();
-              c.setKey('');
-            }}
-          >
-            Очистить корзину
-          </button>
-        </div>
+        <EmptyState
+          title="Корзина пока пуста"
+          description="Хорошие находки ждут в каталоге местных магазинов."
+          action={
+            <div className="sf-actions sf-actions--center">
+              <LinkButton href="/">Выбрать товары</LinkButton>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  c.clear();
+                  c.setKey('');
+                }}
+              >
+                Очистить корзину
+              </Button>
+            </div>
+          }
+        />
       ) : (
-        <>
-          <p>Магазин: {c.items[0].storeName}</p>
-          <section className="panel">
+        <div className="sf-checkout-grid">
+          <section
+            className="sf-panel sf-cart-items"
+            aria-label="Товары в корзине"
+          >
             {c.items.map((l) => (
-              <div className="cart-row" key={l.id}>
-                <Link href={`/shops/${l.storeSlug}/products/${l.id}`}>
-                  {l.name}
-                </Link>
-                <span>{formatSom(l.price)}</span>
-                <label>
-                  Количество
-                  <input
-                    aria-label={`Количество ${l.name}`}
-                    type="number"
-                    min="1"
-                    max="1000000"
-                    value={l.quantity}
-                    disabled={busy || unknown}
-                    onChange={(e) => c.quantity(l.id, Number(e.target.value))}
-                  />
-                </label>
-                <button
+              <div className="sf-cart-row" key={l.id}>
+                <div className="sf-cart-row__name">
+                  <Link href={`/shops/${l.storeSlug}/products/${l.id}`}>
+                    {l.name}
+                  </Link>
+                  <Price minor={l.price} />
+                </div>
+                <Input
+                  id={'cart-quantity-' + l.id}
+                  label="Количество"
+                  aria-label={`Количество ${l.name}`}
+                  type="number"
+                  min="1"
+                  max="1000000"
+                  value={l.quantity}
+                  disabled={busy || unknown}
+                  onChange={(e) => c.quantity(l.id, Number(e.target.value))}
+                />
+                <Button
+                  variant="ghost"
                   disabled={busy || unknown}
                   onClick={() => c.remove(l.id)}
                 >
                   Удалить
-                </button>
+                </Button>
               </div>
             ))}
-            <strong>Товары: {formatSom(total)}</strong>
+            <div className="sf-cart-total">
+              <strong>Товары</strong>
+              <Price minor={total} />
+            </div>
+            <p className="sf-muted">
+              Доставка согласуется отдельно с магазином.
+            </p>
           </section>
-          <form className="panel checkout-panel" onSubmit={submit}>
+          <form className="sf-panel sf-checkout-form" onSubmit={submit}>
             <h2>Оформление заказа</h2>
             <fieldset disabled={busy || unknown}>
-              <label>
-                Ваше имя
-                <input
-                  required
-                  maxLength={120}
-                  autoComplete="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </label>
-              <label>
-                Ваш телефон
-                <input
-                  required
-                  type="tel"
-                  maxLength={30}
-                  autoComplete="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
-              </label>
-              <label>
-                Получение
-                <select
-                  value={fulfillment}
-                  onChange={(e) => setFulfillment(e.target.value)}
-                >
-                  <option value="pickup">Самовывоз</option>
-                  <option value="delivery">Доставка</option>
-                </select>
-              </label>
+              <Input
+                id="checkout-name"
+                label="Ваше имя"
+                required
+                maxLength={120}
+                autoComplete="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+              <Input
+                id="checkout-phone"
+                label="Ваш телефон"
+                required
+                type="tel"
+                maxLength={30}
+                autoComplete="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+              <Select
+                id="checkout-fulfillment"
+                label="Получение"
+                value={fulfillment}
+                onChange={(e) => setFulfillment(e.target.value)}
+              >
+                <option value="pickup">Самовывоз</option>
+                <option value="delivery">Доставка</option>
+              </Select>
               {fulfillment === 'delivery' && (
-                <label>
-                  Адрес доставки
-                  <input
-                    required
-                    maxLength={250}
-                    autoComplete="street-address"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                  />
-                </label>
-              )}
-              <label>
-                Комментарий
-                <textarea
-                  maxLength={500}
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
+                <Input
+                  id="checkout-address"
+                  label="Адрес доставки"
+                  required
+                  maxLength={250}
+                  autoComplete="street-address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
                 />
-              </label>
-              <p>
+              )}
+              <Textarea
+                id="checkout-comment"
+                label="Комментарий"
+                maxLength={500}
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+              />
+              <p className="sf-muted">
                 Оплата при получении. Стоимость доставки согласуется отдельно с
                 магазином.
               </p>
-              <button className="primary">
+              <Button type="submit" loading={busy} className="sf-full">
                 {busy ? 'Оформление…' : 'Подтвердить заказ'}
-              </button>
+              </Button>
             </fieldset>
           </form>
-        </>
+        </div>
       )}
-    </>
+    </div>
   );
 }
