@@ -9,7 +9,8 @@
     "dev": "npm run build && concurrently -k \"tsc -p tsconfig.build.json --watch --preserveWatchOutput\" \"node --watch dist/main.js\"",
     "test:e2e": "jest --runInBand",
     "migration:run": "tsx src/scripts/migrate.ts",
-    "seed": "tsx src/scripts/seed.ts"
+    "seed": "tsx src/scripts/seed.ts",
+    "worker:email": "node dist/scripts/email-worker.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.0",
@@ -19,6 +20,7 @@
     "class-validator": "^0.14.2",
     "express": "^5.2.1",
     "helmet": "^8.1.0",
+    "nodemailer": "^10.1.0",
     "pg": "^8.16.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
@@ -29,6 +31,7 @@
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.0.0",
+    "@types/nodemailer": "^8.0.2",
     "@types/supertest": "^6.0.3",
     "concurrently": "^10.0.5",
     "jest": "^30.2.0",

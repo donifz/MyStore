@@ -16,6 +16,8 @@ import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
+  IsEmail,
+  ValidateIf,
   IsIn,
   IsInt,
   IsString,
@@ -48,6 +50,10 @@ class CheckoutDto extends ReceiptDto implements CheckoutInput {
   @IsString() @MinLength(1) @MaxLength(80) storeSlug!: string;
   @IsString() @MinLength(1) @MaxLength(120) name!: string;
   @IsString() @MaxLength(30) phone!: string;
+  @ValidateIf((_o, v) => v !== undefined && v !== null && v !== '')
+  @IsEmail()
+  @MaxLength(254)
+  email?: string;
   @IsIn(['pickup', 'delivery']) fulfillment!: 'pickup' | 'delivery';
   @IsString() @MaxLength(250) address!: string;
   @IsString() @MaxLength(500) comment!: string;

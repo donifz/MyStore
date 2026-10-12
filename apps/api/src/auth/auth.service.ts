@@ -73,22 +73,25 @@ export class AuthService {
     return createHmac('sha256', this.secret).update(token).digest('hex');
   }
   async login(email: string, password: string) {
-    const [user] = await this.db.query(
-      'SELECT id,password_hash FROM users WHERE email=$1',
-      [email.toLowerCase()],
-    );
-    const ok = await checkPassword(
-      password,
-      user?.password_hash ?? (await this.dummy),
-    );
-    if (!user || !ok) throw new UnauthorizedException('Invalid credentials');
-    const token = randomBytes(32).toString('hex');
-    await this.db.query(
-      "INSERT INTO sessions(token_hash,user_id,expires_at) VALUES($1,$2,now()+interval '12 hours')",
-      [this.digest(token), user.id],
-    );
-    return { token, expiresIn: 43200 };
+    return this.db.transaction(async (tx) => {
+      const [user] = await tx.query(
+        'SELECT id,password_hash FROM users WHERE email=$1 FOR UPDATE',
+        [email.trim().toLowerCase()],
+      );
+      const ok = await checkPassword(
+        password,
+        user?.password_hash ?? (await this.dummy),
+      );
+      if (!user || !ok) throw new UnauthorizedException('Invalid credentials');
+      const token = randomBytes(32).toString('hex');
+      await tx.query(
+        "INSERT INTO sessions(token_hash,user_id,expires_at) VALUES($1,$2,now()+interval '12 hours')",
+        [this.digest(token), user.id],
+      );
+      return { token, expiresIn: 43200 };
+    });
   }
+
   async authenticate(token: string): Promise<string> {
     if (!/^[a-f0-9]{64}$/.test(token)) throw new UnauthorizedException();
     const [session] = await this.db.query(

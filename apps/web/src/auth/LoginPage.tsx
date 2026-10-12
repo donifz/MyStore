@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { api, ApiError, errorText, setCsrf } from '../api/client';
 import { useSession } from './SessionProvider';
 export default function LoginPage() {
@@ -85,6 +85,7 @@ export default function LoginPage() {
             {error || s.error}
           </p>
         )}
+        <Link to="/seller/forgot-password">Забыли пароль?</Link>
         <button className="primary" disabled={busy}>
           {busy ? 'Вход…' : 'Войти'}
         </button>

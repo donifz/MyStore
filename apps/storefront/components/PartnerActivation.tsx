@@ -1,11 +1,20 @@
 'use client';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { Button, Input, Alert, LinkButton } from './ui';
 import { useSearchParams } from 'next/navigation';
 import { api, errorText } from '../../web/src/api/client';
 
 export default function PartnerActivation() {
-  const token = useSearchParams().get('token') ?? '';
+  const params = useSearchParams();
+  const [token] = useState(() => params.get('token') ?? '');
+  useEffect(() => {
+    if (window.location.search)
+      window.history.replaceState(
+        window.history.state,
+        '',
+        '/partner/activate',
+      );
+  }, []);
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
