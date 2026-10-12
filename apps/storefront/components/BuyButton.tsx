@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { Button, Alert } from './ui';
 import type { Product } from '../lib/public-api';
 import { useCart } from './CartProvider';
 export default function BuyButton({ product }: { product: Product }) {
@@ -14,9 +15,8 @@ export default function BuyButton({ product }: { product: Product }) {
       </p>
     );
   return (
-    <div className="buy-actions">
-      <button
-        className="primary"
+    <div className="sf-stack">
+      <Button
         disabled={!c.ready || !product.available}
         onClick={() => {
           if (c.items.length && c.items[0].storeSlug !== product.store.slug) {
@@ -27,30 +27,30 @@ export default function BuyButton({ product }: { product: Product }) {
         }}
       >
         {product.available ? 'В корзину' : 'Нет в наличии'}
-      </button>
+      </Button>
       {added && (
-        <p role="status">
+        <Alert variant="success">
           Товар в корзине. <Link href="/cart">Оформить заказ</Link>
-        </p>
+        </Alert>
       )}
       {replace && (
-        <div role="alert">
+        <Alert variant="info">
           <p>
             Заказ оформляется у одного магазина. Заменить корзину магазина «
             {c.items[0]?.storeName}»?
           </p>
-          <button
+          <Button
             onClick={() => {
               setAdded(c.add(product, true));
               setReplace(false);
             }}
           >
             Заменить корзину
-          </button>
-          <button onClick={() => setReplace(false)}>Оставить корзину</button>
-        </div>
+          </Button>
+          <Button onClick={() => setReplace(false)}>Оставить корзину</Button>
+        </Alert>
       )}
-      {c.error && <p role="alert">{c.error}</p>}
+      {c.error && <Alert variant="error">{c.error}</Alert>}
       <noscript>
         Для оформления заказа включите JavaScript или свяжитесь с магазином.
       </noscript>

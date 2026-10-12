@@ -192,6 +192,7 @@ export async function createApp(
               req.path === '/partner' ||
               req.path === '/partner/activate' ||
               req.path === '/cart' ||
+              req.path === '/ui-kit' ||
               req.path === '/shops' ||
               /^\/shops\/[^/]+(?:\/products\/[^/]+)?\/?$/.test(req.path)))
         ) {

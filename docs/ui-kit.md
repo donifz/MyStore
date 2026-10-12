@@ -1,0 +1,99 @@
+# UI-kit MyStore
+
+Система для `apps/storefront`: светлый фон, белые карточки, зелёные действия. Демонстрация компонентов доступна по `/ui-kit`; она использует локальные данные и закрыта от индексации. Сервер рендерит её на каждый запрос для совместимости с существующей CSP-защитой.
+
+## Где искать
+
+| Слой      | Файлы                                                | Ответственность                                 |
+| --------- | ---------------------------------------------------- | ----------------------------------------------- |
+| Токены    | `apps/storefront/styles/tokens.css`                  | Цвета, отступы, типографика, радиусы            |
+| Разметка  | `apps/storefront/styles/storefront.css`              | Компоненты, оболочка, адаптивные сетки          |
+| Элементы  | `apps/storefront/components/ui`                      | Кнопки, поля, сообщения и состояния             |
+| Витрина   | `apps/storefront/components/storefront`              | Шапка, футер, карточки, фильтры, цена и наличие |
+| Поведение | Существующие `CartProvider`, `Checkout`, `BuyButton` | Корзина, запросы, восстановление заказа         |
+
+CSS подключается только из `app/layout.tsx`. Витрина не импортирует стили кабинета продавца.
+
+## Основа
+
+Основные токены: `--sf-background`, `--sf-surface`, `--sf-text`, `--sf-muted`, `--sf-primary`, `--sf-primary-hover`, `--sf-primary-soft`, `--sf-border`, `--sf-danger`, `--sf-danger-soft`. Дополнительные warning-токены предназначены для статусов ожидания, а не действий.
+
+Отступы: `--sf-space-1/2/3/4/6/8/12/16` соответствуют 4/8/12/16/24/32/48/64 px. Радиусы: `--sf-radius-input` 8 px, `--sf-radius-card` 12 px, `--sf-radius-block` 20 px. Pill применяется только к бейджам и круглой декоративной графике.
+
+Контент ограничен 1280 px. Сетка товаров: 2 колонки до 768 px, 3 от 768 px, 4 от 1100 px. Карточки используют `minmax(0, 1fr)` и переносят длинные названия. Минимальная высота контролов — 44 px. Фото квадратное, `object-fit: contain`.
+
+## Элементы
+
+```tsx
+import { Button, LinkButton, Input, Select, Textarea, Checkbox, Alert } from '../components/ui';
+
+<Button onClick={remove} variant="danger">Удалить</Button>
+<LinkButton href="/shops" variant="secondary">Магазины</LinkButton>
+<Button type="submit" loading={busy}>Подтвердить заказ</Button>
+<Input id="customer-name" label="Ваше имя" autoComplete="name" required />
+<Input id="customer-phone" label="Ваш телефон" type="tel" hint="Например, +996 700 123 456" error={phoneError} />
+<Select id="delivery" label="Получение"><option value="pickup">Самовывоз</option></Select>
+<Textarea id="comment" label="Комментарий" maxLength={500} />
+<Checkbox label="Согласен с условиями" checked={agreed} onChange={onAgreement} />
+<Alert variant="error">Не удалось отправить заказ. Проверьте его статус.</Alert>
+```
+
+`Button` по умолчанию имеет `type="button"`. Отправка формы всегда задаётся явно. `loading` отключает кнопку, добавляет `aria-busy` и сохраняет текст. Варианты: primary, secondary, ghost, danger; размеры: sm, md, lg.
+
+`LinkButton` — настоящий Next Link, с теми же вариантами и размерами. Для внешнего протокола `tel:` допустима обычная ссылка с `sf-button sf-button--primary`. Не создавать её без телефона.
+
+`Input`, `Select`, `Textarea` требуют уникальный `id` и видимый `label`. `hint` и `error` автоматически связаны через `aria-describedby`; ошибка выставляет `aria-invalid`. Native props, `value/defaultValue`, `disabled`, обработчики и ограничения передаются напрямую.
+
+`Checkbox` использует native input. `Badge` имеет neutral/success/warning/danger. `Alert` имеет info/success/error; error объявляется через `role="alert"`, остальные через `role="status"`. `EmptyState` принимает title, description и action. `Skeleton` декоративный; статус загрузки размещается отдельно.
+
+## Компоненты магазина
+
+```tsx
+<ProductCard product={product} />
+<StoreCard store={store} />
+<Price minor={24000} />
+<StockBadge available={3} detailed />
+<CatalogFilters filter={query(search)} categories={products.categories} />
+```
+
+`ProductCard` и `StoreCard` используют типы из `lib/public-api.ts`. Карточка — одна ссылка; не вкладывайте в неё кнопки или другие ссылки. Для добавления товара используется отдельный существующий `BuyButton` на странице товара.
+
+`Price` использует `formatSom`; значения остаются в тыйынах. `StockBadge` показывает фактическое наличие, без выдуманных акций или срочности. `CatalogFilters` — GET-форма с существующими именами параметров.
+
+## Матрица страниц
+
+| Страница  | Общие элементы                                    | Обязательные состояния                                  |
+| --------- | ------------------------------------------------- | ------------------------------------------------------- |
+| Каталог   | Hero, CatalogFilters, ProductCard, Pagination     | Товары, пустые результаты, ошибка API                   |
+| Магазины  | Input, StoreCard, Pagination                      | Магазины, пустота, ошибка API                           |
+| Магазин   | Hero, контакты, общий каталог                     | Нет телефона/адреса/часов, пустота                      |
+| Товар     | Price, StockBadge, BuyButton, контактная карточка | Нет фото, нет остатка, нет телефона, 404                |
+| Корзина   | Поля, Button, Alert, Price                        | Пустота, отправка, неизвестный результат, подтверждение |
+| Партнёр   | Поля, Checkbox, Button, Alert                     | Валидация, отправка, успех, отказ                       |
+| Активация | Input, Button, Alert                              | Нет токена, отправка, успех, отказ                      |
+
+## Правила
+
+1. Используйте существующий компонент перед созданием нового. Повторяющийся предметный блок выделяйте в `components/storefront`.
+2. Цвета, отступы и радиусы берите из токенов. Новое значение сначала добавляется в токены и это руководство.
+3. Сохраняйте видимые подписи, фокус, размеры нажатия, disabled/loading/error. Цвет не заменяет текст статуса.
+4. Оставляйте серверные компоненты серверными. `use client` нужен только для состояния, эффектов и обработчиков.
+5. Не меняйте вместе с оформлением расчёты, ключи заказа, recovery и защиту повторной отправки.
+6. Используйте один источник CSS в корневом layout; не импортируйте `apps/web/src/styles.css`.
+7. Проверяйте 320, 390, 768 и 1440 px, длинные названия и клавиатуру.
+
+## Проверки
+
+```bash
+npm run format:check
+npm run typecheck
+npm run build
+node scripts/storefront-ssr-test.cjs
+npm run test --workspace apps/web
+cd apps/storefront
+npx playwright test
+```
+
+Playwright запускает реальную Next-витрину с тестовым HTTP API на порту 43100, без PostgreSQL. Для установленного Chrome задайте `E2E_BROWSER_PATH`; в CI используется Chromium. Тестовые данные и сервер находятся только в `e2e/`.
+
+Корневой `AGENTS.md` сохраняет силу. Финансовые/API тесты и production Docker-проверки запускаются существующим GitHub CI.

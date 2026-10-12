@@ -1,5 +1,6 @@
 'use client';
 import { FormEvent, useState } from 'react';
+import { Button, Input, Alert, LinkButton } from './ui';
 import { useSearchParams } from 'next/navigation';
 import { api, errorText } from '../../web/src/api/client';
 
@@ -28,40 +29,35 @@ export default function PartnerActivation() {
     }
   }
   return (
-    <section className="panel partner-form">
+    <section className="sf-panel sf-partner-form">
       <h1>Активация магазина</h1>
       {done ? (
         <>
-          <p role="status">Кабинет активирован.</p>
-          <a href="/seller/login">Войти в кабинет</a>
+          <Alert variant="success">Кабинет активирован.</Alert>
+          <LinkButton href="/seller/login">Войти в кабинет</LinkButton>
         </>
       ) : token ? (
         <form onSubmit={submit}>
-          <label>
-            Новый пароль
-            <input
-              required
-              type="password"
-              minLength={12}
-              maxLength={256}
-              autoComplete="new-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </label>
-          {error && (
-            <p role="alert" className="error">
-              {error}
-            </p>
-          )}
-          <button className="primary" disabled={busy}>
+          <Input
+            id="activation-password"
+            label="Новый пароль"
+            required
+            type="password"
+            minLength={12}
+            maxLength={256}
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          {error && <Alert variant="error">{error}</Alert>}
+          <Button type="submit" loading={busy}>
             {busy ? 'Активация…' : 'Активировать кабинет'}
-          </button>
+          </Button>
         </form>
       ) : (
-        <p role="alert">
+        <Alert variant="error">
           Ссылка для активации отсутствует. Свяжитесь с администратором.
-        </p>
+        </Alert>
       )}
     </section>
   );

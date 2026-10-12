@@ -1,10 +1,10 @@
-import Link from 'next/link';
+import { EmptyState, LinkButton } from '../components/ui';
 export default function NotFound() {
   return (
-    <section className="market-empty">
-      <h1>Страница недоступна</h1>
-      <p>Магазин или товар скрыт либо не найден.</p>
-      <Link href="/">Вернуться в каталог</Link>
-    </section>
+    <EmptyState
+      title="Страница недоступна"
+      description="Магазин или товар скрыт либо не найден."
+      action={<LinkButton href="/">Вернуться в каталог</LinkButton>}
+    />
   );
 }

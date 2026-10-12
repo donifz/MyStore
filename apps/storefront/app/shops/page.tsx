@@ -1,4 +1,11 @@
-import Link from 'next/link';
+import StoreCard from '../../components/storefront/StoreCard';
+import {
+  Input,
+  Button,
+  Alert,
+  EmptyState,
+  LinkButton,
+} from '../../components/ui';
 import { publicApi, Page, Store, Search, query } from '../../lib/public-api';
 import { metadata } from '../../lib/seo';
 import Pagination from '../../components/Pagination';
@@ -28,56 +35,52 @@ export default async function Stores({
     stores = await publicApi('/stores?' + params);
   } catch {
     return (
-      <section role="alert" className="market-empty">
+      <Alert variant="error">
         <h1>Не удалось загрузить магазины</h1>
-        <a href="/shops">Повторить</a>
-      </section>
+        <LinkButton href="/shops" variant="secondary">
+          Повторить
+        </LinkButton>
+      </Alert>
     );
   }
   return (
-    <>
+    <div className="sf-stack">
       <Refresh />
-      <section className="market-title">
-        <p className="eyebrow">Каждый магазин — своя история</p>
+      <section className="sf-title">
+        <p className="sf-eyebrow">Каждый магазин — своя история</p>
         <h1>Магазины рядом</h1>
-        <p>Знакомьтесь с продавцами и находите нужное в их каталогах.</p>
+        <p className="sf-muted">
+          Знакомьтесь с продавцами и находите нужное в их каталогах.
+        </p>
       </section>
-      <form action="/shops" method="get">
-        <label className="search-label">
-          Найти магазин
-          <input
-            name="q"
-            defaultValue={f.q}
-            maxLength={128}
-            placeholder="Название или город"
-          />
-        </label>
-        <button className="primary">Найти</button>
+      <form className="sf-shop-search" action="/shops" method="get">
+        <Input
+          id="shop-search"
+          label="Найти магазин"
+          name="q"
+          defaultValue={f.q}
+          maxLength={128}
+          placeholder="Название или город"
+        />
+        <Button type="submit">Найти</Button>
       </form>
-      <div className="store-grid">
-        {stores.items.map((s) => (
-          <Link className="store-tile" key={s.slug} href={'/shops/' + s.slug}>
-            <span className="store-monogram">{s.name.slice(0, 1)}</span>
-            <span className="eyebrow">{s.city}</span>
-            <h2>{s.name}</h2>
-            <p>{s.description || 'Откройте каталог магазина'}</p>
-            <strong>Перейти в магазин ↗</strong>
-          </Link>
-        ))}
-      </div>
-      {!stores.items.length && (
-        <div className="market-empty">
-          <h2>
-            {f.page > 1
-              ? 'На этой странице магазинов нет'
-              : 'Магазинов пока нет'}
-          </h2>
-          <p>
-            {f.q
-              ? 'Попробуйте другой запрос.'
-              : 'Опубликованные витрины появятся здесь.'}
-          </p>
+      {stores.items.length ? (
+        <div className="sf-store-grid">
+          {stores.items.map((store) => (
+            <StoreCard key={store.slug} store={store} />
+          ))}
         </div>
+      ) : (
+        <EmptyState
+          title={
+            f.page > 1 ? 'На этой странице магазинов нет' : 'Магазинов пока нет'
+          }
+          description={
+            f.q
+              ? 'Попробуйте другой запрос.'
+              : 'Опубликованные витрины появятся здесь.'
+          }
+        />
       )}
       <Pagination
         path="/shops"
@@ -85,6 +88,6 @@ export default async function Stores({
         page={f.page}
         total={stores.total}
       />
-    </>
+    </div>
   );
 }
