@@ -278,3 +278,13 @@ test('product descriptions preserve seller line breaks', async ({ page }) => {
     'Для вашего любимого кофе.\nОбъём: 250 мл.',
   );
 });
+
+test('buyer can reach partner form through the footer', async ({ page }) => {
+  await page.goto('/');
+  await page
+    .getByRole('link', { name: 'Стать партнёром', exact: true })
+    .click();
+  await expect(
+    page.getByRole('heading', { name: 'Стать партнёром', exact: true }),
+  ).toBeVisible();
+});
