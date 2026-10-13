@@ -65,6 +65,8 @@ const seen = [];
           pageSize: 24,
           categories: ['Посуда'],
         };
+      else if (url.pathname === '/api/public/filters')
+        body = { locations: [{ city: 'Ош', district: '' }], categories: ['Посуда'] };
       else if (url.pathname === '/api/public/stores')
         body = { items: [store], total: 1, page: 1, pageSize: 100 };
       else if (url.pathname.endsWith('/products/' + id)) body = product();
@@ -87,10 +89,9 @@ const seen = [];
   try {
     const root = await get('/');
     assert.equal(root.response.status, 200);
-    assert.equal(
-      root.doc.querySelector('h1')?.textContent,
-      'Найдите своё в магазинах рядом',
-    );
+    const heading = root.doc.querySelector('h1')?.textContent || '';
+    assert(heading.includes('Товары рядом'));
+    assert(heading.includes('от разных магазинов'));
     assert(root.doc.body.textContent.includes('Керамическая чашка'));
     assert(root.doc.body.textContent.includes('240'));
     assert.equal(
