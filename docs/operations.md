@@ -27,7 +27,7 @@ pg_restore --clean --if-exists --no-owner --no-acl --dbname="$RESTORE_DATABASE_U
 
 ## Уведомления и outbox
 
-Изменения статуса заказа и решения модерации создают внутреннее уведомление и outbox-событие в той же транзакции. Email отправляет отдельный SMTP worker: [настройка и эксплуатация](email-setup.md). `email_expanded_at` означает создание адресных доставок, а не успех отправки. Успех хранится в `email_deliveries.sent_at`; прежний `processed_at` не используется как подтверждение SMTP. SMS не подключён. Контролируйте emailPending/emailFailed/emailOldestSeconds и логи worker.
+Изменения статуса заказа и решения модерации создают внутреннее уведомление и outbox-событие в той же транзакции. Email отправляет SMTP worker либо встроенный процесс Gmail API ([Gmail на Free Render](gmail-setup.md)): [настройка и эксплуатация](email-setup.md). `email_expanded_at` означает создание адресных доставок, а не успех отправки. Успех хранится в `email_deliveries.sent_at`; прежний `processed_at` не используется как подтверждение SMTP. SMS не подключён. Контролируйте emailPending/emailFailed/emailOldestSeconds и логи worker.
 
 ## ККМ
 

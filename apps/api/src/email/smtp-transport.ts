@@ -6,11 +6,12 @@ export class SmtpTransport {
   private readonly config = readEmailConfig();
   private readonly connections = new Set<SMTPConnection>();
   constructor() {
-    if (!this.config.enabled) throw new Error('Email disabled');
+    if (!this.config.enabled || this.config.provider !== 'smtp')
+      throw new Error('SMTP disabled');
   }
   async send(message: EmailMessage, messageId: string) {
     const c = this.config;
-    if (!c.enabled) throw new Error('Email disabled');
+    if (!c.enabled || c.provider !== 'smtp') throw new Error('SMTP disabled');
     const mail = new MailComposer({
       from: c.from,
       to: message.to,
