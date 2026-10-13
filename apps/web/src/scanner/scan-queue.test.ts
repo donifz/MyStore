@@ -38,3 +38,18 @@ it('does not add a stale lookup result after disposing shop context', async () =
   await Promise.resolve();
   expect(added).toEqual([]);
 });
+
+it('reports the exact unknown barcode including leading zeros', async () => {
+  const error = new Error('unknown');
+  const onError = vi.fn();
+  const q = createScanQueue(
+    async () => {
+      throw error;
+    },
+    () => {},
+    onError,
+  );
+  q.enqueue('000123');
+  await vi.waitFor(() => expect(onError).toHaveBeenCalledWith(error, '000123'));
+  q.dispose();
+});
