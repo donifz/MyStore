@@ -6,6 +6,8 @@ async function login(page: Page, email = 'owner@example.test') {
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Пароль').fill('browser-test-password');
   await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await page.waitForURL((url) => !url.pathname.endsWith('/seller/login'));
+  await page.goto(root + '/products');
   await expect(
     page.getByRole('heading', { name: 'Товары', exact: true }),
   ).toBeVisible();

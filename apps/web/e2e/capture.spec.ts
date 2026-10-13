@@ -36,6 +36,10 @@ test('applies AI suggestions only after review and keeps prices, quantity and ba
   await page.getByLabel('Email').fill('owner@example.test');
   await page.getByLabel('Пароль').fill('browser-test-password');
   await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await page.waitForURL((url) => !url.pathname.endsWith('/seller/login'));
+  await page
+    .getByRole('combobox', { name: 'Рабочий контекст' })
+    .selectOption('shop:11111111-1111-4111-8111-111111111111');
   await page
     .getByRole('link', { name: 'Скан / фото товара', exact: true })
     .first()
@@ -120,6 +124,10 @@ test('AI failure leaves manual product entry usable', async ({ page }) => {
   await page.getByLabel('Email').fill('owner@example.test');
   await page.getByLabel('Пароль').fill('browser-test-password');
   await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await page.waitForURL((url) => !url.pathname.endsWith('/seller/login'));
+  await page
+    .getByRole('combobox', { name: 'Рабочий контекст' })
+    .selectOption('shop:11111111-1111-4111-8111-111111111111');
   await page
     .getByRole('link', { name: 'Скан / фото товара', exact: true })
     .first()
@@ -156,6 +164,10 @@ test('photographs product, previews fields and receives it with generated codes'
   await page.getByLabel('Email').fill('owner@example.test');
   await page.getByLabel('Пароль').fill('browser-test-password');
   await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await page.waitForURL((url) => !url.pathname.endsWith('/seller/login'));
+  await page
+    .getByRole('combobox', { name: 'Рабочий контекст' })
+    .selectOption('shop:11111111-1111-4111-8111-111111111111');
   await page
     .getByRole('link', { name: 'Скан / фото товара', exact: true })
     .first()

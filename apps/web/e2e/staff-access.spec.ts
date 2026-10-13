@@ -32,6 +32,8 @@ async function login(
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Пароль', { exact: true }).fill(pwd);
   await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await page.waitForURL((url) => !url.pathname.endsWith('/seller/login'));
+  await page.goto('/seller/' + shop + '/products');
   await expect(
     page.getByRole('heading', { name: 'Товары', exact: true }),
   ).toBeVisible();

@@ -155,7 +155,9 @@ it('cashier cannot load storefront settings', async () => {
     );
   });
   open('/seller/s/storefront');
-  await screen.findByText('Настройка витрины доступна владельцу.');
+  await screen.findByText(
+    'Нет доступа к этому разделу. Выберите доступный контекст.',
+  );
   expect(calls.some((x) => x.endsWith('/storefront'))).toBe(false);
 });
 

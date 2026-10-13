@@ -77,7 +77,9 @@ it('foreign shop URL never loads foreign catalog', async () => {
       <app.default />
     </MemoryRouter>,
   );
-  await screen.findByText('Нет доступа к магазину');
+  await screen.findByText(
+    'Нет доступа к этому разделу. Выберите доступный контекст.',
+  );
   expect(calls.some((x) => x.includes('/shops/foreign/'))).toBe(false);
 });
 it('lets a cashier preview and print a product barcode label', async () => {

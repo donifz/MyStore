@@ -23,6 +23,7 @@ test('administrator approves a partner and a public card while the owner sees a 
   await page.getByLabel('Email').fill('owner@example.test');
   await page.getByLabel('Пароль').fill('browser-test-password');
   await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await page.waitForURL((url) => !url.pathname.endsWith('/seller/login'));
   await expect(
     page.getByRole('heading', { name: 'Администрирование MyStore' }),
   ).toBeVisible();
@@ -68,7 +69,9 @@ test('administrator approves a partner and a public card while the owner sees a 
     ).status(),
   ).toBe(404);
   await page.goto('/platform/admin');
-  await page.getByRole('button', { name: 'Модерация' }).click();
+  await page
+    .getByRole('link', { name: 'Модерация товаров', exact: true })
+    .click();
   await page
     .locator('tr')
     .filter({ hasText: 'Кружка для дома' })

@@ -10,6 +10,8 @@ test.beforeAll(async ({ browser }) => {
   await page.getByLabel('Email').fill('owner@example.test');
   await page.getByLabel('Пароль').fill('browser-test-password');
   await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await page.waitForURL((url) => !url.pathname.endsWith('/seller/login'));
+  await page.goto('/seller/' + shop + '/products');
   await expect(
     page.getByRole('heading', { name: 'Товары', exact: true }),
   ).toBeVisible();
