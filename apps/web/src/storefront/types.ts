@@ -19,6 +19,9 @@ export type PublicProduct = {
 };
 export type PublicProducts = Page<PublicProduct> & { categories: string[] };
 export type StoreProfile = PublicStore & {
+  district?: string;
+  pickupEnabled?: boolean;
+  deliveryEnabled?: boolean;
   phone: string;
   address: string;
   hours: string;

@@ -47,6 +47,27 @@ export default function CatalogFilters({
         <option value="price-asc">Сначала дешевле</option>
         <option value="price-desc">Сначала дороже</option>
       </Select>
+      {f.city && <input type="hidden" name="city" value={f.city} />}
+      <div className="sf-price-range">
+        <Input
+          id="min-price"
+          label="Цена от, сом"
+          name="minPrice"
+          type="number"
+          min="0"
+          step="0.01"
+          defaultValue={f.minPrice}
+        />
+        <Input
+          id="max-price"
+          label="До, сом"
+          name="maxPrice"
+          type="number"
+          min="0"
+          step="0.01"
+          defaultValue={f.maxPrice}
+        />
+      </div>
       <Checkbox
         label="В наличии"
         name="inStock"

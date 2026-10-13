@@ -1,3 +1,7 @@
+import ProductGallery from '../../../../../components/storefront/ProductGallery';
+import ProductCard from '../../../../../components/storefront/ProductCard';
+import FavoriteButton from '../../../../../components/storefront/FavoriteButton';
+import Icon from '../../../../../components/storefront/Icon';
 import { Alert } from '../../../../../components/ui';
 import Price from '../../../../../components/storefront/Price';
 import StockBadge from '../../../../../components/storefront/StockBadge';
@@ -9,6 +13,7 @@ import {
   publicApi,
   PublicApiError,
   Product,
+  Products,
   formatSom,
 } from '../../../../../lib/public-api';
 import { metadata, productJson } from '../../../../../lib/seo';
@@ -58,6 +63,18 @@ export default async function ProductPage({ params }: Props) {
     );
   }
   const phone = v.store.phone?.replace(/[^\d+]/g, '');
+  let related: Product[] = [];
+  try {
+    related = (
+      await publicApi<Products>(
+        '/products?category=' + encodeURIComponent(v.category) + '&pageSize=5',
+      )
+    ).items
+      .filter((p) => p.id !== v.id)
+      .slice(0, 4);
+  } catch {
+    /* Product remains available. */
+  }
   return (
     <div className="sf-stack">
       <Refresh />
@@ -66,56 +83,119 @@ export default async function ProductPage({ params }: Props) {
         nonce={(await headers()).get('x-nonce') || undefined}
         dangerouslySetInnerHTML={{ __html: productJson(v) }}
       />
-      <Link className="sf-back" href={'/shops/' + v.store.slug}>
-        ← {v.store.name}
-      </Link>
-      <article className="sf-product-detail">
-        <div className="sf-product-cover sf-detail-cover" aria-hidden="true">
-          {v.photoUrl ? (
-            <img src={v.photoUrl} alt="" />
-          ) : (
-            <span className="sf-product-placeholder">{v.name.slice(0, 1)}</span>
-          )}
-          <span className="sf-product-category">
-            {v.category || 'Товар магазина'}
-          </span>
-        </div>
-        <div className="sf-stack">
-          <div>
-            <p className="sf-eyebrow">{v.category || v.store.city}</p>
-            <h1>{v.name}</h1>
-            <Price minor={v.salePriceMinor} className="sf-detail-price" />
-            <StockBadge available={v.available} detailed />
-          </div>
-          {v.description && (
-            <p className="sf-product-description">{v.description}</p>
-          )}
-          <BuyButton product={v} />
-          <section className="sf-panel sf-contact">
-            <p className="sf-eyebrow">Ваш продавец</p>
-            <Link href={'/shops/' + v.store.slug}>
-              <h2>{v.store.name}</h2>
+      <nav className="sf-breadcrumbs" aria-label="Хлебные крошки">
+        <Link href="/">Главная</Link>
+        <span>›</span>
+        {v.category && (
+          <>
+            <Link href={'/?category=' + encodeURIComponent(v.category)}>
+              {v.category}
             </Link>
-            <p>
-              {v.store.city}
-              {v.store.address ? ' · ' + v.store.address : ''}
-            </p>
-            {v.store.hours && <p>{v.store.hours}</p>}
-            {phone && (
-              <a
-                className="sf-button sf-button--primary sf-full"
-                href={'tel:' + phone}
-              >
-                Связаться с магазином
-              </a>
-            )}
-            <p className="sf-muted">
-              Покупку, самовывоз и доставку согласуйте с продавцом. Наличие
-              может измениться до покупки.
+            <span>›</span>
+          </>
+        )}
+        <Link href={'/shops/' + v.store.slug}>{v.store.name}</Link>
+        <span>›</span>
+        <span>{v.name}</span>
+      </nav>
+      <article className="sf-detail-layout">
+        <ProductGallery photoUrl={v.photoUrl} name={v.name} />
+        <div className="sf-detail-copy">
+          <p className="sf-eyebrow">{v.category || 'Товар магазина'}</p>
+          <div className="sf-detail-title">
+            <h1>{v.name}</h1>
+            <FavoriteButton product={v} />
+          </div>
+          <StockBadge available={v.available} detailed />
+          <div className="sf-detail-tabs">
+            <a href="#description">Описание</a>
+            <a href="#details">О товаре</a>
+          </div>
+          <section id="description">
+            <h2>Описание</h2>
+            <p className="sf-product-description">
+              {v.description ||
+                'Продавец ещё не добавил описание. Подробности можно уточнить в магазине.'}
             </p>
           </section>
+          <section id="details">
+            <h2>О товаре</h2>
+            <dl className="sf-specs">
+              <div>
+                <dt>Категория</dt>
+                <dd>{v.category || 'Без категории'}</dd>
+              </div>
+              <div>
+                <dt>Магазин</dt>
+                <dd>
+                  <Link href={'/shops/' + v.store.slug}>{v.store.name}</Link>
+                </dd>
+              </div>
+              <div>
+                <dt>Город</dt>
+                <dd>{v.store.city || 'Уточняется'}</dd>
+              </div>
+              <div>
+                <dt>Доступный остаток</dt>
+                <dd>{v.available} шт.</dd>
+              </div>
+            </dl>
+          </section>
         </div>
+        <aside className="sf-purchase-panel sf-panel">
+          <Price minor={v.salePriceMinor} className="sf-detail-price" />
+          <StockBadge available={v.available} />
+          <Link className="sf-seller-box" href={'/shops/' + v.store.slug}>
+            <span className="sf-mini-logo">{v.store.name.slice(0, 1)}</span>
+            <span>
+              <strong>{v.store.name}</strong>
+              <small>{v.store.city}</small>
+            </span>
+            <Icon name="arrow" />
+          </Link>
+          {v.store.pickupEnabled !== false && (
+            <div className="sf-fulfillment">
+              <Icon name="shop" />
+              <div>
+                <strong>Самовывоз из магазина</strong>
+                <small>{v.store.address || 'Адрес уточнит продавец'}</small>
+                {v.store.hours && <small>{v.store.hours}</small>}
+              </div>
+            </div>
+          )}
+          {v.store.deliveryEnabled && (
+            <div className="sf-fulfillment">
+              <Icon name="truck" />
+              <div>
+                <strong>Доставка от магазина</strong>
+                <small>Срок и стоимость по согласованию</small>
+              </div>
+            </div>
+          )}
+          <BuyButton product={v} />
+          <p className="sf-muted">Оплата при получении</p>
+          {phone && (
+            <a className="sf-contact-link" href={'tel:' + phone}>
+              Вопрос о товаре? Связаться с магазином
+            </a>
+          )}
+        </aside>
       </article>
+      {related.length > 0 && (
+        <section className="sf-panel sf-stack">
+          <div className="sf-section-heading">
+            <h2>Похожие товары</h2>
+            <Link href={'/?category=' + encodeURIComponent(v.category)}>
+              Смотреть все →
+            </Link>
+          </div>
+          <div className="sf-related-grid">
+            {related.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

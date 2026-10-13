@@ -17,10 +17,10 @@ These rules apply to every file under apps/storefront and supplement the root AG
 - Import storefront CSS only from app/layout.tsx. Never import apps/web/src/styles.css into this app.
 - Button defaults to type=button; form submission must explicitly use type=submit. Navigation uses Link/LinkButton with real href values.
 - Fields require unique ids, visible labels and linked hint/error messages. Preserve focus-visible, disabled/loading/error states, 44 px controls and reduced-motion support.
-- Cards contain a single navigation link. Do not nest buttons or links inside ProductCard/StoreCard.
+- Cards use article containers with separate product, store, favorite and buy controls. Never nest interactive controls inside links.
 - Product/Store types and formatSom come from lib/public-api.ts. Keep money in integer minor units. Never invent discounts or stock urgency.
 - Keep pages and presentation components server-side unless state, effects or event handlers require use client.
-- Preserve cart persistence, the one-store constraint, checkout keys, recovery and idempotency-related UI guards when changing markup.
+- Preserve the multi-store cart, per-store immutable pending payloads and checkout keys, partial success, recovery, and legacy checkout migration when changing markup.
 - Hide unavailable phone actions instead of producing broken tel links. Cover missing images, long names, unavailable stock, API errors and empty results.
 - Keep /ui-kit demonstrations independent of API, checkout and cart writes. Preserve noindex and exclude the route from sitemap.
 - Verify at 320, 390, 768 and 1440 px, with keyboard navigation and no horizontal overflow. Run storefront Playwright checks for UI changes.

@@ -1,5 +1,10 @@
 import { cache } from 'react';
 export type Store = {
+  district?: string;
+  pickupEnabled?: boolean;
+  deliveryEnabled?: boolean;
+  productCount?: number;
+  categories?: string[];
   slug: string;
   name: string;
   description: string;
@@ -51,15 +56,24 @@ export function query(search: Search, store?: string) {
     : 'name';
   const params = new URLSearchParams({
     q: first('q').slice(0, 128),
+    city: first('city').slice(0, 80),
     category: first('category').slice(0, 80),
     sort,
     inStock: String(first('inStock') === 'true'),
     page: String(page),
   });
+  for (const key of ['minPrice', 'maxPrice']) {
+    const v = first(key);
+    if (/^\d{1,10}(\.\d{1,2})?$/.test(v))
+      params.set(key, String(Math.round(Number(v) * 100)));
+  }
   if (store) params.set('store', store);
   return {
     params,
     page,
+    city: first('city'),
+    minPrice: first('minPrice'),
+    maxPrice: first('maxPrice'),
     q: params.get('q')!,
     category: params.get('category')!,
     sort,
