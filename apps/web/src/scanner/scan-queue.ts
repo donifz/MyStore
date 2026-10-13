@@ -2,7 +2,7 @@ import { Variant } from '../api/types';
 export function createScanQueue(
   lookup: (code: string) => Promise<Variant>,
   onVariant: (v: Variant) => unknown,
-  onError: (e: unknown) => void,
+  onError: (e: unknown, code: string) => void,
 ) {
   let chain = Promise.resolve(),
     active = true;
@@ -15,7 +15,7 @@ export function createScanQueue(
           const variant = await lookup(code);
           if (active) await onVariant(variant);
         } catch (e) {
-          if (active) onError(e);
+          if (active) onError(e, code);
         }
       });
     },

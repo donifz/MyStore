@@ -2861,3 +2861,23 @@ fieldset {
     flex-basis: 100%;
   }
 }
+
+.receiving-product-form {
+  margin-block: 20px;
+  padding: 20px;
+  border: 1px solid var(--admin-line, #dce7e4);
+  border-radius: 12px;
+  background: var(--admin-surface, #fff);
+}
+.receiving-product-form h2 {
+  margin: 0 0 12px;
+}
+.receiving-product-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.receiving-product-actions button {
+  min-width: 0;
+  white-space: normal;
+}

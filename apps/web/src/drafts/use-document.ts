@@ -35,6 +35,8 @@ export function useDocument(scope: DraftScope) {
     [busy, setBusy] = useState(false),
     [success, setSuccess] = useState(''),
     [online, setOnline] = useState(navigator.onLine),
+    [unknownBarcode, setUnknownBarcode] = useState<string | null>(null),
+    [productCreation, setProductCreation] = useState<string | null>(null),
     [priceChange, setPriceChange] = useState<{
       id: string;
       price: number;
@@ -52,11 +54,11 @@ export function useDocument(scope: DraftScope) {
   async function change(
     update: DraftLine[] | ((lines: DraftLine[]) => DraftLine[]),
   ) {
-    if (ref.current.submission || blocked || sending.current) return;
+    if (ref.current.submission || blocked || sending.current) return false;
     try {
-      await withDraftLock(scope, () => {
+      return await withDraftLock(scope, () => {
         if (!mounted.current || ref.current.submission || sending.current)
-          return;
+          return false;
         const lines =
           typeof update === 'function' ? update(ref.current.lines) : update;
         const next = { ...ref.current, revision: crypto.randomUUID(), lines };
@@ -65,13 +67,42 @@ export function useDocument(scope: DraftScope) {
         setDraft(next);
         setSuccess('');
         setError('');
+        return true;
       });
     } catch (e) {
       if (mounted.current) {
         setError(errorText(e));
         setBlocked(true);
       }
+      return false;
     }
+  }
+  async function addVariant(v: Variant) {
+    const added = await change((lines) => {
+      const existing = lines.find((x) => x.id === v.id);
+      if (existing) {
+        if (existing.quantity >= 1e9)
+          throw new Error('Слишком большое количество.');
+        return lines.map((x) =>
+          x.id === v.id ? { ...x, quantity: x.quantity + 1 } : x,
+        );
+      }
+      if (lines.length >= 100)
+        throw new Error('В документе допускается до 100 товаров.');
+      return [
+        ...lines,
+        {
+          id: v.id,
+          name: v.name,
+          barcode: v.barcode,
+          quantity: 1,
+          priceMinor: v.salePriceMinor,
+          ...(scope.kind === 'receiving' ? { unitCostText: '' } : {}),
+        },
+      ];
+    });
+    if (added) setUnknownBarcode(null);
+    return added;
   }
   const queue = useRef<ReturnType<typeof createScanQueue> | null>(null);
   useEffect(() => {
@@ -80,36 +111,16 @@ export function useDocument(scope: DraftScope) {
         api<Variant>(
           `/shops/${scope.shopId}/variants/by-barcode?code=${encodeURIComponent(code)}`,
         ),
-      (v) =>
-        change((lines) => {
-          const existing = lines.find((x) => x.id === v.id);
-          if (existing) {
-            if (existing.quantity >= 1e9)
-              throw new Error('Слишком большое количество.');
-            return lines.map((x) =>
-              x.id === v.id ? { ...x, quantity: x.quantity + 1 } : x,
-            );
-          }
-          if (lines.length >= 100)
-            throw new Error('В документе допускается до 100 товаров.');
-          return [
-            ...lines,
-            {
-              id: v.id,
-              name: v.name,
-              barcode: v.barcode,
-              quantity: 1,
-              priceMinor: v.salePriceMinor,
-              ...(scope.kind === 'receiving' ? { unitCostText: '' } : {}),
-            },
-          ];
-        }),
-      (e) =>
+      addVariant,
+      (e, code) => {
+        const missing = e instanceof ApiError && e.status === 404;
+        setUnknownBarcode(missing && scope.kind === 'receiving' ? code : null);
         setError(
-          e instanceof ApiError && e.status === 404
+          missing
             ? 'Неизвестный штрихкод. Проверьте код товара.'
             : errorText(e),
-        ),
+        );
+      },
     );
     return () => queue.current?.dispose();
   }, [scope.shopId, scope.userId, scope.kind, blocked, busy]);
@@ -143,7 +154,7 @@ export function useDocument(scope: DraftScope) {
     }
   }
   async function send(path: string, body: unknown) {
-    if (sending.current || blocked || !online) return;
+    if (sending.current || blocked || !online || productCreation) return;
     sending.current = true;
     setBusy(true);
     setError('');
@@ -211,9 +222,25 @@ export function useDocument(scope: DraftScope) {
     reload,
     send,
     scan: (code: string) => {
-      if (!ref.current.submission && !busy && !blocked)
+      if (!ref.current.submission && !busy && !blocked && !productCreation)
         queue.current?.enqueue(code);
     },
+    unknownBarcode,
+    productCreation,
+    addVariant,
+    beginProductCreation: () => {
+      if (
+        unknownBarcode &&
+        online &&
+        !busy &&
+        !blocked &&
+        !ref.current.submission
+      ) {
+        setProductCreation(unknownBarcode);
+        setError('');
+      }
+    },
+    closeProductCreation: () => setProductCreation(null),
     priceChange,
     acceptPrice: () => {
       if (priceChange) {

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import ReceivingProductForm from '../receiving/ReceivingProductForm';
 import { formatSom } from '../api/money';
 import { useDocument } from './use-document';
 import ScanField from '../scanner/ScanField';
@@ -11,7 +11,8 @@ export default function DocumentEditor({
   receiving: boolean;
   shopId: string;
 }) {
-  const disabled = doc.busy || doc.blocked || !!doc.draft.submission;
+  const disabled =
+    doc.busy || doc.blocked || !!doc.draft.submission || !!doc.productCreation;
   return (
     <section className="panel">
       <ScanField onScan={doc.scan} disabled={disabled} />
@@ -32,10 +33,31 @@ export default function DocumentEditor({
           {doc.error}
         </p>
       )}
-      {receiving && doc.error.includes('Неизвестный') && (
-        <Link className="button" to={'/seller/' + shopId + '/products/new'}>
-          Создать товар
-        </Link>
+      {receiving && doc.unknownBarcode && !doc.productCreation && (
+        <button
+          type="button"
+          className="button"
+          disabled={disabled || !doc.online}
+          onClick={doc.beginProductCreation}
+        >
+          Создать товар с этим штрихкодом
+        </button>
+      )}
+      {receiving && doc.productCreation && (
+        <ReceivingProductForm
+          key={doc.productCreation}
+          shopId={shopId}
+          barcode={doc.productCreation}
+          disabled={
+            doc.blocked || !doc.online || doc.busy || !!doc.draft.submission
+          }
+          onCancel={doc.closeProductCreation}
+          onCreated={async (variant) => {
+            const added = await doc.addVariant(variant);
+            if (added) doc.closeProductCreation();
+            return added;
+          }}
+        />
       )}
       {doc.priceChange && (
         <button type="button" onClick={doc.acceptPrice}>

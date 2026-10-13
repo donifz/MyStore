@@ -68,7 +68,11 @@ function ReceivingWorkspace({
           <button
             className="primary full-width"
             disabled={
-              !doc.online || doc.busy || doc.blocked || !doc.draft.lines.length
+              !doc.online ||
+              doc.busy ||
+              doc.blocked ||
+              !!doc.productCreation ||
+              !doc.draft.lines.length
             }
             onClick={() => void submit()}
           >
