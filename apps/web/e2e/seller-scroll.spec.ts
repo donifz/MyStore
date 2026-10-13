@@ -21,6 +21,9 @@ for (const width of [821, 1024, 1440]) {
       expect(
         await sidebar.evaluate((e) => e.scrollHeight > e.clientHeight),
       ).toBe(true);
+      // Start from a known scroll position: navigation/redirect may restore
+      // the scroll offset of the main panel at narrower viewports.
+      await content.evaluate((element) => { element.scrollTop = 0; });
       const headerTop = (await page.locator('.topbar').boundingBox())!.y;
       await sidebar.hover();
       await page.mouse.wheel(0, 2000);
