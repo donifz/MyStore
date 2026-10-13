@@ -61,17 +61,13 @@ test('seller navigation highlights only the current leaf section', async ({
 
   await page.goto(`/seller/${shop}/products/capture`);
   const nav = page.locator('.sidebar nav');
-  const captureLink = nav.getByRole('link', {
-    name: 'Скан / фото товара',
-    exact: true,
-  });
-  const productsLink = nav.getByRole('link', {
-    name: 'Товары',
-    exact: true,
-  });
-  await expect(captureLink).toHaveClass(/active/);
-  await expect(captureLink).toHaveCSS('font-weight', '600');
-  await expect(productsLink).toHaveCSS('font-weight', '400');
+  const productsLink = nav.getByRole('link', { name: 'Товары', exact: true });
+  await expect(page).toHaveURL(new RegExp(`/seller/${shop}/products/new$`));
+  await expect(productsLink).toHaveClass(/active/);
+  await expect(
+    nav.getByRole('link', { name: 'Скан / фото товара', exact: true }),
+  ).toHaveCount(0);
+  await expect(nav.locator('[aria-current="page"]')).toHaveCount(1);
 
   await page.goto(`/seller/${shop}/products`);
   await expect(productsLink).toHaveClass(/active/);

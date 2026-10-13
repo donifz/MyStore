@@ -1,30 +1,13 @@
-import { expect, test, type BrowserContext } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { ownerCookies } from './owner-session';
 const shop = '11111111-1111-4111-8111-111111111111';
-let ownerCookies: Awaited<ReturnType<BrowserContext['cookies']>>;
-test.beforeAll(async ({ browser }) => {
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  await page.goto(
-    (process.env.E2E_BASE_URL ?? 'http://127.0.0.1:3001') + '/seller/login',
-  );
-  await page.getByLabel('Email').fill('owner@example.test');
-  await page.getByLabel('Пароль').fill('browser-test-password');
-  await page.getByRole('button', { name: 'Войти', exact: true }).click();
-  await page.waitForURL((url) => !url.pathname.endsWith('/seller/login'));
-  await page.goto('/seller/' + shop + '/products');
-  await expect(
-    page.getByRole('heading', { name: 'Товары', exact: true }),
-  ).toBeVisible();
-  ownerCookies = await context.cookies();
-  await context.close();
-});
-test.beforeEach(async ({ context }) => {
-  await context.addCookies(ownerCookies);
+test.beforeEach(async ({ browser, context }) => {
+  await context.addCookies(await ownerCookies(browser));
 });
 async function openCapture(page: import('@playwright/test').Page) {
   await page.goto('/seller/' + shop + '/products/capture');
   await expect(
-    page.getByRole('heading', { name: 'Скан / фото товара', exact: true }),
+    page.getByRole('heading', { name: 'Добавить товар', exact: true }),
   ).toBeVisible();
 }
 for (const width of [821, 1024, 1440]) {
@@ -38,6 +21,11 @@ for (const width of [821, 1024, 1440]) {
       expect(
         await sidebar.evaluate((e) => e.scrollHeight > e.clientHeight),
       ).toBe(true);
+      // Start from a known scroll position: navigation/redirect may restore
+      // the scroll offset of the main panel at narrower viewports.
+      await content.evaluate((element) => {
+        element.scrollTop = 0;
+      });
       const headerTop = (await page.locator('.topbar').boundingBox())!.y;
       await sidebar.hover();
       await page.mouse.wheel(0, 2000);

@@ -26,7 +26,7 @@ import { Type } from 'class-transformer';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { ShopAccessService } from '../shops/shop-access.service';
 import { VariantsService } from './variants.service';
-export class VariantDto {
+export class VariantFieldsDto {
   @IsString() @MinLength(1) @MaxLength(200) @Matches(/\S/) name!: string;
   @IsOptional()
   @IsString()
@@ -37,6 +37,10 @@ export class VariantDto {
   @IsInt() @Min(0) @Max(Number.MAX_SAFE_INTEGER) salePriceMinor!: number;
   @IsOptional() @IsString() @MaxLength(80) category?: string;
   @IsOptional() @IsString() @MaxLength(80) subcategory?: string;
+}
+export class VariantDto extends VariantFieldsDto {
+  @IsOptional() @IsString() @MaxLength(2000) description?: string;
+  @IsOptional() @IsString() @MaxLength(699074) photoDataUrl?: string;
 }
 class EditVariantDto {
   @IsString() @MinLength(1) @MaxLength(200) @Matches(/\S/) name!: string;

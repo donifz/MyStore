@@ -23,7 +23,7 @@ import {
 import { Response } from 'express';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { ShopAccessService } from '../shops/shop-access.service';
-import { VariantDto } from './variants.controller';
+import { VariantFieldsDto } from './variants.controller';
 import { CaptureService } from './capture.service';
 import { PhotoAssistantService } from './photo-assistant.service';
 import { AuthService } from '../auth/auth.service';
@@ -35,7 +35,7 @@ class PhotoSuggestionDto {
 class BarcodeLookupQuery {
   @IsString() @Matches(/^\d{8,14}$/) code!: string;
 }
-class CaptureDto extends VariantDto {
+class CaptureDto extends VariantFieldsDto {
   @IsInt() @Min(0) @Max(Number.MAX_SAFE_INTEGER) unitCostMinor!: number;
   @IsInt() @Min(1) @Max(1000000) quantity!: number;
   @IsString() @MaxLength(700000) photoDataUrl!: string;

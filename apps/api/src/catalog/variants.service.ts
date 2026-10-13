@@ -8,6 +8,7 @@ import { DataSource } from 'typeorm';
 import { randomUUID, randomBytes } from 'node:crypto';
 import { DATABASE } from '../database';
 import { CategoriesService } from './categories.service';
+import { normalizeProductPhoto } from './product-photo';
 import { stageProduct } from '../platform/product-publication';
 export type VariantInput = {
   name: string;
@@ -15,6 +16,8 @@ export type VariantInput = {
   salePriceMinor: number;
   category?: string;
   subcategory?: string;
+  description?: string;
+  photoDataUrl?: string;
 };
 export type Variant = {
   sku: string;
@@ -104,12 +107,15 @@ export class VariantsService {
       input.category ?? '',
       input.subcategory ?? '',
     );
+    const photo = input.photoDataUrl
+      ? await normalizeProductPhoto(input.photoDataUrl)
+      : null;
     const barcode =
       input.barcode ?? `MS${randomBytes(12).toString('hex').toUpperCase()}`;
     try {
       const row = await this.db.transaction(async (tx) => {
         const [created] = await tx.query(
-          'INSERT INTO variants(id,shop_id,name,barcode,sale_price_minor,category,subcategory)VALUES($1,$2,$3,$4,$5,$6,$7)RETURNING *',
+          'INSERT INTO variants(id,shop_id,name,barcode,sale_price_minor,category,subcategory,description,photo_data)VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)RETURNING *',
           [
             randomUUID(),
             shopId,
@@ -118,6 +124,8 @@ export class VariantsService {
             input.salePriceMinor,
             input.category?.trim() ?? '',
             input.subcategory?.trim() ?? '',
+            input.description?.trim() ?? '',
+            photo,
           ],
         );
         await stageProduct(tx, created, actor);
