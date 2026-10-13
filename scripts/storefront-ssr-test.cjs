@@ -66,7 +66,10 @@ const seen = [];
           categories: ['Посуда'],
         };
       else if (url.pathname === '/api/public/filters')
-        body = { locations: [{ city: 'Ош', district: '' }], categories: ['Посуда'] };
+        body = {
+          locations: [{ city: 'Ош', district: '' }],
+          categories: ['Посуда'],
+        };
       else if (url.pathname === '/api/public/stores')
         body = { items: [store], total: 1, page: 1, pageSize: 100 };
       else if (url.pathname.endsWith('/products/' + id)) body = product();
