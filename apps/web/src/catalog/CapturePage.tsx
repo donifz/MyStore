@@ -185,6 +185,10 @@ function CaptureWorkspace({
           <p role="status" className="success">
             Товар создан и принят: {saved.quantity} шт.
           </p>
+          <p className="notice">
+            Карточка отправлена на проверку. На опубликованной витрине товар
+            появится после одобрения администратором платформы.
+          </p>
           <h2>{saved.name}</h2>
           {saved.photoUrl && (
             <img

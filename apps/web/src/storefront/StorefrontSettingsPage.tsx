@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
 import { useSession } from '../auth/SessionProvider';
 import { StoreProfile } from './types';
@@ -63,9 +63,9 @@ export default function StorefrontSettingsPage() {
           <p className="muted">Контакты и каталог для покупателей</p>
         </div>
         {form.published && (
-          <Link className="button" to={'/shops/' + form.slug}>
+          <a className="button" href={'/shops/' + form.slug}>
             Открыть витрину ↗
-          </Link>
+          </a>
         )}
       </div>
       <section className="panel form-panel">
@@ -130,8 +130,9 @@ export default function StorefrontSettingsPage() {
             </label>
             <p className="notice">
               После публикации покупатели увидят ваш каталог, город и указанные
-              контакты. Новые товары появятся автоматически; отдельные карточки
-              можно скрыть в настройках товара.
+              контакты. Новые карточки появляются после одобрения
+              администратором платформы. Публикацию каждого товара можно
+              отключить в его настройках.
             </p>
             {error && (
               <p className="error" role="alert">

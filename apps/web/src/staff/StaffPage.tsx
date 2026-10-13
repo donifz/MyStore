@@ -60,7 +60,7 @@ export default function StaffPage() {
       <p role="alert">Управлять сотрудниками может только владелец магазина.</p>
     );
   return (
-    <section>
+    <section className="page-stack">
       <div className="page-heading">
         <div>
           <p className="eyebrow">Доступ к магазину</p>
@@ -70,7 +70,7 @@ export default function StaffPage() {
       {configured === false && (
         <p role="status" className="muted">
           Почта не настроена или отправка отключена. Для приглашений подключите
-          SMTP. Уже выданные права продолжают работать.
+          Gmail API или SMTP. Уже выданные права продолжают работать.
         </p>
       )}
       {(error || op.error) && (
@@ -115,8 +115,9 @@ export default function StaffPage() {
             </select>
           </label>
           <p className="muted">
-            Менеджер ведёт товары, склад и заказы. Кассир работает с продажами,
-            сменами и возвратами. Приглашение действует 7 дней.
+            Менеджер ведёт товары, склад и заказы. Кассир работает с продажами и
+            своими сменами. Возвраты оформляет владелец. Приглашение действует 7
+            дней.
           </p>
           <button className="primary" disabled={op.busy}>
             Пригласить

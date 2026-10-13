@@ -39,3 +39,9 @@ These instructions apply to every change in this repository, including code writ
 ## Local pre-commit hook
 
 Run `npm run hooks:install` once in your local clone. The tracked `.githooks/pre-commit` hook runs `npm run format:check` and blocks commits with unformatted files. GitHub CI is the final independent gate.
+
+## Workspace UI
+
+- Treat `/platform/admin` as the visual reference for protected workspaces. Follow `docs/admin-ui-kit.md` and reuse `apps/web/src/platform/AdminKit.tsx` and the `admin-kit-shell` tokens.
+- Keep navigation labels consistent with their destinations. Crossing from the seller React application to the Next storefront requires document navigation.
+- Check mobile spacing, table overflow, checkbox sizing, logout access, multiple-shop selection, and desktop independent scroll regions after layout changes.
