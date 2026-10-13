@@ -1,10 +1,21 @@
 name: MyStore checks
-on: [push, pull_request]
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   checks:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:18
@@ -34,6 +45,11 @@ jobs:
         run: node scripts/storefront-ssr-test.cjs
       - run: npm test
       - run: docker compose --env-file .env.example config --quiet
+      - name: Cache Playwright Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - name: Install test browser
         run: npx playwright install --with-deps chromium
       - name: Storefront UI and responsive browser checks
