@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 
 export function AdminCard({
   title,
@@ -64,4 +65,36 @@ export function AdminStatus({
 
 export function AdminEmpty({ children }: { children: ReactNode }) {
   return <p className="admin-kit-empty">{children}</p>;
+}
+
+export function AdminBrand({ to, subtitle }: { to: string; subtitle: string }) {
+  return (
+    <Link className="admin-kit-brand" to={to}>
+      <span className="admin-kit-brand-logo" aria-hidden="true">
+        ◈
+      </span>
+      <span>
+        MyStore<small>{subtitle}</small>
+      </span>
+    </Link>
+  );
+}
+export function AdminIdentity({
+  email,
+  role,
+}: {
+  email: string;
+  role: string;
+}) {
+  return (
+    <div className="admin-kit-identity">
+      <span className="admin-kit-avatar" aria-hidden="true">
+        {email.slice(0, 2).toUpperCase()}
+      </span>
+      <span>
+        {role}
+        <small>{email}</small>
+      </span>
+    </div>
+  );
 }

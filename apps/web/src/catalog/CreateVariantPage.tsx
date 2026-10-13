@@ -64,6 +64,10 @@ export default function CreateVariantPage() {
             <p>
               {saved.name} · {saved.barcode}
             </p>
+            <p className="notice">
+              Карточка отправлена на проверку. На опубликованной витрине товар
+              появится после одобрения администратором платформы.
+            </p>
             <BarcodeLabel product={saved} />
             <Link
               to={'/seller/' + shopId + '/receiving'}

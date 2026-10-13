@@ -1,3 +1,4 @@
+import { AdminBrand, AdminIdentity } from '../platform/AdminKit';
 import { useEffect, useState } from 'react';
 import {
   Navigate,
@@ -10,6 +11,7 @@ import { useSession } from '../auth/SessionProvider';
 import { errorText } from '../api/client';
 export function ShopSelect() {
   const s = useSession();
+  const [error, setError] = useState('');
   if (s.loading) return <p className="loading">Загрузка…</p>;
   if (!s.user) return <Navigate to="/seller/login" replace />;
   if (s.user.shops.length === 1)
@@ -17,22 +19,61 @@ export function ShopSelect() {
       <Navigate to={'/seller/' + s.user.shops[0].id + '/products'} replace />
     );
   return (
-    <main className="chooser">
-      <h1>Выберите магазин</h1>
-      {s.user.shops.map((shop) => (
-        <NavLink
-          className="panel"
-          key={shop.id}
-          to={'/seller/' + shop.id + '/products'}
-        >
-          {shop.name}
-        </NavLink>
-      ))}
-      {!s.user.shops.length && <p>Доступ к магазину пока не выдан.</p>}
-      {s.user.platformAdmin && (
-        <NavLink to="/platform/admin">Кабинет платформы</NavLink>
-      )}
-    </main>
+    <div className="admin-kit-shell">
+      <aside className="admin-kit-sidebar">
+        <AdminBrand to="/seller" subtitle="Рабочее пространство" />
+        <nav aria-label="Разделы кабинета">
+          <NavLink end to="/seller">
+            Мои магазины
+          </NavLink>
+          {s.user.platformAdmin && (
+            <NavLink to="/platform/admin">Кабинет платформы</NavLink>
+          )}
+        </nav>
+        <div className="admin-kit-sidebar-bottom">
+          <span>{s.user.email}</span>
+          <button
+            onClick={() => void s.logout().catch((e) => setError(errorText(e)))}
+          >
+            Выйти
+          </button>
+        </div>
+      </aside>
+      <div className="admin-kit-main">
+        <header className="admin-kit-topbar">
+          <span>MyStore / Магазины</span>
+          <AdminIdentity
+            email={s.user.email}
+            role={s.user.platformAdmin ? 'Администратор' : 'Сотрудник'}
+          />
+        </header>
+        <main className="admin-kit-content">
+          <div className="admin-kit-heading">
+            <h1>Выберите магазин</h1>
+          </div>
+          <div className="shop-chooser-cards">
+            {s.user.shops.map((shop) => (
+              <NavLink
+                className="panel"
+                key={shop.id}
+                to={`/seller/${shop.id}/products`}
+              >
+                <strong>{shop.name}</strong>
+                <span>Открыть кабинет →</span>
+              </NavLink>
+            ))}
+            {!s.user.shops.length && (
+              <p className="panel">Доступ к магазину пока не выдан.</p>
+            )}
+          </div>
+          {error && (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          )}
+        </main>
+      </div>
+    </div>
   );
 }
 export default function SellerLayout() {
@@ -52,14 +93,20 @@ export default function SellerLayout() {
         Нет доступа к магазину
       </p>
     );
+  const roleLabel =
+    shop.role === 'owner'
+      ? 'Владелец'
+      : shop.role === 'manager'
+        ? 'Менеджер'
+        : 'Кассир';
   const base = '/seller/' + shop.id;
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <NavLink to="/seller" className="brand">
-          MyStore<span>Рабочее пространство</span>
-        </NavLink>
-        <div className="shop-badge">
+    <div className="app-shell admin-kit-shell">
+      <aside className="sidebar admin-kit-sidebar">
+        <AdminBrand to="/seller" subtitle="Рабочее пространство" />
+        <div
+          className={`shop-badge${s.user.shops.length > 1 ? ' shop-badge-multiple' : ''}`}
+        >
           <small>Ваш магазин</small>
           <strong>{shop.name}</strong>
           <select
@@ -76,7 +123,7 @@ export default function SellerLayout() {
             ))}
           </select>
         </div>
-        <nav>
+        <nav aria-label="Разделы магазина">
           {s.user.platformAdmin && (
             <NavLink to="/platform/admin">Кабинет платформы</NavLink>
           )}
@@ -86,7 +133,9 @@ export default function SellerLayout() {
           {shop.role === 'owner' && (
             <NavLink to={base + '/staff'}>Сотрудники</NavLink>
           )}
-          <NavLink to={base + '/products'}>Товары</NavLink>
+          <NavLink end to={base + '/products'}>
+            Товары
+          </NavLink>
           <NavLink to={base + '/labels'}>Печать этикеток</NavLink>
           {shop.role !== 'cashier' && (
             <NavLink to={base + '/categories'}>Категории</NavLink>
@@ -109,7 +158,7 @@ export default function SellerLayout() {
             <NavLink to={base + '/reports'}>Отчёты</NavLink>
           )}
         </nav>
-        <div className="sidebar-bottom">
+        <div className="sidebar-bottom admin-kit-sidebar-bottom">
           <small>{s.user.email}</small>
           <button
             onClick={() => {
@@ -121,18 +170,12 @@ export default function SellerLayout() {
           {error && <p role="alert">{error}</p>}
         </div>
       </aside>
-      <div className="workspace">
-        <header className="topbar">
+      <div className="workspace admin-kit-main">
+        <header className="topbar admin-kit-topbar">
           <span>{shop.name}</span>
-          <span className="badge">
-            {shop.role === 'owner'
-              ? 'Владелец'
-              : shop.role === 'manager'
-                ? 'Менеджер'
-                : 'Кассир'}
-          </span>
+          <AdminIdentity email={s.user.email} role={roleLabel} />
         </header>
-        <main className="content">
+        <main className="content admin-kit-content">
           <Outlet />
         </main>
       </div>

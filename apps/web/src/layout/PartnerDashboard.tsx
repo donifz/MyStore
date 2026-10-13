@@ -1,3 +1,10 @@
+import { ShopSelect } from './SellerLayout';
+import {
+  AdminBrand,
+  AdminCard,
+  AdminMetric,
+  AdminIdentity,
+} from '../platform/AdminKit';
 import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { api, errorText } from '../api/client';
@@ -21,6 +28,8 @@ export default function PartnerDashboard() {
   const session = useSession();
   const shops =
     session.user?.shops.filter((shop) => shop.role === 'owner') ?? [];
+  const [selectedShop, setSelectedShop] = useState('');
+  const activeShop = shops.find((shop) => shop.id === selectedShop) ?? shops[0];
   const [summaries, setSummaries] = useState<StoreSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -57,61 +66,59 @@ export default function PartnerDashboard() {
 
   if (session.loading) return <p className="loading">Загрузка…</p>;
   if (!session.user) return <Navigate to="/seller/login" replace />;
-  if (!shops.length) {
-    if (session.user.shops.length === 1)
-      return (
-        <Navigate to={`/seller/${session.user.shops[0].id}/products`} replace />
-      );
-    return (
-      <main className="chooser">
-        <h1>Мои магазины</h1>
-        {session.user.shops.map((shop) => (
-          <Link
-            className="panel"
-            key={shop.id}
-            to={`/seller/${shop.id}/products`}
-          >
-            {shop.name}
-          </Link>
-        ))}
-        {session.user.platformAdmin && (
-          <Link to="/platform/admin">Администрирование платформы</Link>
-        )}
-      </main>
-    );
-  }
+  if (!shops.length) return <ShopSelect />;
 
   const total = (key: keyof Omit<StoreSummary, 'id'>) =>
     summaries.reduce((sum, row) => sum + row[key], 0);
 
   return (
-    <div className="partner-shell">
-      <aside className="partner-sidebar">
-        <Link className="brand" to="/seller">
-          MyStore<span>Панель партнёра</span>
-        </Link>
+    <div className="partner-shell admin-kit-shell">
+      <aside className="partner-sidebar admin-kit-sidebar">
+        <AdminBrand to="/seller" subtitle="Панель партнёра" />
         <nav aria-label="Разделы партнёра">
           <Link className="active" to="/seller">
             Обзор
           </Link>
           <a href="#partner-shops">Мои магазины</a>
-          <a href="#partner-shops">Товары и остатки</a>
-          <a href="#partner-shops">Продажи и смены</a>
+          <Link to={`/seller/${activeShop.id}/products`}>Товары и остатки</Link>
+          <Link to={`/seller/${activeShop.id}/sales`}>Продажи и смены</Link>
           {session.user.platformAdmin && (
             <Link to="/platform/admin">Администрирование</Link>
           )}
         </nav>
-        <div className="sidebar-bottom">
-          <small>{session.user.email}</small>
+        <div className="admin-kit-sidebar-bottom">
+          <span>{session.user.email}</span>
+          <button
+            onClick={() =>
+              void session.logout().catch((e) => setError(errorText(e)))
+            }
+          >
+            Выйти
+          </button>
         </div>
       </aside>
-      <div className="partner-main">
-        <header className="partner-topbar">
+      <div className="partner-main admin-kit-main">
+        <header className="partner-topbar admin-kit-topbar">
           <span>MyStore / Обзор</span>
-          <span className="badge">Партнёр</span>
+          {shops.length > 1 && (
+            <label className="partner-shop-select">
+              Магазин для переходов
+              <select
+                value={activeShop.id}
+                onChange={(e) => setSelectedShop(e.target.value)}
+              >
+                {shops.map((shop) => (
+                  <option key={shop.id} value={shop.id}>
+                    {shop.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <AdminIdentity email={session.user.email} role="Партнёр" />
         </header>
-        <main className="partner-content">
-          <div className="partner-heading">
+        <main className="partner-content admin-kit-content">
+          <div className="partner-heading admin-kit-heading">
             <div>
               <h1>Панель партнёра MyStore</h1>
               <p className="muted">
@@ -125,70 +132,74 @@ export default function PartnerDashboard() {
               {error}
             </p>
           )}
-          <div className="partner-stats">
-            <article className="panel">
-              <small>Мои магазины</small>
-              <h2>{shops.length}</h2>
-            </article>
-            <article className="panel">
-              <small>Единиц товара на складе</small>
-              <h2>{loading ? '…' : error ? '—' : total('physicalUnits')}</h2>
-            </article>
-            <article className="panel">
-              <small>Выручка (за всё время)</small>
-              <h2>
-                {loading ? '…' : error ? '—' : formatSom(total('revenueMinor'))}
-              </h2>
-            </article>
-            <article className="panel">
-              <small>Открытые заказы</small>
-              <h2>{loading ? '…' : error ? '—' : total('openOrders')}</h2>
-            </article>
+          <div className="admin-kit-metrics">
+            <AdminMetric symbol="▣" label="Мои магазины" value={shops.length} />
+            <AdminMetric
+              symbol="◈"
+              label="Единиц товара на складе"
+              value={loading ? '…' : error ? '—' : total('physicalUnits')}
+            />
+            <AdminMetric
+              symbol="↗"
+              tone="blue"
+              label="Выручка (за всё время)"
+              value={
+                loading ? '…' : error ? '—' : formatSom(total('revenueMinor'))
+              }
+            />
+            <AdminMetric
+              symbol="▤"
+              tone="amber"
+              label="Открытые заказы"
+              value={loading ? '…' : error ? '—' : total('openOrders')}
+            />
           </div>
-          <section className="panel partner-stores" id="partner-shops">
-            <div className="partner-section-heading">
-              <div>
-                <h2>Мои магазины</h2>
-                <p className="muted">Управление кассой, товарами и остатками</p>
+          <div id="partner-shops">
+            <AdminCard
+              title="Мои магазины"
+              subtitle="Управление кассой, товарами и остатками"
+              className="partner-stores"
+            >
+              <div className="table-wrap">
+                <table className="admin-kit-table">
+                  <thead>
+                    <tr>
+                      <th>Магазин</th>
+                      <th>Остатки, шт.</th>
+                      <th>Выручка</th>
+                      <th>Заказы</th>
+                      <th>Действия</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {shops.map((shop) => {
+                      const row = summaries.find((item) => item.id === shop.id);
+                      const base = `/seller/${shop.id}`;
+                      return (
+                        <tr key={shop.id}>
+                          <td>
+                            <strong>{shop.name}</strong>
+                          </td>
+                          <td>{row?.physicalUnits ?? '—'}</td>
+                          <td>{row ? formatSom(row.revenueMinor) : '—'}</td>
+                          <td>{row?.openOrders ?? '—'}</td>
+                          <td>
+                            <div className="partner-links">
+                              <Link to={base + '/pos'}>Касса</Link>
+                              <Link to={base + '/products'}>Товары</Link>
+                              <Link to={base + '/sales'}>Продажи</Link>
+                              <Link to={base + '/shift'}>Смена</Link>
+                              <Link to={base + '/reports'}>Отчёт</Link>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-            </div>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Магазин</th>
-                    <th>Остатки, шт.</th>
-                    <th>Выручка</th>
-                    <th>Заказы</th>
-                    <th>Действия</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {shops.map((shop) => {
-                    const row = summaries.find((item) => item.id === shop.id);
-                    const base = `/seller/${shop.id}`;
-                    return (
-                      <tr key={shop.id}>
-                        <td>
-                          <strong>{shop.name}</strong>
-                        </td>
-                        <td>{row?.physicalUnits ?? '—'}</td>
-                        <td>{row ? formatSom(row.revenueMinor) : '—'}</td>
-                        <td>{row?.openOrders ?? '—'}</td>
-                        <td>
-                          <div className="partner-links">
-                            <Link to={base + '/pos'}>Касса</Link>
-                            <Link to={base + '/products'}>Товары</Link>
-                            <Link to={base + '/reports'}>Отчёт</Link>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </section>
+            </AdminCard>
+          </div>
           <p className="muted">
             Показатели суммируются только по вашим магазинам. Модерация чужих
             магазинов и управление платформой недоступны партнёрам.

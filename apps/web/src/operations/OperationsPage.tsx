@@ -60,7 +60,7 @@ export default function OperationsPage() {
   };
 
   return (
-    <section>
+    <section className="page-stack">
       <div className="page-heading">
         <div>
           <p className="eyebrow">События магазина</p>

@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { api, errorText } from '../api/client';
 import { useSession } from '../auth/SessionProvider';
-import { AdminCard, AdminEmpty, AdminMetric, AdminStatus } from './AdminKit';
+import {
+  AdminBrand,
+  AdminCard,
+  AdminEmpty,
+  AdminMetric,
+  AdminStatus,
+} from './AdminKit';
 
 type Application = {
   id: string;
@@ -333,12 +339,7 @@ export default function AdminPage() {
   return (
     <div className="admin-kit-shell">
       <aside className="admin-kit-sidebar">
-        <Link className="admin-kit-brand" to="/platform/admin">
-          <span className="admin-kit-brand-logo">◈</span>
-          <span>
-            MyStore<small>Администрирование</small>
-          </span>
-        </Link>
+        <AdminBrand to="/platform/admin" subtitle="Администрирование" />
         <nav aria-label="Меню администратора">
           <button
             aria-current={tab === 'overview' ? 'page' : undefined}
