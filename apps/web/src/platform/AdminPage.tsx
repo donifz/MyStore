@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
+import WorkspaceShell from '../layout/WorkspaceShell';
+import {
+  platformSection,
+  type PlatformSection,
+} from '../layout/workspace-navigation';
 import { api, errorText } from '../api/client';
 import { useSession } from '../auth/SessionProvider';
-import {
-  AdminBrand,
-  AdminCard,
-  AdminEmpty,
-  AdminMetric,
-  AdminStatus,
-} from './AdminKit';
+import { AdminCard, AdminEmpty, AdminMetric, AdminStatus } from './AdminKit';
 
 type Application = {
   id: string;
@@ -82,9 +81,14 @@ export default function AdminPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<
-    'overview' | 'applications' | 'products' | 'audit'
-  >('overview');
+  const [params, setParams] = useSearchParams();
+  const location = useLocation();
+  const tab = platformSection(location.search);
+  function setTab(section: PlatformSection) {
+    const next = new URLSearchParams(params);
+    next.set('section', section);
+    setParams(next);
+  }
   const [search, setSearch] = useState('');
   async function load() {
     const [a, p, h, summary] = await Promise.all([
@@ -171,14 +175,16 @@ export default function AdminPage() {
       <Navigate
         to="/seller/login"
         replace
-        state={{ from: '/platform/admin' }}
+        state={{ from: location.pathname + location.search }}
       />
     );
   if (!session.user.platformAdmin)
     return (
-      <p role="alert" className="error">
-        Нет доступа к кабинету платформы.
-      </p>
+      <WorkspaceShell>
+        <p role="alert" className="error">
+          Нет доступа к кабинету платформы.
+        </p>
+      </WorkspaceShell>
     );
   const waiting = applications.filter((a) =>
     ['new', 'in_review'].includes(a.status),
@@ -337,390 +343,230 @@ export default function AdminPage() {
   );
 
   return (
-    <div className="admin-kit-shell">
-      <aside className="admin-kit-sidebar">
-        <AdminBrand to="/platform/admin" subtitle="Администрирование" />
-        <nav aria-label="Меню администратора">
-          <button
-            aria-current={tab === 'overview' ? 'page' : undefined}
-            onClick={() => setTab('overview')}
-          >
-            <span aria-hidden="true">▦</span> Обзор
-          </button>
-          <button
-            aria-current={tab === 'applications' ? 'page' : undefined}
-            onClick={() => setTab('applications')}
-          >
-            <span aria-hidden="true">♙</span> Партнёры
-            {waiting.length > 0 && <b>{waiting.length}</b>}
-          </button>
-          <button
-            aria-current={tab === 'products' ? 'page' : undefined}
-            onClick={() => setTab('products')}
-          >
-            <span aria-hidden="true">◈</span> Модерация
-            {products.length > 0 && <b>{products.length}</b>}
-          </button>
-          <button
-            aria-current={tab === 'audit' ? 'page' : undefined}
-            onClick={() => setTab('audit')}
-          >
-            <span aria-hidden="true">▤</span> Аудит
-          </button>
-          <Link to="/seller">
-            <span aria-hidden="true">▣</span> Мои магазины
-          </Link>
-        </nav>
-        <div className="admin-kit-sidebar-bottom">
-          <span>{session.user.email}</span>
+    <WorkspaceShell
+      headerTools={
+        <label className="admin-kit-search">
+          <span aria-hidden="true">⌕</span>
+          <input
+            aria-label="Поиск по заявкам и товарам"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Поиск партнёров, магазинов, товаров..."
+          />
+        </label>
+      }
+    >
+      <div className="admin-kit-heading">
+        <div>
+          <h1>Администрирование MyStore</h1>
+          <p>Контроль партнёров, магазинов и операций</p>
+        </div>
+        <span className="admin-kit-date">
+          {new Date().toLocaleDateString('ru-RU', { dateStyle: 'long' })}
+        </span>
+      </div>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      {invitation && (
+        <AdminCard
+          title="Ссылка для владельца"
+          subtitle="Передайте по проверенному контакту. Действует 7 дней."
+        >
+          <input
+            aria-label="Ссылка активации"
+            readOnly
+            value={invitation}
+            onFocus={(e) => e.target.select()}
+          />
           <button
             onClick={() =>
-              void session
-                .logout()
-                .then(() => window.location.assign('/seller/login'))
+              void navigator.clipboard
+                .writeText(invitation)
                 .catch((e) => setError(errorText(e)))
             }
           >
-            Выйти
+            Скопировать
           </button>
-        </div>
-      </aside>
-      <div className="admin-kit-main">
-        <header className="admin-kit-topbar">
-          <label className="admin-kit-search">
-            <span aria-hidden="true">⌕</span>
-            <input
-              aria-label="Поиск по заявкам и товарам"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Поиск партнёров, магазинов, товаров..."
+        </AdminCard>
+      )}
+      {loading ? (
+        <p role="status">Загрузка данных…</p>
+      ) : (
+        <>
+          <div className="admin-kit-metrics">
+            <AdminMetric
+              symbol="▣"
+              label="Магазины платформы"
+              value={overview?.shopCount ?? '—'}
+              note="Магазинов на платформе"
             />
-          </label>
-          <div className="admin-kit-identity">
-            <span className="admin-kit-avatar">АД</span>
-            <span>
-              Админ<small>Суперадминистратор</small>
-            </span>
+            <AdminMetric
+              symbol="♙"
+              tone="amber"
+              label="Партнёры на модерации"
+              value={overview?.pendingPartners ?? '—'}
+              note="Ожидают решения"
+            />
+            <AdminMetric
+              symbol="▤"
+              label="Продажи за сегодня"
+              value={overview ? money(overview.todaySalesMinor) : '—'}
+              note="Платежи с учётом возвратов"
+            />
+            <AdminMetric
+              symbol="◷"
+              tone="blue"
+              label="Открытые смены"
+              value={overview?.openShifts ?? '—'}
+              note="На всех магазинах"
+            />
           </div>
-        </header>
-        <main className="admin-kit-content">
-          <div className="admin-kit-heading">
-            <div>
-              <h1>Администрирование MyStore</h1>
-              <p>Контроль партнёров, магазинов и операций</p>
-            </div>
-            <span className="admin-kit-date">
-              {new Date().toLocaleDateString('ru-RU', { dateStyle: 'long' })}
-            </span>
-          </div>
-          {error && (
-            <p className="error" role="alert">
-              {error}
-            </p>
-          )}
-          {invitation && (
-            <AdminCard
-              title="Ссылка для владельца"
-              subtitle="Передайте по проверенному контакту. Действует 7 дней."
-            >
-              <input
-                aria-label="Ссылка активации"
-                readOnly
-                value={invitation}
-                onFocus={(e) => e.target.select()}
-              />
-              <button
-                onClick={() =>
-                  void navigator.clipboard
-                    .writeText(invitation)
-                    .catch((e) => setError(errorText(e)))
-                }
-              >
-                Скопировать
-              </button>
-            </AdminCard>
-          )}
-          {loading ? (
-            <p role="status">Загрузка данных…</p>
-          ) : (
-            <>
-              <div className="admin-kit-metrics">
-                <AdminMetric
-                  symbol="▣"
-                  label="Магазины платформы"
-                  value={overview?.shopCount ?? '—'}
-                  note="Магазинов на платформе"
-                />
-                <AdminMetric
-                  symbol="♙"
-                  tone="amber"
-                  label="Партнёры на модерации"
-                  value={overview?.pendingPartners ?? '—'}
-                  note="Ожидают решения"
-                />
-                <AdminMetric
-                  symbol="▤"
-                  label="Продажи за сегодня"
-                  value={overview ? money(overview.todaySalesMinor) : '—'}
-                  note="Платежи с учётом возвратов"
-                />
-                <AdminMetric
-                  symbol="◷"
-                  tone="blue"
-                  label="Открытые смены"
-                  value={overview?.openShifts ?? '—'}
-                  note="На всех магазинах"
-                />
-              </div>
-              {tab === 'overview' ? (
-                <div className="admin-kit-grid">
-                  <div className="admin-kit-primary">
-                    {applicationsTable}
-                    {productsTable}
+          {tab === 'overview' ? (
+            <div className="admin-kit-grid">
+              <div className="admin-kit-primary">
+                {applicationsTable}
+                {productsTable}
 
-                    <AdminCard
-                      title="Магазины"
-                      subtitle="Текущие остатки и последние смены"
-                    >
-                      {!overview?.shops.length ? (
-                        <AdminEmpty>
-                          Магазины пока не зарегистрированы
-                        </AdminEmpty>
-                      ) : (
-                        <div className="admin-kit-scroll">
-                          <table className="admin-kit-table">
-                            <thead>
-                              <tr>
-                                <th>Магазин</th>
-                                <th>Владелец</th>
-                                <th>Остатки</th>
-                                <th>Последняя смена</th>
-                                <th>Статус</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {overview.shops.map((shop) => (
-                                <tr key={shop.id}>
-                                  <td>
-                                    <strong>{shop.name}</strong>
-                                  </td>
-                                  <td>{shop.ownerEmail ?? 'Не указан'}</td>
-                                  <td>{shop.units} шт.</td>
-                                  <td>
-                                    {shop.lastShiftAt
-                                      ? new Date(
-                                          shop.lastShiftAt,
-                                        ).toLocaleString('ru-RU')
-                                      : 'Нет смен'}
-                                  </td>
-                                  <td>
-                                    <AdminStatus
-                                      tone={
-                                        shop.shiftOpen ? 'green' : 'neutral'
-                                      }
-                                    >
-                                      {shop.shiftOpen
-                                        ? 'Открыта'
-                                        : 'Нет открытой смены'}
-                                    </AdminStatus>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </AdminCard>
-                  </div>
-                  <div className="admin-kit-secondary">
-                    <AdminCard
-                      title="Продажи"
-                      subtitle="Последние 7 дней с учётом возвратов"
-                    >
-                      {overview && (
-                        <>
-                          <strong className="admin-kit-chart-total">
-                            {money(
-                              overview.sales.reduce(
-                                (sum, point) => sum + point.totalMinor,
-                                0,
-                              ),
-                            )}
-                          </strong>
-                          <div
-                            className="admin-kit-chart"
-                            aria-label="График продаж за 7 дней"
-                          >
-                            {overview.sales.map((point) => {
-                              const max = Math.max(
-                                1,
-                                ...overview.sales.map((x) =>
-                                  Math.max(0, x.totalMinor),
-                                ),
-                              );
-                              return (
-                                <div
-                                  key={point.day}
-                                  className="admin-kit-chart-column"
-                                >
-                                  <div className="admin-kit-chart-bar">
-                                    <span
-                                      style={{
-                                        height: `${Math.max(2, (100 * Math.max(0, point.totalMinor)) / max)}%`,
-                                      }}
-                                      title={`${point.day}: ${money(point.totalMinor)}`}
-                                    />
-                                  </div>
-                                  <small>{point.day.slice(5)}</small>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </>
-                      )}
-                    </AdminCard>
-                    <AdminCard
-                      title="Популярные категории"
-                      subtitle="Валовые продажи по топ-5 категориям"
-                    >
-                      {!overview?.categories.length ? (
-                        <AdminEmpty>Продаж по категориям пока нет</AdminEmpty>
-                      ) : (
-                        <div className="admin-kit-category-bars">
-                          {overview.categories.map((category) => {
-                            const total = overview.categories.reduce(
-                              (sum, item) => sum + item.totalMinor,
-                              0,
-                            );
-                            const share = total
-                              ? Math.round((100 * category.totalMinor) / total)
-                              : 0;
-                            return (
-                              <div key={category.name}>
-                                <span>
-                                  {category.name}
-                                  <small>{share}%</small>
-                                </span>
-                                <div>
-                                  <span style={{ width: `${share}%` }} />
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </AdminCard>
-                    <AdminCard
-                      title="Недавняя активность"
-                      subtitle="Решения администрации"
-                    >
-                      {!audit.length ? (
-                        <AdminEmpty>Событий пока нет</AdminEmpty>
-                      ) : (
-                        <div className="admin-kit-activity">
-                          {audit.slice(0, 7).map((event, index) => (
-                            <div key={event.entity_id + index}>
-                              <span className="admin-kit-activity-dot">✓</span>
-                              <div>
-                                <strong>
-                                  {event.kind} · {event.status}
-                                </strong>
-                                <small>
-                                  {new Date(event.created_at).toLocaleString(
-                                    'ru-RU',
-                                  )}
-                                </small>
-                                {event.reason && <p>{event.reason}</p>}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </AdminCard>
-                  </div>
-                </div>
-              ) : tab === 'applications' ? (
-                <>
-                  <label className="admin-kit-reason">
-                    Причина отклонения (для отказа обязательно)
-                    <input
-                      value={reason}
-                      maxLength={500}
-                      onChange={(e) => setReason(e.target.value)}
-                    />
-                  </label>
-                  {applicationsTable}
-                </>
-              ) : tab === 'products' ? (
-                <>
-                  {productsTable}
-                  {selected && (
-                    <AdminCard
-                      title={`Предложено: ${selected.name}`}
-                      subtitle={selected.shop_name}
-                    >
-                      {selected.has_photo && (
-                        <img
-                          className="product-photo"
-                          src={`/api/platform/admin/products/revisions/${selected.revision_id}/photo`}
-                          alt="Фото для проверки"
-                        />
-                      )}
-                      <p>
-                        {selected.category} · {selected.description}
-                      </p>
-                      <h3>
-                        Сейчас на витрине:{' '}
-                        {selected.approved_name ?? 'Ещё не опубликовано'}
-                      </h3>
-                      {selected.approved_has_photo && (
-                        <img
-                          className="product-photo"
-                          src={`/api/platform/admin/products/revisions/${selected.revision_id}/photo?approved=true`}
-                          alt="Одобренное фото"
-                        />
-                      )}
-                      <p>
-                        {selected.approved_category} ·{' '}
-                        {selected.approved_description}
-                      </p>
-                      <label className="admin-kit-reason">
-                        Причина отказа
-                        <input
-                          value={reason}
-                          maxLength={500}
-                          onChange={(e) => setReason(e.target.value)}
-                        />
-                      </label>
-                      <div className="admin-kit-actions">
-                        <button
-                          className="admin-kit-approve"
-                          disabled={busy}
-                          onClick={() => void decideProduct('approved')}
-                        >
-                          Одобрить карточку
-                        </button>
-                        <button
-                          className="admin-kit-reject"
-                          disabled={busy || !reason.trim()}
-                          onClick={() => void decideProduct('rejected')}
-                        >
-                          Отклонить карточку
-                        </button>
-                      </div>
-                    </AdminCard>
-                  )}
-                </>
-              ) : (
                 <AdminCard
-                  title="Журнал решений"
-                  subtitle="История действий модерации"
+                  title="Магазины"
+                  subtitle="Текущие остатки и последние смены"
+                >
+                  {!overview?.shops.length ? (
+                    <AdminEmpty>Магазины пока не зарегистрированы</AdminEmpty>
+                  ) : (
+                    <div className="admin-kit-scroll">
+                      <table className="admin-kit-table">
+                        <thead>
+                          <tr>
+                            <th>Магазин</th>
+                            <th>Владелец</th>
+                            <th>Остатки</th>
+                            <th>Последняя смена</th>
+                            <th>Статус</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {overview.shops.map((shop) => (
+                            <tr key={shop.id}>
+                              <td>
+                                <strong>{shop.name}</strong>
+                              </td>
+                              <td>{shop.ownerEmail ?? 'Не указан'}</td>
+                              <td>{shop.units} шт.</td>
+                              <td>
+                                {shop.lastShiftAt
+                                  ? new Date(shop.lastShiftAt).toLocaleString(
+                                      'ru-RU',
+                                    )
+                                  : 'Нет смен'}
+                              </td>
+                              <td>
+                                <AdminStatus
+                                  tone={shop.shiftOpen ? 'green' : 'neutral'}
+                                >
+                                  {shop.shiftOpen
+                                    ? 'Открыта'
+                                    : 'Нет открытой смены'}
+                                </AdminStatus>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </AdminCard>
+              </div>
+              <div className="admin-kit-secondary">
+                <AdminCard
+                  title="Продажи"
+                  subtitle="Последние 7 дней с учётом возвратов"
+                >
+                  {overview && (
+                    <>
+                      <strong className="admin-kit-chart-total">
+                        {money(
+                          overview.sales.reduce(
+                            (sum, point) => sum + point.totalMinor,
+                            0,
+                          ),
+                        )}
+                      </strong>
+                      <div
+                        className="admin-kit-chart"
+                        aria-label="График продаж за 7 дней"
+                      >
+                        {overview.sales.map((point) => {
+                          const max = Math.max(
+                            1,
+                            ...overview.sales.map((x) =>
+                              Math.max(0, x.totalMinor),
+                            ),
+                          );
+                          return (
+                            <div
+                              key={point.day}
+                              className="admin-kit-chart-column"
+                            >
+                              <div className="admin-kit-chart-bar">
+                                <span
+                                  style={{
+                                    height: `${Math.max(2, (100 * Math.max(0, point.totalMinor)) / max)}%`,
+                                  }}
+                                  title={`${point.day}: ${money(point.totalMinor)}`}
+                                />
+                              </div>
+                              <small>{point.day.slice(5)}</small>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </AdminCard>
+                <AdminCard
+                  title="Популярные категории"
+                  subtitle="Валовые продажи по топ-5 категориям"
+                >
+                  {!overview?.categories.length ? (
+                    <AdminEmpty>Продаж по категориям пока нет</AdminEmpty>
+                  ) : (
+                    <div className="admin-kit-category-bars">
+                      {overview.categories.map((category) => {
+                        const total = overview.categories.reduce(
+                          (sum, item) => sum + item.totalMinor,
+                          0,
+                        );
+                        const share = total
+                          ? Math.round((100 * category.totalMinor) / total)
+                          : 0;
+                        return (
+                          <div key={category.name}>
+                            <span>
+                              {category.name}
+                              <small>{share}%</small>
+                            </span>
+                            <div>
+                              <span style={{ width: `${share}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </AdminCard>
+                <AdminCard
+                  title="Недавняя активность"
+                  subtitle="Решения администрации"
                 >
                   {!audit.length ? (
-                    <AdminEmpty>Решений пока нет</AdminEmpty>
+                    <AdminEmpty>Событий пока нет</AdminEmpty>
                   ) : (
                     <div className="admin-kit-activity">
-                      {audit.map((event, index) => (
+                      {audit.slice(0, 7).map((event, index) => (
                         <div key={event.entity_id + index}>
                           <span className="admin-kit-activity-dot">✓</span>
                           <div>
@@ -739,11 +585,109 @@ export default function AdminPage() {
                     </div>
                   )}
                 </AdminCard>
+              </div>
+            </div>
+          ) : tab === 'applications' ? (
+            <>
+              <label className="admin-kit-reason">
+                Причина отклонения (для отказа обязательно)
+                <input
+                  value={reason}
+                  maxLength={500}
+                  onChange={(e) => setReason(e.target.value)}
+                />
+              </label>
+              {applicationsTable}
+            </>
+          ) : tab === 'products' ? (
+            <>
+              {productsTable}
+              {selected && (
+                <AdminCard
+                  title={`Предложено: ${selected.name}`}
+                  subtitle={selected.shop_name}
+                >
+                  {selected.has_photo && (
+                    <img
+                      className="product-photo"
+                      src={`/api/platform/admin/products/revisions/${selected.revision_id}/photo`}
+                      alt="Фото для проверки"
+                    />
+                  )}
+                  <p>
+                    {selected.category} · {selected.description}
+                  </p>
+                  <h3>
+                    Сейчас на витрине:{' '}
+                    {selected.approved_name ?? 'Ещё не опубликовано'}
+                  </h3>
+                  {selected.approved_has_photo && (
+                    <img
+                      className="product-photo"
+                      src={`/api/platform/admin/products/revisions/${selected.revision_id}/photo?approved=true`}
+                      alt="Одобренное фото"
+                    />
+                  )}
+                  <p>
+                    {selected.approved_category} ·{' '}
+                    {selected.approved_description}
+                  </p>
+                  <label className="admin-kit-reason">
+                    Причина отказа
+                    <input
+                      value={reason}
+                      maxLength={500}
+                      onChange={(e) => setReason(e.target.value)}
+                    />
+                  </label>
+                  <div className="admin-kit-actions">
+                    <button
+                      className="admin-kit-approve"
+                      disabled={busy}
+                      onClick={() => void decideProduct('approved')}
+                    >
+                      Одобрить карточку
+                    </button>
+                    <button
+                      className="admin-kit-reject"
+                      disabled={busy || !reason.trim()}
+                      onClick={() => void decideProduct('rejected')}
+                    >
+                      Отклонить карточку
+                    </button>
+                  </div>
+                </AdminCard>
               )}
             </>
+          ) : (
+            <AdminCard
+              title="Журнал решений"
+              subtitle="История действий модерации"
+            >
+              {!audit.length ? (
+                <AdminEmpty>Решений пока нет</AdminEmpty>
+              ) : (
+                <div className="admin-kit-activity">
+                  {audit.map((event, index) => (
+                    <div key={event.entity_id + index}>
+                      <span className="admin-kit-activity-dot">✓</span>
+                      <div>
+                        <strong>
+                          {event.kind} · {event.status}
+                        </strong>
+                        <small>
+                          {new Date(event.created_at).toLocaleString('ru-RU')}
+                        </small>
+                        {event.reason && <p>{event.reason}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </AdminCard>
           )}
-        </main>
-      </div>
-    </div>
+        </>
+      )}
+    </WorkspaceShell>
   );
 }

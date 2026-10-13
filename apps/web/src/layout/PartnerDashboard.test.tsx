@@ -8,7 +8,67 @@ afterEach(() => {
   vi.unstubAllGlobals();
   localStorage.clear();
 });
-it('routes sidebar actions to the selected owned shop without exposing another shop', async () => {
+it('switches among granted shops while requesting financial summaries only for owned shops', async () => {
+  const calls: string[] = [];
+  vi.stubGlobal('fetch', async (url: string) => {
+    calls.push(url);
+    return new Response(
+      JSON.stringify(
+        url.endsWith('/me')
+          ? {
+              userId: 'owner',
+              email: 'owner@test.tld',
+              csrfToken: 'csrf',
+              shops: [
+                { id: 'shop-a', name: 'Первый магазин', role: 'owner' },
+                { id: 'shop-b', name: 'Второй магазин', role: 'owner' },
+                { id: 'shop-c', name: 'Рабочий магазин', role: 'cashier' },
+              ],
+            }
+          : url.includes('/reports/summary')
+            ? {
+                revenueMinor: 0,
+                physicalUnits: 0,
+                openOrders: 0,
+                closedShifts: 0,
+              }
+            : url.endsWith('/current')
+              ? null
+              : { items: [], total: 0, page: 1, pageSize: 25 },
+      ),
+      { headers: { 'content-type': 'application/json' } },
+    );
+  });
+  render(
+    <MemoryRouter initialEntries={['/seller?view=shops']}>
+      <App />
+    </MemoryRouter>,
+  );
+  const select = await screen.findByRole('combobox', {
+    name: 'Рабочий контекст',
+  });
+  await screen.findByRole('heading', { name: 'Мои магазины' });
+  expect(calls.some((url) => url.includes('/shop-c/reports/summary'))).toBe(
+    false,
+  );
+  expect(screen.queryByRole('option', { name: 'Платформа' })).toBeNull();
+  await userEvent.setup().selectOptions(select, 'shop:shop-b');
+  await screen.findByRole('heading', { name: 'Товары' });
+  expect(
+    screen
+      .getByRole('link', { name: 'Товары', current: 'page' })
+      .getAttribute('href'),
+  ).toBe('/seller/shop-b/products');
+  await userEvent
+    .setup()
+    .selectOptions(
+      screen.getByRole('combobox', { name: 'Рабочий контекст' }),
+      'shop:shop-c',
+    );
+  await screen.findByRole('heading', { name: 'Касса' });
+  expect(screen.queryByRole('link', { name: 'Отчёты' })).toBeNull();
+});
+it('opens platform directly for an administrator with no shop memberships', async () => {
   vi.stubGlobal(
     'fetch',
     async (url: string) =>
@@ -16,21 +76,24 @@ it('routes sidebar actions to the selected owned shop without exposing another s
         JSON.stringify(
           url.endsWith('/me')
             ? {
-                userId: 'owner',
-                email: 'owner@test.tld',
+                userId: 'admin',
+                email: 'admin@test.tld',
                 csrfToken: 'csrf',
-                shops: [
-                  { id: 'shop-a', name: 'Первый магазин', role: 'owner' },
-                  { id: 'shop-b', name: 'Второй магазин', role: 'owner' },
-                  { id: 'shop-c', name: 'Рабочий магазин', role: 'cashier' },
-                ],
+                platformAdmin: true,
+                shops: [],
               }
-            : {
-                revenueMinor: 0,
-                physicalUnits: 0,
-                openOrders: 0,
-                closedShifts: 0,
-              },
+            : url.endsWith('/overview')
+              ? {
+                  shopCount: 0,
+                  openShifts: 0,
+                  pendingPartners: 0,
+                  pendingProducts: 0,
+                  todaySalesMinor: 0,
+                  sales: [],
+                  categories: [],
+                  shops: [],
+                }
+              : { items: [], total: 0 },
         ),
         { headers: { 'content-type': 'application/json' } },
       ),
@@ -40,50 +103,11 @@ it('routes sidebar actions to the selected owned shop without exposing another s
       <App />
     </MemoryRouter>,
   );
-  const select = await screen.findByRole('combobox', {
-    name: 'Магазин для переходов',
-  });
-  expect(
-    screen.getByRole('link', { name: 'Товары и остатки' }).getAttribute('href'),
-  ).toBe('/seller/shop-a/products');
-  await userEvent.setup().selectOptions(select, 'shop-b');
-  expect(
-    screen.getByRole('link', { name: 'Товары и остатки' }).getAttribute('href'),
-  ).toBe('/seller/shop-b/products');
-  expect(
-    screen.getByRole('link', { name: 'Продажи и смены' }).getAttribute('href'),
-  ).toBe('/seller/shop-b/sales');
-  expect(screen.queryByRole('option', { name: 'Рабочий магазин' })).toBeNull();
-  expect(
-    screen.queryByRole('link', { name: /^Администрирование$/ }),
-  ).toBeNull();
-});
-
-it('gives an administrator with no shops a styled entry to platform administration', async () => {
-  vi.stubGlobal(
-    'fetch',
-    async () =>
-      new Response(
-        JSON.stringify({
-          userId: 'admin',
-          email: 'admin@test.tld',
-          csrfToken: 'csrf',
-          platformAdmin: true,
-          shops: [],
-        }),
-      ),
-  );
-  render(
-    <MemoryRouter initialEntries={['/seller']}>
-      <App />
-    </MemoryRouter>,
-  );
-  await screen.findByRole('heading', { name: 'Выберите магазин' });
+  await screen.findByRole('heading', { name: 'Администрирование MyStore' });
   expect(
     screen
-      .getByRole('link', { name: 'Кабинет платформы' })
-      .getAttribute('href'),
-  ).toBe('/platform/admin');
-  expect(screen.getByText('Доступ к магазину пока не выдан.')).toBeTruthy();
+      .getByRole('combobox', { name: 'Рабочий контекст' })
+      .querySelectorAll('option'),
+  ).toHaveLength(1);
   expect(screen.getByRole('button', { name: 'Выйти' })).toBeTruthy();
 });

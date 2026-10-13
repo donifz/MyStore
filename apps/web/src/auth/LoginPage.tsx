@@ -1,3 +1,7 @@
+import {
+  workspaceReturn,
+  workspaceStart,
+} from '../layout/workspace-navigation';
 import { FormEvent, useState } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { api, ApiError, errorText, setCsrf } from '../api/client';
@@ -41,13 +45,7 @@ export default function LoginPage() {
         : undefined;
     return (
       <Navigate
-        to={
-          from === '/platform/admin' && s.user.platformAdmin
-            ? from
-            : s.user.shops.length === 1
-              ? `/seller/${s.user.shops[0].id}/products`
-              : '/seller'
-        }
+        to={workspaceReturn(s.user, from) ?? workspaceStart(s.user)}
         replace
       />
     );

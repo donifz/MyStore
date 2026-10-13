@@ -19,6 +19,8 @@ test('core layouts stay inside the viewport at supported widths', async ({
   await page.getByLabel('Email').fill('owner@example.test');
   await page.getByLabel('Пароль').fill('browser-test-password');
   await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await page.waitForURL((url) => !url.pathname.endsWith('/seller/login'));
+  await page.goto('/seller/' + shop + '/products');
   await expect(
     page.getByRole('heading', { name: 'Товары', exact: true }),
   ).toBeVisible();
@@ -51,6 +53,8 @@ test('seller navigation highlights only the current leaf section', async ({
   await page.getByLabel('Email').fill('owner@example.test');
   await page.getByLabel('Пароль').fill('browser-test-password');
   await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await page.waitForURL((url) => !url.pathname.endsWith('/seller/login'));
+  await page.goto('/seller/' + shop + '/products');
   await expect(
     page.getByRole('heading', { name: 'Товары', exact: true }),
   ).toBeVisible();
@@ -82,6 +86,8 @@ test('admin heading keeps the date inside its tablet container', async ({
   await page.getByLabel('Email').fill('owner@example.test');
   await page.getByLabel('Пароль').fill('browser-test-password');
   await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await page.waitForURL((url) => !url.pathname.endsWith('/seller/login'));
+  await page.goto('/seller/' + shop + '/products');
   await expect(
     page.getByRole('heading', { name: 'Товары', exact: true }),
   ).toBeVisible();
