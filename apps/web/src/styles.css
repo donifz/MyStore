@@ -2456,3 +2456,27 @@ select {
   border-radius: 9px;
   background: #2b8b68;
 }
+
+.staff-invitation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+}
+.staff-invitation > div {
+  min-width: 0;
+}
+.login-card form {
+  display: grid;
+  gap: 16px;
+}
+fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+}

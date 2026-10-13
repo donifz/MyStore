@@ -63,6 +63,17 @@ import { NotificationsService } from './operations/notifications.service';
 import { HealthController } from './operations/health.controller';
 import { FiscalController } from './fiscal/fiscal.controller';
 import { FiscalService } from './fiscal/fiscal.service';
+import { EmailQueueService } from './email/email-queue.service';
+import { StaffService } from './staff/staff.service';
+import {
+  StaffController,
+  StaffAcceptanceController,
+} from './staff/staff.controller';
+import { PasswordRecoveryService } from './auth/password-recovery.service';
+import { PasswordRecoveryController } from './auth/password-recovery.controller';
+import { EmailSettingsService } from './email/email-settings.service';
+import { EmailSettingsController } from './email/email-settings.controller';
+import { EventEmailService } from './email/event-email.service';
 export async function createApp(
   db: DataSource,
   publicHandler?: express.RequestHandler,
@@ -92,6 +103,10 @@ export async function createApp(
       OperationsController,
       HealthController,
       FiscalController,
+      StaffController,
+      EmailSettingsController,
+      PasswordRecoveryController,
+      StaffAcceptanceController,
     ],
     providers: [
       PlatformAdminService,
@@ -121,6 +136,11 @@ export async function createApp(
       ReportsService,
       NotificationsService,
       FiscalService,
+      EmailQueueService,
+      EmailSettingsService,
+      EventEmailService,
+      StaffService,
+      PasswordRecoveryService,
     ],
   })
   class AppModule {}
@@ -142,6 +162,26 @@ export async function createApp(
       if (req.url.startsWith('/api/')) {
         res.locals.apiRequest = true;
         req.url = req.url.slice(4);
+      }
+      next();
+    },
+  );
+  app.use(
+    (
+      req: express.Request,
+      res: express.Response,
+      next: express.NextFunction,
+    ) => {
+      if (
+        [
+          '/seller/staff/accept',
+          '/seller/reset-password',
+          '/partner/activate',
+        ].includes(req.path)
+      ) {
+        res.setHeader('Cache-Control', 'no-store');
+        res.setHeader('X-Robots-Tag', 'noindex');
+        res.setHeader('Referrer-Policy', 'no-referrer');
       }
       next();
     },
@@ -174,6 +214,23 @@ export async function createApp(
           }
         : undefined,
     ),
+  );
+  app.use(
+    (
+      req: express.Request,
+      res: express.Response,
+      next: express.NextFunction,
+    ) => {
+      if (
+        [
+          '/seller/staff/accept',
+          '/seller/reset-password',
+          '/partner/activate',
+        ].includes(req.path)
+      )
+        res.setHeader('Referrer-Policy', 'no-referrer');
+      next();
+    },
   );
   if (publicHandler) {
     app.use(

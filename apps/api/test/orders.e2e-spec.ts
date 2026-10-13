@@ -75,6 +75,23 @@ describe('online orders and shared stock', () => {
   });
   afterEach(async () => teardown(c));
 
+  it('keeps old checkout retries compatible and persists optional email', async () => {
+    const legacy = input();
+    await checkout(legacy).expect(201);
+    await checkout({ ...legacy, email: '' }).expect(201);
+    const body = { ...input(1), email: 'buyer@example.test' };
+    const order = (await checkout(body).expect(201)).body;
+    expect(
+      (
+        await c.db.query('SELECT email FROM online_orders WHERE id=$1', [
+          order.id,
+        ])
+      )[0].email,
+    ).toBe('buyer@example.test');
+    await checkout({ ...body, email: 'other@example.test' }).expect(409);
+    await checkout({ ...input(1), email: 'invalid' }).expect(400);
+  });
+
   it('reserves, retries exactly once and exposes only a minimal receipt', async () => {
     const body = input();
     const a = (await checkout(body).expect(201)).body;

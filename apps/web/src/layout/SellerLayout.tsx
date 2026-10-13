@@ -83,6 +83,9 @@ export default function SellerLayout() {
           {shop.role === 'owner' && (
             <NavLink to={base + '/storefront'}>Витрина</NavLink>
           )}
+          {shop.role === 'owner' && (
+            <NavLink to={base + '/staff'}>Сотрудники</NavLink>
+          )}
           <NavLink to={base + '/products'}>Товары</NavLink>
           <NavLink to={base + '/labels'}>Печать этикеток</NavLink>
           {shop.role !== 'cashier' && (

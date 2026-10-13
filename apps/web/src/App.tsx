@@ -1,3 +1,7 @@
+import StaffPage from './staff/StaffPage';
+import StaffActivationPage from './auth/StaffActivationPage';
+import ForgotPasswordPage from './auth/ForgotPasswordPage';
+import ResetPasswordPage from './auth/ResetPasswordPage';
 import CapturePage from './catalog/CapturePage';
 import CategoriesPage from './catalog/CategoriesPage';
 import OrdersPage from './orders/OrdersPage';
@@ -37,10 +41,17 @@ export default function App() {
           <Route path="/shops/:slug/products/:id" element={<ProductPage />} />
           <Route path="/partner" element={<PartnerPage />} />
         </Route>
+        <Route path="/seller/staff/accept" element={<StaffActivationPage />} />
+        <Route
+          path="/seller/forgot-password"
+          element={<ForgotPasswordPage />}
+        />
+        <Route path="/seller/reset-password" element={<ResetPasswordPage />} />
         <Route path="/seller/login" element={<LoginPage />} />
         <Route path="/platform/admin" element={<AdminPage />} />
         <Route path="/seller" element={<PartnerDashboard />} />
         <Route path="/seller/:shopId" element={<SellerLayout />}>
+          <Route path="staff" element={<StaffPage />} />
           <Route path="storefront" element={<StorefrontSettingsPage />} />
           <Route path="products/:id/edit" element={<EditVariantPage />} />
           <Route path="orders" element={<OrdersPage />} />

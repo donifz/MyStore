@@ -84,6 +84,12 @@ export class ShiftsService {
       key,
       { kind: 'shift-open', actorId, openingCashMinor: amount },
       async (tx) => {
+        await tx.query('SELECT id FROM shops WHERE id=$1 FOR UPDATE', [shopId]);
+        const [member] = await tx.query(
+          'SELECT role FROM memberships WHERE shop_id=$1 AND user_id=$2',
+          [shopId, actorId],
+        );
+        if (!member) throw new ForbiddenException();
         await tx.query(
           'INSERT INTO cash_registers(shop_id) VALUES($1) ON CONFLICT DO NOTHING',
           [shopId],

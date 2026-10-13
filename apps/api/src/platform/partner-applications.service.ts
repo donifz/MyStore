@@ -8,6 +8,8 @@ import {
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { DataSource } from 'typeorm';
 import { DATABASE } from '../database';
+import { EmailQueueService } from '../email/email-queue.service';
+import { publicBaseUrl, encryptionKey } from '../email/email-config';
 import { hashPassword } from '../auth/password';
 
 export type ApplicationInput = {
@@ -30,7 +32,10 @@ const hashToken = (token: string) =>
 
 @Injectable()
 export class PartnerApplicationsService {
-  constructor(@Inject(DATABASE) private readonly db: DataSource) {}
+  constructor(
+    @Inject(DATABASE) private readonly db: DataSource,
+    private readonly email: EmailQueueService,
+  ) {}
 
   async create(input: ApplicationInput) {
     if (!input.agreed) throw new BadRequestException('Agreement required');
@@ -140,6 +145,23 @@ export class PartnerApplicationsService {
           [id, hashToken(token)],
         );
         activationUrl = `/partner/activate?token=${token}`;
+        let canEmail = false;
+        try {
+          encryptionKey();
+          canEmail = true;
+        } catch {}
+        if (canEmail)
+          await this.email.enqueue(
+            tx,
+            'partner:' + id,
+            {
+              to: row.email,
+              subject: 'Ваш магазин одобрен в MyStore',
+              text: `Установите пароль для кабинета магазина «${row.shop_name}». Ссылка действует 7 дней:\n${publicBaseUrl()}${activationUrl}`,
+              secret: { kind: 'partner', referenceId: id },
+            },
+            shopId,
+          );
       }
       await tx.query(
         'UPDATE partner_applications SET status=$2,rejection_reason=$3,shop_id=$4,updated_at=now() WHERE id=$1',

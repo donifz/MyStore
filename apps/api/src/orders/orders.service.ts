@@ -21,6 +21,7 @@ export type CheckoutInput = {
   storeSlug: string;
   name: string;
   phone: string;
+  email?: string | null;
   fulfillment: 'pickup' | 'delivery';
   address: string;
   comment: string;
@@ -47,6 +48,7 @@ export class OrdersService {
     };
   }
   async create(input: CheckoutInput) {
+    const email = input.email?.trim().toLowerCase() || null;
     const payload = {
       storeSlug: input.storeSlug,
       name: input.name.trim(),
@@ -55,6 +57,7 @@ export class OrdersService {
       address: input.address.trim(),
       comment: input.comment.trim(),
       lines: this.sales.normalize(input.lines),
+      ...(email ? { email } : {}),
     };
     if (
       !payload.name ||
@@ -130,7 +133,7 @@ export class OrdersService {
       );
       const id = randomUUID();
       const [order] = await tx.query(
-        "INSERT INTO online_orders(id,shop_id,checkout_hash,fingerprint,store_name,name,phone,fulfillment,address,comment,total_minor,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,now()+interval '30 minutes') RETURNING *",
+        "INSERT INTO online_orders(id,shop_id,checkout_hash,fingerprint,store_name,name,phone,fulfillment,address,comment,total_minor,email,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,now()+interval '30 minutes') RETURNING *",
         [
           id,
           shop.id,
@@ -143,6 +146,7 @@ export class OrdersService {
           payload.address,
           payload.comment,
           total,
+          email,
         ],
       );
       for (const l of payload.lines) {

@@ -51,6 +51,7 @@ export default function Checkout() {
   const c = useCart(),
     [name, setName] = useState(''),
     [phone, setPhone] = useState(''),
+    [email, setEmail] = useState(''),
     [fulfillment, setFulfillment] = useState('pickup'),
     [address, setAddress] = useState(''),
     [comment, setComment] = useState(''),
@@ -103,6 +104,7 @@ export default function Checkout() {
         storeSlug: c.items[0].storeSlug,
         name,
         phone,
+        ...(email.trim() ? { email: email.trim() } : {}),
         fulfillment,
         address: fulfillment === 'delivery' ? address : '',
         comment,
@@ -117,6 +119,7 @@ export default function Checkout() {
       c.clear();
       setName('');
       setPhone('');
+      setEmail('');
       setAddress('');
       setComment('');
       setUnknown(false);
@@ -316,6 +319,16 @@ export default function Checkout() {
                 autoComplete="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+              />
+              <Input
+                id="checkout-email"
+                label="Email для статуса заказа (необязательно)"
+                type="email"
+                autoComplete="email"
+                maxLength={254}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                hint="Сообщим об изменении этого заказа. Поле можно оставить пустым."
               />
               <Select
                 id="checkout-fulfillment"

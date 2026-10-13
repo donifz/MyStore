@@ -1,3 +1,4 @@
+import EmailSettings from './EmailSettings';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
@@ -93,6 +94,7 @@ export default function OperationsPage() {
           ))}
         </div>
       </div>
+      <EmailSettings shopId={shopId} owner={shop?.role === 'owner'} />
       {shop?.role === 'owner' && (
         <div className="panel">
           <h2>Журнал аудита</h2>

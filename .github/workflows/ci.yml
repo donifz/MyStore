@@ -65,7 +65,7 @@ jobs:
           TEST_DATABASE_URL: postgres://mystore:test-only@localhost:5432/mystore_browser_test
           E2E_BASE_URL: http://localhost:3001
         run: |
-          docker run -d --name mystore-browser-ci --network host -e DATABASE_URL="$TEST_DATABASE_URL" -e SESSION_SECRET="$SESSION_SECRET" -e WEB_ORIGINS="$WEB_ORIGINS" mystore-api:ci
+          docker run -d --name mystore-browser-ci --network host -e DATABASE_URL="$TEST_DATABASE_URL" -e SESSION_SECRET="$SESSION_SECRET" -e WEB_ORIGINS="$WEB_ORIGINS" -e EMAIL_ENABLED=true -e SMTP_HOST=127.0.0.1 -e SMTP_PORT=2525 -e SMTP_SECURE=false -e SMTP_FROM=mystore@example.test -e PUBLIC_BASE_URL=https://mystore.test -e EMAIL_TOKEN_ENCRYPTION_KEY=BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc= mystore-api:ci
           node -e "(async()=>{for(let i=0;i<60;i++){try{const r=await fetch('http://localhost:3001/api/auth/me');if(r.status===401)return}catch{}await new Promise(r=>setTimeout(r,500))}throw new Error('API not ready')})().catch(e=>{console.error(e.message);process.exit(1)})"
           npm run test:e2e --workspace apps/web
       - name: Upload browser traces
