@@ -72,7 +72,7 @@ export class EmailWorker {
         const attempts = Number(row.attempts) + 1;
         const minutes = [1, 5, 15, 60, 240][attempts - 1] || 240;
         await this.db.query(
-          "UPDATE email_deliveries SET status=$3,attempts=$4,available_at=now()+$5*interval '1 minute',last_error='SMTP delivery failed',lease_until=NULL,lease_token=NULL,encrypted_payload=CASE WHEN $3='failed' THEN NULL ELSE encrypted_payload END WHERE id=$1 AND lease_token=$2",
+          "UPDATE email_deliveries SET status=$3,attempts=$4,available_at=now()+$5*interval '1 minute',last_error='Email delivery failed',lease_until=NULL,lease_token=NULL,encrypted_payload=CASE WHEN $3='failed' THEN NULL ELSE encrypted_payload END WHERE id=$1 AND lease_token=$2",
           [
             row.id,
             lease,

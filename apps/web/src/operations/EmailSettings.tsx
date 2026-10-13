@@ -4,6 +4,7 @@ import { useAccessOperation } from '../auth/use-access-operation';
 type Status = {
   enabled: boolean;
   configured: boolean;
+  provider: string;
   deliveries: {
     id: string;
     recipient: string;
@@ -95,8 +96,10 @@ export default function EmailSettings({
         <>
           <p role="status">
             {status.configured
-              ? 'SMTP настроен. Статус «Принято SMTP» означает приём почтовым сервером, а не доставку во входящие.'
-              : 'SMTP не настроен или отправка отключена. Подключите почту, чтобы отправлять письма.'}
+              ? status.provider === 'gmail'
+                ? 'Gmail настроен. Принятое письмо ещё не означает доставку во входящие.'
+                : 'SMTP настроен. Статус «Принято SMTP» означает приём почтовым сервером, а не доставку во входящие.'
+              : 'Отправка почты не настроена или отключена. Подключите Gmail API или SMTP.'}
           </p>
           <h3>Последние отправки</h3>
           {!status.deliveries.length ? (
@@ -118,7 +121,10 @@ export default function EmailSettings({
                       <td>{d.recipient}</td>
                       <td>
                         {{
-                          sent: 'Принято SMTP',
+                          sent:
+                            status.provider === 'gmail'
+                              ? 'Принято Gmail'
+                              : 'Принято SMTP',
                           pending: 'В очереди',
                           sending: 'Отправляется',
                           failed: 'Ошибка отправки',

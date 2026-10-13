@@ -1,3 +1,5 @@
+import { closeResources } from './shutdown';
+import { startInlineEmail } from './email/email-runner';
 import { OrderExpirationService } from './orders/order-expiration.service';
 import { buildDataSource } from './database';
 import { createApp } from './app';
@@ -25,7 +27,6 @@ async function main() {
       }
     : undefined;
   const app = await createApp(db, publicHandler);
-  app.enableShutdownHooks();
   const expiration = app.get(OrderExpirationService);
   await expiration.expire();
   let sweeping = false;
@@ -41,12 +42,19 @@ async function main() {
   }, 60000);
   timer.unref();
   await app.listen(Number(process.env.PORT ?? 3001), '0.0.0.0');
+  const email = startInlineEmail(db);
+  let closing = false;
   const close = async () => {
+    if (closing) return;
+    closing = true;
     clearInterval(timer);
-    await app.close();
-    if (storefront) await storefront.close();
-    await db.destroy();
-    process.exit(0);
+    const exitCode = await closeResources([
+      async () => email?.stop(),
+      () => app.close(),
+      async () => storefront?.close(),
+      () => db.destroy(),
+    ]);
+    process.exit(exitCode);
   };
   process.once('SIGTERM', close);
   process.once('SIGINT', close);

@@ -35,6 +35,8 @@ export class EmailSettingsService {
       return {
         enabled: process.env.EMAIL_ENABLED === 'true',
         configured,
+        provider: process.env.EMAIL_PROVIDER || 'smtp',
+        mode: process.env.EMAIL_WORKER_MODE || 'separate',
         deliveries: await tx.query(
           "SELECT id,recipient,status,attempts,available_at,created_at,sent_at,last_error,(status='failed' AND secret_kind IS NULL AND payload IS NOT NULL) AS retryable FROM email_deliveries WHERE shop_id=$1 ORDER BY created_at DESC,id LIMIT 50",
           [shop],
