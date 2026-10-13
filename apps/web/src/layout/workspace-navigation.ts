@@ -154,17 +154,14 @@ export function workspaceMenu(
     {
       label: 'Каталог',
       items: [
-        item('Товары', 'products', /^products(?:\/(?:new|[^/]+\/edit))?$/),
+        item(
+          'Товары',
+          'products',
+          /^products(?:\/(?:new|capture|[^/]+\/edit))?$/,
+        ),
         item('Печать этикеток', 'labels', /^labels$/),
         ...(shop.role !== 'cashier'
-          ? [
-              item('Категории', 'categories', /^categories$/),
-              item(
-                'Скан / фото товара',
-                'products/capture',
-                /^products\/capture$/,
-              ),
-            ]
+          ? [item('Категории', 'categories', /^categories$/)]
           : []),
       ],
     },

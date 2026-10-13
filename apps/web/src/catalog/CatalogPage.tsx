@@ -45,9 +45,6 @@ export default function CatalogPage() {
         </div>
         {role !== 'cashier' && (
           <div className="order-actions">
-            <Link className="button" to="capture">
-              Скан / фото товара
-            </Link>
             <Link className="primary button" to="new">
               Добавить товар
             </Link>

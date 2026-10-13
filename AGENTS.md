@@ -46,3 +46,5 @@ Run `npm run hooks:install` once in your local clone. The tracked `.githooks/pre
 - Keep navigation labels consistent with their destinations. Crossing from the seller React application to the Next storefront requires document navigation.
 - Check mobile spacing, table overflow, checkbox sizing, logout access, multiple-shop selection, and desktop independent scroll regions after layout changes.
 - Protected pages use `apps/web/src/layout/WorkspaceShell.tsx`; add context/menu/role rules in `workspace-navigation.ts`, not duplicate sidebar layouts. Keep account identity stable across contexts and current platform sections in the URL.
+
+- Product creation reuses `apps/web/src/catalog/ProductForm.tsx` for the catalogue and inline receiving. Photo/scanning belong to that form; creating a card must not post stock. Preserve recovery of legacy pending photo-receiving documents.

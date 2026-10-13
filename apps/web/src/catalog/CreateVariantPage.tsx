@@ -1,159 +1,60 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { api, errorText } from '../api/client';
-import { parseSom } from '../api/money';
-import { Variant } from '../api/types';
 import { useSession } from '../auth/SessionProvider';
-import type { CategoryNode } from './PhotoAssistant';
+import type { Variant } from '../api/types';
+import ProductForm from './ProductForm';
 import BarcodeLabel from './BarcodeLabel';
+function CreateWorkspace({ shopId }: { shopId: string }) {
+  const [saved, setSaved] = useState<Variant | null>(null);
+  return (
+    <>
+      <Link className="back-link" to={`/seller/${shopId}/products`}>
+        ← Товары
+      </Link>
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">Каталог магазина</p>
+          <h1>Добавить товар</h1>
+          <p className="muted">
+            Фото, штрихкод и данные товара — в одной форме
+          </p>
+        </div>
+      </div>
+      {saved ? (
+        <section className="panel form-panel barcode-print-container">
+          <p role="status" className="success">
+            Товар создан. Остаток не изменён.
+          </p>
+          <h2>{saved.name}</h2>
+          {saved.photoUrl && (
+            <img
+              className="capture-photo"
+              src={saved.photoUrl}
+              alt="Сохранённое фото"
+            />
+          )}
+          <p className="notice">
+            Карточка отправлена на проверку. На опубликованной витрине товар
+            появится после одобрения администратором платформы.
+          </p>
+          <BarcodeLabel product={saved} />
+          <Link to={`/seller/${shopId}/receiving`} className="primary button">
+            Перейти к приёмке
+          </Link>
+        </section>
+      ) : (
+        <ProductForm shopId={shopId} onSaved={(v) => setSaved(v)} />
+      )}
+    </>
+  );
+}
 export default function CreateVariantPage() {
   const { shopId } = useParams(),
     session = useSession(),
-    [name, setName] = useState(''),
-    [barcode, setBarcode] = useState(''),
-    [price, setPrice] = useState(''),
-    [category, setCategory] = useState(''),
-    [subcategory, setSubcategory] = useState(''),
-    [categories, setCategories] = useState<CategoryNode[]>([]),
-    [error, setError] = useState(''),
-    [busy, setBusy] = useState(false),
-    [saved, setSaved] = useState<Variant | null>(null);
-  useEffect(() => {
-    if (shopId)
-      void api<CategoryNode[]>(`/shops/${shopId}/categories`)
-        .then((value) => setCategories(Array.isArray(value) ? value : []))
-        .catch((e) => setError(errorText(e)));
-  }, [shopId]);
-  if (session.user?.shops.find((s) => s.id === shopId)?.role === 'cashier')
+    shop = session.user?.shops.find((s) => s.id === shopId);
+  if (!shop || shop.role === 'cashier')
     return <p role="alert">Недостаточно прав для создания товара.</p>;
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    setError('');
-    setBusy(true);
-    try {
-      setSaved(
-        await api<Variant>(`/shops/${shopId}/variants`, {
-          method: 'POST',
-          body: {
-            name: name.trim(),
-            ...(barcode ? { barcode } : {}),
-            salePriceMinor: parseSom(price),
-            category,
-            subcategory,
-          },
-        }),
-      );
-    } catch (err) {
-      setError(errorText(err));
-    } finally {
-      setBusy(false);
-    }
-  }
   return (
-    <>
-      <Link className="back-link" to={'/seller/' + shopId + '/products'}>
-        ← Товары
-      </Link>
-      <h1>Новый товар</h1>
-      <section className="panel form-panel barcode-print-container">
-        {saved ? (
-          <>
-            <p role="status" className="success">
-              Товар создан. Остаток не изменён.
-            </p>
-            <p>
-              {saved.name} · {saved.barcode}
-            </p>
-            <p className="notice">
-              Карточка отправлена на проверку. На опубликованной витрине товар
-              появится после одобрения администратором платформы.
-            </p>
-            <BarcodeLabel product={saved} />
-            <Link
-              to={'/seller/' + shopId + '/receiving'}
-              className="primary button"
-            >
-              Перейти к приёмке
-            </Link>
-          </>
-        ) : (
-          <form onSubmit={submit}>
-            <label>
-              Название
-              <input
-                required
-                maxLength={200}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </label>
-            <label>
-              Штрихкод
-              <input
-                maxLength={64}
-                value={barcode}
-                onChange={(e) => setBarcode(e.target.value)}
-                placeholder="Пусто — создадим код автоматически"
-              />
-            </label>
-            <label>
-              Цена продажи, сом
-              <input
-                required
-                inputMode="decimal"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-              />
-            </label>
-            <label>
-              Категория
-              <select
-                value={category}
-                onChange={(e) => {
-                  setCategory(e.target.value);
-                  setSubcategory('');
-                }}
-              >
-                <option value="">Без категории</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.name}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Подкатегория
-              <select
-                value={subcategory}
-                onChange={(e) => setSubcategory(e.target.value)}
-                disabled={!category}
-              >
-                <option value="">Без подкатегории</option>
-                {categories
-                  .find((c) => c.name === category)
-                  ?.children.map((c) => (
-                    <option key={c.id} value={c.name}>
-                      {c.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <p className="muted">
-              Создание карточки не меняет остаток. Товар поступает через
-              приёмку.
-            </p>
-            {error && (
-              <p role="alert" className="error">
-                {error}
-              </p>
-            )}
-            <button className="primary" disabled={busy}>
-              {busy ? 'Сохранение…' : 'Сохранить товар'}
-            </button>
-          </form>
-        )}
-      </section>
-    </>
+    <CreateWorkspace key={shop.id + session.user!.userId} shopId={shop.id} />
   );
 }

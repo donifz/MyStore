@@ -1,7 +1,18 @@
+import { ownerCookies } from './owner-session';
 import { test, expect, Page } from '@playwright/test';
 const shop = '11111111-1111-4111-8111-111111111111',
   root = '/seller/' + shop;
 async function login(page: Page, email = 'owner@example.test') {
+  if (email === 'owner@example.test') {
+    await page
+      .context()
+      .addCookies(await ownerCookies(page.context().browser()!));
+    await page.goto(root + '/products');
+    await expect(
+      page.getByRole('heading', { name: 'Товары', exact: true }),
+    ).toBeVisible();
+    return;
+  }
   await page.goto('/seller/login');
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Пароль').fill('browser-test-password');

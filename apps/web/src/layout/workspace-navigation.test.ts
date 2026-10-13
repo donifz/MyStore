@@ -118,7 +118,7 @@ it('selects exactly one shop leaf without capture/product prefix overlap', () =>
     );
     expect(menu.filter((i) => i.active)).toHaveLength(1);
     if (path.endsWith('capture'))
-      expect(menu.find((i) => i.active)?.label).toBe('Скан / фото товара');
+      expect(menu.find((i) => i.active)?.label).toBe('Товары');
   }
   const cash = workspaceMenu(
     { kind: 'shop', shop: { ...owner, role: 'cashier' } },
