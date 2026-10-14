@@ -1,14 +1,14 @@
 import Link from 'next/link';
 import { CartLink } from '../CartProvider';
 import Icon from './Icon';
-import { publicApi } from '../../lib/public-api';
+import { publicFilters } from '../../lib/public-api';
 export default async function Header() {
   let filters: {
     locations: { city: string; district: string }[];
     categories: string[];
   } = { locations: [], categories: [] };
   try {
-    filters = await publicApi('/filters');
+    filters = await publicFilters();
   } catch {
     /* Header stays usable during API downtime. */
   }

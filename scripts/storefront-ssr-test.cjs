@@ -16,7 +16,8 @@ const store = {
 };
 let available = 3,
   failed = false,
-  hidden = false;
+  hidden = false,
+  malformedFilters = false;
 const product = () => ({
   id,
   name: 'Керамическая чашка',
@@ -57,7 +58,14 @@ const seen = [];
         return res.end('{"message":"not found"}');
       }
       let body;
-      if (url.pathname === '/api/public/products')
+      if (url.pathname === '/api/public/filters')
+        body = malformedFilters
+          ? store
+          : {
+              locations: [{ city: 'Ош', district: '' }],
+              categories: ['Посуда'],
+            };
+      else if (url.pathname === '/api/public/products')
         body = {
           items: url.searchParams.get('page') === '2' ? [] : [product()],
           total: 1,
@@ -65,15 +73,14 @@ const seen = [];
           pageSize: 24,
           categories: ['Посуда'],
         };
-      else if (url.pathname === '/api/public/filters')
-        body = {
-          locations: [{ city: 'Ош', district: '' }],
-          categories: ['Посуда'],
-        };
       else if (url.pathname === '/api/public/stores')
         body = { items: [store], total: 1, page: 1, pageSize: 100 };
       else if (url.pathname.endsWith('/products/' + id)) body = product();
-      else body = store;
+      else if (url.pathname === '/api/public/stores/shop-a') body = store;
+      else {
+        res.statusCode = 404;
+        return res.end('{"message":"not found"}');
+      }
       res.setHeader('cache-control', 'no-store');
       return res.end(JSON.stringify(body));
     }
@@ -97,6 +104,23 @@ const seen = [];
     assert(heading.includes('от разных магазинов'));
     assert(root.doc.body.textContent.includes('Керамическая чашка'));
     assert(root.doc.body.textContent.includes('240'));
+    assert(
+      root.doc.querySelector('select[name="city"] option[value="Ош"]') ||
+        [...root.doc.querySelectorAll('select[name="city"] option')].some(
+          (option) => option.textContent === 'Ош',
+        ),
+    );
+    malformedFilters = true;
+    for (const path of ['/', '/shops']) {
+      const malformed = await get(path);
+      assert.equal(
+        malformed.response.status,
+        200,
+        'Malformed filter metadata must not crash SSR',
+      );
+      assert(malformed.doc.querySelector('header'));
+    }
+    malformedFilters = false;
     assert.equal(
       root.doc.querySelector('link[rel="canonical"]')?.href,
       'https://storefront.example.test/',
@@ -170,7 +194,12 @@ const seen = [];
     assert.equal(query.searchParams.get('q').length, 128);
     seen.length = 0;
     await get('/?category=' + 'c'.repeat(200));
-    assert.equal(seen.at(-1).searchParams.get('category').length, 80);
+    assert.equal(
+      seen
+        .find((x) => x.pathname === '/api/public/products')
+        .searchParams.get('category').length,
+      80,
+    );
     seen.length = 0;
     await get('/?page=1.5');
     assert.equal(
@@ -179,8 +208,14 @@ const seen = [];
         .searchParams.get('page'),
       '1',
     );
+    seen.length = 0;
     await get('/?page=999999999');
-    assert.equal(seen.at(-1).searchParams.get('page'), '1000000');
+    assert.equal(
+      seen
+        .find((x) => x.pathname === '/api/public/products')
+        .searchParams.get('page'),
+      '1000000',
+    );
     failed = true;
     const outage = await get('/');
     assert(

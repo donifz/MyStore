@@ -41,6 +41,13 @@ app
         res.statusCode = 503;
         return res.end('{}');
       }
+      if (url.pathname === '/api/public/filters')
+        return res.end(
+          JSON.stringify({
+            locations: [{ city: 'Ош', district: '' }],
+            categories: ['Посуда'],
+          }),
+        );
       const item = { ...product, store: { ...store } };
       if (url.searchParams.get('q') === 'long')
         item.name = 'ДлинноеНазвание'.repeat(20);

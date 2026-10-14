@@ -1,4 +1,10 @@
-import { publicApi, Page, Store, Search } from '../../lib/public-api';
+import {
+  publicApi,
+  publicFilters,
+  Page,
+  Store,
+  Search,
+} from '../../lib/public-api';
 import StoreCard from '../../components/storefront/StoreCard';
 import MarketplaceHero from '../../components/storefront/MarketplaceHero';
 import {
@@ -52,10 +58,7 @@ export default async function Stores({
   try {
     [stores, filters] = await Promise.all([
       publicApi<Page<Store>>('/stores?' + params),
-      publicApi<{
-        locations: { city: string; district: string }[];
-        categories: string[];
-      }>('/filters'),
+      publicFilters(),
     ]);
   } catch {
     return (

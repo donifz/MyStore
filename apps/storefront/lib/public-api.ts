@@ -91,3 +91,40 @@ export function priceDecimal(minor: number) {
   const n = BigInt(minor);
   return `${n / 100n}.${String(n % 100n).padStart(2, '0')}`;
 }
+
+export type PublicFilters = {
+  locations: { city: string; district: string }[];
+  categories: string[];
+};
+// Filter metadata is optional for navigation. A stale or malformed response
+// must never take down the storefront shell with an undefined .map().
+export const publicFilters = cache(async (): Promise<PublicFilters> => {
+  const data = await publicApi<unknown>('/filters');
+  const value =
+    data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
+  return {
+    locations: Array.isArray(value.locations)
+      ? value.locations.flatMap((entry: unknown) => {
+          if (!entry || typeof entry !== 'object') return [];
+          const location = entry as Record<string, unknown>;
+          return typeof location.city === 'string' && location.city.trim()
+            ? [
+                {
+                  city: location.city,
+                  district:
+                    typeof location.district === 'string'
+                      ? location.district
+                      : '',
+                },
+              ]
+            : [];
+        })
+      : [],
+    categories: Array.isArray(value.categories)
+      ? value.categories.filter(
+          (entry: unknown): entry is string =>
+            typeof entry === 'string' && Boolean(entry.trim()),
+        )
+      : [],
+  };
+});
