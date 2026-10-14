@@ -32,8 +32,15 @@ async function main() {
   }
   const publicPage = await fetch(base + '/');
   assert.equal(publicPage.status, 200);
-  assert.ok(
-    (await publicPage.text()).includes('Найдите своё в магазинах рядом'),
+  const html = await publicPage.text();
+  const heading = html
+    .match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i)?.[1]
+    .replace(/<[^>]*>/g, '')
+    .trim();
+  assert.match(
+    heading || '',
+    /^Товары рядом\s*от разных магазинов$/,
+    'The storefront must render the marketplace heading in its initial HTML',
   );
   const shop = '/shops/11111111-1111-4111-8111-111111111111';
   const barcode = `SMOKE${randomUUID().replaceAll('-', '')}`;
