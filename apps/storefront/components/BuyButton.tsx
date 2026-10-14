@@ -17,6 +17,11 @@ export default function BuyButton({
     router = useRouter(),
     [added, setAdded] = useState(false),
     [quantity, setQuantity] = useState(1);
+  const inCart =
+    c.ready &&
+    c.items.some(
+      (item) => item.id === product.id && item.storeSlug === product.store.slug,
+    );
   const pending = Boolean(
     c.checkoutKey || c.state.attempts[product.store.slug],
   );
@@ -94,7 +99,7 @@ export default function BuyButton({
           Купить сейчас <Icon name="arrow" />
         </Button>
       )}
-      {added && (
+      {(added || inCart) && (
         <div role="status">
           <Link className="sf-added" href="/cart">
             Добавлено · Перейти в корзину

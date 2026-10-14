@@ -142,7 +142,10 @@ export default async function ProductPage({ params }: Props) {
             </dl>
           </section>
         </div>
-        <aside className="sf-purchase-panel sf-panel">
+        <aside
+          className="sf-purchase-panel sf-panel"
+          aria-label="Покупка товара"
+        >
           <Price minor={v.salePriceMinor} className="sf-detail-price" />
           <StockBadge available={v.available} />
           <Link className="sf-seller-box" href={'/shops/' + v.store.slug}>

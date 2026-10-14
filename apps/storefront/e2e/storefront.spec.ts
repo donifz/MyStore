@@ -55,8 +55,14 @@ test('navigation and cart survive mobile layout', async ({ page }) => {
     .getByRole('heading', { name: 'Керамическая чашка', exact: true })
     .getByRole('link')
     .click();
-  await page.getByRole('button', { name: 'В корзину', exact: true }).click();
-  await page.getByRole('link', { name: /Перейти в корзину/ }).click();
+  await page
+    .getByRole('complementary', { name: 'Покупка товара' })
+    .getByRole('button', { name: 'В корзину', exact: true })
+    .click();
+  await page
+    .getByRole('complementary', { name: 'Покупка товара' })
+    .getByRole('link', { name: /Перейти в корзину/ })
+    .click();
   await expect(
     page.getByRole('heading', { name: 'Корзина', exact: true }),
   ).toBeVisible();
@@ -98,8 +104,14 @@ test('an unknown checkout result blocks editing and resubmission until recovery'
     }),
   );
   await page.goto('/shops/shop-a/products/' + id);
-  await page.getByRole('button', { name: 'В корзину', exact: true }).click();
-  await page.getByRole('link', { name: /Перейти в корзину/ }).click();
+  await page
+    .getByRole('complementary', { name: 'Покупка товара' })
+    .getByRole('button', { name: 'В корзину', exact: true })
+    .click();
+  await page
+    .getByRole('complementary', { name: 'Покупка товара' })
+    .getByRole('link', { name: /Перейти в корзину/ })
+    .click();
   await page.getByLabel('Ваше имя').fill('Алия');
   await page.getByLabel('Телефон', { exact: true }).fill('+996700123456');
   await page
@@ -171,13 +183,24 @@ test('multi-store checkout preserves successful groups and retries rejected grou
     });
   });
   await page.goto('/shops/shop-a/products/' + id);
-  await page.getByRole('button', { name: 'В корзину', exact: true }).click();
+  await page
+    .getByRole('complementary', { name: 'Покупка товара' })
+    .getByRole('button', { name: 'В корзину', exact: true })
+    .click();
   await expect(
-    page.getByRole('link', { name: /Перейти в корзину/ }),
+    page
+      .getByRole('complementary', { name: 'Покупка товара' })
+      .getByRole('link', { name: /Перейти в корзину/ }),
   ).toBeVisible();
   await page.goto('/shops/no-phone/products/' + secondId);
-  await page.getByRole('button', { name: 'В корзину', exact: true }).click();
-  await page.getByRole('link', { name: /Перейти в корзину/ }).click();
+  await page
+    .getByRole('complementary', { name: 'Покупка товара' })
+    .getByRole('button', { name: 'В корзину', exact: true })
+    .click();
+  await page
+    .getByRole('complementary', { name: 'Покупка товара' })
+    .getByRole('link', { name: /Перейти в корзину/ })
+    .click();
   await expect(page.locator('.sf-cart-shop')).toHaveCount(2);
   await page.getByLabel('Ваше имя').fill('Алия');
   await page.getByLabel('Телефон', { exact: true }).fill('+996700123456');
@@ -266,8 +289,14 @@ test('page templates stay within the viewport and provide QA screenshots', async
       });
     }
     await page.goto('/shops/shop-a/products/' + id);
-    await page.getByRole('button', { name: 'В корзину', exact: true }).click();
-    await page.getByRole('link', { name: /Перейти в корзину/ }).click();
+    await page
+      .getByRole('complementary', { name: 'Покупка товара' })
+      .getByRole('button', { name: 'В корзину', exact: true })
+      .click();
+    await page
+      .getByRole('complementary', { name: 'Покупка товара' })
+      .getByRole('link', { name: /Перейти в корзину/ })
+      .click();
     await expect(
       page.getByRole('heading', { name: 'Корзина', exact: true }),
     ).toBeVisible();
@@ -313,8 +342,14 @@ test('long store names fit store, product and cart at 320px', async ({
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
-  await page.getByRole('button', { name: 'В корзину', exact: true }).click();
-  await page.getByRole('link', { name: /Перейти в корзину/ }).click();
+  await page
+    .getByRole('complementary', { name: 'Покупка товара' })
+    .getByRole('button', { name: 'В корзину', exact: true })
+    .click();
+  await page
+    .getByRole('complementary', { name: 'Покупка товара' })
+    .getByRole('link', { name: /Перейти в корзину/ })
+    .click();
   await expect(
     page.getByRole('heading', { name: 'Корзина', exact: true }),
   ).toBeVisible();
