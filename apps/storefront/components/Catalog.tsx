@@ -75,16 +75,24 @@ export default async function Catalog({
           <div className="sf-store-hero-actions">
             {phone && (
               <a className="sf-button sf-button--primary" href={'tel:' + phone}>
+                <Icon name="phone" width={18} height={18} />
                 Связаться с магазином
               </a>
             )}
-            <span>
-              {store.pickupEnabled !== false ? 'Самовывоз' : ''}
-              {store.pickupEnabled !== false && store.deliveryEnabled
-                ? ' · '
-                : ''}
-              {store.deliveryEnabled ? 'Доставка' : ''}
-            </span>
+            <div className="sf-store-badges">
+              {store.pickupEnabled !== false && (
+                <span className="sf-badge sf-badge--neutral">
+                  <Icon name="shop" width={14} height={14} />
+                  Самовывоз
+                </span>
+              )}
+              {store.deliveryEnabled && (
+                <span className="sf-badge sf-badge--neutral">
+                  <Icon name="truck" width={14} height={14} />
+                  Доставка
+                </span>
+              )}
+            </div>
           </div>
         </section>
       )}
@@ -114,9 +122,20 @@ export default async function Catalog({
       )}
       {store && (
         <div className="sf-store-info">
-          <span>{store.address || 'Адрес уточните у продавца'}</span>
-          <span>{store.hours || 'Часы работы уточните у продавца'}</span>
-          {store.phone && <span>{store.phone}</span>}
+          <span>
+            <Icon name="pin" width={16} height={16} />
+            {store.address || 'Адрес уточните у продавца'}
+          </span>
+          <span>
+            <Icon name="clock" width={16} height={16} />
+            {store.hours || 'Часы работы уточните у продавца'}
+          </span>
+          {store.phone && (
+            <span>
+              <Icon name="phone" width={16} height={16} />
+              {store.phone}
+            </span>
+          )}
         </div>
       )}
       <section id="catalog" className="sf-stack">
