@@ -95,9 +95,11 @@ export default function BuyButton({
         </Button>
       )}
       {added && (
-        <Link className="sf-added" href="/cart" role="status">
-          Добавлено · Перейти в корзину
-        </Link>
+        <div role="status">
+          <Link className="sf-added" href="/cart">
+            Добавлено · Перейти в корзину
+          </Link>
+        </div>
       )}
       {c.error && <Alert variant="error">{c.error}</Alert>}
     </div>
