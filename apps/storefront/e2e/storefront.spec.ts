@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 const id = '11111111-1111-4111-8111-111111111111';
+const secondId = '22222222-2222-4222-8222-222222222222';
 for (const width of [320, 390, 768, 1440]) {
   test(`catalog has a usable grid without overflow at ${width}px`, async ({
     page,
@@ -7,7 +8,7 @@ for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/?q=long');
     await expect(
-      page.getByRole('heading', { name: 'Каталог товаров' }),
+      page.getByRole('heading', { name: 'Все товары' }),
     ).toBeVisible();
     const columns = await page
       .locator('.sf-product-grid')
@@ -20,7 +21,7 @@ for (const width of [320, 390, 768, 1440]) {
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
-    await expect(page.getByLabel('Поиск')).toBeVisible();
+    await expect(page.getByLabel('Поиск', { exact: true })).toBeVisible();
   });
 }
 test('pagination preserves the selected filters', async ({ page }) => {
@@ -50,9 +51,18 @@ test('navigation and cart survive mobile layout', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/shops');
   await page.getByRole('link', { name: /Магазин у дома/ }).click();
-  await page.getByRole('link', { name: /Керамическая чашка/ }).click();
-  await page.getByRole('button', { name: 'В корзину', exact: true }).click();
-  await page.getByRole('link', { name: 'Оформить заказ', exact: true }).click();
+  await page
+    .getByRole('heading', { name: 'Керамическая чашка', exact: true })
+    .getByRole('link')
+    .click();
+  await page
+    .getByRole('complementary', { name: 'Покупка товара' })
+    .getByRole('button', { name: 'В корзину', exact: true })
+    .click();
+  await page
+    .getByRole('complementary', { name: 'Покупка товара' })
+    .getByRole('link', { name: /Перейти в корзину/ })
+    .click();
   await expect(
     page.getByRole('heading', { name: 'Корзина', exact: true }),
   ).toBeVisible();
@@ -69,9 +79,15 @@ test('an unknown checkout result blocks editing and resubmission until recovery'
   page,
 }) => {
   let recover = false;
-  await page.route('**/api/public/orders', (route) =>
-    route.fulfill({ status: 503, body: '{}', contentType: 'application/json' }),
-  );
+  const sent: any[] = [];
+  await page.route('**/api/public/orders', async (route) => {
+    sent.push(route.request().postDataJSON());
+    await route.fulfill({
+      status: 503,
+      body: '{}',
+      contentType: 'application/json',
+    });
+  });
   await page.route('**/api/public/orders/receipt', (route) =>
     route.fulfill({
       status: recover ? 200 : 503,
@@ -88,22 +104,42 @@ test('an unknown checkout result blocks editing and resubmission until recovery'
     }),
   );
   await page.goto('/shops/shop-a/products/' + id);
-  await page.getByRole('button', { name: 'В корзину', exact: true }).click();
-  await page.getByRole('link', { name: 'Оформить заказ', exact: true }).click();
+  await page
+    .getByRole('complementary', { name: 'Покупка товара' })
+    .getByRole('button', { name: 'В корзину', exact: true })
+    .click();
+  await page
+    .getByRole('complementary', { name: 'Покупка товара' })
+    .getByRole('link', { name: /Перейти в корзину/ })
+    .click();
   await page.getByLabel('Ваше имя').fill('Алия');
-  await page.getByLabel('Ваш телефон').fill('+996700123456');
-  await page.getByRole('button', { name: 'Подтвердить заказ' }).click();
+  await page.getByLabel('Телефон', { exact: true }).fill('+996700123456');
+  await page
+    .getByRole('button', { name: 'Подтвердить заказы', exact: true })
+    .click();
   await expect(page.getByRole('main').getByRole('alert')).toContainText(
-    'Результат неизвестен',
+    'Результат пока неизвестен',
   );
   await expect(page.getByLabel('Количество Керамическая чашка')).toBeDisabled();
   await expect(
-    page.getByRole('button', { name: 'Подтвердить заказ' }),
+    page.getByRole('button', { name: 'Подтвердить заказы', exact: true }),
   ).toBeDisabled();
+  expect(sent).toHaveLength(1);
+  await page.reload();
+  await expect(page.getByLabel('Количество Керамическая чашка')).toBeDisabled();
+  const pending = await page.evaluate(
+    () =>
+      JSON.parse(localStorage.getItem('mystore-marketplace-cart-v2')!).attempts[
+        'shop-a'
+      ],
+  );
+  expect(pending).toEqual(sent[0]);
   recover = true;
-  await page.getByRole('button', { name: 'Проверить заказ' }).click();
+  await page
+    .getByRole('button', { name: 'Проверить / повторить заказ', exact: true })
+    .click();
   await expect(
-    page.getByRole('heading', { name: 'Заказ принят' }),
+    page.getByRole('heading', { name: 'Ваши заказы', exact: true }),
   ).toBeVisible();
 });
 test('empty and failed catalogs provide usable states', async ({ page }) => {
@@ -118,56 +154,92 @@ test('empty and failed catalogs provide usable states', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Повторить' })).toBeVisible();
 });
 
-test('store replacement requires confirmation and successful checkout keeps the payload', async ({
+test('multi-store checkout preserves successful groups and retries rejected groups independently', async ({
   page,
 }) => {
-  await page.goto('/shops/shop-a/products/' + id);
-  await page.getByRole('button', { name: 'В корзину', exact: true }).click();
-  await page.goto('/shops/no-phone/products/' + id);
-  await page.getByRole('button', { name: 'В корзину', exact: true }).click();
-  await expect(
-    page.getByRole('button', { name: 'Заменить корзину' }),
-  ).toBeVisible();
-  await page.getByRole('button', { name: 'Оставить корзину' }).click();
-  expect(
-    await page.evaluate(
-      () => JSON.parse(localStorage.getItem('mystore-cart-v1')!)[0].storeSlug,
-    ),
-  ).toBe('shop-a');
-  await page.getByRole('button', { name: 'В корзину', exact: true }).click();
-  await page.getByRole('button', { name: 'Заменить корзину' }).click();
-  await page.getByRole('link', { name: 'Оформить заказ', exact: true }).click();
-  const request = page.waitForRequest(
-    (r) => r.url().endsWith('/api/public/orders') && r.method() === 'POST',
-  );
-  await page.route('**/api/public/orders', (route) =>
-    route.fulfill({
-      status: 200,
+  const requests: any[] = [];
+  let acceptSecond = false;
+  await page.route('**/api/public/orders', async (route) => {
+    const body = route.request().postDataJSON();
+    requests.push(body);
+    const rejected = body.storeSlug === 'no-phone' && !acceptSecond;
+    await route.fulfill({
+      status: rejected ? 409 : 201,
       contentType: 'application/json',
-      body: JSON.stringify({
-        id: 'success-1',
-        status: 'new',
-        totalMinor: 24000,
-        expiresAt: null,
-        storeName: 'Магазин у дома',
-      }),
-    }),
-  );
+      body: JSON.stringify(
+        rejected
+          ? { message: 'Insufficient available stock', available: 0 }
+          : {
+              id: body.storeSlug === 'shop-a' ? 'success-a' : 'success-b',
+              status: 'new',
+              totalMinor: 24000,
+              expiresAt: null,
+              storeName:
+                body.storeSlug === 'shop-a'
+                  ? 'Магазин у дома'
+                  : 'Магазин без телефона',
+            },
+      ),
+    });
+  });
+  await page.goto('/shops/shop-a/products/' + id);
+  await page
+    .getByRole('complementary', { name: 'Покупка товара' })
+    .getByRole('button', { name: 'В корзину', exact: true })
+    .click();
+  await expect(
+    page
+      .getByRole('complementary', { name: 'Покупка товара' })
+      .getByRole('link', { name: /Перейти в корзину/ }),
+  ).toBeVisible();
+  await page.goto('/shops/no-phone/products/' + secondId);
+  await page
+    .getByRole('complementary', { name: 'Покупка товара' })
+    .getByRole('button', { name: 'В корзину', exact: true })
+    .click();
+  await page
+    .getByRole('complementary', { name: 'Покупка товара' })
+    .getByRole('link', { name: /Перейти в корзину/ })
+    .click();
+  await expect(page.locator('.sf-cart-shop')).toHaveCount(2);
   await page.getByLabel('Ваше имя').fill('Алия');
-  await page.getByLabel('Ваш телефон').fill('+996700123456');
-  await page.getByRole('button', { name: 'Подтвердить заказ' }).click();
-  const payload = (await request).postDataJSON();
-  expect(payload.storeSlug).toBe('no-phone');
-  expect(payload.lines).toEqual([
+  await page.getByLabel('Телефон', { exact: true }).fill('+996700123456');
+  await page
+    .getByRole('button', { name: 'Подтвердить заказы', exact: true })
+    .click();
+  await expect(
+    page.getByRole('heading', { name: 'Ваши заказы', exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('.sf-cart-shop')).toHaveCount(1);
+  await expect(page.locator('.sf-order-receipt')).toHaveCount(1);
+  await expect(page.getByRole('main').getByRole('alert')).toContainText(
+    'Изменилось наличие',
+  );
+  expect(requests.map((r) => r.storeSlug)).toEqual(['shop-a', 'no-phone']);
+  expect(requests[0].lines).toEqual([
     { variantId: id, quantity: 1, expectedUnitPriceMinor: 24000 },
   ]);
-  expect(payload.checkoutKey).toMatch(/^[\da-f-]{36}$/);
-  await expect(
-    page.getByRole('heading', { name: 'Заказ принят' }),
-  ).toBeVisible();
+  expect(requests[1].lines).toEqual([
+    { variantId: secondId, quantity: 1, expectedUnitPriceMinor: 24000 },
+  ]);
+  for (const request of requests)
+    expect(request.checkoutKey).toMatch(/^[\da-f-]{36}$/);
+  expect(requests[0].checkoutKey).not.toBe(requests[1].checkoutKey);
+  acceptSecond = true;
+  await page
+    .getByRole('button', { name: 'Подтвердить заказы', exact: true })
+    .click();
+  await expect(page.locator('.sf-cart-shop')).toHaveCount(0);
+  await expect(page.locator('.sf-order-receipt')).toHaveCount(2);
+  expect(requests.map((r) => r.storeSlug)).toEqual([
+    'shop-a',
+    'no-phone',
+    'no-phone',
+  ]);
   expect(
-    await page.evaluate(() =>
-      JSON.parse(localStorage.getItem('mystore-cart-v1')!),
+    await page.evaluate(
+      () =>
+        JSON.parse(localStorage.getItem('mystore-marketplace-cart-v2')!).items,
     ),
   ).toEqual([]);
 });
@@ -182,7 +254,10 @@ test('partner form submits the same data and announces success', async ({
   await page.getByLabel('Название магазина').fill('Мастерская');
   await page.getByLabel('Email', { exact: true }).fill('example@example.test');
   await page.getByLabel('Телефон', { exact: true }).fill('+996700123456');
-  await page.getByLabel('Город').fill('Бишкек');
+  await page
+    .getByRole('main')
+    .getByLabel('Город', { exact: true })
+    .fill('Бишкек');
   await page.getByLabel('Категория бизнеса').fill('Посуда');
   await page.getByLabel('Согласен с условиями подключения').check();
   await page.getByRole('button', { name: 'Отправить заявку' }).click();
@@ -214,9 +289,13 @@ test('page templates stay within the viewport and provide QA screenshots', async
       });
     }
     await page.goto('/shops/shop-a/products/' + id);
-    await page.getByRole('button', { name: 'В корзину', exact: true }).click();
     await page
-      .getByRole('link', { name: 'Оформить заказ', exact: true })
+      .getByRole('complementary', { name: 'Покупка товара' })
+      .getByRole('button', { name: 'В корзину', exact: true })
+      .click();
+    await page
+      .getByRole('complementary', { name: 'Покупка товара' })
+      .getByRole('link', { name: /Перейти в корзину/ })
       .click();
     await expect(
       page.getByRole('heading', { name: 'Корзина', exact: true }),
@@ -251,7 +330,10 @@ test('long store names fit store, product and cart at 320px', async ({
       .getByRole('heading', { level: 1 })
       .evaluate((el) => el.scrollWidth <= el.clientWidth),
   ).toBe(true);
-  await page.getByRole('link', { name: /Керамическая чашка/ }).click();
+  await page
+    .getByRole('heading', { name: 'Керамическая чашка', exact: true })
+    .getByRole('link')
+    .click();
   await expect(
     page.getByRole('heading', { name: 'Керамическая чашка', exact: true }),
   ).toBeVisible();
@@ -260,8 +342,14 @@ test('long store names fit store, product and cart at 320px', async ({
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
-  await page.getByRole('button', { name: 'В корзину', exact: true }).click();
-  await page.getByRole('link', { name: 'Оформить заказ', exact: true }).click();
+  await page
+    .getByRole('complementary', { name: 'Покупка товара' })
+    .getByRole('button', { name: 'В корзину', exact: true })
+    .click();
+  await page
+    .getByRole('complementary', { name: 'Покупка товара' })
+    .getByRole('link', { name: /Перейти в корзину/ })
+    .click();
   await expect(
     page.getByRole('heading', { name: 'Корзина', exact: true }),
   ).toBeVisible();

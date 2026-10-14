@@ -26,6 +26,7 @@ test('shopper checkout recovers receipt and seller issues reserved stock once', 
         address: 'Центр',
         phone: '+996700123456',
         hours: '',
+        deliveryEnabled: true,
         published: true,
       },
     })
@@ -48,27 +49,39 @@ test('shopper checkout recovers receipt and seller issues reserved stock once', 
     ).ok(),
   ).toBeTruthy();
   await page.goto(`/shops/${profile.slug}/products/${variant.id}`);
-  await page.getByRole('button', { name: 'В корзину', exact: true }).click();
-  await page.getByRole('link', { name: /Корзина/ }).click();
+  await page
+    .getByRole('complementary', { name: 'Покупка товара' })
+    .getByRole('button', { name: 'В корзину', exact: true })
+    .click();
+  await page
+    .locator('header')
+    .getByRole('link', { name: /^Корзина/ })
+    .click();
   await page.getByLabel('Количество Чашка для заказа').fill('2');
   await page.getByLabel('Ваше имя').fill('Покупатель тест');
-  await page.getByLabel('Ваш телефон').fill('+996700333333');
-  await page.getByLabel('Получение').selectOption('delivery');
+  await page.getByLabel('Телефон', { exact: true }).fill('+996700333333');
+  await page
+    .locator('.sf-cart-shop')
+    .getByRole('radio', { name: /Доставка/ })
+    .check();
   await page.getByLabel('Адрес доставки').fill('Адрес покупателя');
   await page.route('**/api/public/orders', async (route) => {
     await route.fetch();
     await route.abort('failed');
   });
   await page
-    .getByRole('button', { name: 'Подтвердить заказ', exact: true })
+    .getByRole('button', { name: 'Подтвердить заказы', exact: true })
     .click();
   await expect(
-    page.getByRole('alert').filter({ hasText: 'Результат неизвестен' }),
+    page.getByRole('alert').filter({ hasText: 'Результат пока неизвестен' }),
   ).toBeVisible();
   await page.unroute('**/api/public/orders');
   await page.reload();
+  await page
+    .getByRole('button', { name: 'Проверить / повторить заказ', exact: true })
+    .click();
   await expect(
-    page.getByRole('heading', { name: 'Заказ принят' }),
+    page.getByRole('heading', { name: 'Ваши заказы', exact: true }),
   ).toBeVisible();
   const stored = await page.evaluate(() =>
     [...Object.values(localStorage), ...Object.values(sessionStorage)].join(
@@ -80,7 +93,7 @@ test('shopper checkout recovers receipt and seller issues reserved stock once', 
   expect(stored).not.toContain('333333');
   await page.reload();
   await expect(
-    page.getByRole('heading', { name: 'Заказ принят' }),
+    page.getByRole('heading', { name: 'Ваши заказы', exact: true }),
   ).toBeVisible();
   await page.goto(`/shops/${profile.slug}/products/${variant.id}`);
   await expect(page.getByText('В наличии: 3 шт.')).toBeVisible();
@@ -171,6 +184,7 @@ async function shopForCart(request: APIRequestContext, name: string) {
         address: '',
         phone: '+996700123456',
         hours: '',
+        deliveryEnabled: true,
         published: true,
       },
     })
@@ -188,80 +202,107 @@ async function shopForCart(request: APIRequestContext, name: string) {
   });
   return { shop, headers, v, url: `/shops/${profile.slug}/products/${v.id}` };
 }
-test('keeps an uncertain checkout key after a rejected recovery retry', async ({
+test('keeps the original checkout body and key after a rejected recovery retry', async ({
   page,
   request,
 }) => {
   const a = await shopForCart(request, 'Повтор заказа');
   await page.goto(a.url);
-  await page.getByRole('button', { name: 'В корзину', exact: true }).click();
-  await page.getByRole('link', { name: /Корзина \(/ }).click();
+  await page
+    .getByRole('complementary', { name: 'Покупка товара' })
+    .getByRole('button', { name: 'В корзину', exact: true })
+    .click();
+  await page
+    .locator('header')
+    .getByRole('link', { name: /^Корзина/ })
+    .click();
   await page.getByLabel('Ваше имя').fill('Покупатель');
-  await page.getByLabel('Ваш телефон').fill('+996700555555');
+  await page.getByLabel('Телефон', { exact: true }).fill('+996700555555');
   await page.route('**/api/public/orders', (route) => route.abort('failed'));
   await page
-    .getByRole('button', { name: 'Подтвердить заказ', exact: true })
+    .getByRole('button', { name: 'Подтвердить заказы', exact: true })
     .click();
   await expect(
-    page.getByRole('alert').filter({ hasText: 'Результат неизвестен' }),
+    page.getByRole('alert').filter({ hasText: 'Результат пока неизвестен' }),
   ).toBeVisible();
-  const key = await page.evaluate(() =>
-    sessionStorage.getItem('mystore-checkout-key'),
+  const pending = await page.evaluate(
+    () =>
+      Object.values(
+        JSON.parse(localStorage.getItem('mystore-marketplace-cart-v2')!)
+          .attempts,
+      )[0],
   );
   await page.unroute('**/api/public/orders');
+  await page.route('**/api/public/orders', (route) =>
+    route.fulfill({
+      status: 409,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: 'Price changed' }),
+    }),
+  );
   await page
-    .getByRole('button', { name: 'Проверить заказ', exact: true })
+    .getByRole('button', { name: 'Проверить / повторить заказ', exact: true })
     .click();
   await expect(
-    page.getByRole('alert').filter({ hasText: 'Заказ пока не найден' }),
+    page.getByRole('alert').filter({ hasText: 'Результат пока неизвестен' }),
   ).toBeVisible();
-  await page.getByLabel('Ваш телефон').fill('invalid');
-  await page
-    .getByRole('button', { name: 'Подтвердить заказ', exact: true })
-    .click();
-  await expect(
-    page.getByRole('alert').filter({ hasText: 'Проверьте имя' }),
-  ).toBeVisible();
+  await expect(page.getByLabel('Количество Повтор заказа')).toBeDisabled();
   expect(
-    await page.evaluate(() => sessionStorage.getItem('mystore-checkout-key')),
-  ).toBe(key);
-  await page.getByLabel('Ваш телефон').fill('+996700555555');
-  let sentKey: string | undefined;
+    await page.evaluate(
+      () =>
+        Object.values(
+          JSON.parse(localStorage.getItem('mystore-marketplace-cart-v2')!)
+            .attempts,
+        )[0],
+    ),
+  ).toEqual(pending);
+  await page.reload();
+  await page.unroute('**/api/public/orders');
+  let sent: unknown;
   await page.route('**/api/public/orders', async (route) => {
-    sentKey = route.request().postDataJSON().checkoutKey;
+    sent = route.request().postDataJSON();
     await route.continue();
   });
   await page
-    .getByRole('button', { name: 'Подтвердить заказ', exact: true })
+    .getByRole('button', { name: 'Проверить / повторить заказ', exact: true })
     .click();
   await expect(
-    page.getByRole('heading', { name: 'Заказ принят' }),
+    page.getByRole('heading', { name: 'Ваши заказы', exact: true }),
   ).toBeVisible();
-  expect(sentKey).toBe(key);
+  expect(sent).toEqual(pending);
+  const stock = await (
+    await request.get(`/api/shops/${a.shop}/stock/${a.v.id}`, {
+      headers: a.headers,
+    })
+  ).json();
+  expect(stock.physical).toBe(5);
+  expect(stock.reserved).toBe(1);
 });
-test('requires explicit other-shop replacement and allows correcting a rejected price', async ({
+
+test('multi-store checkout retains a rejected price group and never duplicates the successful order', async ({
   page,
   request,
 }) => {
   const a = await shopForCart(request, 'Корзина А'),
     b = await shopForCart(request, 'Корзина Б');
-  await page.goto(a.url);
-  await page.getByRole('button', { name: 'В корзину', exact: true }).click();
-  await page.goto(b.url);
-  await page.getByRole('button', { name: 'В корзину', exact: true }).click();
+  for (const shop of [a, b]) {
+    await page.goto(shop.url);
+    await page
+      .getByRole('complementary', { name: 'Покупка товара' })
+      .getByRole('button', { name: 'В корзину', exact: true })
+      .click();
+    await expect(
+      page
+        .getByRole('complementary', { name: 'Покупка товара' })
+        .getByRole('link', { name: /Перейти в корзину/ }),
+    ).toBeVisible();
+  }
   await page
-    .getByRole('button', { name: 'Оставить корзину', exact: true })
+    .locator('header')
+    .getByRole('link', { name: /^Корзина/ })
     .click();
-  await page.getByRole('link', { name: /Корзина \(/ }).click();
-  await expect(page.getByText('Магазин: Корзина А')).toBeVisible();
-  await page.goto(b.url);
-  await page.getByRole('button', { name: 'В корзину', exact: true }).click();
-  await page
-    .getByRole('button', { name: 'Заменить корзину', exact: true })
-    .click();
-  await page.getByRole('link', { name: /Корзина \(/ }).click();
-  await expect(page.getByText('Магазин: Корзина Б')).toBeVisible();
-  await request.put(`/api/shops/${b.shop}/variants/${b.v.id}`, {
+  await expect(page.locator('.sf-cart-shop')).toHaveCount(2);
+  const changed = await request.put(`/api/shops/${b.shop}/variants/${b.v.id}`, {
     headers: b.headers,
     data: {
       name: 'Корзина Б',
@@ -271,27 +312,49 @@ test('requires explicit other-shop replacement and allows correcting a rejected 
       published: true,
     },
   });
+  expect(changed.ok()).toBeTruthy();
   await page.getByLabel('Ваше имя').fill('Покупатель');
-  await page.getByLabel('Ваш телефон').fill('+996700444444');
+  await page.getByLabel('Телефон', { exact: true }).fill('+996700444444');
   await page
-    .getByRole('button', { name: 'Подтвердить заказ', exact: true })
+    .getByRole('button', { name: 'Подтвердить заказы', exact: true })
     .click();
   await expect(
-    page.getByRole('alert').filter({ hasText: 'Цена товара изменилась' }),
+    page.getByRole('alert').filter({ hasText: 'Цена изменилась' }),
   ).toBeVisible();
-  await page.getByRole('button', { name: 'Удалить', exact: true }).click();
+  await expect(page.locator('.sf-order-receipt')).toHaveCount(1);
+  await expect(page.locator('.sf-cart-shop')).toHaveCount(1);
+  const firstStock = await (
+    await request.get(`/api/shops/${a.shop}/stock/${a.v.id}`, {
+      headers: a.headers,
+    })
+  ).json();
+  expect(firstStock.reserved).toBe(1);
+  await page
+    .getByRole('button', { name: 'Удалить Корзина Б', exact: true })
+    .click();
   await page.goto(b.url);
-  await expect(
-    page.getByRole('button', { name: 'В корзину', exact: true }),
-  ).toBeVisible();
-  await page.getByRole('button', { name: 'В корзину', exact: true }).click();
-  await page.getByRole('link', { name: /Корзина \(/ }).click();
-  await page.getByLabel('Ваше имя').fill('Покупатель');
-  await page.getByLabel('Ваш телефон').fill('+996700444444');
   await page
-    .getByRole('button', { name: 'Подтвердить заказ', exact: true })
+    .getByRole('complementary', { name: 'Покупка товара' })
+    .getByRole('button', { name: 'В корзину', exact: true })
     .click();
-  await expect(
-    page.getByRole('heading', { name: 'Заказ принят' }),
-  ).toBeVisible();
+  await page
+    .locator('header')
+    .getByRole('link', { name: /^Корзина/ })
+    .click();
+  await page.getByLabel('Ваше имя').fill('Покупатель');
+  await page.getByLabel('Телефон', { exact: true }).fill('+996700444444');
+  await page
+    .getByRole('button', { name: 'Подтвердить заказы', exact: true })
+    .click();
+  await expect(page.locator('.sf-order-receipt')).toHaveCount(2);
+  await expect(page.locator('.sf-cart-shop')).toHaveCount(0);
+  for (const shop of [a, b]) {
+    const stock = await (
+      await request.get(`/api/shops/${shop.shop}/stock/${shop.v.id}`, {
+        headers: shop.headers,
+      })
+    ).json();
+    expect(stock.physical).toBe(5);
+    expect(stock.reserved).toBe(1);
+  }
 });

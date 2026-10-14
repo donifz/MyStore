@@ -1,17 +1,44 @@
 import Link from 'next/link';
 import type { Store } from '../../lib/public-api';
+import Icon from './Icon';
 export default function StoreCard({ store: s }: { store: Store }) {
   return (
-    <Link className="sf-store-card" href={'/shops/' + s.slug}>
-      <span className="sf-store-monogram" aria-hidden="true">
-        {s.name.slice(0, 1).toUpperCase()}
-      </span>
-      <p className="sf-eyebrow">{s.city}</p>
-      <h2>{s.name}</h2>
-      <p className="sf-muted">{s.description || 'Откройте каталог магазина'}</p>
-      <span className="sf-store-card__action">
-        Перейти в магазин <span aria-hidden="true">↗</span>
-      </span>
-    </Link>
+    <article className="sf-store-card">
+      <div className="sf-shop-cover">
+        <Icon name="shop" width={90} height={90} />
+        <span>{s.categories?.[0] || 'Магазины рядом'}</span>
+      </div>
+      <div className="sf-shop-body">
+        <span className="sf-store-monogram">
+          {s.name.slice(0, 1).toUpperCase()}
+        </span>
+        <h2>
+          <Link href={'/shops/' + s.slug}>{s.name}</Link>
+        </h2>
+        <p className="sf-shop-meta">
+          <Icon name="pin" />
+          {[s.city, s.district || s.address].filter(Boolean).join(', ') ||
+            'Адрес уточняется'}
+        </p>
+        <p className="sf-shop-meta">
+          <Icon name="box" />
+          {s.productCount ?? 0} товаров в каталоге
+        </p>
+        <div className="sf-tags">
+          {s.categories?.map((c) => (
+            <span key={c}>{c}</span>
+          ))}
+        </div>
+        <p className="sf-shop-description">
+          {s.description || 'Находите нужное в каталоге этого магазина.'}
+        </p>
+        <Link
+          className="sf-button sf-button--secondary"
+          href={'/shops/' + s.slug}
+        >
+          Перейти в магазин <Icon name="arrow" />
+        </Link>
+      </div>
+    </article>
   );
 }

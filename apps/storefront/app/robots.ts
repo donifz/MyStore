@@ -5,7 +5,14 @@ export default function robots() {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/seller', '/api', '/partner'],
+      disallow: [
+        '/seller',
+        '/api',
+        '/partner',
+        '/favorites',
+        '/cart',
+        '/ui-kit',
+      ],
     },
     sitemap: publicBase() + '/sitemap.xml',
   };

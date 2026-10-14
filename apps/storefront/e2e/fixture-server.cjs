@@ -16,6 +16,11 @@ const store = {
   phone: '+996700123456',
   address: 'Центр',
   hours: '10–19',
+  district: '',
+  pickupEnabled: true,
+  deliveryEnabled: false,
+  productCount: 1,
+  categories: ['Посуда'],
 };
 const product = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -41,6 +46,13 @@ app
         res.statusCode = 503;
         return res.end('{}');
       }
+      if (url.pathname === '/api/public/filters')
+        return res.end(
+          JSON.stringify({
+            locations: [{ city: 'Ош', district: '' }],
+            categories: ['Посуда'],
+          }),
+        );
       const item = { ...product, store: { ...store } };
       if (url.searchParams.get('q') === 'long')
         item.name = 'ДлинноеНазвание'.repeat(20);
@@ -52,7 +64,9 @@ app
         item.store.name = 'Магазин'.repeat(20);
       }
       if (url.pathname.includes('no-phone')) {
+        item.id = '22222222-2222-4222-8222-222222222222';
         item.store.slug = 'no-phone';
+        item.store.name = 'Магазин без телефона';
         delete item.store.phone;
       }
       if (url.pathname.endsWith('/sold-out')) item.available = 0;

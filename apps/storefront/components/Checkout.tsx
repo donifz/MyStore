@@ -1,39 +1,18 @@
 'use client';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import {
-  Button,
-  LinkButton,
-  Input,
-  Select,
-  Textarea,
-  Alert,
-  EmptyState,
-  Skeleton,
-} from './ui';
+import { useCart, OrderBody, Receipt } from './CartProvider';
+import LegacyCheckout from './LegacyCheckout';
+import { Button, Input, Textarea, Alert, EmptyState, LinkButton } from './ui';
 import Price from './storefront/Price';
-import { useCart } from './CartProvider';
-type Receipt = {
-  id: string;
-  status: string;
-  totalMinor: number;
-  expiresAt: string | null;
-  storeName: string;
-};
-const statuses: Record<string, string> = {
-  new: 'Ожидает подтверждения',
-  confirmed: 'Подтверждён',
-  ready: 'Готов к выдаче',
-  issued: 'Выдан',
-  cancelled: 'Отменён',
-  expired: 'Срок подтверждения истёк',
-};
-class PublicError extends Error {
+import Icon from './storefront/Icon';
+import type { Store } from '../lib/public-api';
+class OrderError extends Error {
   constructor(
     public status: number,
-    public details: any,
+    public data: any,
   ) {
-    super('Request failed');
+    super('Order failed');
   }
 }
 async function post(path: string, body: unknown): Promise<Receipt> {
@@ -41,328 +20,547 @@ async function post(path: string, body: unknown): Promise<Receipt> {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
-    cache: 'no-store',
+    signal: AbortSignal.timeout(20000),
   });
   const data = await r.json();
-  if (!r.ok) throw new PublicError(r.status, data);
+  if (!r.ok) throw new OrderError(r.status, data);
   return data;
 }
+const statusLabels: Record<string, string> = {
+  new: 'Ожидает подтверждения магазина',
+  confirmed: 'Подтверждён',
+  ready: 'Готов к выдаче',
+  issued: 'Выдан',
+  cancelled: 'Отменён',
+  expired: 'Срок подтверждения истёк',
+};
 export default function Checkout() {
+  const c = useCart();
+  return c.checkoutKey ? <LegacyCheckout /> : <MarketplaceCheckout />;
+}
+function MarketplaceCheckout() {
   const c = useCart(),
+    [busy, setBusy] = useState(false),
+    [errors, setErrors] = useState<Record<string, string>>({}),
     [name, setName] = useState(''),
     [phone, setPhone] = useState(''),
     [email, setEmail] = useState(''),
-    [fulfillment, setFulfillment] = useState('pickup'),
     [address, setAddress] = useState(''),
     [comment, setComment] = useState(''),
-    [busy, setBusy] = useState(false),
-    [checking, setChecking] = useState(false),
-    [error, setError] = useState(''),
-    [receipt, setReceipt] = useState<Receipt | null>(null),
-    [unknown, setUnknown] = useState(false);
+    [methods, setMethods] = useState<Record<string, 'pickup' | 'delivery'>>({}),
+    [stores, setStores] = useState<Record<string, Store>>({});
   const sending = useRef(false);
-  async function recover() {
-    if (!c.checkoutKey) return;
-    setChecking(true);
-    setError('');
-    try {
-      const r = await post('/receipt', { checkoutKey: c.checkoutKey });
-      setReceipt(r);
-      c.clear();
-      setUnknown(false);
-    } catch (e) {
-      if (e instanceof PublicError && e.status === 404) {
-        setUnknown(false);
-        setError(
-          'Заказ пока не найден. Можно повторить оформление с тем же ключом.',
-        );
-      } else {
-        setUnknown(true);
-        setError(
-          'Не удалось проверить заказ. Проверьте связь и повторите проверку.',
-        );
-      }
-    } finally {
-      setChecking(false);
-    }
-  }
+  const slugs = [...new Set(c.items.map((l) => l.storeSlug))];
+  const signature = slugs.join('|');
   useEffect(() => {
-    if (c.ready && c.checkoutKey) void recover();
-  }, [c.ready]);
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    if (sending.current || !c.items.length) return;
-    sending.current = true;
-    setBusy(true);
-    setError('');
-    const hadPendingKey = Boolean(c.checkoutKey);
-    try {
-      const key = c.checkoutKey || crypto.randomUUID();
-      c.setKey(key);
-      const body = {
-        checkoutKey: key,
-        storeSlug: c.items[0].storeSlug,
+    let live = true;
+    void Promise.all(
+      slugs.map(async (slug) => {
+        try {
+          const r = await fetch(
+            '/api/public/stores/' + encodeURIComponent(slug),
+          );
+          if (!r.ok) return;
+          const s: Store = await r.json();
+          if (live) setStores((old) => ({ ...old, [slug]: s }));
+        } catch {
+          /* Retry is available through reload. */
+        }
+      }),
+    );
+    return () => {
+      live = false;
+    };
+  }, [signature]);
+  function method(slug: string) {
+    return (
+      methods[slug] ||
+      (stores[slug]?.pickupEnabled !== false ? 'pickup' : 'delivery')
+    );
+  }
+  async function process(slug: string, retry = false) {
+    const initial = c.latest();
+    const original = initial.attempts[slug];
+    let body = original;
+    if (!body) {
+      if (retry) return;
+      const lines = initial.items.filter((l) => l.storeSlug === slug);
+      if (!lines.length) return;
+      body = {
+        checkoutKey: crypto.randomUUID(),
+        storeSlug: slug,
         name,
         phone,
         ...(email.trim() ? { email: email.trim() } : {}),
-        fulfillment,
-        address: fulfillment === 'delivery' ? address : '',
+        fulfillment: method(slug),
+        address: method(slug) === 'delivery' ? address : '',
         comment,
-        lines: c.items.map((l) => ({
+        lines: lines.map((l) => ({
           variantId: l.id,
           quantity: l.quantity,
           expectedUnitPriceMinor: l.price,
         })),
       };
-      const r = await post('', body);
-      setReceipt(r);
-      c.clear();
-      setName('');
-      setPhone('');
-      setEmail('');
-      setAddress('');
-      setComment('');
-      setUnknown(false);
-    } catch (e) {
-      setUnknown(true);
-      if (e instanceof PublicError && e.status < 500) {
+      c.save({ ...initial, attempts: { ...initial.attempts, [slug]: body } });
+    }
+    try {
+      let receipt: Receipt;
+      if (original) {
         try {
-          const r = await post('/receipt', {
-            checkoutKey:
-              c.checkoutKey || sessionStorage.getItem('mystore-checkout-key'),
-          });
-          setReceipt(r);
-          c.clear();
-          setUnknown(false);
-        } catch (lookup) {
-          if (lookup instanceof PublicError && lookup.status === 404) {
-            // A rejected retry cannot prove an earlier interrupted request
-            // will never arrive. Reuse its key until a receipt is recovered.
-            if (!hadPendingKey) c.setKey('');
-            setUnknown(false);
-            setError(
-              e.status === 409
-                ? e.details?.currentUnitPriceMinor !== undefined
-                  ? 'Цена товара изменилась. Удалите товар и добавьте его по новой цене.'
-                  : 'Недостаточно товара или заказ уже изменился. Проверьте корзину.'
-                : e.status === 429
-                  ? 'Слишком много попыток или неподтверждённых заказов. Попробуйте позднее.'
-                  : 'Проверьте имя, телефон и адрес доставки.',
-            );
-          } else
-            setError(
-              'Результат неизвестен. Проверьте заказ перед повторным оформлением.',
-            );
+          receipt = await post('/receipt', { checkoutKey: body.checkoutKey });
+        } catch (e) {
+          if (!(e instanceof OrderError) || e.status !== 404) throw e;
+          receipt = await post('', body);
         }
+      } else receipt = await post('', body);
+      const state = c.latest(),
+        attempts = { ...state.attempts };
+      delete attempts[slug];
+      c.save({
+        ...state,
+        items: state.items.filter((l) => l.storeSlug !== slug),
+        attempts,
+        receipts: [
+          ...state.receipts.filter((r) => r.id !== receipt.id),
+          { ...receipt, checkoutKey: body.checkoutKey },
+        ].slice(-50),
+      });
+      setErrors((e) => ({ ...e, [slug]: '' }));
+    } catch (e) {
+      // Only a definite first-response rejection permits editing. An interrupted
+      // request always retains its exact body and key, even after a later 404.
+      if (
+        !original &&
+        e instanceof OrderError &&
+        e.status >= 400 &&
+        e.status < 500 &&
+        ![408, 425].includes(e.status)
+      ) {
+        const s = c.latest(),
+          attempts = { ...s.attempts };
+        delete attempts[slug];
+        c.save({ ...s, attempts });
+        setErrors((old) => ({
+          ...old,
+          [slug]:
+            e.status === 409
+              ? e.data?.currentUnitPriceMinor !== undefined
+                ? 'Цена изменилась. Удалите товар и добавьте его снова по текущей цене.'
+                : 'Изменилось наличие или способ получения. Проверьте товары и настройки магазина.'
+              : e.status === 429
+                ? 'Слишком много попыток. Повторите позднее.'
+                : 'Заказ не принят. Проверьте контактные данные и товары.',
+        }));
       } else
-        setError(
-          'Результат неизвестен. Проверьте заказ перед повторным оформлением.',
+        setErrors((old) => ({
+          ...old,
+          [slug]:
+            'Результат пока неизвестен. Проверьте заказ — повтор использует тот же номер операции.',
+        }));
+    }
+  }
+  async function run(slug?: string) {
+    if (sending.current) return;
+    sending.current = true;
+    setBusy(true);
+    try {
+      if (!navigator.locks)
+        throw Error(
+          'Оформление требует современный браузер с защитой от повторной отправки.',
         );
+      await navigator.locks.request('mystore-checkout', async () => {
+        const current = c.latest();
+        const targets = slug
+          ? [slug]
+          : [...new Set(current.items.map((l) => l.storeSlug))];
+        for (const s of targets) await process(s, Boolean(slug));
+      });
+    } catch (e) {
+      setErrors((old) => ({
+        ...old,
+        global:
+          e instanceof Error
+            ? e.message
+            : 'Не удалось сохранить заказ. Повторите проверку.',
+      }));
     } finally {
       sending.current = false;
       setBusy(false);
     }
   }
-  if (!c.ready || checking)
-    return (
-      <section className="sf-stack" aria-busy="true">
-        <p role="status">Проверяем корзину и заказ…</p>
-        <Skeleton />
-        <Skeleton />
-      </section>
-    );
-  if (receipt)
-    return (
-      <section className="sf-panel sf-stack sf-receipt">
-        <div>
-          <p className="sf-eyebrow">{receipt.storeName}</p>
-          <h1>Заказ принят</h1>
-          <p>Номер: {receipt.id}</p>
-        </div>
-        <Alert variant="success">{statuses[receipt.status]}</Alert>
-        <p>
-          Товары: <Price minor={receipt.totalMinor} />
-        </p>
-        <p>Оплата при получении. Доставку согласуйте с магазином.</p>
-        {receipt.expiresAt && (
-          <p>
-            Магазину нужно подтвердить заказ до{' '}
-            {new Date(receipt.expiresAt).toLocaleString('ru-RU')}.
-          </p>
-        )}
-        <div className="sf-actions">
-          <Button
-            variant="secondary"
-            disabled={checking}
-            onClick={() => void recover()}
-          >
-            Обновить статус
-          </Button>
-          <Button
-            onClick={() => {
-              c.setKey('');
-              setReceipt(null);
-            }}
-          >
-            Новый заказ
-          </Button>
-          <LinkButton href="/shops" variant="ghost">
-            Магазины
-          </LinkButton>
-        </div>
-      </section>
-    );
+  async function refreshOrders() {
+    if (sending.current) return;
+    sending.current = true;
+    setBusy(true);
+    try {
+      for (const receipt of c.latest().receipts) {
+        if (!receipt.checkoutKey) continue;
+        const current = await post('/receipt', {
+          checkoutKey: receipt.checkoutKey,
+        });
+        const state = c.latest();
+        c.save({
+          ...state,
+          receipts: state.receipts.map((r) =>
+            r.id === receipt.id
+              ? { ...current, checkoutKey: receipt.checkoutKey }
+              : r,
+          ),
+        });
+      }
+      setErrors((old) => ({ ...old, global: '' }));
+    } catch {
+      setErrors((old) => ({
+        ...old,
+        global: 'Не удалось обновить статус. Повторите позднее.',
+      }));
+    } finally {
+      sending.current = false;
+      setBusy(false);
+    }
+  }
+  function submit(e: FormEvent) {
+    e.preventDefault();
+    void run();
+  }
+  if (!c.ready) return <p role="status">Загружаем корзину…</p>;
   const total = Number(
-    c.items.reduce((n, l) => n + BigInt(l.quantity) * BigInt(l.price), 0n),
+    c.items.reduce((sum, l) => sum + BigInt(l.price) * BigInt(l.quantity), 0n),
   );
   return (
     <div className="sf-stack">
-      <div>
-        <p className="sf-eyebrow">Ваши находки</p>
-        <h1>Корзина</h1>
+      <div className="sf-section-heading">
+        <div>
+          <h1>Корзина</h1>
+          <p className="sf-muted">
+            {slugs.length} магазинов ·{' '}
+            {c.items.reduce((n, l) => n + l.quantity, 0)} товаров
+          </p>
+        </div>
         {c.items.length > 0 && (
-          <p className="sf-muted">Магазин: {c.items[0].storeName}</p>
+          <Button
+            variant="ghost"
+            disabled={busy || Object.keys(c.state.attempts).length > 0}
+            onClick={c.clear}
+          >
+            <Icon name="trash" />
+            Очистить корзину
+          </Button>
         )}
       </div>
       {c.error && <Alert variant="error">{c.error}</Alert>}
-      {error && <Alert variant="error">{error}</Alert>}
-      {c.checkoutKey && (
-        <div>
-          <Button
-            variant="secondary"
-            disabled={busy}
-            onClick={() => void recover()}
-          >
-            Проверить заказ
-          </Button>
-        </div>
+      {errors.global && <Alert variant="error">{errors.global}</Alert>}
+      {c.state.receipts.length > 0 && (
+        <section className="sf-panel sf-stack">
+          <div className="sf-section-heading">
+            <h2>Ваши заказы</h2>
+            <Button
+              variant="secondary"
+              loading={busy}
+              onClick={() => void refreshOrders()}
+            >
+              Обновить статусы
+            </Button>
+          </div>
+          {c.state.receipts.map((r) => (
+            <div className="sf-order-receipt" key={r.id}>
+              <Icon name="shield" />
+              <div>
+                <strong>{r.storeName}</strong>
+                <p>{statusLabels[r.status] || r.status}</p>
+                <small>№ {r.id}</small>
+                {r.expiresAt && r.status === 'new' && (
+                  <p className="sf-muted">
+                    Подтверждение магазина до{' '}
+                    {new Date(r.expiresAt).toLocaleString('ru-RU')}
+                  </p>
+                )}
+              </div>
+              <Price minor={r.totalMinor} />
+            </div>
+          ))}
+          <p className="sf-muted">
+            Заказы переданы магазинам отдельно. Оплата при получении. Уточнить
+            статус можно у продавца.
+          </p>
+        </section>
       )}
       {!c.items.length ? (
         <EmptyState
-          title="Корзина пока пуста"
-          description="Хорошие находки ждут в каталоге местных магазинов."
-          action={
-            <div className="sf-actions sf-actions--center">
-              <LinkButton href="/">Выбрать товары</LinkButton>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  c.clear();
-                  c.setKey('');
-                }}
-              >
-                Очистить корзину
-              </Button>
-            </div>
+          title={
+            c.state.receipts.length
+              ? 'Все товары оформлены'
+              : 'В корзине пока пусто'
           }
+          description="Найдите что-нибудь полезное в магазинах рядом."
+          action={<LinkButton href="/">Перейти к товарам</LinkButton>}
         />
       ) : (
-        <div className="sf-checkout-grid">
-          <section
-            className="sf-panel sf-cart-items"
-            aria-label="Товары в корзине"
-          >
-            {c.items.map((l) => (
-              <div className="sf-cart-row" key={l.id}>
-                <div className="sf-cart-row__name">
-                  <Link href={`/shops/${l.storeSlug}/products/${l.id}`}>
-                    {l.name}
-                  </Link>
-                  <Price minor={l.price} />
-                </div>
-                <Input
-                  id={'cart-quantity-' + l.id}
-                  label="Количество"
-                  aria-label={`Количество ${l.name}`}
-                  type="number"
-                  min="1"
-                  max="1000000"
-                  value={l.quantity}
-                  disabled={busy || unknown}
-                  onChange={(e) => c.quantity(l.id, Number(e.target.value))}
-                />
-                <Button
-                  variant="ghost"
-                  disabled={busy || unknown}
-                  onClick={() => c.remove(l.id)}
-                >
-                  Удалить
-                </Button>
+        <div className="sf-cart-layout">
+          <div className="sf-stack">
+            {slugs.map((slug) => {
+              const lines = c.items.filter((l) => l.storeSlug === slug),
+                pending = c.state.attempts[slug];
+              const store = stores[slug];
+              return (
+                <section key={slug} className="sf-cart-shop sf-panel">
+                  <div className="sf-cart-shop-heading">
+                    <Link href={'/shops/' + slug}>
+                      <span className="sf-mini-logo">
+                        <Icon name="shop" />
+                      </span>
+                      <strong>{lines[0].storeName}</strong>
+                      <Icon name="arrow" />
+                    </Link>
+                    <span className="sf-muted">{lines.length} позиций</span>
+                  </div>
+                  <fieldset disabled={busy || !!pending}>
+                    <legend className="sf-sr-only">
+                      Товары {lines[0].storeName}
+                    </legend>
+                    {lines.map((l) => (
+                      <div className="sf-cart-line" key={l.id}>
+                        <Link
+                          className="sf-cart-image"
+                          href={`/shops/${slug}/products/${l.id}`}
+                        >
+                          {l.photoUrl ? (
+                            <img src={l.photoUrl} alt={l.name} />
+                          ) : (
+                            <Icon name="box" width={36} height={36} />
+                          )}
+                        </Link>
+                        <div>
+                          <Link
+                            className="sf-cart-name"
+                            href={`/shops/${slug}/products/${l.id}`}
+                          >
+                            {l.name}
+                          </Link>
+                          <small className="sf-muted">
+                            Цена за штуку <Price minor={l.price} />
+                          </small>
+                        </div>
+                        <Price minor={l.price * l.quantity} />
+                        <div className="sf-quantity">
+                          <button
+                            type="button"
+                            aria-label={'Уменьшить ' + l.name}
+                            disabled={l.quantity <= 1}
+                            onClick={() => c.quantity(l.id, l.quantity - 1)}
+                          >
+                            −
+                          </button>
+                          <input
+                            type="number"
+                            aria-label={'Количество ' + l.name}
+                            min="1"
+                            max="1000000"
+                            value={l.quantity}
+                            onChange={(e) =>
+                              c.quantity(l.id, Number(e.target.value))
+                            }
+                          />
+                          <button
+                            type="button"
+                            aria-label={'Увеличить ' + l.name}
+                            onClick={() => c.quantity(l.id, l.quantity + 1)}
+                          >
+                            +
+                          </button>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          aria-label={'Удалить ' + l.name}
+                          onClick={() => c.remove(l.id)}
+                        >
+                          <Icon name="trash" />
+                        </Button>
+                      </div>
+                    ))}
+                    <div className="sf-delivery-options">
+                      {!store ? (
+                        <p role="status">
+                          Проверяем способы получения.{' '}
+                          <button
+                            type="button"
+                            className="sf-text-button"
+                            onClick={() => window.location.reload()}
+                          >
+                            Обновить
+                          </button>
+                        </p>
+                      ) : (
+                        <>
+                          {store.pickupEnabled !== false && (
+                            <label>
+                              <input
+                                type="radio"
+                                name={'method-' + slug}
+                                checked={
+                                  (pending?.fulfillment || method(slug)) ===
+                                  'pickup'
+                                }
+                                onChange={() =>
+                                  setMethods((m) => ({
+                                    ...m,
+                                    [slug]: 'pickup',
+                                  }))
+                                }
+                              />
+                              <Icon name="shop" />
+                              <span>
+                                <strong>Самовывоз</strong>
+                                <small>
+                                  {store.address || 'Адрес уточнит магазин'}
+                                </small>
+                              </span>
+                            </label>
+                          )}
+                          {store.deliveryEnabled && (
+                            <label>
+                              <input
+                                type="radio"
+                                name={'method-' + slug}
+                                checked={
+                                  (pending?.fulfillment || method(slug)) ===
+                                  'delivery'
+                                }
+                                onChange={() =>
+                                  setMethods((m) => ({
+                                    ...m,
+                                    [slug]: 'delivery',
+                                  }))
+                                }
+                              />
+                              <Icon name="truck" />
+                              <span>
+                                <strong>Доставка</strong>
+                                <small>
+                                  Стоимость и срок согласует магазин
+                                </small>
+                              </span>
+                            </label>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </fieldset>
+                  {errors[slug] && (
+                    <Alert variant="error">{errors[slug]}</Alert>
+                  )}
+                  {pending && (
+                    <div className="sf-stack">
+                      <Alert variant="info">
+                        Этот заказ отправлялся. Сначала проверьте результат.
+                      </Alert>
+                      <Button loading={busy} onClick={() => void run(slug)}>
+                        Проверить / повторить заказ
+                      </Button>
+                    </div>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+          <aside className="sf-cart-summary">
+            <section className="sf-panel sf-stack">
+              <h2>Ваш заказ</h2>
+              <div className="sf-total-row">
+                <span>Товары</span>
+                <Price minor={total} />
               </div>
-            ))}
-            <div className="sf-cart-total">
-              <strong>Товары</strong>
-              <Price minor={total} />
+              <div className="sf-total-row">
+                <span>Получение</span>
+                <span>По каждому магазину</span>
+              </div>
+              <p className="sf-muted">
+                Доставка не включена в сумму товаров и согласуется с продавцом
+                до подтверждения.
+              </p>
+              <div className="sf-total-row sf-grand-total">
+                <strong>Итого за товары</strong>
+                <Price minor={total} />
+              </div>
+              <a className="sf-button sf-button--primary" href="#checkout">
+                К оформлению <Icon name="arrow" />
+              </a>
+            </section>
+            <div className="sf-trust-note">
+              <Icon name="shield" />
+              <span>Цены и наличие проверяются магазином при оформлении.</span>
             </div>
-            <p className="sf-muted">
-              Доставка согласуется отдельно с магазином.
-            </p>
-          </section>
-          <form className="sf-panel sf-checkout-form" onSubmit={submit}>
-            <h2>Оформление заказа</h2>
-            <fieldset disabled={busy || unknown}>
-              <Input
-                id="checkout-name"
-                label="Ваше имя"
-                required
-                maxLength={120}
-                autoComplete="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-              <Input
-                id="checkout-phone"
-                label="Ваш телефон"
-                required
-                type="tel"
-                maxLength={30}
-                autoComplete="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              />
-              <Input
-                id="checkout-email"
-                label="Email для статуса заказа (необязательно)"
-                type="email"
-                autoComplete="email"
-                maxLength={254}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                hint="Сообщим об изменении этого заказа. Поле можно оставить пустым."
-              />
-              <Select
-                id="checkout-fulfillment"
-                label="Получение"
-                value={fulfillment}
-                onChange={(e) => setFulfillment(e.target.value)}
-              >
-                <option value="pickup">Самовывоз</option>
-                <option value="delivery">Доставка</option>
-              </Select>
-              {fulfillment === 'delivery' && (
+          </aside>
+          <form
+            id="checkout"
+            className="sf-panel sf-checkout-details"
+            onSubmit={submit}
+          >
+            <h2>Контактные данные</h2>
+            <p className="sf-muted">Заполните один раз для всех магазинов.</p>
+            <fieldset disabled={busy}>
+              <div className="sf-form-columns">
                 <Input
-                  id="checkout-address"
-                  label="Адрес доставки"
+                  id="checkout-name"
+                  label="Ваше имя"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   required
-                  maxLength={250}
-                  autoComplete="street-address"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
+                  maxLength={120}
+                  autoComplete="name"
                 />
-              )}
+                <Input
+                  id="checkout-phone"
+                  label="Телефон"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                  type="tel"
+                  autoComplete="tel"
+                  maxLength={30}
+                />
+                <Input
+                  id="checkout-email"
+                  label="Email (необязательно)"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  type="email"
+                  autoComplete="email"
+                  maxLength={254}
+                />
+                {slugs.some((s) => method(s) === 'delivery') && (
+                  <Input
+                    id="checkout-address"
+                    label="Адрес доставки"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    required
+                    maxLength={250}
+                    autoComplete="street-address"
+                  />
+                )}
+              </div>
               <Textarea
                 id="checkout-comment"
-                label="Комментарий"
-                maxLength={500}
+                label="Комментарий магазинам"
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
+                maxLength={500}
               />
               <p className="sf-muted">
-                Оплата при получении. Стоимость доставки согласуется отдельно с
-                магазином.
+                Оплата при получении. Каждый магазин получит отдельный заказ.
+                Если часть товаров недоступна, остальные заказы сохранятся.
               </p>
-              <Button type="submit" loading={busy} className="sf-full">
-                {busy ? 'Оформление…' : 'Подтвердить заказ'}
+              <Button
+                type="submit"
+                loading={busy}
+                disabled={
+                  slugs.some((s) => !stores[s]) ||
+                  !!c.error ||
+                  slugs.every((s) => !!c.state.attempts[s])
+                }
+              >
+                Подтвердить заказы <Icon name="arrow" />
               </Button>
             </fieldset>
           </form>

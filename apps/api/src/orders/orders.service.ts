@@ -83,10 +83,16 @@ export class OrdersService {
         return this.receiptDto(existing);
       }
       const [shop] = await tx.query(
-        'SELECT id,name FROM shops WHERE slug=$1 AND published FOR SHARE',
+        'SELECT id,name,pickup_enabled,delivery_enabled FROM shops WHERE slug=$1 AND published FOR SHARE',
         [payload.storeSlug],
       );
       if (!shop) throw new NotFoundException('Store unavailable');
+      if (
+        payload.fulfillment === 'delivery'
+          ? !shop.delivery_enabled
+          : !shop.pickup_enabled
+      )
+        throw new ConflictException('Fulfillment unavailable');
       // Keep recovery behind this key lock throughout expiry catch-up.
       await this.expiry.expireForCheckout(tx, shop.id);
       await tx.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [

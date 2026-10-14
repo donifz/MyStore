@@ -6,7 +6,7 @@ test('buyer submits a partner application without creating a login', async ({
 }) => {
   await page.goto('/');
   await expect(
-    page.getByRole('heading', { name: 'Найдите своё в магазинах рядом' }),
+    page.getByRole('heading', { name: /Товары рядом.*от разных магазинов/ }),
   ).toBeVisible();
   await page
     .getByRole('link', { name: 'Стать партнёром', exact: true })
@@ -14,7 +14,7 @@ test('buyer submits a partner application without creating a login', async ({
   await page.getByLabel('Название магазина').fill('Магазин у дома');
   await page.getByLabel('Email').fill('partner-browser@example.test');
   await page.getByLabel('Телефон').fill('+996700123456');
-  await page.getByLabel('Город').fill('Ош');
+  await page.getByRole('main').getByLabel('Город', { exact: true }).fill('Ош');
   await page.getByLabel('Адрес').fill('Центр');
   await page.getByLabel('Категория бизнеса').fill('Подарки');
   await page.getByLabel('Согласен с условиями подключения').check();

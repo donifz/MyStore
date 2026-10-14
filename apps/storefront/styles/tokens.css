@@ -1,10 +1,13 @@
 :root {
-  --sf-background: #f6f8f5;
+  --sf-background: #f5f8f8;
+  --sf-shop-sage: #71895b;
+  --sf-shop-blue: #226d83;
+  --sf-overlay: rgb(12 30 28 / 72%);
   --sf-surface: #ffffff;
-  --sf-text: #202c3c;
+  --sf-text: #102033;
   --sf-muted: #586777;
-  --sf-border: #d9e2dc;
-  --sf-primary: #176854;
+  --sf-border: #e0e8ed;
+  --sf-primary: #006d55;
   --sf-primary-hover: #12513f;
   --sf-primary-soft: #e8f2ec;
   --sf-danger: #a82e2e;
@@ -30,7 +33,7 @@
   --sf-text-lg: 20px;
   --sf-text-xl: 24px;
   --sf-heading: clamp(28px, 4vw, 48px);
-  --sf-content: 1280px;
+  --sf-content: 1600px;
   --sf-control: 44px;
   --sf-shadow: 0 8px 24px rgb(32 44 60 / 5%);
 }

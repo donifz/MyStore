@@ -40,11 +40,31 @@ export default function StorefrontSettingsPage() {
     setBusy(true);
     setError('');
     try {
-      const { description, city, address, phone, hours, published } = form;
+      const {
+        description,
+        city,
+        address,
+        phone,
+        hours,
+        published,
+        district,
+        pickupEnabled,
+        deliveryEnabled,
+      } = form;
       setForm(
         await api<StoreProfile>(`/shops/${shopId}/storefront`, {
           method: 'PUT',
-          body: { description, city, address, phone, hours, published },
+          body: {
+            description,
+            city,
+            address,
+            phone,
+            hours,
+            published,
+            district,
+            pickupEnabled,
+            deliveryEnabled,
+          },
         }),
       );
       setSaved(true);
@@ -91,6 +111,30 @@ export default function StorefrontSettingsPage() {
                 value={form.city}
                 onChange={(e) => field('city', e.target.value)}
               />
+            </label>
+            <label>
+              Район
+              <input
+                maxLength={80}
+                value={form.district || ''}
+                onChange={(e) => field('district', e.target.value)}
+              />
+            </label>
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={form.pickupEnabled ?? true}
+                onChange={(e) => field('pickupEnabled', e.target.checked)}
+              />
+              Самовывоз из магазина
+            </label>
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={form.deliveryEnabled ?? false}
+                onChange={(e) => field('deliveryEnabled', e.target.checked)}
+              />
+              Доставка по согласованию с покупателем
             </label>
             <label>
               Адрес

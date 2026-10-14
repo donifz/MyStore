@@ -30,13 +30,32 @@ class PageQuery {
   @Type(() => Number) @IsInt() @Min(1) @Max(1000000) page = 1;
   @Type(() => Number) @IsInt() @Min(1) @Max(100) pageSize = 24;
 }
-class ProductQuery extends PageQuery {
-  @IsOptional() @IsString() @MaxLength(80) store = '';
+class StoreQuery extends PageQuery {
+  @IsOptional() @IsString() @MaxLength(80) city = '';
+  @IsOptional() @IsString() @MaxLength(80) district = '';
   @IsOptional() @IsString() @MaxLength(80) category = '';
+}
+class ProductQuery extends StoreQuery {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(1000000000000)
+  minPrice?: number;
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(1000000000000)
+  maxPrice?: number;
+  @IsOptional() @IsString() @MaxLength(80) store = '';
   @IsIn(['true', 'false']) inStock = 'false';
   @IsIn(['name', 'price-asc', 'price-desc']) sort = 'name';
 }
 class ProfileDto {
+  @IsOptional() @IsString() @MaxLength(80) district?: string;
+  @IsOptional() @IsBoolean() pickupEnabled?: boolean;
+  @IsOptional() @IsBoolean() deliveryEnabled?: boolean;
   @IsString() @MaxLength(2000) description!: string;
   @IsString() @MaxLength(80) city!: string;
   @IsString() @MaxLength(250) address!: string;
@@ -58,12 +77,15 @@ export class PublicStorefrontController {
     res.setHeader('Cache-Control', 'no-store');
     res.type('image/jpeg').send(await this.capture.photo(null, id, slug));
   }
+  @Get('filters') filters() {
+    return this.service.filters();
+  }
   @Get('stores') stores(
-    @Query() q: PageQuery,
+    @Query() q: StoreQuery,
     @Res({ passthrough: true }) res: Response,
   ) {
     res.setHeader('Cache-Control', 'no-store');
-    return this.service.stores(q.q, q.page, q.pageSize);
+    return this.service.stores(q.q, q.page, q.pageSize, q);
   }
   @Get('stores/:slug') store(
     @Param('slug') slug: string,

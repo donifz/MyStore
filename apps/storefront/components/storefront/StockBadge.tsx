@@ -7,7 +7,7 @@ export default function StockBadge({
   detailed?: boolean;
 }) {
   return (
-    <Badge variant={available > 0 ? 'success' : 'neutral'}>
+    <Badge className="sf-stock" variant={available > 0 ? 'success' : 'neutral'}>
       {available > 0
         ? detailed
           ? `В наличии: ${available} шт.`

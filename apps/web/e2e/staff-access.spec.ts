@@ -243,17 +243,20 @@ test('checkout accepts email and worker sends the buyer the changed status', asy
   });
   expect(received.ok()).toBeTruthy();
   await page.goto(`/shops/${slug}/products/${variant}`);
-  await page.getByRole('button', { name: 'В корзину', exact: true }).click();
+  await page
+    .getByRole('complementary', { name: 'Покупка товара' })
+    .getByRole('button', { name: 'В корзину', exact: true })
+    .click();
   await page.goto('/cart');
   const email = `buyer-${randomUUID()}@example.test`;
   await page.getByLabel('Ваше имя', { exact: true }).fill('Покупатель');
-  await page.getByLabel('Ваш телефон', { exact: true }).fill('+996700987654');
-  await page.getByLabel('Email для статуса заказа (необязательно)').fill(email);
+  await page.getByLabel('Телефон', { exact: true }).fill('+996700987654');
+  await page.getByLabel('Email (необязательно)', { exact: true }).fill(email);
   await page
-    .getByRole('button', { name: 'Подтвердить заказ', exact: true })
+    .getByRole('button', { name: 'Подтвердить заказы', exact: true })
     .click();
   await expect(
-    page.getByText('Ожидает подтверждения', { exact: true }),
+    page.getByText('Ожидает подтверждения магазина', { exact: true }),
   ).toBeVisible();
   const [order] = (
     await db.query(
