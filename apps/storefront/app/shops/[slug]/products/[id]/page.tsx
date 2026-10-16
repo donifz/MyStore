@@ -99,7 +99,7 @@ export default async function ProductPage({ params }: Props) {
         <span>{v.name}</span>
       </nav>
       <article className="sf-detail-layout">
-        <ProductGallery photoUrl={v.photoUrl} name={v.name} />
+        <ProductGallery photoUrl={v.photoUrl} photoUrls={v.photoUrls} name={v.name} />
         <div className="sf-detail-copy">
           <p className="sf-eyebrow">{v.category || 'Товар магазина'}</p>
           <div className="sf-detail-title">
