@@ -17,6 +17,7 @@ export type Product = {
   size?: string;
   color?: string;
   photoUrl?: string;
+  photoUrls?: string[];
   id: string;
   name: string;
   description: string;

@@ -1,17 +1,26 @@
 'use client';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import Icon from './Icon';
 export default function ProductGallery({
   photoUrl,
+  photoUrls,
   name,
 }: {
   photoUrl?: string;
+  photoUrls?: string[];
   name: string;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const [active, setActive] = useState(0);
+  const photos = [
+    ...new Set([...(photoUrls ?? []), ...(photoUrl ? [photoUrl] : [])]),
+  ]
+    .filter(Boolean)
+    .slice(0, 8);
+  const photo = photos[Math.min(active, photos.length - 1)];
   return (
     <div className="sf-gallery">
-      {photoUrl ? (
+      {photo ? (
         <>
           <button
             className="sf-gallery-main"
@@ -19,13 +28,23 @@ export default function ProductGallery({
             aria-label="Увеличить фото товара"
             onClick={() => dialog.current?.showModal()}
           >
-            <img src={photoUrl} alt={name} />
+            <img src={photo} alt={name} />
           </button>
-          <div className="sf-gallery-thumbnails">
-            <span>
-              <img src={photoUrl} alt="Основное фото" />
-            </span>
-            <small>Нажмите на фото, чтобы рассмотреть</small>
+          <div className="sf-gallery-thumbnails" aria-label="Фотографии товара">
+            {photos.map((url, index) => (
+              <button
+                key={url}
+                type="button"
+                aria-label={`Фото ${index + 1} из ${photos.length}`}
+                aria-pressed={index === active}
+                onClick={() => setActive(index)}
+              >
+                <img src={url} alt={`Фото ${index + 1}`} />
+              </button>
+            ))}
+            {photos.length === 1 && (
+              <small>Нажмите на фото, чтобы рассмотреть</small>
+            )}
           </div>
           <dialog
             ref={dialog}
@@ -41,7 +60,7 @@ export default function ProductGallery({
             >
               Закрыть ×
             </button>
-            <img src={photoUrl} alt={name} />
+            <img src={photo} alt={name} />
           </dialog>
         </>
       ) : (
