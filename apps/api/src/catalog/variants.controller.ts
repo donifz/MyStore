@@ -12,12 +12,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  IsArray,
   IsBoolean,
   IsInt,
   IsOptional,
   IsString,
   Max,
   MaxLength,
+  ArrayMaxSize,
   Min,
   MinLength,
   Matches,
@@ -43,6 +45,11 @@ export class VariantFieldsDto {
 export class VariantDto extends VariantFieldsDto {
   @IsOptional() @IsString() @MaxLength(2000) description?: string;
   @IsOptional() @IsString() @MaxLength(699074) photoDataUrl?: string;
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(8)
+  @IsString({ each: true })
+  photoDataUrls?: string[];
 }
 class EditVariantDto {
   @IsString() @MinLength(1) @MaxLength(200) @Matches(/\S/) name!: string;
