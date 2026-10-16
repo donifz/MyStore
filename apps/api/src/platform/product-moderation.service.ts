@@ -82,10 +82,10 @@ export class ProductModerationService {
         throw new ConflictException('Revision already decided');
       if (decision === 'approved')
         await tx.query(
-          `INSERT INTO product_publications(variant_id,shop_id,name,description,category,subcategory,photo_data)
-         VALUES($1,$2,$3,$4,$5,$6,$7)
+          `INSERT INTO product_publications(variant_id,shop_id,name,description,category,subcategory,photo_data,photo_album)
+         VALUES($1,$2,$3,$4,$5,$6,$7,$8)
          ON CONFLICT(variant_id) DO UPDATE SET name=excluded.name,description=excluded.description,
-           category=excluded.category,subcategory=excluded.subcategory,photo_data=excluded.photo_data,approved_at=now()`,
+           category=excluded.category,subcategory=excluded.subcategory,photo_data=excluded.photo_data,photo_album=excluded.photo_album,approved_at=now()`,
           [
             r.variant_id,
             r.shop_id,
@@ -94,6 +94,7 @@ export class ProductModerationService {
             r.category,
             r.subcategory,
             r.photo_data,
+            r.photo_album,
           ],
         );
       await tx.query(
