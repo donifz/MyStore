@@ -74,9 +74,8 @@ describe('product photo album moderation', () => {
     const first = (await request(http()).get(path).expect(200)).body;
     expect(first.photoUrls).toHaveLength(2);
     const main = await request(http()).get(first.photoUrls[0]).expect(200);
-    const secondary = await request(http())
-      .get(first.photoUrls[1])
-      .expect(200);
+    const secondUrl = first.photoUrls[1];
+    const secondary = await request(http()).get(secondUrl).expect(200);
     expect(main.body.equals(secondary.body)).toBe(false);
 
     await request(http())
@@ -101,8 +100,7 @@ describe('product photo album moderation', () => {
       .auth(c.owner, { type: 'bearer' })
       .send({ photoDataUrls: Array(9).fill(photos[0]) })
       .expect(400);
-    expect(
-      (await request(http()).get(path).expect(200)).body.photoUrls,
-    ).toHaveLength(2);
+    const finalProduct = (await request(http()).get(path).expect(200)).body;
+    expect(finalProduct.photoUrls).toHaveLength(2);
   });
 });
