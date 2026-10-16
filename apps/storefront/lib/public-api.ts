@@ -15,6 +15,7 @@ export type Store = {
 };
 export type Product = {
   photoUrl?: string;
+  photoUrls?: string[];
   id: string;
   name: string;
   description: string;
