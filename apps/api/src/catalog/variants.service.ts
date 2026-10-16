@@ -27,6 +27,7 @@ export type Variant = {
   size: string;
   color: string;
   photoUrl?: string;
+  photoUrls?: string[];
   description: string;
   category: string;
   subcategory: string;
@@ -52,6 +53,15 @@ export class VariantsService {
       color: row.color ?? '',
       ...(row.has_photo || row.photo_data
         ? { photoUrl: `/api/shops/${row.shop_id}/variants/${row.id}/photo` }
+        : {}),
+      ...(row.photo_count !== undefined
+        ? {
+            photoUrls: Array.from(
+              { length: Math.min(Number(row.photo_count), 8) },
+              (_, index) =>
+                `/api/shops/${row.shop_id}/variants/${row.id}/photo?index=${index}`,
+            ),
+          }
         : {}),
       name: row.name,
       barcode: row.barcode,
@@ -261,7 +271,7 @@ export class VariantsService {
   }
   async getById(shopId: string, id: string) {
     const [row] = await this.db.query(
-      "SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.sale_price_minor,v.description,v.category,v.subcategory,v.published,(v.photo_data IS NOT NULL) has_photo,CASE WHEN EXISTS(SELECT 1 FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='pending') THEN 'pending' WHEN EXISTS(SELECT 1 FROM product_publications p WHERE p.variant_id=v.id) THEN 'approved' ELSE 'unpublished' END publication_status,(SELECT reason FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='rejected' AND r.decided_by IS NOT NULL ORDER BY r.decided_at DESC LIMIT 1) rejection_reason FROM variants v WHERE v.shop_id=$1 AND v.id=$2",
+      "SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.sale_price_minor,v.description,v.category,v.subcategory,v.published,(v.photo_data IS NOT NULL) has_photo,cardinality(v.photo_album) photo_count,CASE WHEN EXISTS(SELECT 1 FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='pending') THEN 'pending' WHEN EXISTS(SELECT 1 FROM product_publications p WHERE p.variant_id=v.id) THEN 'approved' ELSE 'unpublished' END publication_status,(SELECT reason FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='rejected' AND r.decided_by IS NOT NULL ORDER BY r.decided_at DESC LIMIT 1) rejection_reason FROM variants v WHERE v.shop_id=$1 AND v.id=$2",
       [shopId, id],
     );
     if (!row) throw new NotFoundException();
