@@ -36,6 +36,7 @@ export default function ProductForm({
     [subcategory, setSubcategory] = useState(''),
     [description, setDescription] = useState(''),
     [photo, setPhoto] = useState(''),
+    [photos, setPhotos] = useState<string[]>([]),
     [categories, setCategories] = useState<CategoryNode[]>([]),
     [busy, setBusy] = useState(false),
     [loadingPhoto, setLoadingPhoto] = useState(false),
@@ -53,15 +54,23 @@ export default function ProductForm({
     [],
   );
   const locked = disabled || busy || loadingPhoto || recognizing || barcodeBusy;
-  async function choose(file?: File) {
-    if (!file) return;
+  async function choose(files?: FileList | null) {
+    if (!files?.length) return;
+    if (files.length > 8) {
+      setError('Не более 8 фотографий товара.');
+      return;
+    }
     const revision = ++photoRevision.current;
     setLoadingPhoto(true);
     setError('');
     setPhoto('');
+    setPhotos([]);
     try {
-      const data = await photoFrom(file);
-      if (photoRevision.current === revision) setPhoto(data);
+      const data = await Promise.all(Array.from(files).map(photoFrom));
+      if (photoRevision.current === revision) {
+        setPhotos(data);
+        setPhoto(data[0] ?? '');
+      }
     } catch (e) {
       if (photoRevision.current === revision) setError(errorText(e));
     } finally {
@@ -130,7 +139,7 @@ export default function ProductForm({
               ...(description.trim()
                 ? { description: description.trim() }
                 : {}),
-              ...(photo ? { photoDataUrl: photo } : {}),
+              ...(photos.length ? { photoDataUrls: photos } : {}),
             },
           });
           setSaved(variant);
@@ -197,11 +206,14 @@ export default function ProductForm({
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
-                  capture="environment"
-                  onChange={(e) => void choose(e.target.files?.[0])}
+                  multiple
+                  onChange={(e) => void choose(e.target.files)}
                 />
               </label>
               {loadingPhoto && <p role="status">Подготовка фото…</p>}
+              {photos.length > 1 && (
+                <p className="muted">Выбрано фотографий: {photos.length}</p>
+              )}
               <PhotoAssistant
                 shopId={shopId}
                 photo={photo}
