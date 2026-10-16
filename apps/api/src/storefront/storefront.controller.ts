@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { Type } from 'class-transformer';
 import {
+  Allow,
   IsBoolean,
   IsIn,
   IsInt,
@@ -53,6 +54,8 @@ class ProductQuery extends StoreQuery {
   @IsIn(['name', 'price-asc', 'price-desc']) sort = 'name';
 }
 class ProfileDto {
+  @Allow() timeZone?: string;
+  @Allow() businessSchedule?: unknown;
   @IsOptional() @IsString() @MaxLength(80) district?: string;
   @IsOptional() @IsBoolean() pickupEnabled?: boolean;
   @IsOptional() @IsBoolean() deliveryEnabled?: boolean;
@@ -60,7 +63,7 @@ class ProfileDto {
   @IsString() @MaxLength(80) city!: string;
   @IsString() @MaxLength(250) address!: string;
   @IsString() @MaxLength(30) phone!: string;
-  @IsString() @MaxLength(120) hours!: string;
+  @IsString() @MaxLength(1000) hours!: string;
   @IsBoolean() published!: boolean;
 }
 @Controller('public')
@@ -131,6 +134,6 @@ export class StorefrontSettingsController {
     @Body() body: ProfileDto,
   ) {
     await this.service.owner(req.userId, shop);
-    return this.service.updateProfile(shop, body);
+    return this.service.updateProfile(shop, body, req.userId);
   }
 }
