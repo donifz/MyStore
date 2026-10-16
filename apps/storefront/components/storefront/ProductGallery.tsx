@@ -12,7 +12,9 @@ export default function ProductGallery({
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [active, setActive] = useState(0);
-  const photos = [...new Set([...(photoUrls ?? []), ...(photoUrl ? [photoUrl] : [])])]
+  const photos = [
+    ...new Set([...(photoUrls ?? []), ...(photoUrl ? [photoUrl] : [])]),
+  ]
     .filter(Boolean)
     .slice(0, 8);
   const photo = photos[Math.min(active, photos.length - 1)];
@@ -40,7 +42,9 @@ export default function ProductGallery({
                 <img src={url} alt={`Фото ${index + 1}`} />
               </button>
             ))}
-            {photos.length === 1 && <small>Нажмите на фото, чтобы рассмотреть</small>}
+            {photos.length === 1 && (
+              <small>Нажмите на фото, чтобы рассмотреть</small>
+            )}
           </div>
           <dialog
             ref={dialog}
