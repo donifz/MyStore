@@ -1,9 +1,10 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { api, errorText } from '../api/client';
+import { api, ApiError, errorText } from '../api/client';
 import { useSession } from '../auth/SessionProvider';
 import { StoreProfile } from './types';
 import { useResource } from './use-resource';
+import BusinessHoursEditor from './BusinessHoursEditor';
 export default function StorefrontSettingsPage() {
   const { shopId } = useParams(),
     session = useSession();
@@ -15,10 +16,12 @@ export default function StorefrontSettingsPage() {
   const [form, setForm] = useState<StoreProfile | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
-    [saved, setSaved] = useState(false);
+    [saved, setSaved] = useState(false),
+    [dirty, setDirty] = useState(false);
   useEffect(() => {
     setForm(resource.data);
     setSaved(false);
+    setDirty(false);
   }, [resource.data]);
   if (!owner) return <p role="alert">Настройка витрины доступна владельцу.</p>;
   if (!form)
@@ -30,9 +33,10 @@ export default function StorefrontSettingsPage() {
         {resource.error || 'Загрузка настроек…'}
       </p>
     );
-  function field(k: keyof StoreProfile, value: string | boolean) {
+  function field<K extends keyof StoreProfile>(k: K, value: StoreProfile[K]) {
     setForm((f) => (f ? { ...f, [k]: value } : f));
     setSaved(false);
+    setDirty(true);
   }
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -50,6 +54,8 @@ export default function StorefrontSettingsPage() {
         district,
         pickupEnabled,
         deliveryEnabled,
+        timeZone,
+        businessSchedule,
       } = form;
       setForm(
         await api<StoreProfile>(`/shops/${shopId}/storefront`, {
@@ -64,12 +70,17 @@ export default function StorefrontSettingsPage() {
             district,
             pickupEnabled,
             deliveryEnabled,
+            timeZone: timeZone ?? 'Asia/Bishkek',
+            businessSchedule: businessSchedule ?? null,
           },
         }),
       );
       setSaved(true);
+      setDirty(false);
     } catch (e) {
-      setError(errorText(e));
+      setError(
+        e instanceof ApiError && e.status === 400 ? e.message : errorText(e),
+      );
     } finally {
       setBusy(false);
     }
@@ -155,15 +166,47 @@ export default function StorefrontSettingsPage() {
                 onChange={(e) => field('phone', e.target.value)}
               />
             </label>
-            <label>
-              Часы работы
-              <input
-                maxLength={120}
-                value={form.hours}
-                placeholder="Пн–Сб, 10:00–19:00"
-                onChange={(e) => field('hours', e.target.value)}
-              />
-            </label>
+            {!form.businessSchedule && (
+              <label>
+                Часы работы (описание)
+                <input
+                  maxLength={1000}
+                  value={form.hours}
+                  placeholder="Пн–Сб, 10:00–19:00"
+                  onChange={(e) => field('hours', e.target.value)}
+                />
+              </label>
+            )}
+            <BusinessHoursEditor
+              value={form.businessSchedule ?? null}
+              timeZone={form.timeZone ?? 'Asia/Bishkek'}
+              disabled={busy}
+              onChange={(value) => field('businessSchedule', value)}
+              onTimeZoneChange={(value) => field('timeZone', value)}
+            />
+            {dirty ? (
+              <p className="muted">
+                Сохраните изменения, чтобы обновить пример срока.
+              </p>
+            ) : (
+              form.confirmationPreview && (
+                <p className="business-hours-preview">
+                  Если заказ поступит сейчас, подтвердить его нужно до{' '}
+                  <strong>
+                    {new Intl.DateTimeFormat('ru-RU', {
+                      timeZone: form.timeZone ?? 'Asia/Bishkek',
+                      dateStyle: 'short',
+                      timeStyle: 'short',
+                    }).format(new Date(form.confirmationPreview.expiresAt))}
+                  </strong>{' '}
+                  ({form.timeZone ?? 'Asia/Bishkek'}).
+                  <small className="muted">
+                    Пример рассчитан при последнем сохранении или загрузке
+                    настроек.
+                  </small>
+                </p>
+              )
+            )}
             <label className="checkbox">
               <input
                 type="checkbox"
