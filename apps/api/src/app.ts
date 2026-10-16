@@ -152,6 +152,15 @@ export async function createApp(
     app.getHttpAdapter().getInstance().set('trust proxy', 1);
   if (process.env.NODE_ENV === 'production' && !process.env.WEB_ORIGINS)
     throw new Error('WEB_ORIGINS required');
+  // A product album contains up to eight normalized JPEGs (512 KiB each).
+  // Raise the JSON limit only for creating product cards with an album.
+  app.use(
+    /^\/(?:api\/)?shops\/[0-9a-f-]{36}\/variants\/?$/,
+    (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      if (req.method !== 'POST') return next();
+      return express.json({ limit: '6mb' })(req, res, next);
+    },
+  );
   app.use(express.json({ limit: '1mb' }));
   app.use(
     (
