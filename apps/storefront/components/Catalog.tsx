@@ -144,8 +144,35 @@ export default async function Catalog({
             <p className="sf-eyebrow">Выбирайте своё</p>
             <h2>{store ? 'Товары магазина' : 'Все товары'}</h2>
           </div>
-          <span className="sf-muted">{products.total} товаров</span>
+          <span className="sf-count-pill">{products.total} товаров</span>
         </div>
+        {products.categories.length > 0 && (
+          <div
+            className="sf-quick-categories"
+            role="navigation"
+            aria-label="Быстрый выбор категории"
+          >
+            <Link
+              href={slug ? `/shops/${slug}#catalog` : '/#catalog'}
+              className={`sf-quick-chip ${!filter.category ? 'sf-quick-chip--active' : ''}`}
+            >
+              Все товары
+            </Link>
+            {products.categories.map((c) => (
+              <Link
+                key={c}
+                href={
+                  slug
+                    ? `/shops/${slug}?category=${encodeURIComponent(c)}#catalog`
+                    : `/?category=${encodeURIComponent(c)}#catalog`
+                }
+                className={`sf-quick-chip ${filter.category === c ? 'sf-quick-chip--active' : ''}`}
+              >
+                {c}
+              </Link>
+            ))}
+          </div>
+        )}
         <div className="sf-catalog-layout">
           <aside className="sf-catalog-sidebar">
             <details open>
@@ -169,6 +196,13 @@ export default async function Catalog({
               </div>
             ) : (
               <EmptyState
+                icon={
+                  filter.page > 1
+                    ? 'arrow'
+                    : filter.q || filter.category || filter.inStock
+                      ? 'search'
+                      : 'shop'
+                }
                 title={
                   filter.page > 1
                     ? 'На этой странице товаров нет'
@@ -182,6 +216,32 @@ export default async function Catalog({
                     : filter.q || filter.category || filter.inStock
                       ? 'Попробуйте другой запрос или измените фильтры.'
                       : 'Магазины смогут добавить товары после настройки витрин.'
+                }
+                action={
+                  filter.page > 1 ? (
+                    <LinkButton
+                      variant="primary"
+                      href={slug ? '/shops/' + slug : '/'}
+                    >
+                      На первую страницу
+                    </LinkButton>
+                  ) : filter.q || filter.category || filter.inStock ? (
+                    <LinkButton
+                      variant="primary"
+                      href={slug ? '/shops/' + slug : '/'}
+                    >
+                      Сбросить фильтры
+                    </LinkButton>
+                  ) : (
+                    <div className="sf-empty-button-group">
+                      <LinkButton variant="primary" href="/shops">
+                        Смотреть магазины
+                      </LinkButton>
+                      <LinkButton variant="secondary" href="/partner">
+                        Стать продавцом
+                      </LinkButton>
+                    </div>
+                  )
                 }
               />
             )}

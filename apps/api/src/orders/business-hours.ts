@@ -13,7 +13,12 @@ function minute(value: unknown): number {
 }
 
 export function validateTimeZone(value: unknown): asserts value is string {
-  if (typeof value !== 'string' || !value || value.length > 80)
+  if (
+    typeof value !== 'string' ||
+    !value ||
+    value.length > 80 ||
+    /^[+-]\d{2}:?\d{2}$/.test(value.trim())
+  )
     throw new Error('Укажите часовой пояс IANA, например Asia/Bishkek.');
   try {
     new Intl.DateTimeFormat('en-GB', { timeZone: value }).format(new Date(0));
