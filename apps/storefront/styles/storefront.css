@@ -961,9 +961,11 @@ select.sf-input:focus,
   flex-shrink: 0;
 }
 .sf-header {
-  background: var(--sf-surface);
+  background: var(--sf-glass);
+  backdrop-filter: var(--sf-glass-blur);
+  -webkit-backdrop-filter: var(--sf-glass-blur);
   border-bottom: 1px solid var(--sf-border);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
   position: relative;
   z-index: 20;
 }
