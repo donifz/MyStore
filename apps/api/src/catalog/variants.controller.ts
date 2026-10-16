@@ -123,7 +123,12 @@ export class VariantsController {
     @Body() body: ReplaceAlbumDto,
   ) {
     await this.access.requireMembership(req.userId, shopId, 'catalog');
-    return this.variants.replacePhotoAlbum(shopId, id, body.photoDataUrls, req.userId);
+    return this.variants.replacePhotoAlbum(
+      shopId,
+      id,
+      body.photoDataUrls,
+      req.userId,
+    );
   }
   @Put(':variantId') async update(
     @Param('shopId', ParseUUIDPipe) shopId: string,
