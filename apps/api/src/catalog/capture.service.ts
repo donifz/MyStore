@@ -97,10 +97,12 @@ export class CaptureService {
       },
     );
   }
-  async photo(shop: string | null, id: string, slug?: string) {
+  async photo(shop: string | null, id: string, slug?: string, index = 0) {
+    if (!Number.isInteger(index) || index < 0 || index > 7)
+      throw new NotFoundException();
     const [r] = await this.db.query(
-      'SELECT CASE WHEN $3::text IS NULL THEN v.photo_data ELSE p.photo_data END photo_data FROM variants v JOIN shops s ON s.id=v.shop_id LEFT JOIN product_publications p ON p.variant_id=v.id WHERE v.id=$1 AND ($2::uuid IS NULL OR v.shop_id=$2) AND ($3::text IS NULL OR (s.slug=$3 AND s.published AND v.published AND p.variant_id IS NOT NULL))',
-      [id, shop, slug ?? null],
+      'SELECT CASE WHEN $3::text IS NULL THEN v.photo_album[$4] ELSE p.photo_album[$4] END photo_data FROM variants v JOIN shops s ON s.id=v.shop_id LEFT JOIN product_publications p ON p.variant_id=v.id WHERE v.id=$1 AND ($2::uuid IS NULL OR v.shop_id=$2) AND ($3::text IS NULL OR (s.slug=$3 AND s.published AND v.published AND p.variant_id IS NOT NULL))',
+      [id, shop, slug ?? null, index + 1],
     );
     if (!r?.photo_data) throw new NotFoundException();
     return r.photo_data as Buffer;
