@@ -72,10 +72,12 @@ export class PublicStorefrontController {
   @Get('stores/:slug/products/:id/photo') async photo(
     @Param('slug') slug: string,
     @Param('id', ParseUUIDPipe) id: string,
+    @Query('index') index: string | undefined,
     @Res() res: Response,
   ) {
     res.setHeader('Cache-Control', 'no-store');
-    res.type('image/jpeg').send(await this.capture.photo(null, id, slug));
+    const photoIndex = index === undefined ? 0 : Number(index);
+    res.type('image/jpeg').send(await this.capture.photo(null, id, slug, photoIndex));
   }
   @Get('filters') filters() {
     return this.service.filters();
