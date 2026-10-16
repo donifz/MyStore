@@ -100,10 +100,12 @@ export class CaptureController {
     @Param('shopId', ParseUUIDPipe) shop: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Req() req: UserRequest,
+    @Query('index') index: string | undefined,
     @Res() res: Response,
   ) {
     await this.access.requireMembership(req.userId, shop, 'read');
     res.setHeader('Cache-Control', 'no-store');
-    res.type('image/jpeg').send(await this.captureService.photo(shop, id));
+    const photoIndex = index === undefined ? 0 : Number(index);
+    res.type('image/jpeg').send(await this.captureService.photo(shop, id, undefined, photoIndex));
   }
 }

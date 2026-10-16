@@ -15,8 +15,8 @@ export async function stageProduct(
   const id = randomUUID();
   await tx.query(
     `INSERT INTO product_publication_revisions
-      (id,variant_id,shop_id,name,description,category,subcategory,photo_data,status,submitted_by)
-     VALUES($1,$2,$3,$4,$5,$6,$7,$8,'pending',$9)`,
+      (id,variant_id,shop_id,name,description,category,subcategory,photo_data,photo_album,status,submitted_by)
+     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$10,'pending',$9)`,
     [
       id,
       row.id,
@@ -27,6 +27,7 @@ export async function stageProduct(
       row.subcategory ?? '',
       row.photo_data,
       actor,
+      row.photo_album ?? (row.photo_data ? [row.photo_data] : []),
     ],
   );
   return id;

@@ -6,6 +6,7 @@ import { Variant } from '../api/types';
 import { useSession } from '../auth/SessionProvider';
 import { useResource } from '../storefront/use-resource';
 import type { CategoryNode } from './PhotoAssistant';
+import EditProductPhotos from './EditProductPhotos';
 export default function EditVariantPage() {
   const { shopId, id } = useParams(),
     s = useSession();
@@ -193,6 +194,9 @@ export default function EditVariantPage() {
             </fieldset>
           </form>
         </section>
+      )}
+      {r.data && shopId && (
+        <EditProductPhotos shopId={shopId} variant={r.data} />
       )}
     </>
   );

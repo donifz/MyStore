@@ -16,6 +16,7 @@ import { Operations1760000000012 } from './migrations/1760000000012-Operations';
 import { StaffEmail1760000000013 } from './migrations/1760000000013-StaffEmail';
 import { Marketplace1760000000014 } from './migrations/1760000000014-Marketplace';
 import { VariantAttributes1760000000015 } from './migrations/1760000000015-VariantAttributes';
+import { ProductAlbums1760000000016 } from './migrations/1760000000016-ProductAlbums';
 export const DATABASE = Symbol('DATABASE');
 export function buildDataSource(url: string) {
   return new DataSource({
@@ -39,6 +40,7 @@ export function buildDataSource(url: string) {
       StaffEmail1760000000013,
       Marketplace1760000000014,
       VariantAttributes1760000000015,
+      ProductAlbums1760000000016,
     ],
   });
 }

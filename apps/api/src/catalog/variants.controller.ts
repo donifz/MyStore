@@ -12,12 +12,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  IsArray,
   IsBoolean,
   IsInt,
   IsOptional,
   IsString,
   Max,
   MaxLength,
+  ArrayMaxSize,
   Min,
   MinLength,
   Matches,
@@ -43,6 +45,17 @@ export class VariantFieldsDto {
 export class VariantDto extends VariantFieldsDto {
   @IsOptional() @IsString() @MaxLength(2000) description?: string;
   @IsOptional() @IsString() @MaxLength(699074) photoDataUrl?: string;
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(8)
+  @IsString({ each: true })
+  photoDataUrls?: string[];
+}
+class ReplaceAlbumDto {
+  @IsArray()
+  @ArrayMaxSize(8)
+  @IsString({ each: true })
+  photoDataUrls!: string[];
 }
 class EditVariantDto {
   @IsString() @MinLength(1) @MaxLength(200) @Matches(/\S/) name!: string;
@@ -102,6 +115,20 @@ export class VariantsController {
     const variant = await this.variants.findByBarcode(shopId, query.code);
     if (!variant) throw new NotFoundException();
     return variant;
+  }
+  @Put(':variantId/photos') async replacePhotos(
+    @Param('shopId', ParseUUIDPipe) shopId: string,
+    @Param('variantId', ParseUUIDPipe) id: string,
+    @Req() req: UserRequest,
+    @Body() body: ReplaceAlbumDto,
+  ) {
+    await this.access.requireMembership(req.userId, shopId, 'catalog');
+    return this.variants.replacePhotoAlbum(
+      shopId,
+      id,
+      body.photoDataUrls,
+      req.userId,
+    );
   }
   @Put(':variantId') async update(
     @Param('shopId', ParseUUIDPipe) shopId: string,
