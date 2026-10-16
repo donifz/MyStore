@@ -151,6 +151,27 @@ export class VariantsService {
       throw e;
     }
   }
+  async replacePhotoAlbum(
+    shopId: string,
+    id: string,
+    sources: string[],
+    actor: string,
+  ) {
+    const album = await Promise.all(sources.map(normalizeProductPhoto));
+    return this.db.transaction(async (tx) => {
+      const [before] = await tx.query(
+        'SELECT * FROM variants WHERE shop_id=$1 AND id=$2 FOR UPDATE',
+        [shopId, id],
+      );
+      if (!before) throw new NotFoundException();
+      const [row] = await tx.query(
+        'UPDATE variants SET photo_data=$3,photo_album=$4 WHERE shop_id=$1 AND id=$2 RETURNING *',
+        [shopId, id, album[0] ?? null, album],
+      );
+      await stageProduct(tx, row, actor);
+      return this.dto({ ...row, publication_status: 'pending' });
+    });
+  }
   async findByBarcode(
     shopId: string,
     barcode: string,
