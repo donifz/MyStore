@@ -2,10 +2,7 @@ import { addBusinessMinutes, parseDailyHours } from '../src/orders/business-hour
 
 describe('shop business-hours reservation', () => {
   it('parses a daily schedule without assuming an opening window', () => {
-    expect(parseDailyHours('10:00–19:00')).toEqual({
-      start: 600,
-      end: 1140,
-    });
+    expect(parseDailyHours('10:00–19:00')).toEqual({ start: 600, end: 1140 });
     expect(parseDailyHours('по звонку')).toBeNull();
     expect(parseDailyHours('25:00–19:00')).toBeNull();
   });
