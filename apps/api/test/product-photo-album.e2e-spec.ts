@@ -99,6 +99,8 @@ describe('product photo album moderation', () => {
       .auth(c.owner, { type: 'bearer' })
       .send({ photoDataUrls: Array(9).fill(photos[0]) })
       .expect(400);
-    expect((await request(http()).get(path).expect(200)).body.photoUrls).toHaveLength(2);
+    expect(
+      (await request(http()).get(path).expect(200)).body.photoUrls,
+    ).toHaveLength(2);
   });
 });
