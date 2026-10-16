@@ -126,7 +126,8 @@ export class VariantsService {
       input.category ?? '',
       input.subcategory ?? '',
     );
-    const sources = input.photoDataUrls ?? (input.photoDataUrl ? [input.photoDataUrl] : []);
+    const sources =
+      input.photoDataUrls ?? (input.photoDataUrl ? [input.photoDataUrl] : []);
     if (sources.length > 8) throw new ConflictException('Maximum eight photos');
     const album = await Promise.all(sources.map(normalizeProductPhoto));
     const photo = album[0] ?? null;
