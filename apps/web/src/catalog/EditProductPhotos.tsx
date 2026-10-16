@@ -47,7 +47,8 @@ export default function EditProductPhotos({
         photos.map(async (photo) => {
           if (photo.startsWith('data:')) return photo;
           const response = await fetch(photo, { credentials: 'same-origin' });
-          if (!response.ok) throw new Error('Не удалось загрузить старое фото.');
+          if (!response.ok)
+            throw new Error('Не удалось загрузить старое фото.');
           const blob = await response.blob();
           const file = new File([blob], 'product.jpg', {
             type: 'image/jpeg',
