@@ -129,7 +129,10 @@ export class StorefrontService {
       size: r.size ?? '',
       color: r.color ?? '',
       ...(r.has_photo
-        ? { photoUrl: `/api/public/stores/${r.slug}/products/${r.id}/photo` }
+        ? {
+            photoUrl: `/api/public/stores/${r.slug}/products/${r.id}/photo`,
+            photoUrls: [`/api/public/stores/${r.slug}/products/${r.id}/photo`],
+          }
         : {}),
       name: r.name,
       description: r.description,
