@@ -94,6 +94,8 @@ describe('public storefront', () => {
       .expect(200);
     expect(r.body).toEqual({
       id: v.id,
+      size: '',
+      color: '',
       name: 'Чашка%',
       description: '',
       category: '',

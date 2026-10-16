@@ -14,6 +14,8 @@ export type Store = {
   hours?: string;
 };
 export type Product = {
+  size?: string;
+  color?: string;
   photoUrl?: string;
   id: string;
   name: string;

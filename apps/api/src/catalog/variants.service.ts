@@ -13,6 +13,8 @@ import { stageProduct } from '../platform/product-publication';
 export type VariantInput = {
   name: string;
   barcode?: string;
+  size?: string;
+  color?: string;
   salePriceMinor: number;
   category?: string;
   subcategory?: string;
@@ -21,6 +23,8 @@ export type VariantInput = {
 };
 export type Variant = {
   sku: string;
+  size: string;
+  color: string;
   photoUrl?: string;
   description: string;
   category: string;
@@ -43,6 +47,8 @@ export class VariantsService {
     return {
       id: row.id,
       sku: row.sku,
+      size: row.size ?? '',
+      color: row.color ?? '',
       ...(row.has_photo || row.photo_data
         ? { photoUrl: `/api/shops/${row.shop_id}/variants/${row.id}/photo` }
         : {}),
@@ -75,7 +81,7 @@ export class VariantsService {
       [shopId, pattern],
     );
     const rows = await this.db.query(
-      'SELECT v.id,v.sku,v.name,v.barcode,v.sale_price_minor,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.stock_value_minor,0) stock_value_minor FROM variants v LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id WHERE ' +
+      'SELECT v.id,v.sku,v.name,v.barcode,v.size,v.color,v.sale_price_minor,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.stock_value_minor,0) stock_value_minor FROM variants v LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id WHERE ' +
         filter +
         ' ORDER BY v.name,v.id LIMIT $3 OFFSET $4',
       [shopId, pattern, pageSize, (page - 1) * pageSize],
@@ -84,6 +90,8 @@ export class VariantsService {
       items: rows.map((r: any) => ({
         id: r.id,
         sku: r.sku,
+        size: r.size,
+        color: r.color,
         name: r.name,
         barcode: r.barcode,
         salePriceMinor: Number(r.sale_price_minor),
@@ -115,7 +123,7 @@ export class VariantsService {
     try {
       const row = await this.db.transaction(async (tx) => {
         const [created] = await tx.query(
-          'INSERT INTO variants(id,shop_id,name,barcode,sale_price_minor,category,subcategory,description,photo_data)VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)RETURNING *',
+          'INSERT INTO variants(id,shop_id,name,barcode,sale_price_minor,category,subcategory,description,photo_data,size,color)VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)RETURNING *',
           [
             randomUUID(),
             shopId,
@@ -126,6 +134,8 @@ export class VariantsService {
             input.subcategory?.trim() ?? '',
             input.description?.trim() ?? '',
             photo,
+            input.size?.trim() ?? '',
+            input.color?.trim() ?? '',
           ],
         );
         await stageProduct(tx, created, actor);
