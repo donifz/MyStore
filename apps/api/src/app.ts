@@ -155,13 +155,13 @@ export async function createApp(
   // A product album contains up to eight normalized JPEGs (512 KiB each).
   // Raise the JSON limit only for creating product cards with an album.
   app.use(
-    /^\/(?:api\/)?shops\/[0-9a-f-]{36}\/variants\/?$/,
+    /^\/(?:api\/)?shops\/[0-9a-f-]{36}\/variants(?:\/[0-9a-f-]{36}\/photos)?\/?$/,
     (
       req: express.Request,
       res: express.Response,
       next: express.NextFunction,
     ) => {
-      if (req.method !== 'POST') return next();
+      if (req.method !== 'POST' && req.method !== 'PUT') return next();
       return express.json({ limit: '6mb' })(req, res, next);
     },
   );
