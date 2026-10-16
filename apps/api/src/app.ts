@@ -156,7 +156,11 @@ export async function createApp(
   // Raise the JSON limit only for creating product cards with an album.
   app.use(
     /^\/(?:api\/)?shops\/[0-9a-f-]{36}\/variants\/?$/,
-    (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    (
+      req: express.Request,
+      res: express.Response,
+      next: express.NextFunction,
+    ) => {
       if (req.method !== 'POST') return next();
       return express.json({ limit: '6mb' })(req, res, next);
     },
