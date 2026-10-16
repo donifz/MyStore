@@ -51,6 +51,12 @@ export class VariantDto extends VariantFieldsDto {
   @IsString({ each: true })
   photoDataUrls?: string[];
 }
+class ReplaceAlbumDto {
+  @IsArray()
+  @ArrayMaxSize(8)
+  @IsString({ each: true })
+  photoDataUrls!: string[];
+}
 class EditVariantDto {
   @IsString() @MinLength(1) @MaxLength(200) @Matches(/\S/) name!: string;
   @IsInt() @Min(0) @Max(Number.MAX_SAFE_INTEGER) salePriceMinor!: number;
@@ -109,6 +115,15 @@ export class VariantsController {
     const variant = await this.variants.findByBarcode(shopId, query.code);
     if (!variant) throw new NotFoundException();
     return variant;
+  }
+  @Put(':variantId/photos') async replacePhotos(
+    @Param('shopId', ParseUUIDPipe) shopId: string,
+    @Param('variantId', ParseUUIDPipe) id: string,
+    @Req() req: UserRequest,
+    @Body() body: ReplaceAlbumDto,
+  ) {
+    await this.access.requireMembership(req.userId, shopId, 'catalog');
+    return this.variants.replacePhotoAlbum(shopId, id, body.photoDataUrls, req.userId);
   }
   @Put(':variantId') async update(
     @Param('shopId', ParseUUIDPipe) shopId: string,
