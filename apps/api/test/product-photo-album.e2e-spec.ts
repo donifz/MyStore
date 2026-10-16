@@ -62,10 +62,10 @@ describe('product photo album moderation', () => {
           .expect(200)
       ).body.items;
       expect(queue).toHaveLength(1);
+      const revision = queue[0].revision_id;
+      const decisionUrl = `/platform/admin/products/revisions/${revision}/decision`;
       await request(http())
-        .post(
-          `/platform/admin/products/revisions/${queue[0].revision_id}/decision`,
-        )
+        .post(decisionUrl)
         .auth(c.owner, { type: 'bearer' })
         .send({ decision: 'approved' })
         .expect(201);
