@@ -15,8 +15,8 @@ export default function EditProductPhotos({
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   useEffect(() => {
-    const urls = variant.photoUrls;
-    setPhotos(urls ?? (variant.photoUrl ? [variant.photoUrl] : []));
+    const fallback = variant.photoUrl ? [variant.photoUrl] : [];
+    setPhotos(variant.photoUrls ?? fallback);
   }, [variant.id, variant.photoUrl, variant.photoUrls]);
 
   async function add(files: FileList | null) {
@@ -49,9 +49,10 @@ export default function EditProductPhotos({
           const response = await fetch(photo, { credentials: 'same-origin' });
           if (!response.ok) throw new Error('Не удалось загрузить старое фото.');
           const blob = await response.blob();
-          return photoFrom(
-            new File([blob], 'product.jpg', { type: 'image/jpeg' }),
-          );
+          const file = new File([blob], 'product.jpg', {
+            type: 'image/jpeg',
+          });
+          return photoFrom(file);
         }),
       );
       await api(`/shops/${shopId}/variants/${variant.id}/photos`, {
