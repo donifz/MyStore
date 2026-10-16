@@ -20,6 +20,7 @@ export type VariantInput = {
   subcategory?: string;
   description?: string;
   photoDataUrl?: string;
+  photoDataUrls?: string[];
 };
 export type Variant = {
   sku: string;
@@ -115,15 +116,16 @@ export class VariantsService {
       input.category ?? '',
       input.subcategory ?? '',
     );
-    const photo = input.photoDataUrl
-      ? await normalizeProductPhoto(input.photoDataUrl)
-      : null;
+    const sources = input.photoDataUrls ?? (input.photoDataUrl ? [input.photoDataUrl] : []);
+    if (sources.length > 8) throw new ConflictException('Maximum eight photos');
+    const album = await Promise.all(sources.map(normalizeProductPhoto));
+    const photo = album[0] ?? null;
     const barcode =
       input.barcode ?? `MS${randomBytes(12).toString('hex').toUpperCase()}`;
     try {
       const row = await this.db.transaction(async (tx) => {
         const [created] = await tx.query(
-          'INSERT INTO variants(id,shop_id,name,barcode,sale_price_minor,category,subcategory,description,photo_data,size,color)VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)RETURNING *',
+          'INSERT INTO variants(id,shop_id,name,barcode,sale_price_minor,category,subcategory,description,photo_data,size,color,photo_album)VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)RETURNING *',
           [
             randomUUID(),
             shopId,
@@ -136,6 +138,7 @@ export class VariantsService {
             photo,
             input.size?.trim() ?? '',
             input.color?.trim() ?? '',
+            album,
           ],
         );
         await stageProduct(tx, created, actor);
