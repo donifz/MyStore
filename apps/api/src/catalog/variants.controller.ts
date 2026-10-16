@@ -34,6 +34,8 @@ export class VariantFieldsDto {
   @MaxLength(64)
   @Matches(/^[\x21-\x7E]+$/)
   barcode?: string;
+  @IsOptional() @IsString() @MaxLength(80) size?: string;
+  @IsOptional() @IsString() @MaxLength(80) color?: string;
   @IsInt() @Min(0) @Max(Number.MAX_SAFE_INTEGER) salePriceMinor!: number;
   @IsOptional() @IsString() @MaxLength(80) category?: string;
   @IsOptional() @IsString() @MaxLength(80) subcategory?: string;
