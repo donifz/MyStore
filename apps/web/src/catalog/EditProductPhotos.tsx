@@ -48,7 +48,9 @@ export default function EditProductPhotos({
           const response = await fetch(photo, { credentials: 'same-origin' });
           if (!response.ok) throw new Error('Не удалось загрузить старое фото.');
           const blob = await response.blob();
-          return photoFrom(new File([blob], 'product.jpg', { type: 'image/jpeg' }));
+          return photoFrom(
+            new File([blob], 'product.jpg', { type: 'image/jpeg' }),
+          );
         }),
       );
       await api(`/shops/${shopId}/variants/${variant.id}/photos`, {
@@ -86,10 +88,18 @@ export default function EditProductPhotos({
           <div key={index} className="product-form-block">
             <img src={photo} alt={`Фото ${index + 1}`} width={160} />
             <p>{index === 0 ? 'Главное фото' : `Фото ${index + 1}`}</p>
-            <button type="button" disabled={busy || index === 0} onClick={() => move(index, -1)}>
+            <button
+              type="button"
+              disabled={busy || index === 0}
+              onClick={() => move(index, -1)}
+            >
               Раньше
             </button>
-            <button type="button" disabled={busy || index === photos.length - 1} onClick={() => move(index, 1)}>
+            <button
+              type="button"
+              disabled={busy || index === photos.length - 1}
+              onClick={() => move(index, 1)}
+            >
               Позже
             </button>
             <button
@@ -118,9 +128,22 @@ export default function EditProductPhotos({
           }}
         />
       </label>
-      {error && <p role="alert" className="error">{error}</p>}
-      {message && <p role="status" className="success">{message}</p>}
-      <button type="button" className="primary" disabled={busy} onClick={() => void save()}>
+      {error && (
+        <p role="alert" className="error">
+          {error}
+        </p>
+      )}
+      {message && (
+        <p role="status" className="success">
+          {message}
+        </p>
+      )}
+      <button
+        type="button"
+        className="primary"
+        disabled={busy}
+        onClick={() => void save()}
+      >
         {busy ? 'Сохранение…' : 'Сохранить фотографии'}
       </button>
     </section>
