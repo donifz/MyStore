@@ -13,10 +13,10 @@ export const fixture = {
 // Moderation transitions themselves are exercised in product-moderation.e2e-spec.ts.
 export async function approveTestProduct(db: DataSource, id: string) {
   await db.query(
-    `INSERT INTO product_publications(variant_id,shop_id,name,description,category,subcategory,photo_data)
-     SELECT id,shop_id,name,description,category,subcategory,photo_data FROM variants WHERE id=$1
+    `INSERT INTO product_publications(variant_id,shop_id,name,description,category,subcategory,photo_data,photo_album)
+     SELECT id,shop_id,name,description,category,subcategory,photo_data,photo_album FROM variants WHERE id=$1
      ON CONFLICT(variant_id) DO UPDATE SET name=excluded.name,description=excluded.description,
-       category=excluded.category,subcategory=excluded.subcategory,photo_data=excluded.photo_data,approved_at=now()`,
+       category=excluded.category,subcategory=excluded.subcategory,photo_data=excluded.photo_data,photo_album=excluded.photo_album,approved_at=now()`,
     [id],
   );
 }

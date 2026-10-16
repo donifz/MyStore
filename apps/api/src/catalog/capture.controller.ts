@@ -106,6 +106,8 @@ export class CaptureController {
     await this.access.requireMembership(req.userId, shop, 'read');
     res.setHeader('Cache-Control', 'no-store');
     const photoIndex = index === undefined ? 0 : Number(index);
-    res.type('image/jpeg').send(await this.captureService.photo(shop, id, undefined, photoIndex));
+    res
+      .type('image/jpeg')
+      .send(await this.captureService.photo(shop, id, undefined, photoIndex));
   }
 }

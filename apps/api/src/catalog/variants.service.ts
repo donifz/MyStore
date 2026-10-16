@@ -126,7 +126,8 @@ export class VariantsService {
       input.category ?? '',
       input.subcategory ?? '',
     );
-    const sources = input.photoDataUrls ?? (input.photoDataUrl ? [input.photoDataUrl] : []);
+    const sources =
+      input.photoDataUrls ?? (input.photoDataUrl ? [input.photoDataUrl] : []);
     if (sources.length > 8) throw new ConflictException('Maximum eight photos');
     const album = await Promise.all(sources.map(normalizeProductPhoto));
     const photo = album[0] ?? null;
@@ -174,7 +175,7 @@ export class VariantsService {
         [shopId, id],
       );
       if (!before) throw new NotFoundException();
-      const [row] = await tx.query(
+      const [[row]] = await tx.query(
         'UPDATE variants SET photo_data=$3,photo_album=$4 WHERE shop_id=$1 AND id=$2 RETURNING *',
         [shopId, id, album[0] ?? null, album],
       );

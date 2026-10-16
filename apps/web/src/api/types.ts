@@ -10,6 +10,7 @@ export type Me = {
 export type Variant = {
   sku?: string;
   photoUrl?: string;
+  photoUrls?: string[];
   description?: string;
   category?: string;
   subcategory?: string;

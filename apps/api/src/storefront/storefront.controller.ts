@@ -77,7 +77,9 @@ export class PublicStorefrontController {
   ) {
     res.setHeader('Cache-Control', 'no-store');
     const photoIndex = index === undefined ? 0 : Number(index);
-    res.type('image/jpeg').send(await this.capture.photo(null, id, slug, photoIndex));
+    res
+      .type('image/jpeg')
+      .send(await this.capture.photo(null, id, slug, photoIndex));
   }
   @Get('filters') filters() {
     return this.service.filters();
