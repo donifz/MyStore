@@ -153,3 +153,32 @@ it.each(['manager', 'cashier'])(
     expect(saves).toHaveLength(0);
   },
 );
+
+it('disables mutations during save and invalidates the saved preview after edits', async () => {
+  setup();
+  await screen.findByText(/Расписание не настроено/);
+  expect(screen.getByText(/Если заказ поступит сейчас/)).toBeTruthy();
+  fireEvent.click(screen.getByLabelText('Учитывать рабочие часы'));
+  expect(screen.queryByText(/Если заказ поступит сейчас/)).toBeNull();
+  const original = global.fetch;
+  let finish!: () => void;
+  vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+    if (init?.method === 'PUT')
+      await new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+    return original(url, init);
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Сохранить витрину' }));
+  await screen.findByRole('button', { name: 'Сохранение…' });
+  expect(screen.getByLabelText('Пн, начало 1')).toHaveProperty(
+    'disabled',
+    true,
+  );
+  expect(screen.getByLabelText('Учитывать рабочие часы')).toHaveProperty(
+    'disabled',
+    true,
+  );
+  finish();
+  await screen.findByText('Настройки витрины сохранены.');
+});

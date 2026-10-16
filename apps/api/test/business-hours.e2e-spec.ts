@@ -118,6 +118,7 @@ describe('business-hours deadlines', () => {
   });
   it('rejects invalid timezone, instant and duration', () => {
     expect(() => validateBusinessSchedule(daily(), 'bad-zone')).toThrow();
+    expect(() => validateBusinessSchedule(daily(), '+06:00')).toThrow();
     expect(() =>
       businessDeadline(new Date(NaN), daily(), 'Asia/Bishkek'),
     ).toThrow();
