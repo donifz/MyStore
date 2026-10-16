@@ -63,7 +63,9 @@ describe('product photo album moderation', () => {
       ).body.items;
       expect(queue).toHaveLength(1);
       await request(http())
-        .post(`/platform/admin/products/revisions/${queue[0].revision_id}/decision`)
+        .post(
+          `/platform/admin/products/revisions/${queue[0].revision_id}/decision`,
+        )
         .auth(c.owner, { type: 'bearer' })
         .send({ decision: 'approved' })
         .expect(201);
