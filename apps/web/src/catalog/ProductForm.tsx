@@ -29,6 +29,8 @@ export default function ProductForm({
 }) {
   const [name, setName] = useState(''),
     [barcode, setBarcode] = useState(initialBarcode),
+    [size, setSize] = useState(''),
+    [color, setColor] = useState(''),
     [price, setPrice] = useState(''),
     [category, setCategory] = useState(''),
     [subcategory, setSubcategory] = useState(''),
@@ -122,6 +124,8 @@ export default function ProductForm({
               name: name.trim(),
               ...(barcode.trim() ? { barcode: barcode.trim() } : {}),
               salePriceMinor: parseSom(price),
+              ...(size.trim() ? { size: size.trim() } : {}),
+              ...(color.trim() ? { color: color.trim() } : {}),
               ...(category ? { category, subcategory } : {}),
               ...(description.trim()
                 ? { description: description.trim() }
@@ -309,6 +313,26 @@ export default function ProductForm({
                     ))}
                 </select>
               </label>
+              <div className="product-form-fields">
+                <label>
+                  Размер / вариант
+                  <input
+                    maxLength={80}
+                    value={size}
+                    onChange={(e) => setSize(e.target.value)}
+                    placeholder="Например, M или 42"
+                  />
+                </label>
+                <label>
+                  Цвет
+                  <input
+                    maxLength={80}
+                    value={color}
+                    onChange={(e) => setColor(e.target.value)}
+                    placeholder="Например, чёрный"
+                  />
+                </label>
+              </div>
               <label htmlFor={id + '-description'}>Описание</label>
               <textarea
                 id={id + '-description'}
