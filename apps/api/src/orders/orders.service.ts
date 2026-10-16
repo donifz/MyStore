@@ -16,6 +16,7 @@ import { SalesService, SaleLine } from '../pos/sales.service';
 import { PosSalesService } from '../pos/pos-sales.service';
 import { PaymentMethod } from '../pos/pos.types';
 import { OrderExpirationService } from './order-expiration.service';
+import { businessDeadline } from './business-hours';
 export type CheckoutInput = {
   checkoutKey: string;
   storeSlug: string;
@@ -83,7 +84,7 @@ export class OrdersService {
         return this.receiptDto(existing);
       }
       const [shop] = await tx.query(
-        'SELECT id,name,pickup_enabled,delivery_enabled FROM shops WHERE slug=$1 AND published FOR SHARE',
+        'SELECT id,name,pickup_enabled,delivery_enabled,time_zone,business_schedule,now() reservation_origin FROM shops WHERE slug=$1 AND published FOR SHARE',
         [payload.storeSlug],
       );
       if (!shop) throw new NotFoundException('Store unavailable');
@@ -137,9 +138,16 @@ export class OrdersService {
           0n,
         ),
       );
+      const expiresAt = shop.business_schedule
+        ? businessDeadline(
+            shop.reservation_origin,
+            shop.business_schedule,
+            shop.time_zone,
+          )
+        : new Date(shop.reservation_origin.getTime() + 30 * 60_000);
       const id = randomUUID();
       const [order] = await tx.query(
-        "INSERT INTO online_orders(id,shop_id,checkout_hash,fingerprint,store_name,name,phone,fulfillment,address,comment,total_minor,email,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,now()+interval '30 minutes') RETURNING *",
+        'INSERT INTO online_orders(id,shop_id,checkout_hash,fingerprint,store_name,name,phone,fulfillment,address,comment,total_minor,email,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *',
         [
           id,
           shop.id,
@@ -153,6 +161,7 @@ export class OrdersService {
           payload.comment,
           total,
           email,
+          expiresAt,
         ],
       );
       for (const l of payload.lines) {
@@ -190,6 +199,7 @@ export class OrdersService {
   private detailDto(o: any) {
     return {
       ...this.receiptDto(o),
+      timeZone: o.time_zone,
       name: o.name,
       phone: o.phone,
       fulfillment: o.fulfillment,
@@ -206,7 +216,7 @@ export class OrdersService {
       [shop],
     );
     const rows = await this.db.query(
-      'SELECT * FROM online_orders WHERE shop_id=$1 ORDER BY created_at DESC,id LIMIT $2 OFFSET $3',
+      'SELECT o.*,s.time_zone FROM online_orders o JOIN shops s ON s.id=o.shop_id WHERE o.shop_id=$1 ORDER BY o.created_at DESC,o.id LIMIT $2 OFFSET $3',
       [shop, pageSize, (page - 1) * pageSize],
     );
     return {
@@ -219,7 +229,7 @@ export class OrdersService {
   async detail(shop: string, id: string) {
     await this.expiry.expire(shop);
     const [o] = await this.db.query(
-      'SELECT * FROM online_orders WHERE shop_id=$1 AND id=$2',
+      'SELECT o.*,s.time_zone FROM online_orders o JOIN shops s ON s.id=o.shop_id WHERE o.shop_id=$1 AND o.id=$2',
       [shop, id],
     );
     if (!o) throw new NotFoundException();
