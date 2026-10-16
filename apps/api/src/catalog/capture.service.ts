@@ -58,7 +58,7 @@ export class CaptureService {
         let row: any;
         try {
           [row] = await tx.query(
-            'INSERT INTO variants(id,shop_id,name,barcode,sale_price_minor,category,subcategory,description,photo_data) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *',
+            'INSERT INTO variants(id,shop_id,name,barcode,sale_price_minor,category,subcategory,description,photo_data,photo_album) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *',
             [
               id,
               shop,
@@ -69,6 +69,7 @@ export class CaptureService {
               payload.subcategory,
               payload.description,
               photo,
+              [photo],
             ],
           );
         } catch (e: any) {
