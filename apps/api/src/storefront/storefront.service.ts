@@ -155,7 +155,7 @@ export class StorefrontService {
   async products(query: PublicQuery) {
     const { q, page, pageSize, store, category, inStock, sort } = query;
     if (store) await this.store(store);
-    const where = `s.published AND v.published AND (p.name ILIKE $1 OR s.name ILIKE $1) AND ($2='' OR s.slug=$2) AND ($3='' OR p.category=$3) AND ($4=false OR COALESCE(b.physical,0)-COALESCE(b.reserved,0)>0) AND ($5='' OR s.city=$5) AND v.sale_price_minor BETWEEN $6 AND $7`;
+    const where = `s.published AND v.published AND (p.name ILIKE $1 OR s.name ILIKE $1 OR v.barcode ILIKE $1) AND ($2='' OR s.slug=$2) AND ($3='' OR p.category=$3) AND ($4=false OR COALESCE(b.physical,0)-COALESCE(b.reserved,0)>0) AND ($5='' OR s.city=$5) AND v.sale_price_minor BETWEEN $6 AND $7`;
     if (
       query.minPrice !== undefined &&
       query.maxPrice !== undefined &&
