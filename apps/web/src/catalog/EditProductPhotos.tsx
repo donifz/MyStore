@@ -15,9 +15,8 @@ export default function EditProductPhotos({
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   useEffect(() => {
-    setPhotos(
-      variant.photoUrls ?? (variant.photoUrl ? [variant.photoUrl] : []),
-    );
+    const urls = variant.photoUrls;
+    setPhotos(urls ?? (variant.photoUrl ? [variant.photoUrl] : []));
   }, [variant.id, variant.photoUrl, variant.photoUrls]);
 
   async function add(files: FileList | null) {
