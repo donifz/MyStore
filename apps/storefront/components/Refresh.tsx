@@ -5,7 +5,7 @@ export default function Refresh() {
   const router = useRouter();
   useEffect(() => {
     const refresh = () => router.refresh();
-    const timer = window.setInterval(refresh, 30000);
+    const timer = window.setInterval(refresh, 5000);
     window.addEventListener('focus', refresh);
     return () => {
       window.clearInterval(timer);

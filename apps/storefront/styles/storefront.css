@@ -1733,6 +1733,29 @@ select.sf-input:focus,
   font-weight: 650;
   font-size: 15px;
 }
+.sf-filter-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sf-space-2);
+  width: 100%;
+}
+.sf-filter-actions .sf-button {
+  margin-top: 0 !important;
+}
+.sf-button--reset {
+  text-align: center;
+  color: var(--sf-muted);
+  text-decoration: none;
+  font-size: 14px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.sf-button--reset:hover {
+  color: var(--sf-text);
+  background: var(--sf-surface-alt);
+}
 .sf-price-range {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2663,6 +2686,14 @@ select.sf-input:focus,
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
   }
+  .sf-catalog-sidebar .sf-filters .sf-filter-actions {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    gap: 12px;
+  }
+  .sf-catalog-sidebar .sf-filters .sf-filter-actions .sf-button {
+    flex: 1;
+  }
   .sf-catalog-sidebar summary {
     margin: 0;
   }
@@ -2839,6 +2870,10 @@ select.sf-input:focus,
   }
   .sf-catalog-sidebar .sf-filters {
     grid-template-columns: 1fr 1fr;
+  }
+  .sf-catalog-sidebar .sf-filters .sf-filter-actions {
+    grid-column: 1 / -1;
+    flex-direction: column;
   }
   .sf-price-range {
     grid-column: 1/-1;

@@ -200,6 +200,7 @@ export class StorefrontService {
       id: r.id,
       size: r.size ?? '',
       color: r.color ?? '',
+      sku: r.sku ?? '',
       ...(r.has_photo
         ? {
             photoUrl: `/api/public/stores/${r.slug}/products/${r.id}/photo`,
@@ -231,12 +232,12 @@ export class StorefrontService {
   private from =
     ' FROM variants v JOIN shops s ON s.id=v.shop_id JOIN product_publications p ON p.variant_id=v.id AND p.shop_id=s.id LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id';
   private select =
-    `SELECT v.id,v.size,v.color,(p.photo_data IS NOT NULL) has_photo,cardinality(p.photo_album) photo_count,p.name,p.description,p.category,v.sale_price_minor,COALESCE(b.physical,0)-COALESCE(b.reserved,0) available,s.slug,s.name shop_name,s.city,s.phone,s.address,s.hours,s.district,s.pickup_enabled,s.delivery_enabled` +
+    `SELECT v.id,v.size,v.color,v.sku,(p.photo_data IS NOT NULL) has_photo,cardinality(p.photo_album) photo_count,p.name,p.description,p.category,v.sale_price_minor,COALESCE(b.physical,0)-COALESCE(b.reserved,0) available,s.slug,s.name shop_name,s.city,s.phone,s.address,s.hours,s.district,s.pickup_enabled,s.delivery_enabled` +
     this.from;
   async products(query: PublicQuery) {
     const { q, page, pageSize, store, category, inStock, sort } = query;
     if (store) await this.store(store);
-    const where = `s.published AND v.published AND (p.name ILIKE $1 OR s.name ILIKE $1 OR v.barcode ILIKE $1) AND ($2='' OR s.slug=$2) AND ($3='' OR p.category=$3) AND ($4=false OR COALESCE(b.physical,0)-COALESCE(b.reserved,0)>0) AND ($5='' OR s.city=$5) AND v.sale_price_minor BETWEEN $6 AND $7`;
+    const where = `s.published AND v.published AND (p.name ILIKE $1 OR s.name ILIKE $1 OR v.barcode ILIKE $1 OR v.sku ILIKE $1) AND ($2='' OR s.slug=$2) AND ($3='' OR p.category=$3) AND ($4=false OR COALESCE(b.physical,0)-COALESCE(b.reserved,0)>0) AND ($5='' OR s.city=$5) AND v.sale_price_minor BETWEEN $6 AND $7`;
     if (
       query.minPrice !== undefined &&
       query.maxPrice !== undefined &&
@@ -258,11 +259,13 @@ export class StorefrontService {
         where +
         ' ORDER BY ' +
         (sort === 'price-asc'
-          ? 'v.sale_price_minor ASC,'
+          ? 'v.sale_price_minor ASC, p.name ASC, v.id ASC'
           : sort === 'price-desc'
-            ? 'v.sale_price_minor DESC,'
-            : '') +
-        ' p.name,v.id LIMIT $8 OFFSET $9',
+            ? 'v.sale_price_minor DESC, p.name ASC, v.id ASC'
+            : sort === 'newest'
+              ? 'p.approved_at DESC, v.id ASC'
+              : 'p.name ASC, v.id ASC') +
+        ' LIMIT $8 OFFSET $9',
       [...params, pageSize, (page - 1) * pageSize],
     );
     const [count] = await this.db.query(

@@ -129,6 +129,12 @@ export default async function ProductPage({ params }: Props) {
                 <dt>Категория</dt>
                 <dd>{v.category || 'Без категории'}</dd>
               </div>
+              {v.sku && (
+                <div>
+                  <dt>Артикул</dt>
+                  <dd>{v.sku}</dd>
+                </div>
+              )}
               <div>
                 <dt>Магазин</dt>
                 <dd>

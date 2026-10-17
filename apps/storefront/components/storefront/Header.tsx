@@ -37,7 +37,7 @@ export default async function Header() {
             <input
               name="q"
               aria-label="Поиск товаров и магазинов"
-              placeholder="Поиск товаров и магазинов…"
+              placeholder="Поиск по названию, артикулу или магазину…"
               maxLength={128}
             />
             <button type="submit" className="sf-button sf-button--primary">

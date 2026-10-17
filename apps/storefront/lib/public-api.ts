@@ -16,6 +16,7 @@ export type Store = {
 export type Product = {
   size?: string;
   color?: string;
+  sku?: string;
   photoUrl?: string;
   photoUrls?: string[];
   id: string;
@@ -54,7 +55,9 @@ export function query(search: Search, store?: string) {
   };
   const n = Number(first('page'));
   const page = Number.isInteger(n) && n >= 1 ? Math.min(n, 1000000) : 1;
-  const sort = ['name', 'price-asc', 'price-desc'].includes(first('sort'))
+  const sort = ['name', 'price-asc', 'price-desc', 'newest'].includes(
+    first('sort'),
+  )
     ? first('sort')
     : 'name';
   const params = new URLSearchParams({

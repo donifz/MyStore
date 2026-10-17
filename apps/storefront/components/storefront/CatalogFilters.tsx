@@ -1,5 +1,5 @@
 import { query } from '../../lib/public-api';
-import { Input, Select, Checkbox, Button } from '../ui';
+import { Input, Select, Checkbox, Button, LinkButton } from '../ui';
 export default function CatalogFilters({
   filter: f,
   categories,
@@ -9,6 +9,14 @@ export default function CatalogFilters({
   categories: string[];
   slug?: string;
 }) {
+  const isFiltered = Boolean(
+    f.q ||
+    f.category ||
+    (f.sort && f.sort !== 'name') ||
+    f.minPrice ||
+    f.maxPrice ||
+    f.inStock,
+  );
   return (
     <form
       className="sf-filters"
@@ -21,7 +29,7 @@ export default function CatalogFilters({
         name="q"
         defaultValue={f.q}
         maxLength={128}
-        placeholder="Что вы ищете?"
+        placeholder="Название, артикул или магазин"
       />
       <Select
         id="catalog-category"
@@ -44,6 +52,7 @@ export default function CatalogFilters({
         defaultValue={f.sort}
       >
         <option value="name">По названию</option>
+        <option value="newest">Сначала новые</option>
         <option value="price-asc">Сначала дешевле</option>
         <option value="price-desc">Сначала дороже</option>
       </Select>
@@ -74,7 +83,18 @@ export default function CatalogFilters({
         value="true"
         defaultChecked={f.inStock}
       />
-      <Button type="submit">Найти</Button>
+      <div className="sf-filter-actions">
+        <Button type="submit">Найти</Button>
+        {isFiltered && (
+          <LinkButton
+            variant="secondary"
+            href={slug ? '/shops/' + slug : '/'}
+            className="sf-button--reset"
+          >
+            Сбросить
+          </LinkButton>
+        )}
+      </div>
     </form>
   );
 }
