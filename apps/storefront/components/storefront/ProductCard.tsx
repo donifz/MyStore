@@ -32,7 +32,7 @@ export default function ProductCard({ product: p }: { product: Product }) {
         <Price minor={p.salePriceMinor} />
         <Link className="sf-card-seller" href={'/shops/' + p.store.slug}>
           <span className="sf-mini-logo">{p.store.name.slice(0, 1)}</span>
-          {p.store.name}
+          <span className="sf-card-seller-name">{p.store.name}</span>
         </Link>
         <BuyButton product={p} compact />
       </div>
