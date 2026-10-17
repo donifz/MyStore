@@ -269,6 +269,8 @@ export async function createApp(
             (req.path === '/' ||
               req.path === '/partner' ||
               req.path === '/partner/activate' ||
+              req.path === '/terms' ||
+              req.path === '/privacy' ||
               req.path === '/cart' ||
               req.path === '/favorites' ||
               req.path === '/ui-kit' ||

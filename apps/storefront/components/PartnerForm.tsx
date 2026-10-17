@@ -133,7 +133,19 @@ export default function PartnerPage() {
                 onChange={(e) => setCategory(e.target.value)}
               />
               <Checkbox
-                label="Согласен с условиями подключения"
+                label={
+                  <span>
+                    Согласен с{' '}
+                    <a
+                      href="/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ textDecoration: 'underline', color: 'inherit' }}
+                    >
+                      условиями подключения
+                    </a>
+                  </span>
+                }
                 required
                 checked={agreed}
                 onChange={(e) => setAgreed(e.target.checked)}

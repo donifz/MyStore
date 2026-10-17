@@ -1,6 +1,6 @@
-import type { InputHTMLAttributes } from 'react';
+import type { InputHTMLAttributes, ReactNode } from 'react';
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & {
-  label: string;
+  label: ReactNode;
 };
 export default function Checkbox({ label, className = '', ...props }: Props) {
   return (
