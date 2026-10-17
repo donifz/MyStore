@@ -116,9 +116,16 @@ export type PlatformFinancialGrant = {
   active: boolean;
 };
 export type FinancialSummary = {
+  from?: string;
+  to?: string;
   revenueMinor: number;
   salesMinor: number;
   returnsMinor: number;
+  returnsCount?: number;
+  posSalesMinor?: number;
+  posSalesCount?: number;
+  onlineSalesMinor?: number;
+  onlineSalesCount?: number;
   costOfGoodsMinor: number;
   grossProfitMinor: number;
   paymentsReceivedMinor: number;
@@ -131,6 +138,7 @@ export type FinancialSummary = {
   lowStockCount: number;
   openOrders: number;
   issuedOrders: number;
+  issuedOrdersMinor?: number;
   closedShifts: number;
   cashDiscrepancyMinor: number;
 };

@@ -155,10 +155,10 @@ export class StorefrontService {
   }
   async filters() {
     const locations = await this.db.query(
-      "SELECT DISTINCT city,district FROM shops WHERE published AND city<>'' ORDER BY city,district",
+      "SELECT DISTINCT city,district FROM shops WHERE published AND (NOT marketplace_blocked) AND city<>'' ORDER BY city,district",
     );
     const categories = await this.db.query(
-      "SELECT DISTINCT p.category FROM product_publications p JOIN variants v ON v.id=p.variant_id JOIN shops s ON s.id=v.shop_id WHERE s.published AND v.published AND p.category<>'' ORDER BY p.category",
+      "SELECT DISTINCT p.category FROM product_publications p JOIN variants v ON v.id=p.variant_id JOIN shops s ON s.id=v.shop_id WHERE s.published AND (NOT s.marketplace_blocked) AND v.published AND p.category<>'' ORDER BY p.category",
     );
     return { locations, categories: categories.map((r: any) => r.category) };
   }
@@ -174,7 +174,7 @@ export class StorefrontService {
       filters.district || '',
       filters.category || '',
     ];
-    const where = `s.published AND (s.name ILIKE $1 OR s.city ILIKE $1) AND ($2='' OR s.city=$2) AND ($3='' OR s.district=$3) AND ($4='' OR EXISTS (SELECT 1 FROM variants v JOIN product_publications p ON p.variant_id=v.id WHERE v.shop_id=s.id AND v.published AND p.category=$4))`;
+    const where = `s.published AND (NOT s.marketplace_blocked) AND (s.name ILIKE $1 OR s.city ILIKE $1) AND ($2='' OR s.city=$2) AND ($3='' OR s.district=$3) AND ($4='' OR EXISTS (SELECT 1 FROM variants v JOIN product_publications p ON p.variant_id=v.id WHERE v.shop_id=s.id AND v.published AND p.category=$4))`;
     const [count] = await this.db.query(
       'SELECT count(*)::int total FROM shops s WHERE ' + where,
       params,
@@ -189,7 +189,7 @@ export class StorefrontService {
   }
   async store(slug: string) {
     const [r] = await this.db.query(
-      'SELECT name,slug,description,city,address,phone,hours,district,pickup_enabled AS "pickupEnabled",delivery_enabled AS "deliveryEnabled" FROM shops WHERE slug=$1 AND published',
+      'SELECT name,slug,description,city,address,phone,hours,district,pickup_enabled AS "pickupEnabled",delivery_enabled AS "deliveryEnabled" FROM shops WHERE slug=$1 AND published AND (NOT marketplace_blocked)',
       [slug],
     );
     if (!r) throw new NotFoundException();
@@ -237,7 +237,7 @@ export class StorefrontService {
   async products(query: PublicQuery) {
     const { q, page, pageSize, store, category, inStock, sort } = query;
     if (store) await this.store(store);
-    const where = `s.published AND v.published AND NOT v.archived AND (p.name ILIKE $1 OR s.name ILIKE $1 OR v.barcode ILIKE $1 OR v.sku ILIKE $1) AND ($2='' OR s.slug=$2) AND ($3='' OR p.category=$3) AND ($4=false OR COALESCE(b.physical,0)-COALESCE(b.reserved,0)>0) AND ($5='' OR s.city=$5) AND v.sale_price_minor BETWEEN $6 AND $7`;
+    const where = `s.published AND (NOT s.marketplace_blocked) AND v.published AND NOT v.archived AND (p.name ILIKE $1 OR s.name ILIKE $1 OR v.barcode ILIKE $1 OR v.sku ILIKE $1) AND ($2='' OR s.slug=$2) AND ($3='' OR p.category=$3) AND ($4=false OR COALESCE(b.physical,0)-COALESCE(b.reserved,0)>0) AND ($5='' OR s.city=$5) AND v.sale_price_minor BETWEEN $6 AND $7`;
     if (
       query.minPrice !== undefined &&
       query.maxPrice !== undefined &&
@@ -273,7 +273,7 @@ export class StorefrontService {
       params,
     );
     const cats = await this.db.query(
-      "SELECT DISTINCT p.category FROM product_publications p JOIN variants v ON v.id=p.variant_id JOIN shops s ON s.id=p.shop_id WHERE s.published AND v.published AND NOT v.archived AND p.category<>'' AND ($1='' OR s.slug=$1) ORDER BY p.category",
+      "SELECT DISTINCT p.category FROM product_publications p JOIN variants v ON v.id=p.variant_id JOIN shops s ON s.id=p.shop_id WHERE s.published AND (NOT s.marketplace_blocked) AND v.published AND NOT v.archived AND p.category<>'' AND ($1='' OR s.slug=$1) ORDER BY p.category",
       [store],
     );
     return {
@@ -287,7 +287,7 @@ export class StorefrontService {
   async product(slug: string, id: string) {
     const [r] = await this.db.query(
       this.select +
-        ' WHERE s.published AND v.published AND NOT v.archived AND s.slug=$1 AND v.id=$2',
+        ' WHERE s.published AND (NOT s.marketplace_blocked) AND v.published AND NOT v.archived AND s.slug=$1 AND v.id=$2',
       [slug, id],
     );
     if (!r) throw new NotFoundException();

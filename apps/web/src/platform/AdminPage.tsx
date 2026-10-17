@@ -57,6 +57,9 @@ type AdminOverview = {
     name: string;
     city?: string;
     published?: boolean;
+    marketplaceBlocked?: boolean;
+    marketplaceBlockReason?: string | null;
+    subscriptionUntil?: string | null;
   }[];
 };
 const money = (minor: number) =>
@@ -82,6 +85,10 @@ export default function AdminPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [blockModalShopId, setBlockModalShopId] = useState<string | null>(null);
+  const [blockModalReason, setBlockModalReason] = useState('');
+  const [subModalShopId, setSubModalShopId] = useState<string | null>(null);
+  const [subModalDate, setSubModalDate] = useState('');
   const [params, setParams] = useSearchParams();
   const location = useLocation();
   const tab = platformSection(location.search);
@@ -189,6 +196,47 @@ export default function AdminPage() {
       setSummaryLoading(false);
     }
   }
+
+  async function toggleMarketplaceBlock(
+    shopId: string,
+    blocked: boolean,
+    blockReason?: string,
+  ) {
+    setBusy(true);
+    setError('');
+    try {
+      await api(`/platform/admin/shops/${shopId}/marketplace-status`, {
+        method: 'POST',
+        body: { blocked, reason: blockReason },
+      });
+      setBlockModalShopId(null);
+      setBlockModalReason('');
+      await load();
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveSubscription(shopId: string, until: string | null) {
+    setBusy(true);
+    setError('');
+    try {
+      await api(`/platform/admin/shops/${shopId}/subscription`, {
+        method: 'POST',
+        body: { until },
+      });
+      setSubModalShopId(null);
+      setSubModalDate('');
+      await load();
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (session.loading) return <p className="loading">Загрузка…</p>;
   if (!session.user)
     return (
@@ -447,6 +495,123 @@ export default function AdminPage() {
                   title="Магазины"
                   subtitle="Зарегистрированные магазины платформы"
                 >
+                  {blockModalShopId && (
+                    <div
+                      className="panel form-panel"
+                      style={{
+                        marginBottom: '1rem',
+                        border: '1px solid #b3261e',
+                        borderRadius: '8px',
+                        padding: '1rem',
+                      }}
+                    >
+                      <h3>Блокировка витрины магазина на маркетплейсе</h3>
+                      <p className="muted">
+                        Магазин и его товары будут скрыты из каталога и поиска
+                        маркетплейса. Локальная касса магазина останется
+                        активной.
+                      </p>
+                      <label>
+                        Причина блокировки
+                        <input
+                          type="text"
+                          placeholder="Например: Неоплата подписки, нарушение правил"
+                          value={blockModalReason}
+                          onChange={(e) => setBlockModalReason(e.target.value)}
+                          autoFocus
+                        />
+                      </label>
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '0.5rem',
+                          marginTop: '0.75rem',
+                        }}
+                      >
+                        <button
+                          className="admin-kit-reject"
+                          disabled={busy || !blockModalReason.trim()}
+                          onClick={() =>
+                            void toggleMarketplaceBlock(
+                              blockModalShopId,
+                              true,
+                              blockModalReason.trim(),
+                            )
+                          }
+                        >
+                          Подтвердить блокировку
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBlockModalShopId(null)}
+                        >
+                          Отмена
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {subModalShopId && (
+                    <div
+                      className="panel form-panel"
+                      style={{
+                        marginBottom: '1rem',
+                        border: '1px solid var(--color-border, #ddd)',
+                        borderRadius: '8px',
+                        padding: '1rem',
+                      }}
+                    >
+                      <h3>Управление подпиской магазина</h3>
+                      <label>
+                        Дата окончания подписки
+                        <input
+                          type="date"
+                          value={subModalDate}
+                          onChange={(e) => setSubModalDate(e.target.value)}
+                        />
+                      </label>
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '0.5rem',
+                          marginTop: '0.75rem',
+                        }}
+                      >
+                        <button
+                          className="primary"
+                          disabled={busy}
+                          onClick={() =>
+                            void saveSubscription(
+                              subModalShopId,
+                              subModalDate
+                                ? new Date(
+                                    subModalDate + 'T23:59:59.999Z',
+                                  ).toISOString()
+                                : null,
+                            )
+                          }
+                        >
+                          Сохранить
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() =>
+                            void saveSubscription(subModalShopId, null)
+                          }
+                        >
+                          Снять ограничение (Бессрочно)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSubModalShopId(null)}
+                        >
+                          Отмена
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {!overview?.shops.length ? (
                     <AdminEmpty>Магазины пока не зарегистрированы</AdminEmpty>
                   ) : (
@@ -456,7 +621,9 @@ export default function AdminPage() {
                           <tr>
                             <th>Магазин</th>
                             <th>Город</th>
-                            <th>Статус</th>
+                            <th>Витрина</th>
+                            <th>Подписка</th>
+                            <th>Действия</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -464,14 +631,89 @@ export default function AdminPage() {
                             <tr key={shop.id}>
                               <td>
                                 <strong>{shop.name}</strong>
+                                {shop.marketplaceBlocked &&
+                                  shop.marketplaceBlockReason && (
+                                    <small
+                                      style={{
+                                        color: '#b3261e',
+                                        display: 'block',
+                                        marginTop: '0.2rem',
+                                      }}
+                                    >
+                                      Причина: {shop.marketplaceBlockReason}
+                                    </small>
+                                  )}
                               </td>
                               <td>{shop.city || '—'}</td>
                               <td>
-                                <AdminStatus
-                                  tone={shop.published ? 'green' : 'neutral'}
-                                >
-                                  {shop.published ? 'Опубликован' : 'Черновик'}
-                                </AdminStatus>
+                                {shop.marketplaceBlocked ? (
+                                  <AdminStatus tone="red">
+                                    Заблокирован
+                                  </AdminStatus>
+                                ) : (
+                                  <AdminStatus
+                                    tone={shop.published ? 'green' : 'neutral'}
+                                  >
+                                    {shop.published
+                                      ? 'Опубликован'
+                                      : 'Черновик'}
+                                  </AdminStatus>
+                                )}
+                              </td>
+                              <td>
+                                {shop.subscriptionUntil ? (
+                                  <span>
+                                    до{' '}
+                                    {new Date(
+                                      shop.subscriptionUntil,
+                                    ).toLocaleDateString('ru-RU')}
+                                  </span>
+                                ) : (
+                                  <span className="muted">Бессрочно</span>
+                                )}
+                              </td>
+                              <td>
+                                <div className="admin-kit-actions">
+                                  {shop.marketplaceBlocked ? (
+                                    <button
+                                      disabled={busy}
+                                      onClick={() =>
+                                        void toggleMarketplaceBlock(
+                                          shop.id,
+                                          false,
+                                        )
+                                      }
+                                    >
+                                      Разблокировать
+                                    </button>
+                                  ) : (
+                                    <button
+                                      className="admin-kit-reject"
+                                      disabled={busy}
+                                      onClick={() => {
+                                        setBlockModalShopId(shop.id);
+                                        setBlockModalReason('');
+                                      }}
+                                    >
+                                      Блокировать
+                                    </button>
+                                  )}
+                                  <button
+                                    disabled={busy}
+                                    onClick={() => {
+                                      setSubModalShopId(shop.id);
+                                      setSubModalDate(
+                                        shop.subscriptionUntil
+                                          ? new Date(shop.subscriptionUntil)
+                                              .toISOString()
+                                              .slice(0, 10)
+                                          : '',
+                                      );
+                                    }}
+                                  >
+                                    Подписка
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))}
