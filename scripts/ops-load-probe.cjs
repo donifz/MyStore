@@ -74,32 +74,64 @@ async function runLoadProbe({
   const samples = [];
   const statusCounts = {};
   let nextRequestIndex = 0;
+  let lastRequestStartAt = null;
+  let schedulerTail = Promise.resolve();
   let errorCount = 0;
   let networkErrorCount = 0;
   let activeRequests = 0;
   let maxConcurrentRequests = 0;
 
+  async function nextScheduledStart() {
+    let releaseScheduler;
+    const previousScheduler = schedulerTail;
+    schedulerTail = new Promise((resolve) => {
+      releaseScheduler = resolve;
+    });
+    await previousScheduler;
+
+    try {
+      const intervalMs = 1000 / requestsPerSecond;
+      while (true) {
+        const now = performance.now();
+        const elapsedMs = now - startAt;
+        const earliestIndex =
+          elapsedMs < intervalMs
+            ? 0
+            : Math.ceil((elapsedMs * requestsPerSecond) / 1000);
+        nextRequestIndex = Math.max(nextRequestIndex, earliestIndex);
+        const requestIndex = nextRequestIndex++;
+        const scheduledAt = startAt + (requestIndex * 1000) / requestsPerSecond;
+        if (scheduledAt >= deadline) return null;
+
+        const notBefore = Math.max(
+          scheduledAt,
+          lastRequestStartAt === null
+            ? scheduledAt
+            : lastRequestStartAt + intervalMs,
+        );
+        const delay = notBefore - performance.now();
+        if (delay > 0)
+          await new Promise((resolve) => setTimeout(resolve, delay));
+
+        const requestStart = performance.now();
+        if (requestStart >= deadline) return null;
+        if (requestStart - scheduledAt >= intervalMs) continue;
+        lastRequestStartAt = requestStart;
+        return requestStart;
+      }
+    } finally {
+      releaseScheduler();
+    }
+  }
+
   async function worker() {
     while (true) {
-      const now = performance.now();
-      const elapsedMs = now - startAt;
-      const intervalMs = 1000 / requestsPerSecond;
-      const earliestIndex =
-        elapsedMs < intervalMs
-          ? 0
-          : Math.ceil((elapsedMs * requestsPerSecond) / 1000);
-      nextRequestIndex = Math.max(nextRequestIndex, earliestIndex);
-      const requestIndex = nextRequestIndex++;
-      const scheduledAt = startAt + (requestIndex * 1000) / requestsPerSecond;
-      if (scheduledAt >= deadline) return;
+      const requestStart = await nextScheduledStart();
+      if (requestStart === null) return;
 
-      const delay = scheduledAt - performance.now();
-      if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
-      if (performance.now() >= deadline) return;
-
-      const requestStart = performance.now();
       activeRequests++;
       maxConcurrentRequests = Math.max(maxConcurrentRequests, activeRequests);
+      let requestErrorCounted = false;
       try {
         const response = await fetchImpl(parsedUrl, {
           headers: { 'user-agent': 'mystore-ops-load-probe/1.0' },
@@ -108,12 +140,15 @@ async function runLoadProbe({
         });
         statusCounts[response.status] =
           (statusCounts[response.status] ?? 0) + 1;
-        if (!response.ok) errorCount++;
+        if (!response.ok) {
+          errorCount++;
+          requestErrorCounted = true;
+        }
         await response.arrayBuffer();
         samples.push(performance.now() - requestStart);
       } catch {
         networkErrorCount++;
-        errorCount++;
+        if (!requestErrorCounted) errorCount++;
         statusCounts.network_error = (statusCounts.network_error ?? 0) + 1;
         samples.push(performance.now() - requestStart);
       } finally {
