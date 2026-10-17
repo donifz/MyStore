@@ -182,49 +182,49 @@ test('cashier and manager cannot change hours through the API or protected page'
       "INSERT INTO memberships(shop_id,user_id,role) VALUES($1,$2,'manager')",
       [shop, id],
     );
+    for (const account of [email, 'cashier@example.test']) {
+      const login = await request.post('/api/auth/login', {
+        data: { email: account, password: 'browser-test-password' },
+      });
+      expect(login.ok()).toBe(true);
+      const { token } = await login.json();
+      const changed = await request.put(`/api/shops/${shop}/storefront`, {
+        headers: { authorization: `Bearer ${token}` },
+        data: {
+          description: '',
+          city: 'Ош',
+          address: '',
+          phone: '+996700123456',
+          hours: '',
+          published: false,
+          timeZone: 'UTC',
+        },
+      });
+      expect(changed.status()).toBe(403);
+    }
+    const context = await browser.newContext();
+    try {
+      const page = await context.newPage();
+      await page.goto('/seller/login');
+      await page.getByLabel('Email', { exact: true }).fill(email);
+      await page
+        .getByLabel('Пароль', { exact: true })
+        .fill('browser-test-password');
+      await page.getByRole('button', { name: 'Войти', exact: true }).click();
+      await page.waitForURL((url) => !url.pathname.endsWith('/seller/login'));
+      await page.goto(`/seller/${shop}/storefront`);
+      await expect(page.getByRole('alert')).toContainText('Нет доступа');
+      await expect(
+        page.getByRole('button', { name: 'Сохранить витрину', exact: true }),
+      ).toHaveCount(0);
+    } finally {
+      await context.close();
+    }
   } finally {
     try {
       await db.query('DELETE FROM memberships WHERE user_id=$1', [id]);
       await db.query('DELETE FROM users WHERE id=$1', [id]);
     } catch {}
     await db.end();
-  }
-  for (const account of [email, 'cashier@example.test']) {
-    const login = await request.post('/api/auth/login', {
-      data: { email: account, password: 'browser-test-password' },
-    });
-    expect(login.ok()).toBe(true);
-    const { token } = await login.json();
-    const changed = await request.put(`/api/shops/${shop}/storefront`, {
-      headers: { authorization: `Bearer ${token}` },
-      data: {
-        description: '',
-        city: 'Ош',
-        address: '',
-        phone: '+996700123456',
-        hours: '',
-        published: false,
-        timeZone: 'UTC',
-      },
-    });
-    expect(changed.status()).toBe(403);
-  }
-  const context = await browser.newContext();
-  try {
-    const page = await context.newPage();
-    await page.goto('/seller/login');
-    await page.getByLabel('Email', { exact: true }).fill(email);
-    await page
-      .getByLabel('Пароль', { exact: true })
-      .fill('browser-test-password');
-    await page.getByRole('button', { name: 'Войти', exact: true }).click();
-    await page.waitForURL((url) => !url.pathname.endsWith('/seller/login'));
-    await page.goto(`/seller/${shop}/storefront`);
-    await expect(page.getByRole('alert')).toContainText('Нет доступа');
-    await expect(
-      page.getByRole('button', { name: 'Сохранить витрину', exact: true }),
-    ).toHaveCount(0);
-  } finally {
-    await context.close();
   }
 });
