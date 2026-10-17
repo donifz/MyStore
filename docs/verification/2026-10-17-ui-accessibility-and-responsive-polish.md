@@ -54,6 +54,12 @@
      - Сетки товаров `.sf-product-grid` адаптированы с зазором `gap: 8px` и компактными отступами карточки `padding: 4px`.
    - В `apps/web/e2e/admin-consistency.spec.ts`:
      - Расширен тестовый матричный диапазон ширин: `[320, 360, 390, 768, 1024, 1440]` для всех 15 seller-экранов и главной админки `/seller`.
+   - В `apps/web/src/styles.css` (платформенная панель администратора):
+     - `.admin-kit-heading h1`: добавлен перенос длинных составных слов (`overflow-wrap: anywhere; word-break: break-word;`) и медиа-масштабирование (24px при <= 820px, 20px при <= 480px, 18px при <= 380px), предотвращающее горизонтальное распирание заголовком «Администрирование MyStore» (слово из 17 кириллических букв) на экранах 320px.
+     - `.admin-kit-search`: добавлен `min-width: 0; max-width: 100%;`, а для вложенного `<input>` — `min-width: 0; flex: 1; width: 100%;`.
+     - `.admin-kit-card`, `.admin-kit-card-head`: добавлены `min-width: 0; max-width: 100%; overflow: clip; flex-wrap: wrap;` и перенос текста.
+     - `.admin-kit-scroll`: обеспечена изоляция горизонтальной прокрутки таблиц (`min-width: 0; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;`).
+     - `.admin-kit-date`: компактные отступы `padding: 6px 10px; font-size: 12px;` на экранах <= 380px.
 
 ## 2. Результаты проверок
 
