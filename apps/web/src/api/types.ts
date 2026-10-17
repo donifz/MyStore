@@ -27,6 +27,10 @@ export type Me = {
 };
 export type Variant = {
   sku?: string;
+  size?: string;
+  color?: string;
+  archived?: boolean;
+  parentId?: string | null;
   photoUrl?: string;
   photoUrls?: string[];
   description?: string;

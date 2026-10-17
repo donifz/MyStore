@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useSession } from '../auth/SessionProvider';
 import type { Variant } from '../api/types';
 import ProductForm from './ProductForm';
 import BarcodeLabel from './BarcodeLabel';
 function CreateWorkspace({ shopId }: { shopId: string }) {
   const [saved, setSaved] = useState<Variant | null>(null);
+  const [searchParams] = useSearchParams();
+  const parentId = searchParams.get('parentId') || undefined;
   return (
     <>
       <Link className="back-link" to={`/seller/${shopId}/products`}>
@@ -13,10 +15,14 @@ function CreateWorkspace({ shopId }: { shopId: string }) {
       </Link>
       <div className="page-heading">
         <div>
-          <p className="eyebrow">Каталог магазина</p>
-          <h1>Добавить товар</h1>
+          <p className="eyebrow">
+            {parentId ? 'Новая разновидность' : 'Каталог магазина'}
+          </p>
+          <h1>{parentId ? 'Добавить размер / цвет' : 'Добавить товар'}</h1>
           <p className="muted">
-            Фото, штрихкод и данные товара — в одной форме
+            {parentId
+              ? 'Товар будет привязан к группе разновидностей с независимым остатком и ценой'
+              : 'Фото, штрихкод и данные товара — в одной форме'}
           </p>
         </div>
       </div>
@@ -43,7 +49,11 @@ function CreateWorkspace({ shopId }: { shopId: string }) {
           </Link>
         </section>
       ) : (
-        <ProductForm shopId={shopId} onSaved={(v) => setSaved(v)} />
+        <ProductForm
+          shopId={shopId}
+          parentId={parentId}
+          onSaved={(v) => setSaved(v)}
+        />
       )}
     </>
   );

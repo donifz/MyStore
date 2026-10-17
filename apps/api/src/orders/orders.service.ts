@@ -112,10 +112,10 @@ export class OrdersService {
       );
       for (const line of payload.lines) {
         const [variant] = await tx.query(
-          'SELECT v.published FROM variants v JOIN product_publications p ON p.variant_id=v.id AND p.shop_id=v.shop_id WHERE v.shop_id=$1 AND v.id=$2',
+          'SELECT v.published, v.archived FROM variants v JOIN product_publications p ON p.variant_id=v.id AND p.shop_id=v.shop_id WHERE v.shop_id=$1 AND v.id=$2',
           [shop.id, line.variantId],
         );
-        if (!variant?.published)
+        if (!variant?.published || variant.archived)
           throw new NotFoundException('Product unavailable');
         const b = stocks.get(line.variantId)!;
         if (Number(b.sale_price_minor) !== line.expectedUnitPriceMinor)

@@ -102,6 +102,17 @@ describe('public storefront', () => {
       category: '',
       salePriceMinor: 15000,
       available: 3,
+      variants: [
+        {
+          id: v.id,
+          sku: v.sku,
+          name: 'Чашка%',
+          size: '',
+          color: '',
+          salePriceMinor: 15000,
+          available: 3,
+        },
+      ],
       store: {
         slug: shop.slug,
         name: 'Test Shop',

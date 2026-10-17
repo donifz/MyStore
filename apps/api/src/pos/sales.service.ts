@@ -66,6 +66,8 @@ export class SalesService {
     const id = randomUUID();
     for (const line of normalized) {
       const row = rows.get(line.variantId)!;
+      if (!reservedOrder && row.archived)
+        throw new ConflictException('Cannot sell archived variant');
       if (
         !reservedOrder &&
         Number(row.sale_price_minor) !== line.expectedUnitPriceMinor
