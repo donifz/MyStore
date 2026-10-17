@@ -232,12 +232,12 @@ export class StorefrontService {
   private from =
     ' FROM variants v JOIN shops s ON s.id=v.shop_id JOIN product_publications p ON p.variant_id=v.id AND p.shop_id=s.id LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id';
   private select =
-    `SELECT v.id,v.size,v.color,v.sku,(p.photo_data IS NOT NULL) has_photo,cardinality(p.photo_album) photo_count,p.name,p.description,p.category,v.sale_price_minor,COALESCE(b.physical,0)-COALESCE(b.reserved,0) available,s.slug,s.name shop_name,s.city,s.phone,s.address,s.hours,s.district,s.pickup_enabled,s.delivery_enabled` +
+    `SELECT v.id,v.size,v.color,v.sku,v.parent_id,(p.photo_data IS NOT NULL) has_photo,cardinality(p.photo_album) photo_count,p.name,p.description,p.category,v.sale_price_minor,COALESCE(b.physical,0)-COALESCE(b.reserved,0) available,s.slug,s.name shop_name,s.city,s.phone,s.address,s.hours,s.district,s.pickup_enabled,s.delivery_enabled` +
     this.from;
   async products(query: PublicQuery) {
     const { q, page, pageSize, store, category, inStock, sort } = query;
     if (store) await this.store(store);
-    const where = `s.published AND v.published AND (p.name ILIKE $1 OR s.name ILIKE $1 OR v.barcode ILIKE $1 OR v.sku ILIKE $1) AND ($2='' OR s.slug=$2) AND ($3='' OR p.category=$3) AND ($4=false OR COALESCE(b.physical,0)-COALESCE(b.reserved,0)>0) AND ($5='' OR s.city=$5) AND v.sale_price_minor BETWEEN $6 AND $7`;
+    const where = `s.published AND v.published AND NOT v.archived AND (p.name ILIKE $1 OR s.name ILIKE $1 OR v.barcode ILIKE $1 OR v.sku ILIKE $1) AND ($2='' OR s.slug=$2) AND ($3='' OR p.category=$3) AND ($4=false OR COALESCE(b.physical,0)-COALESCE(b.reserved,0)>0) AND ($5='' OR s.city=$5) AND v.sale_price_minor BETWEEN $6 AND $7`;
     if (
       query.minPrice !== undefined &&
       query.maxPrice !== undefined &&
@@ -273,7 +273,7 @@ export class StorefrontService {
       params,
     );
     const cats = await this.db.query(
-      "SELECT DISTINCT p.category FROM product_publications p JOIN variants v ON v.id=p.variant_id JOIN shops s ON s.id=p.shop_id WHERE s.published AND v.published AND p.category<>'' AND ($1='' OR s.slug=$1) ORDER BY p.category",
+      "SELECT DISTINCT p.category FROM product_publications p JOIN variants v ON v.id=p.variant_id JOIN shops s ON s.id=p.shop_id WHERE s.published AND v.published AND NOT v.archived AND p.category<>'' AND ($1='' OR s.slug=$1) ORDER BY p.category",
       [store],
     );
     return {
@@ -287,10 +287,33 @@ export class StorefrontService {
   async product(slug: string, id: string) {
     const [r] = await this.db.query(
       this.select +
-        ' WHERE s.published AND v.published AND s.slug=$1 AND v.id=$2',
+        ' WHERE s.published AND v.published AND NOT v.archived AND s.slug=$1 AND v.id=$2',
       [slug, id],
     );
     if (!r) throw new NotFoundException();
-    return this.productDto(r, true);
+    const rootId = r.parent_id || r.id;
+    const groupRows = await this.db.query(
+      `SELECT v.id, v.name, v.size, v.color, v.sku, v.sale_price_minor,
+              COALESCE(b.physical,0)-COALESCE(b.reserved,0) available
+       FROM variants v
+       JOIN shops s ON s.id=v.shop_id
+       LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id
+       WHERE s.slug=$1 AND v.published AND NOT v.archived AND (v.id=$2 OR v.parent_id=$2)
+       ORDER BY v.created_at ASC, v.id ASC`,
+      [slug, rootId],
+    );
+    const dto = this.productDto(r, true);
+    return {
+      ...dto,
+      variants: groupRows.map((v: any) => ({
+        id: v.id,
+        name: v.name,
+        size: v.size ?? '',
+        color: v.color ?? '',
+        sku: v.sku ?? '',
+        salePriceMinor: Number(v.sale_price_minor),
+        available: Number(v.available),
+      })),
+    };
   }
 }

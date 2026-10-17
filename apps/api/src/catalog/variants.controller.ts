@@ -14,9 +14,11 @@ import {
 import {
   IsArray,
   IsBoolean,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   MaxLength,
   ArrayMaxSize,
@@ -38,6 +40,7 @@ export class VariantFieldsDto {
   barcode?: string;
   @IsOptional() @IsString() @MaxLength(80) size?: string;
   @IsOptional() @IsString() @MaxLength(80) color?: string;
+  @IsOptional() @IsUUID() parentId?: string;
   @IsInt() @Min(0) @Max(Number.MAX_SAFE_INTEGER) salePriceMinor!: number;
   @IsOptional() @IsString() @MaxLength(80) category?: string;
   @IsOptional() @IsString() @MaxLength(80) subcategory?: string;
@@ -72,6 +75,7 @@ class ListQuery {
   @IsOptional() @IsString() @MaxLength(128) q = '';
   @Type(() => Number) @IsInt() @Min(1) @Max(1000000) page = 1;
   @Type(() => Number) @IsInt() @Min(1) @Max(100) pageSize = 25;
+  @IsOptional() @IsIn(['true', 'false']) archived?: string;
 }
 @Controller('shops/:shopId/variants')
 @UseGuards(AuthGuard)
@@ -96,6 +100,7 @@ export class VariantsController {
       query.page,
       query.pageSize,
       member.role !== 'cashier' || member.canViewReports,
+      query.archived === 'true',
     );
   }
   @Post() async create(
@@ -115,6 +120,30 @@ export class VariantsController {
     const variant = await this.variants.findByBarcode(shopId, query.code);
     if (!variant) throw new NotFoundException();
     return variant;
+  }
+  @Put(':variantId/archive') async archive(
+    @Param('shopId', ParseUUIDPipe) shopId: string,
+    @Param('variantId', ParseUUIDPipe) id: string,
+    @Req() req: UserRequest,
+  ) {
+    await this.access.requireMembership(req.userId, shopId, 'catalog');
+    return this.variants.archiveVariant(shopId, id, req.userId);
+  }
+  @Put(':variantId/unarchive') async unarchive(
+    @Param('shopId', ParseUUIDPipe) shopId: string,
+    @Param('variantId', ParseUUIDPipe) id: string,
+    @Req() req: UserRequest,
+  ) {
+    await this.access.requireMembership(req.userId, shopId, 'catalog');
+    return this.variants.unarchiveVariant(shopId, id, req.userId);
+  }
+  @Get(':variantId/variants') async getVariantsGroup(
+    @Param('shopId', ParseUUIDPipe) shopId: string,
+    @Param('variantId', ParseUUIDPipe) id: string,
+    @Req() req: UserRequest,
+  ) {
+    await this.access.requireMembership(req.userId, shopId, 'read');
+    return this.variants.getVariantsGroup(shopId, id);
   }
   @Put(':variantId/photos') async replacePhotos(
     @Param('shopId', ParseUUIDPipe) shopId: string,

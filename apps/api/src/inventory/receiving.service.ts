@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { randomUUID } from 'node:crypto';
 import { IdempotencyService } from '../common/idempotency.service';
@@ -66,6 +70,10 @@ export class ReceivingService {
     );
     for (const l of normalized) {
       const row = rows.get(l.variantId)!;
+      if (row.archived)
+        throw new ConflictException(
+          'Cannot receive stock for archived variant',
+        );
       const physical = Number(row.physical) + l.quantity;
       if (physical > 1000000000)
         throw new BadRequestException('Stock quantity exceeds limit');

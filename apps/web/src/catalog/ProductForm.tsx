@@ -6,6 +6,7 @@ import PhotoAssistant, { type CategoryNode } from './PhotoAssistant';
 import { photoFrom } from './product-photo';
 export default function ProductForm({
   shopId,
+  parentId,
   initialBarcode = '',
   barcodeReadOnly = false,
   disabled = false,
@@ -17,6 +18,7 @@ export default function ProductForm({
   onSaved,
 }: {
   shopId: string;
+  parentId?: string;
   initialBarcode?: string;
   barcodeReadOnly?: boolean;
   disabled?: boolean;
@@ -131,6 +133,7 @@ export default function ProductForm({
             method: 'POST',
             body: {
               name: name.trim(),
+              ...(parentId ? { parentId } : {}),
               ...(barcode.trim() ? { barcode: barcode.trim() } : {}),
               salePriceMinor: parseSom(price),
               ...(size.trim() ? { size: size.trim() } : {}),

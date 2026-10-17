@@ -11,6 +11,7 @@ export type LockedStock = {
   reserved: string;
   stock_value_minor: string;
   sale_price_minor: string;
+  archived: boolean;
 };
 @Injectable()
 export class StockService {
@@ -44,7 +45,7 @@ export class StockService {
     const result = new Map<string, LockedStock>();
     for (const id of [...ids].sort()) {
       const [variant] = await tx.query(
-        'SELECT sale_price_minor FROM variants WHERE shop_id=$1 AND id=$2 FOR SHARE',
+        'SELECT sale_price_minor, archived FROM variants WHERE shop_id=$1 AND id=$2 FOR SHARE',
         [shopId, id],
       );
       if (!variant) throw new NotFoundException('Variant not found in shop');
@@ -56,7 +57,11 @@ export class StockService {
         'SELECT physical,reserved,stock_value_minor FROM stock_balances WHERE shop_id=$1 AND variant_id=$2 FOR UPDATE',
         [shopId, id],
       );
-      result.set(id, { ...row, sale_price_minor: variant.sale_price_minor });
+      result.set(id, {
+        ...row,
+        sale_price_minor: variant.sale_price_minor,
+        archived: Boolean(variant.archived),
+      });
     }
     return result;
   }

@@ -15,6 +15,7 @@ export type VariantInput = {
   barcode?: string;
   size?: string;
   color?: string;
+  parentId?: string;
   salePriceMinor: number;
   category?: string;
   subcategory?: string;
@@ -26,6 +27,8 @@ export type Variant = {
   sku: string;
   size: string;
   color: string;
+  archived: boolean;
+  parentId?: string | null;
   photoUrl?: string;
   photoUrls?: string[];
   description: string;
@@ -51,6 +54,8 @@ export class VariantsService {
       sku: row.sku,
       size: row.size ?? '',
       color: row.color ?? '',
+      archived: Boolean(row.archived),
+      parentId: row.parent_id ?? null,
       ...(row.has_photo || row.photo_data
         ? { photoUrl: `/api/shops/${row.shop_id}/variants/${row.id}/photo` }
         : {}),
@@ -84,18 +89,20 @@ export class VariantsService {
     page: number,
     pageSize: number,
     showCost: boolean,
+    archived = false,
   ) {
     const pattern = '%' + q.replace(/[\\%_]/g, '\\$&') + '%';
-    const filter = 'v.shop_id=$1 AND (v.name ILIKE $2 OR v.barcode ILIKE $2)';
+    const filter =
+      'v.shop_id=$1 AND v.archived=$2 AND (v.name ILIKE $3 OR v.barcode ILIKE $3 OR v.sku ILIKE $3)';
     const [count] = await this.db.query(
       'SELECT count(*) FROM variants v WHERE ' + filter,
-      [shopId, pattern],
+      [shopId, archived, pattern],
     );
     const rows = await this.db.query(
-      'SELECT v.id,v.sku,v.name,v.barcode,v.size,v.color,v.sale_price_minor,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.stock_value_minor,0) stock_value_minor FROM variants v LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id WHERE ' +
+      'SELECT v.id,v.sku,v.name,v.barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.stock_value_minor,0) stock_value_minor FROM variants v LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id WHERE ' +
         filter +
-        ' ORDER BY v.name,v.id LIMIT $3 OFFSET $4',
-      [shopId, pattern, pageSize, (page - 1) * pageSize],
+        ' ORDER BY v.name,v.id LIMIT $4 OFFSET $5',
+      [shopId, archived, pattern, pageSize, (page - 1) * pageSize],
     );
     return {
       items: rows.map((r: any) => ({
@@ -103,6 +110,8 @@ export class VariantsService {
         sku: r.sku,
         size: r.size,
         color: r.color,
+        archived: Boolean(r.archived),
+        parentId: r.parent_id ?? null,
         name: r.name,
         barcode: r.barcode,
         salePriceMinor: Number(r.sale_price_minor),
@@ -126,6 +135,15 @@ export class VariantsService {
       input.category ?? '',
       input.subcategory ?? '',
     );
+    if (input.parentId) {
+      const [parent] = await this.db.query(
+        'SELECT id, archived FROM variants WHERE shop_id=$1 AND id=$2',
+        [shopId, input.parentId],
+      );
+      if (!parent) throw new NotFoundException('Parent product not found');
+      if (parent.archived)
+        throw new ConflictException('Cannot add variant to archived product');
+    }
     const sources =
       input.photoDataUrls ?? (input.photoDataUrl ? [input.photoDataUrl] : []);
     if (sources.length > 8) throw new ConflictException('Maximum eight photos');
@@ -136,7 +154,7 @@ export class VariantsService {
     try {
       const row = await this.db.transaction(async (tx) => {
         const [created] = await tx.query(
-          'INSERT INTO variants(id,shop_id,name,barcode,sale_price_minor,category,subcategory,description,photo_data,size,color,photo_album)VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)RETURNING *',
+          'INSERT INTO variants(id,shop_id,name,barcode,sale_price_minor,category,subcategory,description,photo_data,size,color,photo_album,parent_id)VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)RETURNING *',
           [
             randomUUID(),
             shopId,
@@ -150,6 +168,7 @@ export class VariantsService {
             input.size?.trim() ?? '',
             input.color?.trim() ?? '',
             album,
+            input.parentId ?? null,
           ],
         );
         await stageProduct(tx, created, actor);
@@ -161,6 +180,85 @@ export class VariantsService {
         throw new ConflictException('Barcode already exists');
       throw e;
     }
+  }
+  async archiveVariant(shopId: string, id: string, actor: string) {
+    return this.db.transaction(async (tx) => {
+      const [variant] = await tx.query(
+        'SELECT * FROM variants WHERE shop_id=$1 AND id=$2 FOR UPDATE',
+        [shopId, id],
+      );
+      if (!variant) throw new NotFoundException('Variant not found');
+      if (variant.archived) return this.dto(variant);
+      const [balance] = await tx.query(
+        'SELECT COALESCE(reserved, 0)::int AS reserved FROM stock_balances WHERE shop_id=$1 AND variant_id=$2',
+        [shopId, id],
+      );
+      if (balance && balance.reserved > 0) {
+        throw new ConflictException(
+          'Cannot archive variant with active reservations',
+        );
+      }
+      const [[updated]] = await tx.query(
+        'UPDATE variants SET archived=true WHERE shop_id=$1 AND id=$2 RETURNING *',
+        [shopId, id],
+      );
+      await tx.query(
+        `INSERT INTO audit_log(shop_id,actor_id,action,entity_type,entity_id,details)
+         VALUES($1,$2,'archived','variant',$3,jsonb_build_object('name',$4::text,'barcode',$5::text,'sku',$6::text))`,
+        [shopId, actor, id, variant.name, variant.barcode, variant.sku],
+      );
+      return this.dto(updated);
+    });
+  }
+  async unarchiveVariant(shopId: string, id: string, actor: string) {
+    return this.db.transaction(async (tx) => {
+      const [variant] = await tx.query(
+        'SELECT * FROM variants WHERE shop_id=$1 AND id=$2 FOR UPDATE',
+        [shopId, id],
+      );
+      if (!variant) throw new NotFoundException('Variant not found');
+      if (!variant.archived) return this.dto(variant);
+      const [[updated]] = await tx.query(
+        'UPDATE variants SET archived=false WHERE shop_id=$1 AND id=$2 RETURNING *',
+        [shopId, id],
+      );
+      await tx.query(
+        `INSERT INTO audit_log(shop_id,actor_id,action,entity_type,entity_id,details)
+         VALUES($1,$2,'unarchived','variant',$3,jsonb_build_object('name',$4::text,'barcode',$5::text,'sku',$6::text))`,
+        [shopId, actor, id, variant.name, variant.barcode, variant.sku],
+      );
+      return this.dto(updated);
+    });
+  }
+  async getVariantsGroup(shopId: string, id: string) {
+    const [v] = await this.db.query(
+      'SELECT id, parent_id FROM variants WHERE shop_id=$1 AND id=$2',
+      [shopId, id],
+    );
+    if (!v) throw new NotFoundException('Variant not found');
+    const rootId = v.parent_id || v.id;
+    const rows = await this.db.query(
+      `SELECT v.id,v.sku,v.name,v.barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,
+              COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,
+              COALESCE(b.physical,0)-COALESCE(b.reserved,0) available
+       FROM variants v
+       LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id
+       WHERE v.shop_id=$1 AND (v.id=$2 OR v.parent_id=$2)
+       ORDER BY v.created_at ASC, v.id ASC`,
+      [shopId, rootId],
+    );
+    return rows.map((r: any) => ({
+      id: r.id,
+      sku: r.sku,
+      name: r.name,
+      barcode: r.barcode,
+      size: r.size,
+      color: r.color,
+      archived: Boolean(r.archived),
+      parentId: r.parent_id ?? null,
+      salePriceMinor: Number(r.sale_price_minor),
+      available: Number(r.available),
+    }));
   }
   async replacePhotoAlbum(
     shopId: string,
@@ -272,7 +370,7 @@ export class VariantsService {
   }
   async getById(shopId: string, id: string) {
     const [row] = await this.db.query(
-      "SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.sale_price_minor,v.description,v.category,v.subcategory,v.published,(v.photo_data IS NOT NULL) has_photo,cardinality(v.photo_album) photo_count,CASE WHEN EXISTS(SELECT 1 FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='pending') THEN 'pending' WHEN EXISTS(SELECT 1 FROM product_publications p WHERE p.variant_id=v.id) THEN 'approved' ELSE 'unpublished' END publication_status,(SELECT reason FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='rejected' AND r.decided_by IS NOT NULL ORDER BY r.decided_at DESC LIMIT 1) rejection_reason FROM variants v WHERE v.shop_id=$1 AND v.id=$2",
+      "SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.description,v.category,v.subcategory,v.published,(v.photo_data IS NOT NULL) has_photo,cardinality(v.photo_album) photo_count,CASE WHEN EXISTS(SELECT 1 FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='pending') THEN 'pending' WHEN EXISTS(SELECT 1 FROM product_publications p WHERE p.variant_id=v.id) THEN 'approved' ELSE 'unpublished' END publication_status,(SELECT reason FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='rejected' AND r.decided_by IS NOT NULL ORDER BY r.decided_at DESC LIMIT 1) rejection_reason FROM variants v WHERE v.shop_id=$1 AND v.id=$2",
       [shopId, id],
     );
     if (!row) throw new NotFoundException();

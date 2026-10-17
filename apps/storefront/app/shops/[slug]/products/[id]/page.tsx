@@ -18,6 +18,7 @@ import {
 } from '../../../../../lib/public-api';
 import { metadata, productJson } from '../../../../../lib/seo';
 import Refresh from '../../../../../components/Refresh';
+import VariantSelector from '../../../../../components/storefront/VariantSelector';
 export const dynamic = 'force-dynamic';
 type Props = { params: Promise<{ slug: string; id: string }> };
 async function load(params: Props['params']) {
@@ -111,6 +112,11 @@ export default async function ProductPage({ params }: Props) {
             <FavoriteButton product={v} />
           </div>
           <StockBadge available={v.available} detailed />
+          <VariantSelector
+            currentId={v.id}
+            storeSlug={v.store.slug}
+            variants={v.variants}
+          />
           <div className="sf-detail-tabs">
             <a href="#description">Описание</a>
             <a href="#details">О товаре</a>
@@ -129,6 +135,18 @@ export default async function ProductPage({ params }: Props) {
                 <dt>Категория</dt>
                 <dd>{v.category || 'Без категории'}</dd>
               </div>
+              {v.size && (
+                <div>
+                  <dt>Размер</dt>
+                  <dd>{v.size}</dd>
+                </div>
+              )}
+              {v.color && (
+                <div>
+                  <dt>Цвет</dt>
+                  <dd>{v.color}</dd>
+                </div>
+              )}
               {v.sku && (
                 <div>
                   <dt>Артикул</dt>

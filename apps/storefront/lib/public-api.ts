@@ -13,6 +13,15 @@ export type Store = {
   phone?: string;
   hours?: string;
 };
+export type ProductVariant = {
+  id: string;
+  name: string;
+  sku: string;
+  size?: string;
+  color?: string;
+  salePriceMinor: number;
+  available: number;
+};
 export type Product = {
   size?: string;
   color?: string;
@@ -26,6 +35,7 @@ export type Product = {
   salePriceMinor: number;
   available: number;
   store: Store;
+  variants?: ProductVariant[];
 };
 export type Page<T> = {
   items: T[];

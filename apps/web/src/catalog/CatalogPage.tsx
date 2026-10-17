@@ -10,6 +10,7 @@ export default function CatalogPage() {
     session = useSession(),
     [q, setQ] = useState(''),
     [page, setPage] = useState(1),
+    [archived, setArchived] = useState(false),
     [data, setData] = useState<Page<Variant> | null>(null),
     [error, setError] = useState(''),
     [loading, setLoading] = useState(false),
@@ -20,7 +21,7 @@ export default function CatalogPage() {
     setLoading(true);
     setError('');
     api<Page<Variant>>(
-      `/shops/${shopId}/variants?q=${encodeURIComponent(q)}&page=${page}`,
+      `/shops/${shopId}/variants?q=${encodeURIComponent(q)}&page=${page}&archived=${archived}`,
     )
       .then((r) => {
         if (alive) setData(r);
@@ -34,7 +35,7 @@ export default function CatalogPage() {
     return () => {
       alive = false;
     };
-  }, [shopId, q, page]);
+  }, [shopId, q, page, archived]);
   return (
     <>
       <div className="page-heading">
@@ -52,7 +53,7 @@ export default function CatalogPage() {
         )}
       </div>
       <section className="panel">
-        <div className="toolbar">
+        <div className="toolbar" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
           <label className="search-label">
             Поиск
             <input
@@ -64,7 +65,43 @@ export default function CatalogPage() {
               }}
             />
           </label>
-          <span className="muted">{data?.total ?? 0} товаров</span>
+          <div
+            className="filter-group"
+            role="tablist"
+            aria-label="Статус товаров"
+            style={{ display: 'inline-flex', gap: '0.5rem' }}
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={!archived}
+              className={`button ${!archived ? 'primary' : 'secondary'}`}
+              onClick={() => {
+                setArchived(false);
+                setPage(1);
+              }}
+            >
+              Активные
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={archived}
+              className={`button ${archived ? 'primary' : 'secondary'}`}
+              onClick={() => {
+                setArchived(true);
+                setPage(1);
+              }}
+            >
+              В архиве
+            </button>
+          </div>
+          <span
+            className="muted"
+            style={{ marginLeft: 'auto', alignSelf: 'center' }}
+          >
+            {data?.total ?? 0} товаров
+          </span>
         </div>
         {error && (
           <p role="alert" className="error">
@@ -94,6 +131,20 @@ export default function CatalogPage() {
                     ) : (
                       <strong>{v.name}</strong>
                     )}
+                    {(v.size || v.color) && (
+                      <span className="muted">
+                        {' '}
+                        ({[v.size, v.color].filter(Boolean).join(', ')})
+                      </span>
+                    )}
+                    {v.archived && (
+                      <span
+                        className="status-pill status-archived"
+                        style={{ marginLeft: '0.5rem' }}
+                      >
+                        В архиве
+                      </span>
+                    )}
                     <small className="code">{v.barcode}</small>
                   </td>
                   <td>{formatSom(v.salePriceMinor)}</td>
@@ -115,7 +166,9 @@ export default function CatalogPage() {
         </div>
         {!loading && !error && !data?.items.length && (
           <p className="empty-state">
-            Товаров пока нет. Добавьте первую позицию.
+            {archived
+              ? 'В архиве нет товаров.'
+              : 'Товаров пока нет. Добавьте первую позицию.'}
           </p>
         )}
         <div className="pagination">
