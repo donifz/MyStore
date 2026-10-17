@@ -61,38 +61,61 @@ export default async function Catalog({
         <MarketplaceHero products={products.items} />
       ) : (
         <section className="sf-store-hero">
-          <div className="sf-store-identity">
-            <span className="sf-store-monogram">{store.name.slice(0, 1)}</span>
-            <div>
-              <p className="sf-eyebrow">
-                {store.city}
-                {store.district ? ' · ' + store.district : ''}
-              </p>
-              <h1>{store.name}</h1>
-              <p>{store.description || 'Товары вашего местного магазина'}</p>
+          <div className="sf-store-hero-main">
+            <div className="sf-store-identity">
+              <span className="sf-store-monogram">
+                {store.name.slice(0, 1)}
+              </span>
+              <div>
+                <p className="sf-eyebrow">
+                  {store.city}
+                  {store.district ? ' · ' + store.district : ''}
+                </p>
+                <h1>{store.name}</h1>
+                <p>{store.description || 'Товары вашего местного магазина'}</p>
+              </div>
+            </div>
+            <div className="sf-store-hero-actions">
+              {phone && (
+                <a
+                  className="sf-button sf-button--primary"
+                  href={'tel:' + phone}
+                >
+                  <Icon name="phone" width={18} height={18} />
+                  Связаться с магазином
+                </a>
+              )}
+              <div className="sf-store-badges">
+                {store.pickupEnabled !== false && (
+                  <span className="sf-store-badge">
+                    <Icon name="shop" width={14} height={14} />
+                    Самовывоз
+                  </span>
+                )}
+                {store.deliveryEnabled && (
+                  <span className="sf-store-badge">
+                    <Icon name="truck" width={14} height={14} />
+                    Доставка
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-          <div className="sf-store-hero-actions">
-            {phone && (
-              <a className="sf-button sf-button--primary" href={'tel:' + phone}>
-                <Icon name="phone" width={18} height={18} />
-                Связаться с магазином
-              </a>
+          <div className="sf-store-info">
+            <span>
+              <Icon name="pin" width={16} height={16} />
+              {store.address || 'Адрес уточните у продавца'}
+            </span>
+            <span>
+              <Icon name="clock" width={16} height={16} />
+              {store.hours || 'Часы работы уточните у продавца'}
+            </span>
+            {store.phone && (
+              <span>
+                <Icon name="phone" width={16} height={16} />
+                {store.phone}
+              </span>
             )}
-            <div className="sf-store-badges">
-              {store.pickupEnabled !== false && (
-                <span className="sf-badge sf-badge--neutral">
-                  <Icon name="shop" width={14} height={14} />
-                  Самовывоз
-                </span>
-              )}
-              {store.deliveryEnabled && (
-                <span className="sf-badge sf-badge--neutral">
-                  <Icon name="truck" width={14} height={14} />
-                  Доставка
-                </span>
-              )}
-            </div>
           </div>
         </section>
       )}
@@ -119,24 +142,6 @@ export default async function Catalog({
             ))}
           </div>
         </section>
-      )}
-      {store && (
-        <div className="sf-store-info">
-          <span>
-            <Icon name="pin" width={16} height={16} />
-            {store.address || 'Адрес уточните у продавца'}
-          </span>
-          <span>
-            <Icon name="clock" width={16} height={16} />
-            {store.hours || 'Часы работы уточните у продавца'}
-          </span>
-          {store.phone && (
-            <span>
-              <Icon name="phone" width={16} height={16} />
-              {store.phone}
-            </span>
-          )}
-        </div>
       )}
       <section id="catalog" className="sf-stack">
         <div className="sf-section-heading">
