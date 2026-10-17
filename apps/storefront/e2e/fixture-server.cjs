@@ -77,7 +77,28 @@ app
               url.searchParams.get('q') === 'empty' ||
               url.searchParams.get('page') === '2'
                 ? []
-                : [item],
+                : url.searchParams.get('q') === 'layout'
+                  ? [
+                      item,
+                      {
+                        ...item,
+                        id: '22222222-2222-4222-8222-222222222222',
+                        name: 'Принтер с очень длинным названием для проверки карточки',
+                      },
+                      {
+                        ...item,
+                        id: '33333333-3333-4333-8333-333333333333',
+                        name: 'Пульт',
+                        available: 0,
+                      },
+                      {
+                        ...item,
+                        id: '44444444-4444-4444-8444-444444444444',
+                        name: 'Розетка',
+                        category: 'Электроника',
+                      },
+                    ]
+                  : [item],
             total: url.searchParams.get('q') === 'empty' ? 0 : 30,
             page: Number(url.searchParams.get('page') || 1),
             pageSize: 24,
