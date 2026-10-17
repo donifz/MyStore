@@ -74,12 +74,19 @@ import { PasswordRecoveryController } from './auth/password-recovery.controller'
 import { EmailSettingsService } from './email/email-settings.service';
 import { EmailSettingsController } from './email/email-settings.controller';
 import { EventEmailService } from './email/event-email.service';
+import { FinancialAccessService } from './platform/financial-access.service';
+import {
+  OwnerFinancialAccessController,
+  AdminFinancialAccessController,
+} from './platform/financial-access.controller';
 export async function createApp(
   db: DataSource,
   publicHandler?: express.RequestHandler,
 ) {
   @Module({
     controllers: [
+      OwnerFinancialAccessController,
+      AdminFinancialAccessController,
       AdminSessionController,
       AdminApplicationsController,
       ProductModerationController,
@@ -109,6 +116,7 @@ export async function createApp(
       StaffAcceptanceController,
     ],
     providers: [
+      FinancialAccessService,
       PlatformAdminService,
       PartnerApplicationsService,
       ProductModerationService,

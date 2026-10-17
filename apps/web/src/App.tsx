@@ -30,6 +30,7 @@ import AdminPage from './platform/AdminPage';
 import StockOperationsPage from './inventory/StockOperationsPage';
 import ReportsPage from './reports/ReportsPage';
 import OperationsPage from './operations/OperationsPage';
+import PlatformAccessPage from './platform/PlatformAccessPage';
 export default function App() {
   return (
     <SessionProvider>
@@ -53,6 +54,7 @@ export default function App() {
         <Route path="/seller/:shopId" element={<SellerLayout />}>
           <Route index element={<ShopHome />} />
           <Route path="staff" element={<StaffPage />} />
+          <Route path="platform-access" element={<PlatformAccessPage />} />
           <Route path="storefront" element={<StorefrontSettingsPage />} />
           <Route path="products/:id/edit" element={<EditVariantPage />} />
           <Route path="orders" element={<OrdersPage />} />
