@@ -525,6 +525,7 @@ export default function AdminPage() {
                         style={{
                           display: 'flex',
                           gap: '0.5rem',
+                          flexWrap: 'wrap',
                           marginTop: '0.75rem',
                         }}
                       >
@@ -574,6 +575,7 @@ export default function AdminPage() {
                         style={{
                           display: 'flex',
                           gap: '0.5rem',
+                          flexWrap: 'wrap',
                           marginTop: '0.75rem',
                         }}
                       >

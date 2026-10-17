@@ -102,13 +102,14 @@ small {
   display: block;
 }
 .muted {
-  color: #778394;
+  color: #556272;
 }
 .eyebrow {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 1.5px;
-  color: #718093;
+  color: #4b5868;
+  font-weight: 600;
   margin: 0;
 }
 .brand {
@@ -249,9 +250,9 @@ table {
 }
 th {
   background: #f6f8fa;
-  color: #718093;
+  color: #4c5867;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   padding: 13px 16px;
 }
 td {
@@ -265,7 +266,7 @@ td:first-child {
 }
 .code {
   font-size: 12px;
-  color: #8290a0;
+  color: #5c6978;
   margin-top: 6px;
   overflow-wrap: anywhere;
 }
@@ -375,14 +376,16 @@ td:first-child {
 }
 .stock {
   background: #edf7f1;
-  color: #217448;
+  color: #1a5e3a;
   border-radius: 6px;
   padding: 5px 9px;
   font-size: 12px;
+  font-weight: 500;
 }
 .stock.empty {
-  background: #f5f6f8;
-  color: #8e98a4;
+  background: #f0f3f6;
+  color: #475467;
+  font-weight: 500;
 }
 .pagination {
   display: flex;
@@ -435,22 +438,24 @@ td:first-child {
   }
 }
 .error {
-  background: #fff0ef;
-  color: #aa3535;
-  border: 1px solid #f0d5d1;
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
   border-radius: 8px;
   padding: 12px;
+  font-weight: 500;
 }
 .success {
-  background: #eaf6ed;
-  color: #25643b;
-  border: 1px solid #cce6d3;
+  background: #edf7f1;
+  color: #165936;
+  border: 1px solid #c0e6ce;
   border-radius: 8px;
   padding: 12px;
+  font-weight: 500;
 }
 .empty-state {
   text-align: center;
-  color: #8290a0;
+  color: #556374;
   padding: 35px;
 }
 .form-panel {
@@ -539,11 +544,12 @@ td:first-child {
   flex-wrap: wrap;
 }
 .notice {
-  background: #f0f4fa;
-  border: 1px solid #dae4f0;
+  background: #edf3fa;
+  border: 1px solid #cddbee;
   border-radius: 8px;
   padding: 12px;
-  color: #536880;
+  color: #3b5068;
+  font-weight: 500;
 }
 .stats {
   display: grid;
@@ -2264,20 +2270,24 @@ select {
   padding: 5px 8px;
   font-size: 11px;
   background: #fff3dc;
-  color: #94630d;
+  color: #734800;
+  font-weight: 600;
   white-space: nowrap;
 }
 .admin-kit-status.green {
   background: #def4e6;
-  color: #26734c;
+  color: #165635;
+  font-weight: 600;
 }
 .admin-kit-status.red {
   background: #fbe6e6;
-  color: #ad4444;
+  color: #942525;
+  font-weight: 600;
 }
 .admin-kit-status.neutral {
   background: #edf0f1;
-  color: #697477;
+  color: #454f53;
+  font-weight: 500;
 }
 .status-pill {
   display: inline-flex;
@@ -2290,11 +2300,13 @@ select {
 }
 .status-pill.status-active {
   background: #def4e6;
-  color: #26734c;
+  color: #155734;
+  font-weight: 600;
 }
 .status-pill.status-archived {
-  background: #f1f3f4;
-  color: #5f6368;
+  background: #edf0f2;
+  color: #444a51;
+  font-weight: 500;
 }
 .admin-kit-actions {
   display: flex;
@@ -2302,18 +2314,21 @@ select {
   gap: 6px;
 }
 .admin-kit-actions button {
-  padding: 6px 9px;
+  padding: 6px 10px;
   font-size: 11px;
+  min-height: 36px;
 }
 .admin-kit-actions .admin-kit-approve {
-  border: 1px solid #c7ebda;
+  border: 1px solid #b7e3ce;
   background: #e7f6ee;
-  color: #24734d;
+  color: #165936;
+  font-weight: 600;
 }
 .admin-kit-actions .admin-kit-reject {
-  border: 1px solid #f5dcdc;
-  background: #fff6f6;
-  color: #a44141;
+  border: 1px solid #f2caca;
+  background: #fff4f4;
+  color: #8e2b2b;
+  font-weight: 600;
 }
 .admin-kit-reason {
   max-width: 550px;
