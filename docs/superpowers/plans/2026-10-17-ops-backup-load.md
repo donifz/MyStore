@@ -60,4 +60,3 @@
 - [ ] Run the test to green and run a short smoke profile against a local server fixture.
 - [ ] Build and start the API against the restored test database; run the 30-second read profile and record p50/p95/p99/max, requests/sec, errors, row counts, and environment.
 - [ ] State clearly that write paths, 100,000-variant scale, PITR, and production alerting remain unverified without a representative isolated environment and provider access.
-
