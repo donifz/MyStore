@@ -4,13 +4,13 @@
 
 ## Браузерный вход
 
-POST /auth/web/login {email,password}. Требуется Origin из WEB_ORIGINS. Ответ: {expiresIn:43200,csrfToken}. Сессия — cookie mystore_session, HttpOnly, SameSite=Lax, Secure в production, Path=/, 12 часов. GET /auth/me возвращает userId,email,csrfToken,shops:[{id,name,role}]. POST /auth/web/logout отзывает сессию и очищает cookie.
+POST /auth/web/login {email,password}. Требуется Origin из WEB_ORIGINS. Ответ: {expiresIn:43200,csrfToken}. Сессия — cookie mystore_session, HttpOnly, SameSite=Lax, Secure в production, Path=/, 12 часов. GET /auth/me возвращает userId,email,csrfToken,shops:[{id,name,role,canReturn,canViewReports}]. POST /auth/web/logout отзывает сессию и очищает cookie.
 
 Изменения с cookie требуют разрешённый Origin и x-csrf-token из /auth/me. CSRF привязан к текущей сессии. Сессия и CSRF не записываются в localStorage. Вход bearer и web разделяют ограничение 20 попыток на IP в минуту.
 
 ## Товары
 
-GET /shops/:shopId/variants?q=&page=1&pageSize=25 → {items,total,page,pageSize}. Поиск по названию и коду, включая ведущие нули; %, _ и обратный слеш считаются обычными символами. page:1..1000000, pageSize:1..100, q до128 символов. Каждая позиция: id,name,barcode,salePriceMinor,physical,reserved,available. stockValueMinor добавляется только для владельца/менеджера. Создание и приёмка сохраняют API первого этапа.
+GET /shops/:shopId/variants?q=&page=1&pageSize=25 → {items,total,page,pageSize}. Поиск по названию и коду, включая ведущие нули; %, _ и обратный слеш считаются обычными символами. page:1..1000000, pageSize:1..100, q до128 символов. Каждая позиция: id,name,barcode,salePriceMinor,physical,reserved,available. stockValueMinor добавляется для владельца/менеджера и кассира с canViewReports. Создание и приёмка сохраняют API первого этапа.
 
 ## Смены
 
@@ -46,7 +46,7 @@ GET .../pos/sales?page=1&pageSize=25 → {items,total,page,pageSize}. Владе
 
 ## Возврат
 
-POST /shops/:shopId/pos/returns, только владелец:
+POST /shops/:shopId/pos/returns, владелец или сотрудник с canReturn:
 
 ```json
 {
@@ -68,3 +68,11 @@ condition: resellable|defective. Уникальные saleLineId, 1..100 стр�
 Идемпотентность общая по магазину. Новые операции включают сотрудника в отпечаток. Другой сотрудник с тем же ключом получает409. Повтор точно прежних данных возвращает результат, включая уже закрытую смену. Неизвестный результат повторяется с тем же ключом, URL и телом; менять его нельзя.
 
 400 — поля/суммы/комментарий;401 — сессия;403 — права/Origin/CSRF;404 — чужая или отсутствующая сущность;409 — занятая/закрытая смена, конфликт ключа, цена, остаток, превышение возврата или неизвестная старая оплата;429 — лимит входа. 5xx/потеря ответа считаются неизвестным результатом.
+
+## Дополнительные разрешения сотрудников
+
+`POST /shops/:shopId/staff/:userId/permissions` принимает `{canReturn:boolean,canViewReports:boolean}`. Оба поля обязательны. Требуется владелец магазина, UUID `Idempotency-Key`, а для cookie также Origin/CSRF. Изменение владельца запрещено. Смена прав, аудит `staff:permissions` (before/after) и результат повтора сохраняются атомарно. Неизменённые права не создают аудит. Повтор старого ключа после последующего отзыва возвращает прежний ответ, но не выдаёт права заново.
+
+`GET /auth/me`, `GET /shops/:shopId/access` и список сотрудников возвращают эффективные `canReturn`/`canViewReports`; для владельца оба true. `access?permission=return|reports` проверяет соответствующее разрешение. Смена роли сбрасывает оба дополнительных разрешения; приглашение не выдаёт их автоматически.
+
+`canReturn` открывает историю/детали продаж магазина и возвраты без себестоимости. `canViewReports` открывает финансовую сводку, CSV-экспорт и историю продаж магазина, а кассиру также стоимость остатка. Эти разрешения независимы; они не выдают права управления персоналом, каталогом или чужими сменами. Без обоих разрешений сотруднику доступна только собственная история продаж. Права на возврат повторно проверяются внутри транзакции до блокировки смены и остатков; отзыв блокирует также повтор ранее завершённого запроса.
