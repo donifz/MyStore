@@ -193,6 +193,11 @@ const seen = [];
     assert.equal(query.searchParams.get('sort'), 'name');
     assert.equal(query.searchParams.get('q').length, 128);
     seen.length = 0;
+    await get('/?sort=newest&q=SKU-100');
+    let newestQuery = seen.find((x) => x.pathname === '/api/public/products');
+    assert.equal(newestQuery.searchParams.get('sort'), 'newest');
+    assert.equal(newestQuery.searchParams.get('q'), 'SKU-100');
+    seen.length = 0;
     await get('/?category=' + 'c'.repeat(200));
     assert.equal(
       seen

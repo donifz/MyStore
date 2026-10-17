@@ -96,6 +96,7 @@ describe('public storefront', () => {
       id: v.id,
       size: '',
       color: '',
+      sku: v.sku,
       name: 'Чашка%',
       description: '',
       category: '',
@@ -126,7 +127,7 @@ describe('public storefront', () => {
   it('scopes products, filters literal input and sorts pages', async () => {
     const shop = await publish();
     const a = await variant('Чашка%', 20000);
-    await variant('Другая', 10000);
+    const b = await variant('Другая', 10000);
     const all = await request(http())
       .get('/public/products')
       .query({ sort: 'price-asc', pageSize: 1 })
@@ -138,6 +139,20 @@ describe('public storefront', () => {
       .query({ q: '%' })
       .expect(200);
     expect(percent.body.items.map((x: any) => x.id)).toEqual([a.id]);
+    const skuSearch = await request(http())
+      .get('/public/products')
+      .query({ q: a.sku })
+      .expect(200);
+    expect(skuSearch.body.total).toBe(1);
+    expect(skuSearch.body.items[0].id).toBe(a.id);
+    expect(skuSearch.body.items[0].sku).toBe(a.sku);
+    const newest = await request(http())
+      .get('/public/products')
+      .query({ sort: 'newest' })
+      .expect(200);
+    expect(newest.body.total).toBe(2);
+    expect(newest.body.items[0].id).toBe(b.id);
+    expect(newest.body.items[1].id).toBe(a.id);
     const none = await request(http())
       .get('/public/products')
       .query({ inStock: 'true' })
