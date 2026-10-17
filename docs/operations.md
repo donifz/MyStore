@@ -13,17 +13,27 @@
 Ручная контрольная копия перед релизом:
 
 ```bash
-pg_dump --format=custom --no-owner --no-acl "$DATABASE_URL" > mystore.dump
+set -euo pipefail
+test -n "${DATABASE_URL:?Set the source database URL}"
+test -n "${RESTORE_DATABASE_URL:?Set a separate, empty restore database URL}"
+test "$DATABASE_URL" != "$RESTORE_DATABASE_URL"
+BACKUP_FILE="${BACKUP_FILE:-mystore-$(date -u +%Y%m%dT%H%M%SZ).dump}"
+pg_dump --format=custom --no-owner --no-acl "$DATABASE_URL" > "$BACKUP_FILE"
+pg_restore --list "$BACKUP_FILE" > /dev/null
+shasum -a 256 "$BACKUP_FILE"
 ```
 
 Проверка восстановления выполняется только в отдельную пустую базу:
 
 ```bash
-createdb mystore_restore_test
-pg_restore --clean --if-exists --no-owner --no-acl --dbname="$RESTORE_DATABASE_URL" mystore.dump
+pg_restore --exit-on-error --no-owner --no-acl \
+  --dbname="$RESTORE_DATABASE_URL" "$BACKUP_FILE"
+DATABASE_URL="$RESTORE_DATABASE_URL" npm run migration:run --workspace apps/api
 ```
 
-После восстановления необходимо выполнить миграции приложения, затем проверить количество магазинов, вариантов, движений, продаж, заказов и платежей. Production-база не используется как цель тестового восстановления.
+Создайте целевую базу заранее и убедитесь, что она пуста. Сверьте имя базы источника и назначения, затем сравните до/после количество миграций, магазинов, вариантов, движений склада, продаж, заказов, платежей и возвратов. Команда восстановления намеренно не использует `--clean`: она должна завершиться ошибкой, если база назначения не пустая. Сохраните размер и контрольную сумму копии, версии PostgreSQL, длительность выгрузки/восстановления, число ошибок и итог проверки приложения. Не публикуйте URL подключения, секреты или содержимое строк.
+
+Рабочий прогон на изолированной тестовой базе PostgreSQL 18 записан в [отчёте восстановления и локальной нагрузки](verification/2026-10-17-backup-restore-rehearsal.md). Он подтверждает процедуру на небольшой тестовой выборке, но сам по себе не подтверждает PITR, целевые RPO/RTO или производительность production.
 
 ## Уведомления и outbox
 
