@@ -12,7 +12,7 @@ import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { ShopAccessService, ShopPermission } from './shop-access.service';
 class PermissionQuery {
   @IsOptional()
-  @IsIn(['read', 'receive', 'sell', 'catalog'])
+  @IsIn(['read', 'receive', 'sell', 'catalog', 'return', 'reports'])
   permission?: ShopPermission;
 }
 @Controller('shops')

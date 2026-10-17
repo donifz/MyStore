@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ShopAccessService } from '../shops/shop-access.service';
 import { randomUUID } from 'node:crypto';
 import { IdempotencyService } from '../common/idempotency.service';
 import { safeMoney, quantity } from '../common/money';
@@ -13,6 +14,7 @@ import { ReturnInput, ReturnResult } from './pos.types';
 @Injectable()
 export class ReturnsService {
   constructor(
+    private readonly access: ShopAccessService,
     private readonly ops: IdempotencyService,
     private readonly stock: StockService,
     private readonly shifts: ShiftsService,
@@ -175,6 +177,9 @@ export class ReturnsService {
           totalMinor: amount,
           refundedMinor: input.refundMoney ? amount : 0,
         };
+      },
+      async (tx) => {
+        await this.access.requireMembership(actorId, shopId, 'return', tx);
       },
     );
   }

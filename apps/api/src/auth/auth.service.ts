@@ -46,7 +46,7 @@ export class AuthService {
       userId,
     ]);
     const shops = await this.db.query(
-      'SELECT s.id,s.name,m.role FROM shops s JOIN memberships m ON m.shop_id=s.id WHERE m.user_id=$1 ORDER BY s.name,s.id',
+      `SELECT s.id,s.name,m.role,(m.role='owner' OR m.can_return) AS "canReturn",(m.role='owner' OR m.can_view_reports) AS "canViewReports" FROM shops s JOIN memberships m ON m.shop_id=s.id WHERE m.user_id=$1 ORDER BY s.name,s.id`,
       [userId],
     );
     const [admin] = await this.db.query(

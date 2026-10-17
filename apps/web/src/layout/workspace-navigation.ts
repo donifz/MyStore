@@ -1,4 +1,4 @@
-import type { Me, Shop, Role } from '../api/types';
+import { hasShopPermission, type Me, type Shop, type Role } from '../api/types';
 export type PlatformSection =
   'overview' | 'applications' | 'products' | 'audit';
 export type WorkspaceContext =
@@ -23,11 +23,10 @@ const shopRoutes: { pattern: RegExp; roles: Role[] }[] = [
   { pattern: /^(?:pos|shift|labels|operations)$/, roles: all },
   { pattern: /^orders(?:\/[^/]+)?$/, roles: all },
   { pattern: /^sales(?:\/[^/]+)?$/, roles: all },
-  { pattern: /^sales\/[^/]+\/return$/, roles: ['owner'] },
   { pattern: /^products$/, roles: all },
   { pattern: /^products\/(?:new|capture|[^/]+\/edit)$/, roles: catalog },
   { pattern: /^(?:categories|receiving|inventory)$/, roles: catalog },
-  { pattern: /^(?:staff|storefront|reports)$/, roles: ['owner'] },
+  { pattern: /^(?:staff|storefront)$/, roles: ['owner'] },
 ];
 export function shopStart(shop: Shop) {
   return `/seller/${shop.id}/${shop.role === 'cashier' ? 'pos' : 'products'}`;
@@ -60,6 +59,9 @@ export function workspaceContext(
   if (!shop) return { kind: 'forbidden' };
   if (
     !match?.[2] ||
+    (match[2] === 'reports' && hasShopPermission(shop, 'reports')) ||
+    (/^sales\/[^/]+\/return$/.test(match[2]) &&
+      hasShopPermission(shop, 'return')) ||
     shopRoutes.some(
       (r) => r.pattern.test(match[2]) && r.roles.includes(shop.role),
     )
@@ -144,7 +146,7 @@ export function workspaceMenu(
         item('Касса', 'pos', /^pos$/),
         item('Смена', 'shift', /^shift$/),
         item(
-          shop.role === 'owner' ? 'Продажи и возвраты' : 'Продажи',
+          hasShopPermission(shop, 'return') ? 'Продажи и возвраты' : 'Продажи',
           'sales',
           /^sales(?:\/.*)?$/,
         ),
@@ -183,8 +185,10 @@ export function workspaceMenu(
           ? [
               item('Витрина', 'storefront', /^storefront$/),
               item('Сотрудники', 'staff', /^staff$/),
-              item('Отчёты', 'reports', /^reports$/),
             ]
+          : []),
+        ...(hasShopPermission(shop, 'reports')
+          ? [item('Отчёты', 'reports', /^reports$/)]
           : []),
         item('Уведомления', 'operations', /^operations$/),
       ],

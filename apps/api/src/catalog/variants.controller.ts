@@ -95,7 +95,7 @@ export class VariantsController {
       query.q,
       query.page,
       query.pageSize,
-      member.role !== 'cashier',
+      member.role !== 'cashier' || member.canViewReports,
     );
   }
   @Post() async create(

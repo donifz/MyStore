@@ -35,7 +35,7 @@ export class StaffService {
       await this.owner(tx, shop, actor);
       return {
         members: await tx.query(
-          'SELECT u.id,u.email,m.role FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.shop_id=$1 ORDER BY u.email',
+          `SELECT u.id,u.email,m.role,(m.role='owner' OR m.can_return) AS "canReturn",(m.role='owner' OR m.can_view_reports) AS "canViewReports" FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.shop_id=$1 ORDER BY u.email`,
           [shop],
         ),
         invitations: await tx.query(
@@ -150,7 +150,7 @@ export class StaffService {
           if (shift) throw new ConflictException('Close employee shift first');
           if (role)
             await tx.query(
-              'UPDATE memberships SET role=$3 WHERE shop_id=$1 AND user_id=$2',
+              'UPDATE memberships SET role=$3,can_return=false,can_view_reports=false WHERE shop_id=$1 AND user_id=$2',
               [shop, user, role],
             );
           else
@@ -166,6 +166,51 @@ export class StaffService {
             user,
             { role },
           );
+          return { updated: true };
+        },
+      );
+    });
+  }
+  async permissions(
+    shop: string,
+    actor: string,
+    user: string,
+    permissions: { canReturn: boolean; canViewReports: boolean },
+    key: string,
+  ) {
+    user = user.toLowerCase();
+    return this.db.transaction(async (tx) => {
+      await this.owner(tx, shop, actor);
+      return accessOperation(
+        tx,
+        'staff:' + shop.toLowerCase(),
+        key,
+        { actor, kind: 'permissions', user, ...permissions },
+        async () => {
+          const [row] = await tx.query(
+            'SELECT role,can_return,can_view_reports FROM memberships WHERE shop_id=$1 AND user_id=$2 FOR UPDATE',
+            [shop, user],
+          );
+          if (!row) throw new NotFoundException();
+          if (row.role === 'owner' || user === actor)
+            throw new ForbiddenException();
+          const before = {
+            canReturn: row.can_return,
+            canViewReports: row.can_view_reports,
+          };
+          if (
+            before.canReturn !== permissions.canReturn ||
+            before.canViewReports !== permissions.canViewReports
+          ) {
+            await tx.query(
+              'UPDATE memberships SET can_return=$3,can_view_reports=$4 WHERE shop_id=$1 AND user_id=$2',
+              [shop, user, permissions.canReturn, permissions.canViewReports],
+            );
+            await this.audit(tx, shop, actor, 'staff:permissions', user, {
+              before,
+              after: permissions,
+            });
+          }
           return { updated: true };
         },
       );

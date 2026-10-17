@@ -12,6 +12,7 @@ import {
   Res,
 } from '@nestjs/common';
 import {
+  IsBoolean,
   IsEmail,
   IsIn,
   IsOptional,
@@ -30,6 +31,10 @@ import {
 import { StaffService } from './staff.service';
 class RoleDto {
   @IsIn(['manager', 'cashier']) role!: 'manager' | 'cashier';
+}
+class PermissionsDto {
+  @IsBoolean() canReturn!: boolean;
+  @IsBoolean() canViewReports!: boolean;
 }
 class InviteDto extends RoleDto {
   @IsEmail() @MaxLength(254) email!: string;
@@ -72,6 +77,15 @@ export class StaffController {
     @Headers('idempotency-key') key: string,
   ) {
     return this.staff.change(shop, r.userId, id, b.role, key);
+  }
+  @Post(':id/permissions') permissions(
+    @Param('shopId', ParseUUIDPipe) shop: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() r: UserRequest,
+    @Body() b: PermissionsDto,
+    @Headers('idempotency-key') key: string,
+  ) {
+    return this.staff.permissions(shop, r.userId, id, b, key);
   }
   @Post(':id/disable') disable(
     @Param('shopId', ParseUUIDPipe) shop: string,

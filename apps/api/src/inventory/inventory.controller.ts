@@ -116,7 +116,7 @@ export class InventoryController {
       'read',
     );
     const result = await this.stock.getBalance(shopId, id);
-    if (member.role === 'cashier') {
+    if (member.role === 'cashier' && !member.canViewReports) {
       const { stockValueMinor, ...visible } = result;
       return visible;
     }
