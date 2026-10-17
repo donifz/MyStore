@@ -8,6 +8,7 @@ import {
 import { api, errorText } from '../api/client';
 import { useSession } from '../auth/SessionProvider';
 import { AdminCard, AdminEmpty, AdminMetric, AdminStatus } from './AdminKit';
+import type { PlatformFinancialGrant, FinancialSummary } from '../api/types';
 
 type Application = {
   id: string;
@@ -49,19 +50,13 @@ type Page<T> = { items: T[]; total: number };
 
 type AdminOverview = {
   shopCount: number;
-  openShifts: number;
   pendingPartners: number;
   pendingProducts: number;
-  todaySalesMinor: number;
-  sales: { day: string; totalMinor: number }[];
-  categories: { name: string; totalMinor: number }[];
   shops: {
     id: string;
     name: string;
-    ownerEmail: string | null;
-    units: number;
-    shiftOpen: boolean;
-    lastShiftAt: string | null;
+    city?: string;
+    published?: boolean;
   }[];
 };
 const money = (minor: number) =>
@@ -75,6 +70,12 @@ export default function AdminPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [audit, setAudit] = useState<Audit[]>([]);
+  const [grants, setGrants] = useState<PlatformFinancialGrant[]>([]);
+  const [selectedGrant, setSelectedGrant] =
+    useState<PlatformFinancialGrant | null>(null);
+  const [summaryData, setSummaryData] = useState<FinancialSummary | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState('');
   const [selected, setSelected] = useState<Revision | null>(null);
   const [reason, setReason] = useState('');
   const [invitation, setInvitation] = useState('');
@@ -91,16 +92,20 @@ export default function AdminPage() {
   }
   const [search, setSearch] = useState('');
   async function load() {
-    const [a, p, h, summary] = await Promise.all([
+    const [a, p, h, summary, g] = await Promise.all([
       api<Page<Application>>('/platform/admin/applications'),
       api<Page<Product>>('/platform/admin/products'),
       api<Page<Audit>>('/platform/admin/audit'),
       api<AdminOverview>('/platform/admin/overview'),
+      api<{ items: PlatformFinancialGrant[] }>(
+        '/platform/admin/financial-access',
+      ).catch(() => ({ items: [] })),
     ]);
     setApplications(a.items);
     setProducts(p.items);
     setAudit(h.items);
     setOverview(summary);
+    setGrants(g.items);
     setLoading(false);
   }
   useEffect(() => {
@@ -167,6 +172,21 @@ export default function AdminPage() {
       await load().catch(() => {});
     } finally {
       setBusy(false);
+    }
+  }
+  async function openSummary(grant: PlatformFinancialGrant) {
+    setSelectedGrant(grant);
+    setSummaryLoading(true);
+    setSummaryError('');
+    try {
+      const data = await api<FinancialSummary>(
+        `/platform/admin/financial-access/${grant.id}/summary`,
+      );
+      setSummaryData(data);
+    } catch (e) {
+      setSummaryError(errorText(e));
+    } finally {
+      setSummaryLoading(false);
     }
   }
   if (session.loading) return <p className="loading">Загрузка…</p>;
@@ -401,7 +421,7 @@ export default function AdminPage() {
               symbol="▣"
               label="Магазины платформы"
               value={overview?.shopCount ?? '—'}
-              note="Магазинов на платформе"
+              note="Всего зарегистрировано"
             />
             <AdminMetric
               symbol="♙"
@@ -412,16 +432,9 @@ export default function AdminPage() {
             />
             <AdminMetric
               symbol="▤"
-              label="Продажи за сегодня"
-              value={overview ? money(overview.todaySalesMinor) : '—'}
-              note="Платежи с учётом возвратов"
-            />
-            <AdminMetric
-              symbol="◷"
-              tone="blue"
-              label="Открытые смены"
-              value={overview?.openShifts ?? '—'}
-              note="На всех магазинах"
+              label="Товары на модерации"
+              value={overview?.pendingProducts ?? '—'}
+              note="Карточки на проверке"
             />
           </div>
           {tab === 'overview' ? (
@@ -432,7 +445,7 @@ export default function AdminPage() {
 
                 <AdminCard
                   title="Магазины"
-                  subtitle="Текущие остатки и последние смены"
+                  subtitle="Зарегистрированные магазины платформы"
                 >
                   {!overview?.shops.length ? (
                     <AdminEmpty>Магазины пока не зарегистрированы</AdminEmpty>
@@ -442,9 +455,7 @@ export default function AdminPage() {
                         <thead>
                           <tr>
                             <th>Магазин</th>
-                            <th>Владелец</th>
-                            <th>Остатки</th>
-                            <th>Последняя смена</th>
+                            <th>Город</th>
                             <th>Статус</th>
                           </tr>
                         </thead>
@@ -454,22 +465,12 @@ export default function AdminPage() {
                               <td>
                                 <strong>{shop.name}</strong>
                               </td>
-                              <td>{shop.ownerEmail ?? 'Не указан'}</td>
-                              <td>{shop.units} шт.</td>
-                              <td>
-                                {shop.lastShiftAt
-                                  ? new Date(shop.lastShiftAt).toLocaleString(
-                                      'ru-RU',
-                                    )
-                                  : 'Нет смен'}
-                              </td>
+                              <td>{shop.city || '—'}</td>
                               <td>
                                 <AdminStatus
-                                  tone={shop.shiftOpen ? 'green' : 'neutral'}
+                                  tone={shop.published ? 'green' : 'neutral'}
                                 >
-                                  {shop.shiftOpen
-                                    ? 'Открыта'
-                                    : 'Нет открытой смены'}
+                                  {shop.published ? 'Опубликован' : 'Черновик'}
                                 </AdminStatus>
                               </td>
                             </tr>
@@ -481,83 +482,6 @@ export default function AdminPage() {
                 </AdminCard>
               </div>
               <div className="admin-kit-secondary">
-                <AdminCard
-                  title="Продажи"
-                  subtitle="Последние 7 дней с учётом возвратов"
-                >
-                  {overview && (
-                    <>
-                      <strong className="admin-kit-chart-total">
-                        {money(
-                          overview.sales.reduce(
-                            (sum, point) => sum + point.totalMinor,
-                            0,
-                          ),
-                        )}
-                      </strong>
-                      <div
-                        className="admin-kit-chart"
-                        aria-label="График продаж за 7 дней"
-                      >
-                        {overview.sales.map((point) => {
-                          const max = Math.max(
-                            1,
-                            ...overview.sales.map((x) =>
-                              Math.max(0, x.totalMinor),
-                            ),
-                          );
-                          return (
-                            <div
-                              key={point.day}
-                              className="admin-kit-chart-column"
-                            >
-                              <div className="admin-kit-chart-bar">
-                                <span
-                                  style={{
-                                    height: `${Math.max(2, (100 * Math.max(0, point.totalMinor)) / max)}%`,
-                                  }}
-                                  title={`${point.day}: ${money(point.totalMinor)}`}
-                                />
-                              </div>
-                              <small>{point.day.slice(5)}</small>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </>
-                  )}
-                </AdminCard>
-                <AdminCard
-                  title="Популярные категории"
-                  subtitle="Валовые продажи по топ-5 категориям"
-                >
-                  {!overview?.categories.length ? (
-                    <AdminEmpty>Продаж по категориям пока нет</AdminEmpty>
-                  ) : (
-                    <div className="admin-kit-category-bars">
-                      {overview.categories.map((category) => {
-                        const total = overview.categories.reduce(
-                          (sum, item) => sum + item.totalMinor,
-                          0,
-                        );
-                        const share = total
-                          ? Math.round((100 * category.totalMinor) / total)
-                          : 0;
-                        return (
-                          <div key={category.name}>
-                            <span>
-                              {category.name}
-                              <small>{share}%</small>
-                            </span>
-                            <div>
-                              <span style={{ width: `${share}%` }} />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </AdminCard>
                 <AdminCard
                   title="Недавняя активность"
                   subtitle="Решения администрации"
@@ -659,6 +583,197 @@ export default function AdminPage() {
                 </AdminCard>
               )}
             </>
+          ) : tab === 'financial-access' ? (
+            <div className="admin-kit-grid">
+              <div className="admin-kit-primary">
+                <AdminCard
+                  title="Финансовый доступ платформы"
+                  subtitle="Полномочия на чтение финансовой сводки, выданные владельцами магазинов"
+                >
+                  {!grants.length ? (
+                    <AdminEmpty>
+                      Владельцы магазинов пока не выдавали вам доступ к
+                      финансовой сводке.
+                    </AdminEmpty>
+                  ) : (
+                    <div className="admin-kit-scroll">
+                      <table className="admin-kit-table">
+                        <thead>
+                          <tr>
+                            <th>Магазин</th>
+                            <th>Цель доступа</th>
+                            <th>Срок действия</th>
+                            <th>Статус</th>
+                            <th>Действие</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {grants.map((g) => {
+                            const isExpired =
+                              new Date(g.expiresAt).getTime() <= Date.now();
+                            const isRevoked = !!g.revokedAt;
+                            return (
+                              <tr key={g.id}>
+                                <td>
+                                  <strong>{g.shopName}</strong>
+                                </td>
+                                <td>
+                                  <span title={g.purpose}>{g.purpose}</span>
+                                </td>
+                                <td>
+                                  <small>
+                                    {new Date(g.createdAt).toLocaleString(
+                                      'ru-RU',
+                                    )}{' '}
+                                    —{' '}
+                                    {new Date(g.expiresAt).toLocaleString(
+                                      'ru-RU',
+                                    )}
+                                  </small>
+                                </td>
+                                <td>
+                                  <AdminStatus
+                                    tone={g.active ? 'green' : 'neutral'}
+                                  >
+                                    {g.active
+                                      ? 'Активен'
+                                      : isRevoked
+                                        ? 'Отозван'
+                                        : isExpired
+                                          ? 'Истёк'
+                                          : 'Неактивен'}
+                                  </AdminStatus>
+                                </td>
+                                <td>
+                                  {g.active ? (
+                                    <button
+                                      type="button"
+                                      disabled={
+                                        summaryLoading &&
+                                        selectedGrant?.id === g.id
+                                      }
+                                      onClick={() => void openSummary(g)}
+                                    >
+                                      {selectedGrant?.id === g.id && summaryData
+                                        ? 'Обновить'
+                                        : 'Открыть сводку'}
+                                    </button>
+                                  ) : (
+                                    <span className="muted">—</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </AdminCard>
+
+                {selectedGrant && (
+                  <AdminCard
+                    title={`Финансовая сводка: ${selectedGrant.shopName}`}
+                    subtitle={`Основание: ${selectedGrant.purpose}`}
+                    action={
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedGrant(null);
+                          setSummaryData(null);
+                        }}
+                      >
+                        Закрыть сводку
+                      </button>
+                    }
+                  >
+                    <div
+                      className="panel alert-banner"
+                      style={{ marginBottom: 16 }}
+                    >
+                      <p>
+                        <strong>Режим аудируемого чтения:</strong> Доступ
+                        действует до{' '}
+                        {new Date(selectedGrant.expiresAt).toLocaleString(
+                          'ru-RU',
+                        )}
+                        . Каждое обращение к финансовым данным фиксируется в
+                        журнале аудита магазина.
+                      </p>
+                    </div>
+
+                    {summaryLoading ? (
+                      <p className="loading">Загрузка финансовой сводки…</p>
+                    ) : summaryError ? (
+                      <p role="alert" className="error">
+                        {summaryError}
+                      </p>
+                    ) : summaryData ? (
+                      <div className="table-wrap">
+                        <table className="admin-kit-table">
+                          <tbody>
+                            <tr>
+                              <td>Выручка за вычетом возвратов</td>
+                              <td>
+                                <strong>
+                                  {money(summaryData.revenueMinor)}
+                                </strong>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>Себестоимость проданного</td>
+                              <td>{money(summaryData.costOfGoodsMinor)}</td>
+                            </tr>
+                            <tr>
+                              <td>Валовая прибыль</td>
+                              <td>
+                                <strong>
+                                  {money(summaryData.grossProfitMinor)}
+                                </strong>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>Поступления (наличные / карта)</td>
+                              <td>
+                                {money(summaryData.cashReceivedMinor)} /{' '}
+                                {money(summaryData.cardReceivedMinor)}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>Стоимость товарного остатка</td>
+                              <td>{money(summaryData.stockValueMinor)}</td>
+                            </tr>
+                            <tr>
+                              <td>Доступно / резерв</td>
+                              <td>
+                                {summaryData.physicalUnits -
+                                  summaryData.reservedUnits}{' '}
+                                шт. / {summaryData.reservedUnits} шт.
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>Онлайн-заказы (открыто / выдано)</td>
+                              <td>
+                                {summaryData.openOrders} /{' '}
+                                {summaryData.issuedOrders}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>Закрытые смены</td>
+                              <td>{summaryData.closedShifts}</td>
+                            </tr>
+                            <tr>
+                              <td>Расхождение по кассе</td>
+                              <td>{money(summaryData.cashDiscrepancyMinor)}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : null}
+                  </AdminCard>
+                )}
+              </div>
+            </div>
           ) : (
             <AdminCard
               title="Журнал решений"

@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { DATABASE } from '../database';
 
 const csvCell = (value: unknown) => {
@@ -23,9 +23,10 @@ export class ReportsService {
     return [start.toISOString(), end.toISOString()] as const;
   }
 
-  async summary(shop: string, from?: string, to?: string) {
+  async summary(shop: string, from?: string, to?: string, tx?: EntityManager) {
+    const db = tx ?? this.db;
     const [start, end] = this.range(from, to);
-    const [trade] = await this.db.query(
+    const [trade] = await db.query(
       `SELECT
         COALESCE((SELECT sum(total_minor) FROM stock_documents WHERE shop_id=$1 AND kind='sale' AND created_at >= $2 AND created_at < $3),0) sales,
         COALESCE((SELECT sum(total_minor) FROM stock_documents WHERE shop_id=$1 AND kind='return' AND created_at >= $2 AND created_at < $3),0) returns,
@@ -33,7 +34,7 @@ export class ReportsService {
         COALESCE((SELECT sum(rl.cost_minor) FROM return_lines rl JOIN stock_documents d ON d.shop_id=rl.shop_id AND d.id=rl.document_id WHERE rl.shop_id=$1 AND d.created_at >= $2 AND d.created_at < $3),0) returned_cost`,
       [shop, start, end],
     );
-    const [payments] = await this.db.query(
+    const [payments] = await db.query(
       `SELECT
         COALESCE(sum(amount_minor) FILTER (WHERE kind='sale'),0) received,
         COALESCE(sum(amount_minor) FILTER (WHERE kind='refund'),0) refunded,
@@ -42,7 +43,7 @@ export class ReportsService {
        FROM payment_records WHERE shop_id=$1 AND created_at >= $2 AND created_at < $3`,
       [shop, start, end],
     );
-    const [inventory] = await this.db.query(
+    const [inventory] = await db.query(
       `SELECT
         COALESCE(sum(physical),0) physical,
         COALESCE(sum(reserved),0) reserved,
@@ -51,7 +52,7 @@ export class ReportsService {
        FROM stock_balances WHERE shop_id=$1`,
       [shop],
     );
-    const [orders] = await this.db.query(
+    const [orders] = await db.query(
       `SELECT
         count(*) FILTER (WHERE status IN ('new','confirmed','ready')) open_orders,
         count(*) FILTER (WHERE status='issued' AND created_at >= $2 AND created_at < $3) issued_orders,
@@ -59,7 +60,7 @@ export class ReportsService {
        FROM online_orders WHERE shop_id=$1`,
       [shop, start, end],
     );
-    const [shifts] = await this.db.query(
+    const [shifts] = await db.query(
       `SELECT
         count(*) closed_shifts,
         COALESCE(sum(actual_cash_minor-expected_cash_minor),0) discrepancy

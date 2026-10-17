@@ -1,6 +1,6 @@
 import { hasShopPermission, type Me, type Shop, type Role } from '../api/types';
 export type PlatformSection =
-  'overview' | 'applications' | 'products' | 'audit';
+  'overview' | 'applications' | 'products' | 'audit' | 'financial-access';
 export type WorkspaceContext =
   | { kind: 'platform' }
   | { kind: 'shop'; shop: Shop }
@@ -18,6 +18,7 @@ const sections: PlatformSection[] = [
   'applications',
   'products',
   'audit',
+  'financial-access',
 ];
 const shopRoutes: { pattern: RegExp; roles: Role[] }[] = [
   { pattern: /^(?:pos|shift|labels|operations)$/, roles: all },
@@ -26,7 +27,7 @@ const shopRoutes: { pattern: RegExp; roles: Role[] }[] = [
   { pattern: /^products$/, roles: all },
   { pattern: /^products\/(?:new|capture|[^/]+\/edit)$/, roles: catalog },
   { pattern: /^(?:categories|receiving|inventory)$/, roles: catalog },
-  { pattern: /^(?:staff|storefront)$/, roles: ['owner'] },
+  { pattern: /^(?:staff|storefront|platform-access)$/, roles: ['owner'] },
 ];
 export function shopStart(shop: Shop) {
   return `/seller/${shop.id}/${shop.role === 'cashier' ? 'pos' : 'products'}`;
@@ -112,7 +113,13 @@ export function workspaceMenu(
       {
         label: 'Платформа',
         items: sections.map((section, i) => ({
-          label: ['Обзор', 'Партнёры', 'Модерация товаров', 'Аудит'][i],
+          label: [
+            'Обзор',
+            'Партнёры',
+            'Модерация товаров',
+            'Аудит',
+            'Финансовый доступ',
+          ][i],
           href: `/platform/admin?section=${section}`,
           active: platformSection(search) === section,
         })),
@@ -185,6 +192,7 @@ export function workspaceMenu(
           ? [
               item('Витрина', 'storefront', /^storefront$/),
               item('Сотрудники', 'staff', /^staff$/),
+              item('Доступ платформы', 'platform-access', /^platform-access$/),
             ]
           : []),
         ...(hasShopPermission(shop, 'reports')

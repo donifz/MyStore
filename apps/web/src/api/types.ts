@@ -86,3 +86,33 @@ export type SaleDetail = SaleSummary & {
     unitPriceMinor: number;
   }[];
 };
+export type PlatformFinancialGrant = {
+  id: string;
+  shopId: string;
+  shopName: string;
+  adminEmail: string;
+  purpose: string;
+  createdAt: string;
+  expiresAt: string;
+  revokedAt: string | null;
+  active: boolean;
+};
+export type FinancialSummary = {
+  revenueMinor: number;
+  salesMinor: number;
+  returnsMinor: number;
+  costOfGoodsMinor: number;
+  grossProfitMinor: number;
+  paymentsReceivedMinor: number;
+  paymentsRefundedMinor: number;
+  cashReceivedMinor: number;
+  cardReceivedMinor: number;
+  physicalUnits: number;
+  reservedUnits: number;
+  stockValueMinor: number;
+  lowStockCount: number;
+  openOrders: number;
+  issuedOrders: number;
+  closedShifts: number;
+  cashDiscrepancyMinor: number;
+};
