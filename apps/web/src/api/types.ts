@@ -1,5 +1,23 @@
 export type Role = 'owner' | 'manager' | 'cashier';
-export type Shop = { id: string; name: string; role: Role };
+export type Shop = {
+  id: string;
+  name: string;
+  role: Role;
+  canReturn?: boolean;
+  canViewReports?: boolean;
+};
+export function hasShopPermission(
+  shop: Shop | undefined,
+  permission: 'return' | 'reports',
+) {
+  return (
+    !!shop &&
+    (shop.role === 'owner' ||
+      (permission === 'return'
+        ? shop.canReturn === true
+        : shop.canViewReports === true))
+  );
+}
 export type Me = {
   userId: string;
   email: string;

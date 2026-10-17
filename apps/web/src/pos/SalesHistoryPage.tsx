@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
-import { Page, SaleSummary } from '../api/types';
+import { hasShopPermission, type Page, type SaleSummary } from '../api/types';
 import { formatSom, formatDate } from '../api/money';
 import { useSession } from '../auth/SessionProvider';
 export default function SalesHistoryPage() {
@@ -10,7 +10,9 @@ export default function SalesHistoryPage() {
     [page, setPage] = useState(1),
     [data, setData] = useState<Page<SaleSummary> | null>(null),
     [error, setError] = useState('');
-  const owner = s.user?.shops.find((x) => x.id === shopId)?.role === 'owner';
+  const shop = s.user?.shops.find((x) => x.id === shopId);
+  const owner =
+    hasShopPermission(shop, 'return') || hasShopPermission(shop, 'reports');
   useEffect(() => {
     let alive = true;
     api<Page<SaleSummary>>(`/shops/${shopId}/pos/sales?page=${page}`)

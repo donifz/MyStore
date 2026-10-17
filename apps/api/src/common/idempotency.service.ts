@@ -15,6 +15,7 @@ export class IdempotencyService {
     key: string,
     payload: unknown,
     work: (tx: EntityManager) => Promise<T>,
+    authorize?: (tx: EntityManager) => Promise<void>,
   ): Promise<T> {
     if (typeof key !== 'string' || !/^[\x21-\x7e]{1,128}$/.test(key))
       throw new BadRequestException(
@@ -27,6 +28,8 @@ export class IdempotencyService {
       await tx.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [
         `${shopId.toLowerCase()}:${key}`,
       ]);
+      // Revalidate mutable permissions for both new operations and cached retries.
+      if (authorize) await authorize(tx);
       const [previous] = await tx.query(
         'SELECT fingerprint,result FROM operation_results WHERE shop_id=$1 AND key=$2',
         [shopId, key],

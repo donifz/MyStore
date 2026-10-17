@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
-import { SaleDetail } from '../api/types';
+import { hasShopPermission, type SaleDetail } from '../api/types';
 import { formatSom, formatDate } from '../api/money';
 import { useSession } from '../auth/SessionProvider';
 export default function SaleDetailPage() {
@@ -24,8 +24,10 @@ export default function SaleDetailPage() {
       alive = false;
     };
   }, [shopId, saleId]);
-  const owner =
-    session.user?.shops.find((shop) => shop.id === shopId)?.role === 'owner';
+  const owner = hasShopPermission(
+    session.user?.shops.find((shop) => shop.id === shopId),
+    'return',
+  );
   return (
     <>
       <Link className="back-link" to={`/seller/${shopId}/sales`}>

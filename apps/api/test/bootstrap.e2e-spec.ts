@@ -45,7 +45,13 @@ describe('initial deployment owner', () => {
       .auth(login.body.token, { type: 'bearer' })
       .expect(200);
     expect(me.body.shops).toEqual([
-      { id: expect.any(String), name: 'MyStore', role: 'owner' },
+      {
+        id: expect.any(String),
+        name: 'MyStore',
+        role: 'owner',
+        canReturn: true,
+        canViewReports: true,
+      },
     ]);
     await run({ BOOTSTRAP_OWNER_PASSWORD: 'different-strong-password' });
     await request(c.app.getHttpServer())

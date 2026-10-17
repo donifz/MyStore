@@ -75,7 +75,7 @@ export class PosSalesController {
     return this.history.list(
       shop,
       req.userId,
-      m.role === 'owner',
+      m.canReturn || m.canViewReports,
       q.page,
       q.pageSize,
     );
@@ -86,6 +86,11 @@ export class PosSalesController {
     @Req() req: UserRequest,
   ) {
     const m = await this.access.requireMembership(req.userId, shop, 'read');
-    return this.history.detail(shop, id, req.userId, m.role === 'owner');
+    return this.history.detail(
+      shop,
+      id,
+      req.userId,
+      m.canReturn || m.canViewReports,
+    );
   }
 }

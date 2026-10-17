@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
 import { formatSom, formatDate } from '../api/money';
-import { SaleDetail } from '../api/types';
+import { hasShopPermission, type SaleDetail } from '../api/types';
 import { useSession } from '../auth/SessionProvider';
 import { useDocument } from '../drafts/use-document';
 import { useCurrentShift } from './use-current-shift';
@@ -238,8 +238,17 @@ function ReturnWorkspace({
 export default function ReturnPage() {
   const { shopId, saleId } = useParams(),
     s = useSession();
-  if (s.user?.shops.find((x) => x.id === shopId)?.role !== 'owner')
-    return <p role="alert">Возврат доступен владельцу магазина.</p>;
+  if (
+    !hasShopPermission(
+      s.user?.shops.find((x) => x.id === shopId),
+      'return',
+    )
+  )
+    return (
+      <p role="alert">
+        Нет разрешения на возвраты. Обратитесь к владельцу магазина.
+      </p>
+    );
   return (
     <ReturnWorkspace
       key={shopId + s.user!.userId + saleId}

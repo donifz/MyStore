@@ -149,3 +149,32 @@ it('preserves legacy shop selection through login for an admin with several memb
     '/seller/own/products',
   );
 });
+
+it('uses independent report and return permissions without granting staff management', () => {
+  const employee = {
+    ...owner,
+    role: 'cashier' as const,
+    canReturn: true,
+    canViewReports: true,
+  };
+  const user = me([employee]);
+  expect(workspaceReturn(user, '/seller/own/reports')).toBe(
+    '/seller/own/reports',
+  );
+  expect(workspaceReturn(user, '/seller/own/sales/s/return')).toBe(
+    '/seller/own/sales/s/return',
+  );
+  expect(workspaceReturn(user, '/seller/own/staff')).toBeNull();
+  expect(workspaceReturn(user, '/seller/own/receiving')).toBeNull();
+  const menu = workspaceMenu(
+    { kind: 'shop', shop: employee },
+    '/seller/own/reports',
+    '',
+  );
+  expect(menu.flatMap((g) => g.items).map((i) => i.label)).toContain('Отчёты');
+  const returnsOnly = me([{ ...employee, canViewReports: false }]);
+  expect(workspaceReturn(returnsOnly, '/seller/own/reports')).toBeNull();
+  expect(
+    workspaceReturn(returnsOnly, '/seller/own/sales/s/return'),
+  ).not.toBeNull();
+});

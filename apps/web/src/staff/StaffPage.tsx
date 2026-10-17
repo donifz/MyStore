@@ -7,6 +7,8 @@ type Member = {
   id: string;
   email: string;
   role: 'owner' | 'manager' | 'cashier';
+  canReturn: boolean;
+  canViewReports: boolean;
 };
 type Invitation = {
   id: string;
@@ -25,20 +27,28 @@ export default function StaffPage() {
     [email, setEmail] = useState(''),
     [role, setRole] = useState('manager'),
     [error, setError] = useState(''),
-    [configured, setConfigured] = useState<boolean | null>(null);
+    [configured, setConfigured] = useState<boolean | null>(null),
+    [refreshing, setRefreshing] = useState(false),
+    [stale, setStale] = useState(true);
   const op = useAccessOperation();
   const base = '/shops/' + shopId + '/staff';
+  const disabled = op.busy || op.pending || refreshing || stale;
   async function load() {
+    setRefreshing(true);
+    setStale(true);
     try {
       const [d, s] = await Promise.all([
         api<typeof data>(base),
         api<{ configured: boolean }>('/shops/' + shopId + '/email/status'),
       ]);
       setData(d);
+      setStale(false);
       setConfigured(s.configured);
       setError('');
     } catch (e) {
       setError(errorText(e));
+    } finally {
+      setRefreshing(false);
     }
   }
   useEffect(() => {
@@ -78,6 +88,15 @@ export default function StaffPage() {
           {error || op.error}
         </p>
       )}
+      {error && (
+        <button
+          type="button"
+          disabled={refreshing || op.busy}
+          onClick={() => void load()}
+        >
+          Обновить список
+        </button>
+      )}
       {op.success && <p role="status">Изменения сохранены.</p>}
       {op.pending && (
         <button
@@ -92,7 +111,7 @@ export default function StaffPage() {
       )}
       <form className="panel" onSubmit={invite}>
         <h2>Пригласить сотрудника</h2>
-        <fieldset disabled={op.busy || op.pending}>
+        <fieldset disabled={disabled}>
           <label>
             Email сотрудника
             <input
@@ -116,8 +135,8 @@ export default function StaffPage() {
           </label>
           <p className="muted">
             Менеджер ведёт товары, склад и заказы. Кассир работает с продажами и
-            своими сменами. Возвраты оформляет владелец. Приглашение действует 7
-            дней.
+            своими сменами. Разрешения на возвраты и финансовые отчёты выдаются
+            отдельно после принятия приглашения. Приглашение действует 7 дней.
           </p>
           <button className="primary" disabled={op.busy}>
             Пригласить
@@ -129,12 +148,19 @@ export default function StaffPage() {
         <>
           <div className="panel">
             <h2>Сотрудники магазина</h2>
+            <p className="muted">
+              Финансовые отчёты открывают себестоимость, прибыль и CSV-выгрузки.
+              Возвраты открывают продажи магазина без себестоимости; денежный
+              возврат проводится в своей открытой смене. При смене роли
+              дополнительные разрешения сбрасываются.
+            </p>
             <div className="table-wrap">
               <table>
                 <thead>
                   <tr>
                     <th>Email</th>
                     <th>Роль</th>
+                    <th>Разрешения</th>
                     <th>Доступ</th>
                   </tr>
                 </thead>
@@ -149,7 +175,7 @@ export default function StaffPage() {
                           <select
                             aria-label={'Роль ' + m.email}
                             value={m.role}
-                            disabled={op.busy || op.pending}
+                            disabled={disabled}
                             onChange={(e) =>
                               void mutate('/' + m.id + '/role', {
                                 role: e.target.value,
@@ -162,10 +188,48 @@ export default function StaffPage() {
                         )}
                       </td>
                       <td>
+                        {m.role === 'owner' ? (
+                          'Полный доступ'
+                        ) : (
+                          <div className="stack">
+                            <label className="checkbox-label">
+                              <input
+                                type="checkbox"
+                                aria-label={'Возвраты ' + m.email}
+                                checked={m.canReturn}
+                                disabled={disabled}
+                                onChange={(e) =>
+                                  void mutate('/' + m.id + '/permissions', {
+                                    canReturn: e.target.checked,
+                                    canViewReports: m.canViewReports,
+                                  })
+                                }
+                              />
+                              Возвраты
+                            </label>
+                            <label className="checkbox-label">
+                              <input
+                                type="checkbox"
+                                aria-label={'Финансовые отчёты ' + m.email}
+                                checked={m.canViewReports}
+                                disabled={disabled}
+                                onChange={(e) =>
+                                  void mutate('/' + m.id + '/permissions', {
+                                    canReturn: m.canReturn,
+                                    canViewReports: e.target.checked,
+                                  })
+                                }
+                              />
+                              Финансовые отчёты
+                            </label>
+                          </div>
+                        )}
+                      </td>
+                      <td>
                         {m.role !== 'owner' && (
                           <button
                             type="button"
-                            disabled={op.busy || op.pending}
+                            disabled={disabled}
                             onClick={() => {
                               if (
                                 window.confirm(
@@ -208,7 +272,7 @@ export default function StaffPage() {
                   <div className="actions">
                     <button
                       type="button"
-                      disabled={op.busy || op.pending}
+                      disabled={disabled}
                       onClick={() =>
                         void mutate('/invitations', {
                           email: i.email,
@@ -220,7 +284,7 @@ export default function StaffPage() {
                     </button>
                     <button
                       type="button"
-                      disabled={op.busy || op.pending}
+                      disabled={disabled}
                       onClick={() => {
                         if (
                           window.confirm(

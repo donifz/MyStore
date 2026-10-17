@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  ForbiddenException,
   Headers,
   Param,
   ParseUUIDPipe,
@@ -60,8 +59,7 @@ export class ReturnsController {
     @Headers('idempotency-key') key: string,
     @Body() dto: ReturnDto,
   ) {
-    const m = await this.access.requireMembership(req.userId, shop, 'read');
-    if (m.role !== 'owner') throw new ForbiddenException();
+    await this.access.requireMembership(req.userId, shop, 'return');
     return this.returns.return(shop, req.userId, key, dto);
   }
 }

@@ -27,7 +27,13 @@ describe('browser sessions', () => {
     const me = await agent.get('/auth/me').expect(200);
     expect(me.body.userId).toBe(fixture.owner);
     expect(me.body.shops).toEqual([
-      { id: fixture.shop, name: 'Test Shop', role: 'owner' },
+      {
+        id: fixture.shop,
+        name: 'Test Shop',
+        role: 'owner',
+        canReturn: true,
+        canViewReports: true,
+      },
     ]);
     await agent
       .post('/auth/web/logout')
