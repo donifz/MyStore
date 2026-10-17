@@ -11,7 +11,7 @@ import { randomUUID } from 'node:crypto';
 import { DATABASE } from '../database';
 import { IdempotencyService } from '../common/idempotency.service';
 import { minor, safeMoney, MAX_MONEY } from '../common/money';
-import { ShiftView } from './pos.types';
+import { ShiftView, CashTransactionView } from './pos.types';
 export function signedMoney(n: bigint) {
   if (n > MAX_MONEY || n < -MAX_MONEY)
     throw new BadRequestException('Money outside safe range');
@@ -32,14 +32,22 @@ export class ShiftsService {
       "SELECT COALESCE(sum(amount_minor) FILTER(WHERE kind='sale' AND method='cash'),0) sc,COALESCE(sum(amount_minor) FILTER(WHERE kind='sale' AND method='card'),0) sd,COALESCE(sum(amount_minor) FILTER(WHERE kind='refund' AND method='cash'),0) rc,COALESCE(sum(amount_minor) FILTER(WHERE kind='refund' AND method='card'),0) rd FROM payment_records WHERE shop_id=$1 AND shift_id=$2",
       [row.shop_id, row.id],
     );
+    const [cashTxs] = await tx.query(
+      "SELECT COALESCE(sum(amount_minor) FILTER(WHERE type='in'),0) cin, COALESCE(sum(amount_minor) FILTER(WHERE type='out'),0) cout FROM cash_transactions WHERE shop_id=$1 AND shift_id=$2",
+      [row.shop_id, row.id],
+    );
+    const cin = BigInt(cashTxs?.cin || 0);
+    const cout = BigInt(cashTxs?.cout || 0);
     const expected = row.closed_at
       ? BigInt(row.expected_cash_minor)
-      : BigInt(row.opening_cash_minor) + BigInt(sum.n);
+      : BigInt(row.opening_cash_minor) + BigInt(sum.n) + cin - cout;
     return {
       salesCashMinor: safeMoney(BigInt(totals.sc)),
       salesCardMinor: safeMoney(BigInt(totals.sd)),
       refundsCashMinor: safeMoney(BigInt(totals.rc)),
       refundsCardMinor: safeMoney(BigInt(totals.rd)),
+      cashInMinor: safeMoney(cin),
+      cashOutMinor: safeMoney(cout),
       id: row.id,
       shopId: row.shop_id,
       actorId: row.actor_id,
@@ -185,5 +193,131 @@ export class ShiftsService {
         return this.view(tx, closed);
       },
     );
+  }
+  async cashIn(
+    shopId: string,
+    shiftId: string,
+    actorId: string,
+    key: string,
+    amountMinor: number,
+    reason: string,
+  ): Promise<CashTransactionView> {
+    const amount = safeMoney(minor(amountMinor));
+    const trimmedReason = reason?.trim();
+    if (!trimmedReason) throw new BadRequestException('Reason required');
+    shiftId = shiftId.toLowerCase();
+    return this.ops.execute(
+      shopId,
+      key,
+      {
+        kind: 'cash-in',
+        actorId,
+        shiftId,
+        amountMinor: amount,
+        reason: trimmedReason,
+      },
+      async (tx) => {
+        await this.lockOpen(tx, shopId, shiftId, actorId);
+        const id = randomUUID();
+        const [row] = await tx.query(
+          'INSERT INTO cash_transactions(id,shop_id,shift_id,actor_id,type,amount_minor,reason) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *',
+          [id, shopId, shiftId, actorId, 'in', amount, trimmedReason],
+        );
+        return {
+          id: row.id,
+          shopId: row.shop_id,
+          shiftId: row.shift_id,
+          actorId: row.actor_id,
+          type: row.type,
+          amountMinor: Number(row.amount_minor),
+          reason: row.reason,
+          createdAt: row.created_at.toISOString(),
+        };
+      },
+    );
+  }
+  async cashOut(
+    shopId: string,
+    shiftId: string,
+    actorId: string,
+    key: string,
+    amountMinor: number,
+    reason: string,
+  ): Promise<CashTransactionView> {
+    const amount = safeMoney(minor(amountMinor));
+    const trimmedReason = reason?.trim();
+    if (!trimmedReason) throw new BadRequestException('Reason required');
+    shiftId = shiftId.toLowerCase();
+    return this.ops.execute(
+      shopId,
+      key,
+      {
+        kind: 'cash-out',
+        actorId,
+        shiftId,
+        amountMinor: amount,
+        reason: trimmedReason,
+      },
+      async (tx) => {
+        const [shiftRow] = await tx.query(
+          'SELECT * FROM cash_shifts WHERE shop_id=$1 AND id=$2 FOR UPDATE',
+          [shopId, shiftId],
+        );
+        if (!shiftRow) throw new NotFoundException('Shift not found');
+        if (shiftRow.actor_id !== actorId)
+          throw new ForbiddenException('Not your shift');
+        if (shiftRow.closed_at) throw new ConflictException('Shift closed');
+        const currentView = await this.view(tx, shiftRow);
+        if (BigInt(amount) > BigInt(currentView.expectedCashMinor)) {
+          throw new BadRequestException(
+            'Withdrawal amount exceeds cash in register',
+          );
+        }
+        const id = randomUUID();
+        const [row] = await tx.query(
+          'INSERT INTO cash_transactions(id,shop_id,shift_id,actor_id,type,amount_minor,reason) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *',
+          [id, shopId, shiftId, actorId, 'out', amount, trimmedReason],
+        );
+        return {
+          id: row.id,
+          shopId: row.shop_id,
+          shiftId: row.shift_id,
+          actorId: row.actor_id,
+          type: row.type,
+          amountMinor: Number(row.amount_minor),
+          reason: row.reason,
+          createdAt: row.created_at.toISOString(),
+        };
+      },
+    );
+  }
+  async listTransactions(
+    shopId: string,
+    shiftId: string,
+    actorId: string,
+    privileged: boolean,
+  ): Promise<CashTransactionView[]> {
+    const [shift] = await this.db.query(
+      'SELECT * FROM cash_shifts WHERE shop_id=$1 AND id=$2',
+      [shopId, shiftId],
+    );
+    if (!shift) throw new NotFoundException('Shift not found');
+    if (!privileged && shift.actor_id !== actorId) {
+      throw new ForbiddenException();
+    }
+    const rows = await this.db.query(
+      'SELECT * FROM cash_transactions WHERE shop_id=$1 AND shift_id=$2 ORDER BY created_at ASC',
+      [shopId, shiftId],
+    );
+    return rows.map((row: any) => ({
+      id: row.id,
+      shopId: row.shop_id,
+      shiftId: row.shift_id,
+      actorId: row.actor_id,
+      type: row.type,
+      amountMinor: Number(row.amount_minor),
+      reason: row.reason,
+      createdAt: row.created_at.toISOString(),
+    }));
   }
 }

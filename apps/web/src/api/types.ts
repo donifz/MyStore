@@ -63,6 +63,8 @@ export type Shift = {
   salesCardMinor: number;
   refundsCashMinor: number;
   refundsCardMinor: number;
+  cashInMinor?: number;
+  cashOutMinor?: number;
   openingCashMinor: number;
   expectedCashMinor: number;
   actualCashMinor: number | null;
@@ -70,6 +72,16 @@ export type Shift = {
   comment: string | null;
   openedAt: string;
   closedAt: string | null;
+};
+export type CashTransaction = {
+  id: string;
+  shopId: string;
+  shiftId: string;
+  actorId: string;
+  type: 'in' | 'out';
+  amountMinor: number;
+  reason: string;
+  createdAt: string;
 };
 export type CurrentShift = Shift | { occupied: true } | null;
 export type SaleSummary = {
@@ -88,6 +100,8 @@ export type SaleDetail = SaleSummary & {
     quantity: number;
     returnedQuantity: number;
     unitPriceMinor: number;
+    discountMinor?: number;
+    discountReason?: string | null;
   }[];
 };
 export type PlatformFinancialGrant = {

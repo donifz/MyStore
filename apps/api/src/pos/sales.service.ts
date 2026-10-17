@@ -12,6 +12,8 @@ export type SaleLine = {
   variantId: string;
   quantity: number;
   expectedUnitPriceMinor: number;
+  discountMinor?: number;
+  discountReason?: string;
 };
 export type SaleResult = { id: string; kind: 'sale'; totalMinor: number };
 @Injectable()
@@ -38,11 +40,20 @@ export class SalesService {
     if (!lines.length)
       throw new BadRequestException('At least one sale line required');
     return lines
-      .map((l) => ({
-        variantId: l.variantId.toLowerCase(),
-        quantity: quantity(l.quantity),
-        expectedUnitPriceMinor: safeMoney(minor(l.expectedUnitPriceMinor)),
-      }))
+      .map((l) => {
+        const disc =
+          l.discountMinor !== undefined ? safeMoney(minor(l.discountMinor)) : 0;
+        const reason = l.discountReason?.trim() || undefined;
+        if (disc > 0 && !reason) {
+          throw new BadRequestException('Discount reason required');
+        }
+        return {
+          variantId: l.variantId.toLowerCase(),
+          quantity: quantity(l.quantity),
+          expectedUnitPriceMinor: safeMoney(minor(l.expectedUnitPriceMinor)),
+          ...(disc > 0 ? { discountMinor: disc, discountReason: reason } : {}),
+        };
+      })
       .sort((a, b) => a.variantId.localeCompare(b.variantId));
   }
   async postInTransaction(
@@ -68,14 +79,17 @@ export class SalesService {
       const row = rows.get(line.variantId)!;
       if (!reservedOrder && row.archived)
         throw new ConflictException('Cannot sell archived variant');
-      if (
-        !reservedOrder &&
-        Number(row.sale_price_minor) !== line.expectedUnitPriceMinor
-      )
+      const basePrice = Number(row.sale_price_minor);
+      const discount = line.discountMinor ?? 0;
+      if (discount > basePrice) {
+        throw new BadRequestException('Discount cannot exceed unit price');
+      }
+      const finalPrice = basePrice - discount;
+      if (!reservedOrder && finalPrice !== line.expectedUnitPriceMinor)
         throw new ConflictException({
           message: 'Price changed',
           variantId: line.variantId,
-          currentUnitPriceMinor: Number(row.sale_price_minor),
+          currentUnitPriceMinor: finalPrice,
         });
       if (reservedOrder && Number(row.reserved) < line.quantity)
         throw new ConflictException('Order reservation missing');
@@ -101,6 +115,7 @@ export class SalesService {
       const value = BigInt(row.stock_value_minor);
       const q = BigInt(line.quantity);
       const cost = (2n * value * q + physical) / (2n * physical);
+      const discount = line.discountMinor ?? 0;
       await tx.query(
         'UPDATE stock_balances SET physical=physical-$3,reserved=reserved-$5,stock_value_minor=stock_value_minor-$4 WHERE shop_id=$1 AND variant_id=$2',
         [
@@ -123,7 +138,7 @@ export class SalesService {
         ],
       );
       await tx.query(
-        'INSERT INTO sale_lines(id,shop_id,document_id,variant_id,name,barcode,quantity,unit_price_minor,cost_minor)SELECT $1,$2,$3,id,name,barcode,$5,$6,$7 FROM variants WHERE shop_id=$2 AND id=$4',
+        'INSERT INTO sale_lines(id,shop_id,document_id,variant_id,name,barcode,quantity,unit_price_minor,cost_minor,discount_minor,discount_reason,discount_actor_id)SELECT $1,$2,$3,id,name,barcode,$5,$6,$7,$8,$9,$10 FROM variants WHERE shop_id=$2 AND id=$4',
         [
           randomUUID(),
           shopId,
@@ -132,6 +147,9 @@ export class SalesService {
           line.quantity,
           line.expectedUnitPriceMinor,
           safeMoney(cost),
+          discount,
+          line.discountReason ?? null,
+          discount > 0 ? actorId : null,
         ],
       );
     }

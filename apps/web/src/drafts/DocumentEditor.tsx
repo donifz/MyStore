@@ -79,7 +79,28 @@ export default function DocumentEditor({
           <div className="line-name">
             <strong>{l.name}</strong>
             <small className="code">{l.barcode}</small>
-            {!receiving && <small>{formatSom(l.priceMinor)}</small>}
+            {!receiving && (
+              <small>
+                {l.discountMinor ? (
+                  <>
+                    <span
+                      style={{
+                        textDecoration: 'line-through',
+                        opacity: 0.6,
+                        marginRight: '0.25rem',
+                      }}
+                    >
+                      {formatSom(l.priceMinor)}
+                    </span>
+                    <strong style={{ color: 'var(--color-primary, #007659)' }}>
+                      {formatSom(l.priceMinor - l.discountMinor)}
+                    </strong>
+                  </>
+                ) : (
+                  formatSom(l.priceMinor)
+                )}
+              </small>
+            )}
           </div>
           <label>
             Количество {l.name}
@@ -117,6 +138,78 @@ export default function DocumentEditor({
                 }}
               />
             </label>
+          )}
+          {!receiving && (
+            <div
+              className="line-discount-box"
+              style={{
+                gridColumn: '1 / -1',
+                display: 'flex',
+                gap: '0.5rem',
+                flexWrap: 'wrap',
+                marginTop: '0.25rem',
+              }}
+            >
+              <label style={{ flex: '1 1 120px' }}>
+                Скидка на шт., сом
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max={l.priceMinor / 100}
+                  placeholder="0"
+                  value={
+                    l.discountMinor ? (l.discountMinor / 100).toString() : ''
+                  }
+                  disabled={disabled}
+                  onChange={(e) => {
+                    const val = e.target.value.trim();
+                    const num = parseFloat(val);
+                    const minorVal =
+                      val === '' || isNaN(num) ? 0 : Math.round(num * 100);
+                    if (
+                      minorVal >= 0 &&
+                      minorVal <= l.priceMinor &&
+                      Number.isSafeInteger(minorVal)
+                    ) {
+                      doc.change((lines) =>
+                        lines.map((x) =>
+                          x.id === l.id
+                            ? {
+                                ...x,
+                                discountMinor:
+                                  minorVal > 0 ? minorVal : undefined,
+                                discountReason:
+                                  minorVal > 0 ? x.discountReason : undefined,
+                              }
+                            : x,
+                        ),
+                      );
+                    }
+                  }}
+                />
+              </label>
+              {!!l.discountMinor && (
+                <label style={{ flex: '2 1 180px' }}>
+                  Причина скидки
+                  <input
+                    type="text"
+                    maxLength={255}
+                    placeholder="Причина (обязательно при скидке)"
+                    value={l.discountReason ?? ''}
+                    disabled={disabled}
+                    onChange={(e) => {
+                      const reason = e.target.value;
+                      doc.change((lines) =>
+                        lines.map((x) =>
+                          x.id === l.id ? { ...x, discountReason: reason } : x,
+                        ),
+                      );
+                    }}
+                  />
+                </label>
+              )}
+            </div>
           )}
           <button
             type="button"

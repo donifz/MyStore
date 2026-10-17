@@ -22,6 +22,7 @@ import { StaffPermissions1760000000018 } from './migrations/1760000000018-StaffP
 import { PlatformFinancialAccess1760000000019 } from './migrations/1760000000019-PlatformFinancialAccess';
 import { StorefrontSearch1760000000020 } from './migrations/1760000000020-StorefrontSearch';
 import { ArchiveAndVariants1760000000021 } from './migrations/1760000000021-ArchiveAndVariants';
+import { CashOperationsAndDiscounts1760000000022 } from './migrations/1760000000022-CashOperationsAndDiscounts';
 export const DATABASE = Symbol('DATABASE');
 export function buildDataSource(url: string) {
   return new DataSource({
@@ -51,6 +52,7 @@ export function buildDataSource(url: string) {
       PlatformFinancialAccess1760000000019,
       StorefrontSearch1760000000020,
       ArchiveAndVariants1760000000021,
+      CashOperationsAndDiscounts1760000000022,
     ],
   });
 }

@@ -67,6 +67,8 @@ export class SalesHistoryService {
         quantity: Number(r.quantity),
         returnedQuantity: Number(r.returned_quantity),
         unitPriceMinor: Number(r.unit_price_minor),
+        discountMinor: Number(r.discount_minor || 0),
+        discountReason: r.discount_reason ?? null,
       })),
     };
   }

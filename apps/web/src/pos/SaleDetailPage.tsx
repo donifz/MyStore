@@ -59,7 +59,22 @@ export default function SaleDetailPage() {
                   Продано {line.quantity}, возвращено {line.returnedQuantity}
                 </small>
               </div>
-              <span>{formatSom(line.unitPriceMinor)} за шт.</span>
+              <div style={{ textAlign: 'right' }}>
+                <span>{formatSom(line.unitPriceMinor)} за шт.</span>
+                {!!line.discountMinor && (
+                  <small
+                    className="muted"
+                    style={{
+                      display: 'block',
+                      fontSize: '0.85rem',
+                      color: '#007659',
+                    }}
+                  >
+                    Скидка: {formatSom(line.discountMinor)}
+                    {line.discountReason ? ` (${line.discountReason})` : ''}
+                  </small>
+                )}
+              </div>
             </div>
           ))}
           <p className="total">{formatSom(sale.totalMinor)}</p>

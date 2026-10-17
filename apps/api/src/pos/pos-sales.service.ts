@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { randomUUID } from 'node:crypto';
 import { IdempotencyService } from '../common/idempotency.service';
@@ -48,6 +48,26 @@ export class PosSalesService {
     agreedPrice = false,
   ) {
     await this.shifts.lockOpen(tx, shopId, shiftId, actorId);
+    const [member] = await tx.query(
+      'SELECT role FROM memberships WHERE shop_id=$1 AND user_id=$2',
+      [shopId, actorId],
+    );
+    if (member?.role === 'cashier') {
+      for (const line of normalized) {
+        if (line.discountMinor && line.discountMinor > 0) {
+          const [vRow] = await tx.query(
+            'SELECT sale_price_minor FROM variants WHERE shop_id=$1 AND id=$2',
+            [shopId, line.variantId],
+          );
+          const base = Number(vRow?.sale_price_minor || 0);
+          if (line.discountMinor > Math.floor(base * 0.2)) {
+            throw new ForbiddenException(
+              'Cashier discount limit exceeded (max 20%)',
+            );
+          }
+        }
+      }
+    }
     const sale = await this.sales.postInTransaction(
       tx,
       shopId,
