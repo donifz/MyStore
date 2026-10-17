@@ -225,7 +225,12 @@ function ShiftWorkspace({
             </div>
 
             <div
-              style={{ display: 'flex', gap: '0.75rem', margin: '1.25rem 0' }}
+              style={{
+                display: 'flex',
+                gap: '0.75rem',
+                flexWrap: 'wrap',
+                margin: '1.25rem 0',
+              }}
             >
               <button
                 type="button"
@@ -303,6 +308,7 @@ function ShiftWorkspace({
                   style={{
                     display: 'flex',
                     gap: '0.5rem',
+                    flexWrap: 'wrap',
                     marginTop: '0.75rem',
                   }}
                 >

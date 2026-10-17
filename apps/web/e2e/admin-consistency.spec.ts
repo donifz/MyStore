@@ -100,7 +100,7 @@ test('all seller screens remain inside the viewport on mobile, tablet and deskto
     'sales',
     'reports',
   ];
-  for (const width of [360, 768, 1024, 1440]) {
+  for (const width of [320, 360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     for (const route of routes) {
       await page.goto(`/seller/${shop}/${route}`);
@@ -125,6 +125,7 @@ test('all seller screens remain inside the viewport on mobile, tablet and deskto
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
+      `platform admin (/seller) at ${width}px`,
     ).toBe(true);
   }
 });

@@ -5,10 +5,11 @@
   --sf-overlay: rgb(12 30 28 / 72%);
   --sf-surface: #ffffff;
   --sf-text: #0f172a;
-  --sf-muted: #5b6b7d;
+  --sf-muted: #475569;
   --sf-border: #e2e8f0;
   --sf-primary: #007659;
   --sf-primary-hover: #005c45;
+  --sf-primary-dark: #00523d;
   --sf-primary-soft: #eaf5f0;
   --sf-danger: #b91c1c;
   --sf-danger-soft: #fef2f2;

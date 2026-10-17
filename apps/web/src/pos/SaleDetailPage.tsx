@@ -79,12 +79,14 @@ export default function SaleDetailPage() {
           ))}
           <p className="total">{formatSom(sale.totalMinor)}</p>
           {owner && (
-            <Link
-              className="button"
-              to={`/seller/${shopId}/sales/${saleId}/return`}
-            >
-              Оформить возврат
-            </Link>
+            <div className="actions" style={{ marginTop: '1.25rem' }}>
+              <Link
+                className="button"
+                to={`/seller/${shopId}/sales/${saleId}/return`}
+              >
+                Оформить возврат
+              </Link>
+            </div>
           )}
         </section>
       )}
