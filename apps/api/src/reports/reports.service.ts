@@ -30,6 +30,11 @@ export class ReportsService {
       `SELECT
         COALESCE((SELECT sum(total_minor) FROM stock_documents WHERE shop_id=$1 AND kind='sale' AND created_at >= $2 AND created_at < $3),0) sales,
         COALESCE((SELECT sum(total_minor) FROM stock_documents WHERE shop_id=$1 AND kind='return' AND created_at >= $2 AND created_at < $3),0) returns,
+        COALESCE((SELECT count(*) FROM stock_documents WHERE shop_id=$1 AND kind='return' AND created_at >= $2 AND created_at < $3),0) returns_count,
+        COALESCE((SELECT sum(total_minor) FROM stock_documents d WHERE d.shop_id=$1 AND d.kind='sale' AND d.created_at >= $2 AND d.created_at < $3 AND NOT EXISTS (SELECT 1 FROM online_orders o WHERE o.shop_id=$1 AND o.sale_id=d.id)),0) pos_sales,
+        COALESCE((SELECT count(*) FROM stock_documents d WHERE d.shop_id=$1 AND d.kind='sale' AND d.created_at >= $2 AND d.created_at < $3 AND NOT EXISTS (SELECT 1 FROM online_orders o WHERE o.shop_id=$1 AND o.sale_id=d.id)),0) pos_sales_count,
+        COALESCE((SELECT sum(total_minor) FROM stock_documents d WHERE d.shop_id=$1 AND d.kind='sale' AND d.created_at >= $2 AND d.created_at < $3 AND EXISTS (SELECT 1 FROM online_orders o WHERE o.shop_id=$1 AND o.sale_id=d.id)),0) online_sales,
+        COALESCE((SELECT count(*) FROM stock_documents d WHERE d.shop_id=$1 AND d.kind='sale' AND d.created_at >= $2 AND d.created_at < $3 AND EXISTS (SELECT 1 FROM online_orders o WHERE o.shop_id=$1 AND o.sale_id=d.id)),0) online_sales_count,
         COALESCE((SELECT sum(sl.cost_minor) FROM sale_lines sl JOIN stock_documents d ON d.shop_id=sl.shop_id AND d.id=sl.document_id WHERE sl.shop_id=$1 AND d.created_at >= $2 AND d.created_at < $3),0) sold_cost,
         COALESCE((SELECT sum(rl.cost_minor) FROM return_lines rl JOIN stock_documents d ON d.shop_id=rl.shop_id AND d.id=rl.document_id WHERE rl.shop_id=$1 AND d.created_at >= $2 AND d.created_at < $3),0) returned_cost`,
       [shop, start, end],
@@ -55,8 +60,8 @@ export class ReportsService {
     const [orders] = await db.query(
       `SELECT
         count(*) FILTER (WHERE status IN ('new','confirmed','ready')) open_orders,
-        count(*) FILTER (WHERE status='issued' AND created_at >= $2 AND created_at < $3) issued_orders,
-        COALESCE(sum(total_minor) FILTER (WHERE status='issued' AND created_at >= $2 AND created_at < $3),0) issued_total
+        count(*) FILTER (WHERE status='issued' AND COALESCE(issued_at, updated_at) >= $2 AND COALESCE(issued_at, updated_at) < $3) issued_orders,
+        COALESCE(sum(total_minor) FILTER (WHERE status='issued' AND COALESCE(issued_at, updated_at) >= $2 AND COALESCE(issued_at, updated_at) < $3),0) issued_total
        FROM online_orders WHERE shop_id=$1`,
       [shop, start, end],
     );
@@ -77,6 +82,11 @@ export class ReportsService {
       revenueMinor: revenue,
       salesMinor: sales,
       returnsMinor: returns,
+      returnsCount: Number(trade.returns_count),
+      posSalesMinor: Number(trade.pos_sales),
+      posSalesCount: Number(trade.pos_sales_count),
+      onlineSalesMinor: Number(trade.online_sales),
+      onlineSalesCount: Number(trade.online_sales_count),
       costOfGoodsMinor: cost,
       grossProfitMinor: revenue - cost,
       paymentsReceivedMinor: Number(payments.received),
@@ -132,13 +142,16 @@ export class ReportsService {
       headers = [
         'id',
         'created_at',
+        'channel',
         'total_minor',
         'payment_kind',
         'payment_method',
         'payment_amount_minor',
       ];
       rows = await this.db.query(
-        `SELECT d.id,d.created_at,d.total_minor,p.kind payment_kind,p.method payment_method,p.amount_minor payment_amount_minor
+        `SELECT d.id,d.created_at,
+                CASE WHEN EXISTS (SELECT 1 FROM online_orders o WHERE o.shop_id=d.shop_id AND o.sale_id=d.id) THEN 'online' ELSE 'pos' END channel,
+                d.total_minor,p.kind payment_kind,p.method payment_method,p.amount_minor payment_amount_minor
          FROM stock_documents d LEFT JOIN payment_records p ON p.shop_id=d.shop_id AND p.document_id=d.id
          WHERE d.shop_id=$1 AND d.kind IN ('sale','return') ORDER BY d.created_at DESC,d.id`,
         [shop],
@@ -147,6 +160,7 @@ export class ReportsService {
       headers = [
         'id',
         'created_at',
+        'issued_at',
         'status',
         'name',
         'phone',
@@ -156,7 +170,7 @@ export class ReportsService {
         'sale_id',
       ];
       rows = await this.db.query(
-        'SELECT id,created_at,status,name,phone,fulfillment,address,total_minor,sale_id FROM online_orders WHERE shop_id=$1 ORDER BY created_at DESC,id',
+        'SELECT id,created_at,issued_at,status,name,phone,fulfillment,address,total_minor,sale_id FROM online_orders WHERE shop_id=$1 ORDER BY created_at DESC,id',
         [shop],
       );
     } else {

@@ -1,26 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
+import { FinancialSummary } from '../api/types';
 
-type Summary = {
-  revenueMinor: number;
-  salesMinor: number;
-  returnsMinor: number;
-  costOfGoodsMinor: number;
-  grossProfitMinor: number;
-  paymentsReceivedMinor: number;
-  paymentsRefundedMinor: number;
-  cashReceivedMinor: number;
-  cardReceivedMinor: number;
-  physicalUnits: number;
-  reservedUnits: number;
-  stockValueMinor: number;
-  lowStockCount: number;
-  openOrders: number;
-  issuedOrders: number;
-  closedShifts: number;
-  cashDiscrepancyMinor: number;
-};
 const money = (n: number) =>
   new Intl.NumberFormat('ru-RU', {
     style: 'currency',
@@ -29,40 +11,88 @@ const money = (n: number) =>
 
 export default function ReportsPage() {
   const { shopId = '' } = useParams();
-  const [data, setData] = useState<Summary | null>(null);
+  const [data, setData] = useState<FinancialSummary | null>(null);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+
+  const loadSummary = useCallback(
+    async (from?: string, to?: string) => {
+      setLoading(true);
+      setError('');
+      try {
+        const query = new URLSearchParams();
+        if (from) query.set('from', new Date(from + 'T00:00:00').toISOString());
+        if (to) query.set('to', new Date(to + 'T23:59:59.999').toISOString());
+        const qs = query.toString();
+        const res = await api<FinancialSummary>(
+          `/shops/${shopId}/reports/summary${qs ? '?' + qs : ''}`,
+        );
+        setData(res);
+      } catch (e) {
+        setError(errorText(e));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [shopId],
+  );
+
   useEffect(() => {
-    void api<Summary>(`/shops/${shopId}/reports/summary`)
-      .then(setData)
-      .catch((e) => setError(errorText(e)));
-  }, [shopId]);
-  if (error)
-    return (
-      <p role="alert" className="error">
-        {error}
-      </p>
-    );
-  if (!data) return <p className="loading">Загрузка отчёта…</p>;
-  const cards: [string, string][] = [
-    ['Выручка за вычетом возвратов', money(data.revenueMinor)],
-    ['Себестоимость проданного', money(data.costOfGoodsMinor)],
-    ['Валовая прибыль', money(data.grossProfitMinor)],
-    [
-      'Получено оплат',
-      money(data.paymentsReceivedMinor - data.paymentsRefundedMinor),
-    ],
-    ['Наличные', money(data.cashReceivedMinor)],
-    ['Карта', money(data.cardReceivedMinor)],
-    ['Стоимость остатка', money(data.stockValueMinor)],
-    [
-      'Доступно / резерв',
-      `${data.physicalUnits - data.reservedUnits} / ${data.reservedUnits}`,
-    ],
-    ['Товаров с низким остатком', String(data.lowStockCount)],
-    ['Открытых заказов', String(data.openOrders)],
-    ['Закрытых смен', String(data.closedShifts)],
-    ['Расхождение кассы', money(data.cashDiscrepancyMinor)],
-  ];
+    void loadSummary(fromDate, toDate);
+  }, [shopId, loadSummary]);
+
+  function handleApplyFilter(e: React.FormEvent) {
+    e.preventDefault();
+    void loadSummary(fromDate, toDate);
+  }
+
+  function handleResetFilter() {
+    setFromDate('');
+    setToDate('');
+    void loadSummary('', '');
+  }
+
+  const cards: [string, string][] = data
+    ? [
+        ['Выручка за вычетом возвратов', money(data.revenueMinor)],
+        [
+          'Выручка в кассе (POS)',
+          `${money(data.posSalesMinor ?? 0)} (${data.posSalesCount ?? 0} чеков)`,
+        ],
+        [
+          'Выручка онлайн (Заказы)',
+          `${money(data.onlineSalesMinor ?? 0)} (${data.onlineSalesCount ?? 0} заказов)`,
+        ],
+        ['Себестоимость проданного', money(data.costOfGoodsMinor)],
+        ['Валовая прибыль', money(data.grossProfitMinor)],
+        [
+          'Возвраты покупателей',
+          `${money(data.returnsMinor)} (${data.returnsCount ?? 0})`,
+        ],
+        [
+          'Получено оплат',
+          money(data.paymentsReceivedMinor - data.paymentsRefundedMinor),
+        ],
+        ['Наличные', money(data.cashReceivedMinor)],
+        ['Карта', money(data.cardReceivedMinor)],
+        ['Стоимость остатка', money(data.stockValueMinor)],
+        [
+          'Доступно / резерв',
+          `${data.physicalUnits - data.reservedUnits} / ${data.reservedUnits}`,
+        ],
+        ['Товаров с низким остатком', String(data.lowStockCount)],
+        ['Открытых заказов', String(data.openOrders)],
+        [
+          'Онлайн-заказов выдано',
+          `${data.issuedOrders} (на ${money(data.issuedOrdersMinor ?? 0)})`,
+        ],
+        ['Закрытых смен', String(data.closedShifts)],
+        ['Расхождение кассы', money(data.cashDiscrepancyMinor)],
+      ]
+    : [];
+
   return (
     <section>
       <div className="page-heading">
@@ -75,15 +105,64 @@ export default function ReportsPage() {
         Валовая прибыль не учитывает аренду, зарплаты, налоги и другие расходы
         бизнеса.
       </p>
-      <div className="stat-grid">
-        {cards.map(([label, value]) => (
-          <article className="panel" key={label}>
-            <small>{label}</small>
-            <h2>{value}</h2>
-          </article>
-        ))}
-      </div>
-      <div className="panel">
+
+      <form
+        onSubmit={handleApplyFilter}
+        className="panel form-panel"
+        style={{
+          display: 'flex',
+          gap: '1rem',
+          alignItems: 'flex-end',
+          flexWrap: 'wrap',
+          marginBottom: '1.5rem',
+        }}
+      >
+        <label style={{ margin: 0 }}>
+          Период с
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+          />
+        </label>
+        <label style={{ margin: 0 }}>
+          Период по
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+          />
+        </label>
+        <button type="submit" className="primary" disabled={loading}>
+          Применить
+        </button>
+        {(fromDate || toDate) && (
+          <button type="button" onClick={handleResetFilter} disabled={loading}>
+            Сбросить
+          </button>
+        )}
+      </form>
+
+      {error && (
+        <p role="alert" className="error">
+          {error}
+        </p>
+      )}
+
+      {loading && !data && <p className="loading">Загрузка отчёта…</p>}
+
+      {data && (
+        <div className="stat-grid">
+          {cards.map(([label, value]) => (
+            <article className="panel" key={label}>
+              <small>{label}</small>
+              <h2>{value}</h2>
+            </article>
+          ))}
+        </div>
+      )}
+
+      <div className="panel" style={{ marginTop: '1.5rem' }}>
         <h2>CSV-экспорт</h2>
         <div className="actions">
           {['products', 'stock', 'sales', 'orders'].map((kind) => (

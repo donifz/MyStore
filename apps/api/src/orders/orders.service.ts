@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   HttpException,
   Inject,
   Injectable,
@@ -84,10 +85,14 @@ export class OrdersService {
         return this.receiptDto(existing);
       }
       const [shop] = await tx.query(
-        'SELECT id,name,pickup_enabled,delivery_enabled,time_zone,business_schedule,now() reservation_origin FROM shops WHERE slug=$1 AND published FOR SHARE',
+        'SELECT id,name,pickup_enabled,delivery_enabled,time_zone,business_schedule,marketplace_blocked,now() reservation_origin FROM shops WHERE slug=$1 AND published FOR SHARE',
         [payload.storeSlug],
       );
       if (!shop) throw new NotFoundException('Store unavailable');
+      if (shop.marketplace_blocked)
+        throw new ForbiddenException(
+          'Приём онлайн-заказов временно приостановлен',
+        );
       if (
         payload.fulfillment === 'delivery'
           ? !shop.delivery_enabled
@@ -340,7 +345,7 @@ export class OrdersService {
           true,
         );
         const [[updated]] = await tx.query(
-          "UPDATE online_orders SET status='issued',sale_id=$3,issued_by=$4,status_changed_by=$4,updated_at=now() WHERE shop_id=$1 AND id=$2 RETURNING *",
+          "UPDATE online_orders SET status='issued',sale_id=$3,issued_by=$4,status_changed_by=$4,issued_at=now(),updated_at=now() WHERE shop_id=$1 AND id=$2 RETURNING *",
           [shop, id, sale.id, actor],
         );
         return { ...this.receiptDto(updated), saleId: sale.id };
