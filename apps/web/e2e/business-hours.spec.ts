@@ -76,33 +76,32 @@ test('saved settings determine new order deadline and do not rewrite old reserva
     throw new Error('Dedicated test database required');
   const db = new Client({ connectionString: url });
   await db.connect();
+  const testShop = randomUUID();
+  const slug = 'test-hours-' + randomUUID();
+  const variant = randomUUID();
+  const key = randomUUID();
   try {
-    const variant = randomUUID();
-    await db.query(
-      'INSERT INTO variants(id,shop_id,name,barcode,sale_price_minor) VALUES($1,$2,$3,$4,100)',
-      [variant, shop, 'Товар для резерва', randomUUID()],
-    );
-    await db.query(
-      "INSERT INTO product_publications(variant_id,shop_id,name,description,category,subcategory) VALUES($1,$2,$3,'','','')",
-      [variant, shop, 'Товар для резерва'],
-    );
-    await db.query(
-      'INSERT INTO stock_balances(shop_id,variant_id,physical,reserved,stock_value_minor) VALUES($1,$2,5,0,0)',
-      [shop, variant],
-    );
-    // All day except one minute: the fixture instant must fall in an open window.
     const allDay = Array.from({ length: 7 }, () => [
       { open: '00:00', close: '12:00' },
       { open: '12:00', close: '23:59' },
     ]);
     await db.query(
-      "UPDATE shops SET published=true,pickup_enabled=true,time_zone='UTC',business_schedule=$2 WHERE id=$1",
-      [shop, JSON.stringify(allDay)],
+      `INSERT INTO shops(id, name, slug, description, city, address, phone, hours, published, district, pickup_enabled, delivery_enabled, time_zone, business_schedule)
+       VALUES($1, 'Shop Test Hours', $2, '', 'Бишкек', 'Улица 1', '+996700000000', '', true, 'Первомайский', true, false, 'UTC', $3)`,
+      [testShop, slug, JSON.stringify(allDay)],
     );
-    const [{ slug }] = (
-      await db.query('SELECT slug FROM shops WHERE id=$1', [shop])
-    ).rows;
-    const key = randomUUID();
+    await db.query(
+      'INSERT INTO variants(id,shop_id,name,barcode,sale_price_minor) VALUES($1,$2,$3,$4,100)',
+      [variant, testShop, 'Товар для резерва', randomUUID()],
+    );
+    await db.query(
+      "INSERT INTO product_publications(variant_id,shop_id,name,description,category,subcategory) VALUES($1,$2,$3,'','','')",
+      [variant, testShop, 'Товар для резерва'],
+    );
+    await db.query(
+      'INSERT INTO stock_balances(shop_id,variant_id,physical,reserved,stock_value_minor) VALUES($1,$2,5,0,0)',
+      [testShop, variant],
+    );
     const body = {
       checkoutKey: key,
       storeSlug: slug,
@@ -130,7 +129,7 @@ test('saved settings determine new order deadline and do not rewrite old reserva
     expect(duration).toBeGreaterThanOrEqual(120 * 60_000);
     expect(duration).toBeLessThanOrEqual(121 * 60_000);
     await db.query('UPDATE shops SET business_schedule=NULL WHERE id=$1', [
-      shop,
+      testShop,
     ]);
     const retry = await request.post('/api/public/orders', {
       headers: { origin },
@@ -145,6 +144,18 @@ test('saved settings determine new order deadline and do not rewrite old reserva
     ).rows;
     expect(Number(reserved)).toBe(1);
   } finally {
+    try {
+      await db.query('DELETE FROM online_order_lines WHERE shop_id=$1', [
+        testShop,
+      ]);
+      await db.query('DELETE FROM online_orders WHERE shop_id=$1', [testShop]);
+      await db.query('DELETE FROM stock_balances WHERE shop_id=$1', [testShop]);
+      await db.query('DELETE FROM product_publications WHERE shop_id=$1', [
+        testShop,
+      ]);
+      await db.query('DELETE FROM variants WHERE shop_id=$1', [testShop]);
+      await db.query('DELETE FROM shops WHERE id=$1', [testShop]);
+    } catch {}
     await db.end();
   }
 });
@@ -172,6 +183,10 @@ test('cashier and manager cannot change hours through the API or protected page'
       [shop, id],
     );
   } finally {
+    try {
+      await db.query('DELETE FROM memberships WHERE user_id=$1', [id]);
+      await db.query('DELETE FROM users WHERE id=$1', [id]);
+    } catch {}
     await db.end();
   }
   for (const account of [email, 'cashier@example.test']) {
