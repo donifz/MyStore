@@ -86,27 +86,6 @@ export default function MarketplaceHero({
           </span>
         </div>
       </section>
-      <aside className="sf-hero-benefits">
-        {[
-          [
-            'shop',
-            'Разные магазины — одна площадка',
-            'Выбирайте товары и сравнивайте цены.',
-          ],
-          ['box', 'Удобное получение', 'Самовывоз или доставка от продавца.'],
-          ['shield', 'Актуальное наличие', 'Каталог связан с учётом магазина.'],
-        ].map(([icon, title, text]) => (
-          <div key={icon}>
-            <span>
-              <Icon name={icon} />
-            </span>
-            <div>
-              <strong>{title}</strong>
-              <p>{text}</p>
-            </div>
-          </div>
-        ))}
-      </aside>
     </div>
   );
 }

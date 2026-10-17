@@ -27,9 +27,16 @@ export default function BuyButton({
   );
   if (pending)
     return (
-      <Link className="sf-button sf-button--secondary" href="/cart">
-        Проверить заказ
-      </Link>
+      <div
+        className={
+          compact ? 'sf-buy-actions sf-buy-actions--compact' : 'sf-buy-actions'
+        }
+      >
+        <Link className="sf-button sf-button--secondary" href="/cart">
+          Проверить заказ
+        </Link>
+        {compact && <div className="sf-card-buy-status" />}
+      </div>
     );
   function add(now = false) {
     if (c.add(product, false, quantity)) {
@@ -38,7 +45,11 @@ export default function BuyButton({
     }
   }
   return (
-    <div className="sf-buy-actions">
+    <div
+      className={
+        compact ? 'sf-buy-actions sf-buy-actions--compact' : 'sf-buy-actions'
+      }
+    >
       {!compact && product.available > 0 && (
         <div className="sf-quantity-row">
           <div className="sf-quantity">
@@ -99,11 +110,16 @@ export default function BuyButton({
           Купить сейчас <Icon name="arrow" />
         </Button>
       )}
-      {(added || inCart) && (
-        <div role="status">
-          <Link className="sf-added" href="/cart">
-            Добавлено · Перейти в корзину
-          </Link>
+      {(compact || added || inCart) && (
+        <div
+          role="status"
+          className={compact ? 'sf-card-buy-status' : undefined}
+        >
+          {(added || inCart) && (
+            <Link className="sf-added" href="/cart">
+              Добавлено · Перейти в корзину
+            </Link>
+          )}
         </div>
       )}
       {c.error && <Alert variant="error">{c.error}</Alert>}

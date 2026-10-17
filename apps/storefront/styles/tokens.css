@@ -4,6 +4,7 @@
   --sf-shop-blue: #1c6277;
   --sf-overlay: rgb(12 30 28 / 72%);
   --sf-surface: #ffffff;
+  --sf-surface-alt: #f6f8fa;
   --sf-text: #0f172a;
   --sf-muted: #475569;
   --sf-border: #e2e8f0;
@@ -19,7 +20,9 @@
   --sf-space-2: 8px;
   --sf-space-3: 12px;
   --sf-space-4: 16px;
+  --sf-space-5: 20px;
   --sf-space-6: 24px;
+  --sf-space-7: 28px;
   --sf-space-8: 32px;
   --sf-space-12: 48px;
   --sf-space-16: 64px;
