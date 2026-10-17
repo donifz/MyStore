@@ -90,3 +90,68 @@ test('rejects remote URLs before sending requests', async () => {
   );
   assert.equal(requestCount, 0);
 });
+
+test('does not follow redirects to another server', async () => {
+  let redirectedRequests = 0;
+  const destination = await startServer((_request, response) => {
+    redirectedRequests++;
+    response.writeHead(200);
+    response.end('should not be reached');
+  });
+  const redirect = await startServer((_request, response) => {
+    response.writeHead(302, { location: destination });
+    response.end();
+  });
+
+  const result = await runLoadProbe({
+    url: redirect,
+    durationSeconds: 0.05,
+    requestsPerSecond: 20,
+    concurrency: 1,
+  });
+
+  assert.equal(redirectedRequests, 0);
+  assert.equal(result.networkErrorCount, 1);
+  assert.equal(result.errorCount, 1);
+});
+
+test('does not start scheduled requests after the duration deadline', async () => {
+  const url = await startServer((_request, response) => {
+    setTimeout(() => {
+      response.writeHead(200);
+      response.end('{}');
+    }, 80);
+  });
+
+  const result = await runLoadProbe({
+    url,
+    durationSeconds: 0.11,
+    requestsPerSecond: 20,
+    concurrency: 1,
+  });
+
+  assert.equal(result.requestCount, 2);
+  assert.ok(result.elapsedSeconds < 0.35);
+});
+
+test('counts a response body that terminates early as a network error', async () => {
+  const url = await startServer((_request, response) => {
+    response.writeHead(200, {
+      'content-type': 'application/json',
+      'content-length': '100',
+    });
+    response.write('{"items":');
+    setTimeout(() => response.destroy(), 30);
+  });
+
+  const result = await runLoadProbe({
+    url,
+    durationSeconds: 0.05,
+    requestsPerSecond: 20,
+    concurrency: 1,
+  });
+
+  assert.equal(result.statusCounts['200'], 1);
+  assert.equal(result.networkErrorCount, 1);
+  assert.equal(result.errorCount, 1);
+});

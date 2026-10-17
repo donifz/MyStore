@@ -81,12 +81,21 @@ async function runLoadProbe({
 
   async function worker() {
     while (true) {
+      const now = performance.now();
+      const elapsedMs = now - startAt;
+      const intervalMs = 1000 / requestsPerSecond;
+      const earliestIndex =
+        elapsedMs < intervalMs
+          ? 0
+          : Math.ceil((elapsedMs * requestsPerSecond) / 1000);
+      nextRequestIndex = Math.max(nextRequestIndex, earliestIndex);
       const requestIndex = nextRequestIndex++;
       const scheduledAt = startAt + (requestIndex * 1000) / requestsPerSecond;
       if (scheduledAt >= deadline) return;
 
       const delay = scheduledAt - performance.now();
       if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
+      if (performance.now() >= deadline) return;
 
       const requestStart = performance.now();
       activeRequests++;
@@ -95,11 +104,12 @@ async function runLoadProbe({
         const response = await fetchImpl(parsedUrl, {
           headers: { 'user-agent': 'mystore-ops-load-probe/1.0' },
           signal: AbortSignal.timeout(10000),
+          redirect: 'error',
         });
         statusCounts[response.status] =
           (statusCounts[response.status] ?? 0) + 1;
         if (!response.ok) errorCount++;
-        await response.body?.cancel().catch(() => {});
+        await response.arrayBuffer();
         samples.push(performance.now() - requestStart);
       } catch {
         networkErrorCount++;

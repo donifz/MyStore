@@ -1,6 +1,6 @@
 # Проверка резервной копии и локальной нагрузки
 
-Дата: 17 октября 2026. Среда: отдельный локальный контейнер PostgreSQL 18.6 `mystore-hours-postgres`, Node.js 24.19.0. Рабочая база, Render и реальные магазины не использовались.
+Дата: 17 октября 2026. Среда: MacBook Air (MacBookAir10,1), macOS 26.5, 8 CPU, 8 GiB RAM; Node.js 24.19.0; отдельный локальный контейнер PostgreSQL 18.6 `mystore-hours-postgres` без заданных Docker-лимитов CPU/RAM. Рабочая база, Render и реальные магазины не использовались.
 
 ## Backup и restore
 
@@ -9,6 +9,7 @@
 Команды для повтора в том же локальном окружении:
 
 ```bash
+set -euo pipefail
 docker exec mystore-hours-postgres pg_dump -U mystore -Fc --no-owner --no-acl \
   --dbname=mystore_permissions_browser_test > /tmp/mystore-ops-backup-rehearsal.dump
 docker exec mystore-hours-postgres createdb -U mystore mystore_ops_restore_test
@@ -19,9 +20,13 @@ docker exec -i mystore-hours-postgres pg_restore --list \
   < /tmp/mystore-ops-backup-rehearsal.dump > /tmp/mystore-ops-backup-contents.list
 ```
 
+Перед началом проверьте, что `mystore_ops_restore_test` отсутствует: `createdb` намеренно завершает процедуру ошибкой, если база уже существует. `set -euo pipefail` останавливает блок при ошибке любой команды.
+
 Выгрузка заняла 0,88 с, восстановление — 0,74 с. Файл: 130 211 байт; каталог архива содержит 260 строк; SHA-256 `3c9fbf74dd64a25f58f2eaba7c1108490ce87938fb88cbe58e0fe1d89406930b`. `pg_restore` завершился с `--exit-on-error`; до применения новых миграций все перечисленные выше количества совпали с источником. После запуска `npm run migration:run --workspace apps/api` на восстановленной базе миграций стало 24; соединение приложения прошло успешно.
 
 Сборка API прошла. Поднятый локальный API вернул HTTP 200 на `/api/health/ready` (`ok=true`, `database=true`) и HTTP 200 на `/api/public/products?page=1&pageSize=20`. В таблице `migrations` восстановленного снимка до применения кода было 19 записей; миграции приложения обновили её до 24. В тестовой очереди оставались 2 outbox-события, поэтому это наблюдение не является проверкой production-очереди.
+
+API запущен командой `PORT=31401 DATABASE_URL='<connection string для mystore_ops_restore_test>' npm run start --workspace apps/api` из корня репозитория после `npm run build`. `DATABASE_URL` задавался только для локальной восстановленной тестовой базы; значение подключения в отчёт не включено.
 
 ## Нагрузочный прогон
 
@@ -37,17 +42,17 @@ LOAD_DURATION_SECONDS=30 LOAD_REQUESTS_PER_SECOND=50 LOAD_CONCURRENCY=200 \
 
 | Показатель                            | Результат |
 | ------------------------------------- | --------: |
-| Запросы                               |     1 500 |
-| Частота                               |   50,02/с |
-| HTTP 200                              |     1 500 |
+| Запросы                               |     1 499 |
+| Частота                               |   49,98/с |
+| HTTP 200                              |     1 499 |
 | Ошибки сети / HTTP                    |     0 / 0 |
-| Фактический пик запросов одновременно |        26 |
-| p50                                   |  10,93 мс |
-| p95                                   |  18,01 мс |
-| p99                                   | 225,62 мс |
-| Максимум                              | 565,62 мс |
+| Фактический пик запросов одновременно |         7 |
+| p50                                   |  10,89 мс |
+| p95                                   |  16,75 мс |
+| p99                                   |  33,00 мс |
+| Максимум                              | 172,22 мс |
 
-Команда `node --test scripts/ops-load-probe.test.cjs` прошла 3/3 проверки. Защита отказала удалённому URL до отправки запросов. Предел задан в 200 одновременных запросов, но фактический максимум составил 26: при этой частоте и скорости ответа такой прогон не создаёт 200 активных сессий.
+Команда `node --test scripts/ops-load-probe.test.cjs` прошла 6/6 проверок, в том числе блокировку редиректов, ограничение времени выдачи запросов и обнаружение оборванного тела ответа. Пробник читает тело ответа полностью; поэтому задержка включает загрузку тела, а ошибки чтения считаются сетевыми. Защита отказала удалённому URL до отправки запросов. Предел задан в 200 одновременных запросов, но фактический максимум составил 7: при этой частоте и скорости ответа такой прогон не создаёт 200 активных сессий.
 
 ## Что этот прогон подтверждает и чего не подтверждает
 
@@ -58,7 +63,7 @@ LOAD_DURATION_SECONDS=30 LOAD_REQUESTS_PER_SECOND=50 LOAD_CONCURRENCY=200 \
 
 ## Проверки кода
 
-- `node --test scripts/ops-load-probe.test.cjs`: 3/3.
+- `node --test scripts/ops-load-probe.test.cjs`: 6/6.
 - `npm test`: API 42 suites / 242 tests и web 21 files / 84 tests прошли. Jest вывел существующие предупреждения `MaxListenersExceededWarning`, но все suites завершились успешно.
 - `npm run typecheck`, `npm run build` и `npm run format:check`: прошли.
 - Временные restore/API-suite базы удалены; контрольные количества исходной тестовой базы после работ остались прежними.
