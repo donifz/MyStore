@@ -13,8 +13,11 @@ import {
   ArrayMinSize,
   IsArray,
   IsInt,
+  IsOptional,
+  IsString,
   IsUUID,
   Max,
+  MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -29,6 +32,15 @@ export class SaleLineDto {
   @Min(0)
   @Max(Number.MAX_SAFE_INTEGER)
   expectedUnitPriceMinor!: number;
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(Number.MAX_SAFE_INTEGER)
+  discountMinor?: number;
+  @IsOptional()
+  @IsString()
+  @MaxLength(250)
+  discountReason?: string;
 }
 class SaleDto {
   @IsArray()

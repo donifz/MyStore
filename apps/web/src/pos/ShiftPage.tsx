@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useSession } from '../auth/SessionProvider';
 import { parseSom, formatSom, formatDate } from '../api/money';
-import { errorText } from '../api/client';
+import { api, errorText } from '../api/client';
 import { useDocument } from '../drafts/use-document';
 import { useCurrentShift } from './use-current-shift';
-import { Shift } from '../api/types';
+import { CashTransaction, Shift } from '../api/types';
 function ShiftWorkspace({
   shopId,
   userId,
@@ -19,12 +19,88 @@ function ShiftWorkspace({
     [actual, setActual] = useState(''),
     [comment, setComment] = useState(''),
     [lastClosed, setLastClosed] = useState<Shift | null>(null),
-    s = useCurrentShift(
-      shopId,
-      opening.success + closing.success,
-      useSession().user?.shops.find((x) => x.id === shopId)?.role === 'owner',
-    );
+    [shiftTrigger, setShiftTrigger] = useState(0),
+    [transactions, setTransactions] = useState<CashTransaction[]>([]);
+  const [loadingTx, setLoadingTx] = useState(false);
+  const [cashModal, setCashModal] = useState<'in' | 'out' | null>(null);
+  const [cashAmount, setCashAmount] = useState('');
+  const [cashReason, setCashReason] = useState('');
+  const [cashBusy, setCashBusy] = useState(false);
+  const [cashError, setCashError] = useState('');
+
+  const s = useCurrentShift(
+    shopId,
+    `${opening.success}:${closing.success}:${shiftTrigger}`,
+    useSession().user?.shops.find((x) => x.id === shopId)?.role === 'owner',
+  );
   const shift = s.current && 'id' in s.current ? s.current : null;
+
+  const loadTransactions = useCallback(
+    async (sId: string) => {
+      setLoadingTx(true);
+      try {
+        const list = await api<CashTransaction[]>(
+          `/shops/${shopId}/pos/shifts/${sId}/transactions`,
+        );
+        setTransactions(list);
+      } catch {
+        // ignore
+      } finally {
+        setLoadingTx(false);
+      }
+    },
+    [shopId],
+  );
+
+  useEffect(() => {
+    if (shift?.id) {
+      void loadTransactions(shift.id);
+    } else {
+      setTransactions([]);
+    }
+  }, [shift?.id, loadTransactions]);
+
+  async function handleCashOperation(type: 'in' | 'out') {
+    if (!shift) return;
+    setCashError('');
+    let minor: number;
+    try {
+      minor = parseSom(cashAmount);
+      if (minor <= 0) {
+        setCashError('Сумма должна быть больше нуля.');
+        return;
+      }
+    } catch (e: any) {
+      setCashError(e.message || 'Неверная сумма');
+      return;
+    }
+    if (!cashReason.trim()) {
+      setCashError('Укажите причину операции.');
+      return;
+    }
+    setCashBusy(true);
+    try {
+      const endpoint = `/shops/${shopId}/pos/shifts/${shift.id}/cash-${type}`;
+      await api(endpoint, {
+        method: 'POST',
+        key: crypto.randomUUID(),
+        body: {
+          amountMinor: minor,
+          reason: cashReason.trim(),
+        },
+      });
+      setCashModal(null);
+      setCashAmount('');
+      setCashReason('');
+      setShiftTrigger((n) => n + 1);
+      await loadTransactions(shift.id);
+    } catch (e) {
+      setCashError(errorText(e));
+    } finally {
+      setCashBusy(false);
+    }
+  }
+
   async function open() {
     try {
       await opening.send(
@@ -124,6 +200,14 @@ function ShiftWorkspace({
                 <strong>{formatSom(shift.expectedCashMinor)}</strong>
               </div>
               <div className="panel">
+                Внесено наличных
+                <strong>{formatSom(shift.cashInMinor ?? 0)}</strong>
+              </div>
+              <div className="panel">
+                Изъято наличных
+                <strong>{formatSom(shift.cashOutMinor ?? 0)}</strong>
+              </div>
+              <div className="panel">
                 Продажи наличными
                 <strong>{formatSom(shift.salesCashMinor)}</strong>
               </div>
@@ -139,7 +223,110 @@ function ShiftWorkspace({
                 <strong>{formatSom(shift.refundsCardMinor)}</strong>
               </div>
             </div>
+
+            <div
+              style={{ display: 'flex', gap: '0.75rem', margin: '1.25rem 0' }}
+            >
+              <button
+                type="button"
+                className="button"
+                onClick={() => {
+                  setCashModal('in');
+                  setCashError('');
+                  setCashAmount('');
+                  setCashReason('');
+                }}
+              >
+                + Внесение наличных
+              </button>
+              <button
+                type="button"
+                className="button"
+                onClick={() => {
+                  setCashModal('out');
+                  setCashError('');
+                  setCashAmount('');
+                  setCashReason('');
+                }}
+              >
+                − Изъятие наличных
+              </button>
+            </div>
+
+            {cashModal && (
+              <section
+                className="panel form-panel"
+                style={{
+                  marginBottom: '1.5rem',
+                  border: '1px solid var(--color-border, #ddd)',
+                  borderRadius: '8px',
+                  padding: '1rem',
+                }}
+              >
+                <h3>
+                  {cashModal === 'in'
+                    ? 'Внесение наличных'
+                    : 'Изъятие наличных'}
+                </h3>
+                {cashError && (
+                  <p role="alert" className="error">
+                    {cashError}
+                  </p>
+                )}
+                <label>
+                  Сумма, сом
+                  <input
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    value={cashAmount}
+                    onChange={(e) => setCashAmount(e.target.value)}
+                    disabled={cashBusy}
+                    autoFocus
+                  />
+                </label>
+                <label>
+                  Причина операции
+                  <input
+                    type="text"
+                    maxLength={255}
+                    placeholder={
+                      cashModal === 'in'
+                        ? 'Например: Разменный фонд, довнесение'
+                        : 'Например: Инкассация, хоз. расходы'
+                    }
+                    value={cashReason}
+                    onChange={(e) => setCashReason(e.target.value)}
+                    disabled={cashBusy}
+                  />
+                </label>
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '0.5rem',
+                    marginTop: '0.75rem',
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="primary"
+                    disabled={cashBusy}
+                    onClick={() => void handleCashOperation(cashModal)}
+                  >
+                    {cashBusy ? 'Проведение…' : 'Подтвердить'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={cashBusy}
+                    onClick={() => setCashModal(null)}
+                  >
+                    Отмена
+                  </button>
+                </div>
+              </section>
+            )}
+
             <div className="form-panel">
+              <h3>Закрытие смены</h3>
               <label>
                 Фактические наличные, сом
                 <input
@@ -183,6 +370,67 @@ function ShiftWorkspace({
                   : 'Закрыть смену'}
               </button>
             </div>
+
+            <section style={{ marginTop: '2rem' }}>
+              <h3>Движения наличных за смену</h3>
+              {loadingTx && <p className="muted">Загрузка операций…</p>}
+              {!loadingTx && !transactions.length && (
+                <p className="empty-state">
+                  Внесений и изъятий за смену пока не было.
+                </p>
+              )}
+              {transactions.length > 0 && (
+                <div style={{ overflowX: 'auto', marginTop: '0.5rem' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr
+                        style={{
+                          borderBottom: '1px solid var(--color-border, #ddd)',
+                          textAlign: 'left',
+                        }}
+                      >
+                        <th style={{ padding: '0.5rem' }}>Время</th>
+                        <th style={{ padding: '0.5rem' }}>Тип</th>
+                        <th style={{ padding: '0.5rem' }}>Сумма</th>
+                        <th style={{ padding: '0.5rem' }}>Причина</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {transactions.map((tx) => (
+                        <tr
+                          key={tx.id}
+                          style={{
+                            borderBottom: '1px solid var(--color-border, #eee)',
+                          }}
+                        >
+                          <td
+                            style={{ padding: '0.5rem', whiteSpace: 'nowrap' }}
+                          >
+                            {formatDate(tx.createdAt)}
+                          </td>
+                          <td style={{ padding: '0.5rem' }}>
+                            <span
+                              style={{
+                                color: tx.type === 'in' ? '#007659' : '#b3261e',
+                                fontWeight: 'bold',
+                              }}
+                            >
+                              {tx.type === 'in' ? '+ Внесение' : '− Изъятие'}
+                            </span>
+                          </td>
+                          <td
+                            style={{ padding: '0.5rem', whiteSpace: 'nowrap' }}
+                          >
+                            <strong>{formatSom(tx.amountMinor)}</strong>
+                          </td>
+                          <td style={{ padding: '0.5rem' }}>{tx.reason}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
           </section>
         </>
       ) : (

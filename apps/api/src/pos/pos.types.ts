@@ -1,4 +1,15 @@
 export type PaymentMethod = 'cash' | 'card';
+export type CashTransactionType = 'in' | 'out';
+export type CashTransactionView = {
+  id: string;
+  shopId: string;
+  shiftId: string;
+  actorId: string;
+  type: CashTransactionType;
+  amountMinor: number;
+  reason: string;
+  createdAt: string;
+};
 export type ShiftView = {
   id: string;
   shopId: string;
@@ -8,6 +19,8 @@ export type ShiftView = {
   salesCardMinor: number;
   refundsCashMinor: number;
   refundsCardMinor: number;
+  cashInMinor: number;
+  cashOutMinor: number;
   openingCashMinor: number;
   expectedCashMinor: number;
   actualCashMinor: number | null;

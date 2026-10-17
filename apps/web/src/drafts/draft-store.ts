@@ -17,6 +17,8 @@ export type DraftLine = {
   quantity: number;
   priceMinor: number;
   unitCostText?: string;
+  discountMinor?: number;
+  discountReason?: string;
 };
 export type Draft = {
   version: 1;
@@ -57,6 +59,11 @@ function validate(d: any, scope: DraftScope): asserts d is Draft {
       line.quantity > 1e9 ||
       !Number.isSafeInteger(line.priceMinor) ||
       line.priceMinor < 0 ||
+      (line.discountMinor !== undefined &&
+        (!Number.isSafeInteger(line.discountMinor) ||
+          line.discountMinor < 0)) ||
+      (line.discountReason !== undefined &&
+        typeof line.discountReason !== 'string') ||
       Object.keys(line).some(
         (k) =>
           ![
@@ -66,6 +73,9 @@ function validate(d: any, scope: DraftScope): asserts d is Draft {
             'quantity',
             'priceMinor',
             ...(scope.kind === 'receiving' ? ['unitCostText'] : []),
+            ...(scope.kind === 'sale'
+              ? ['discountMinor', 'discountReason']
+              : []),
           ].includes(k),
       )
     )

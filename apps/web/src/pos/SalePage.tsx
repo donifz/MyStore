@@ -11,7 +11,8 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
     shift = useCurrentShift(shopId, doc.success);
   const active = shift.current && 'id' in shift.current ? shift.current : null;
   const sum = doc.draft.lines.reduce(
-      (n, l) => n + BigInt(l.quantity) * BigInt(l.priceMinor),
+      (n, l) =>
+        n + BigInt(l.quantity) * BigInt(l.priceMinor - (l.discountMinor || 0)),
       0n,
     ),
     safe = sum <= BigInt(Number.MAX_SAFE_INTEGER);
@@ -28,13 +29,26 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
       doc.setError('Сумма слишком велика.');
       return;
     }
+    const missingReason = doc.draft.lines.find(
+      (l) => (l.discountMinor || 0) > 0 && !l.discountReason?.trim(),
+    );
+    if (missingReason) {
+      doc.setError(`Укажите причину скидки для "${missingReason.name}".`);
+      return;
+    }
     await doc.send(`/shops/${shopId}/pos/sales`, {
       shiftId: active.id,
       method,
       lines: doc.draft.lines.map((l) => ({
         variantId: l.id,
         quantity: l.quantity,
-        expectedUnitPriceMinor: l.priceMinor,
+        expectedUnitPriceMinor: l.priceMinor - (l.discountMinor || 0),
+        ...(l.discountMinor
+          ? {
+              discountMinor: l.discountMinor,
+              discountReason: l.discountReason?.trim(),
+            }
+          : {}),
       })),
     });
   }

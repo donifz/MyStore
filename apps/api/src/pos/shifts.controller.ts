@@ -17,6 +17,7 @@ import {
   Max,
   MaxLength,
   Min,
+  MinLength,
 } from 'class-validator';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { ShopAccessService } from '../shops/shop-access.service';
@@ -27,6 +28,10 @@ class OpenDto {
 class CloseDto {
   @IsInt() @Min(0) @Max(Number.MAX_SAFE_INTEGER) actualCashMinor!: number;
   @IsOptional() @IsString() @MaxLength(500) comment?: string;
+}
+class CashTransactionDto {
+  @IsInt() @Min(1) @Max(Number.MAX_SAFE_INTEGER) amountMinor!: number;
+  @IsString() @MinLength(1) @MaxLength(250) reason!: string;
 }
 @Controller('shops/:shopId/pos/shifts')
 @UseGuards(AuthGuard)
@@ -83,6 +88,53 @@ export class ShiftsController {
       key,
       dto.actualCashMinor,
       dto.comment,
+    );
+  }
+  @Post(':id/cash-in') async cashIn(
+    @Param('shopId', ParseUUIDPipe) shop: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: UserRequest,
+    @Headers('idempotency-key') key: string,
+    @Body() dto: CashTransactionDto,
+  ) {
+    await this.access.requireMembership(req.userId, shop, 'sell');
+    return this.shifts.cashIn(
+      shop,
+      id,
+      req.userId,
+      key,
+      dto.amountMinor,
+      dto.reason,
+    );
+  }
+  @Post(':id/cash-out') async cashOut(
+    @Param('shopId', ParseUUIDPipe) shop: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: UserRequest,
+    @Headers('idempotency-key') key: string,
+    @Body() dto: CashTransactionDto,
+  ) {
+    await this.access.requireMembership(req.userId, shop, 'sell');
+    return this.shifts.cashOut(
+      shop,
+      id,
+      req.userId,
+      key,
+      dto.amountMinor,
+      dto.reason,
+    );
+  }
+  @Get(':id/transactions') async transactions(
+    @Param('shopId', ParseUUIDPipe) shop: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: UserRequest,
+  ) {
+    const m = await this.access.requireMembership(req.userId, shop, 'read');
+    return this.shifts.listTransactions(
+      shop,
+      id,
+      req.userId,
+      m.role === 'owner' || m.role === 'manager',
     );
   }
 }
