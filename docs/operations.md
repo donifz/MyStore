@@ -16,7 +16,11 @@
 set -euo pipefail
 test -n "${DATABASE_URL:?Set the source database URL}"
 test -n "${RESTORE_DATABASE_URL:?Set a separate, empty restore database URL}"
-test "$DATABASE_URL" != "$RESTORE_DATABASE_URL"
+SOURCE_DATABASE_NAME="$(psql "$DATABASE_URL" -Atc 'SELECT current_database()')"
+RESTORE_DATABASE_NAME="$(psql "$RESTORE_DATABASE_URL" -Atc 'SELECT current_database()')"
+test "$SOURCE_DATABASE_NAME" != "$RESTORE_DATABASE_NAME"
+RESTORE_OBJECTS="$(psql "$RESTORE_DATABASE_URL" -Atc "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname NOT IN ('pg_catalog','information_schema') AND c.relkind IN ('r','p','v','m','S','f')")"
+test "$RESTORE_OBJECTS" = 0
 BACKUP_FILE="${BACKUP_FILE:-mystore-$(date -u +%Y%m%dT%H%M%SZ).dump}"
 pg_dump --format=custom --no-owner --no-acl "$DATABASE_URL" > "$BACKUP_FILE"
 pg_restore --list "$BACKUP_FILE" > /dev/null
@@ -34,6 +38,8 @@ DATABASE_URL="$RESTORE_DATABASE_URL" npm run migration:run --workspace apps/api
 Создайте целевую базу заранее и убедитесь, что она пуста. Сверьте имя базы источника и назначения, затем сравните до/после количество миграций, магазинов, вариантов, движений склада, продаж, заказов, платежей и возвратов. Команда восстановления намеренно не использует `--clean`: она должна завершиться ошибкой, если база назначения не пустая. Сохраните размер и контрольную сумму копии, версии PostgreSQL, длительность выгрузки/восстановления, число ошибок и итог проверки приложения. Не публикуйте URL подключения, секреты или содержимое строк.
 
 Рабочий прогон на изолированной тестовой базе PostgreSQL 18 записан в [отчёте восстановления и локальной нагрузки](verification/2026-10-17-backup-restore-rehearsal.md). Он подтверждает процедуру на небольшой тестовой выборке, но сам по себе не подтверждает PITR, целевые RPO/RTO или производительность production.
+
+Для короткой локальной проверки GET-нагрузки используется `scripts/ops-load-probe.cjs`. По умолчанию он обращается только к `127.0.0.1:3001`, выдаёт не более 50 запросов в секунду в течение 30 секунд, ограничивает пул 200 одновременными запросами и считает p50/p95/p99/max. Удалённый URL отклоняется, пока явно не выставлен `LOAD_ALLOW_REMOTE=1`; этот override не следует использовать для production-проверок без согласованного окна и изолированной среды.
 
 ## Уведомления и outbox
 
