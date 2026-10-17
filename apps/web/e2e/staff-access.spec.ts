@@ -333,6 +333,8 @@ test('existing account signs in on the invitation screen without changing its pa
     id: shop,
     name: 'Email browser shop',
     role: 'manager',
+    canReturn: false,
+    canViewReports: false,
   });
   const loginAgain = await request.post('/api/auth/login', {
     data: { email: 'cashier@example.test', password },
