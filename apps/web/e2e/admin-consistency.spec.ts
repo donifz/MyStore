@@ -125,6 +125,7 @@ test('all seller screens remain inside the viewport on mobile, tablet and deskto
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
+      `platform admin (/seller) at ${width}px`,
     ).toBe(true);
   }
 });
