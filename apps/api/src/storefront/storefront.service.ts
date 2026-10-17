@@ -7,7 +7,17 @@ import {
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { DATABASE } from '../database';
+import {
+  businessDeadline,
+  formatBusinessSchedule,
+  validateBusinessSchedule,
+  validateTimeZone,
+} from '../orders/business-hours';
+const profileColumns =
+  'name,slug,description,city,address,phone,hours,published,district,pickup_enabled AS \"pickupEnabled\",delivery_enabled AS \"deliveryEnabled\",time_zone AS \"timeZone\",business_schedule AS \"businessSchedule\"';
 export type ProfileInput = {
+  timeZone?: string;
+  businessSchedule?: unknown;
   district?: string;
   pickupEnabled?: boolean;
   deliveryEnabled?: boolean;
@@ -42,15 +52,31 @@ export class StorefrontService {
     );
     if (!m) throw new ForbiddenException();
   }
+  private profileDto(row: any) {
+    const from = new Date();
+    const expiresAt = row.businessSchedule
+      ? businessDeadline(from, row.businessSchedule, row.timeZone)
+      : new Date(from.getTime() + 30 * 60_000);
+    return {
+      ...row,
+      reservationPolicy: row.businessSchedule
+        ? 'business-hours'
+        : 'legacy-30-minutes',
+      confirmationPreview: {
+        from: from.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+      },
+    };
+  }
   async profile(shopId: string) {
     const [r] = await this.db.query(
-      'SELECT name,slug,description,city,address,phone,hours,published,district,pickup_enabled AS "pickupEnabled",delivery_enabled AS "deliveryEnabled" FROM shops WHERE id=$1',
+      'SELECT ' + profileColumns + ' FROM shops WHERE id=$1',
       [shopId],
     );
     if (!r) throw new NotFoundException();
-    return r;
+    return this.profileDto(r);
   }
-  async updateProfile(shopId: string, input: ProfileInput) {
+  async updateProfile(shopId: string, input: ProfileInput, actor: string) {
     if (
       input.published &&
       (!input.city.trim() ||
@@ -58,28 +84,74 @@ export class StorefrontService {
         !/^\d{7,15}$/.test(input.phone.replace(/\D/g, '')))
     )
       throw new BadRequestException('City and phone required for publication');
-    const current = await this.profile(shopId);
-    if (
-      !(input.pickupEnabled ?? current.pickupEnabled) &&
-      !(input.deliveryEnabled ?? current.deliveryEnabled)
-    )
-      throw new BadRequestException('Enable at least one fulfillment method');
-    await this.db.query(
-      'UPDATE shops SET description=$2,city=$3,address=$4,phone=$5,hours=$6,published=$7,district=COALESCE($8,district),pickup_enabled=COALESCE($9,pickup_enabled),delivery_enabled=COALESCE($10,delivery_enabled) WHERE id=$1',
-      [
-        shopId,
-        input.description.trim(),
-        input.city.trim(),
-        input.address.trim(),
-        input.phone.trim(),
-        input.hours.trim(),
-        input.published,
-        input.district?.trim() ?? null,
-        input.pickupEnabled ?? null,
-        input.deliveryEnabled ?? null,
-      ],
-    );
-    return this.profile(shopId);
+    return this.db.transaction(async (tx) => {
+      const [current] = await tx.query(
+        'SELECT * FROM shops WHERE id=$1 FOR UPDATE',
+        [shopId],
+      );
+      if (!current) throw new NotFoundException();
+      if (
+        !(input.pickupEnabled ?? current.pickup_enabled) &&
+        !(input.deliveryEnabled ?? current.delivery_enabled)
+      )
+        throw new BadRequestException('Enable at least one fulfillment method');
+      const timeZone =
+        input.timeZone === undefined ? current.time_zone : input.timeZone;
+      let schedule;
+      try {
+        validateTimeZone(timeZone);
+        const value =
+          input.businessSchedule === undefined
+            ? current.business_schedule
+            : input.businessSchedule;
+        schedule =
+          value === null ? null : validateBusinessSchedule(value, timeZone);
+      } catch (error) {
+        throw new BadRequestException((error as Error).message);
+      }
+      const hours = schedule
+        ? formatBusinessSchedule(schedule)
+        : input.hours.trim();
+      const [[row]] = await tx.query(
+        'UPDATE shops SET description=$2,city=$3,address=$4,phone=$5,hours=$6,published=$7,district=COALESCE($8,district),pickup_enabled=COALESCE($9,pickup_enabled),delivery_enabled=COALESCE($10,delivery_enabled),time_zone=$11,business_schedule=$12 WHERE id=$1 RETURNING ' +
+          profileColumns,
+        [
+          shopId,
+          input.description.trim(),
+          input.city.trim(),
+          input.address.trim(),
+          input.phone.trim(),
+          hours,
+          input.published,
+          input.district?.trim() ?? null,
+          input.pickupEnabled ?? null,
+          input.deliveryEnabled ?? null,
+          timeZone,
+          schedule === null ? null : JSON.stringify(schedule),
+        ],
+      );
+      if (
+        current.time_zone !== timeZone ||
+        JSON.stringify(current.business_schedule) !== JSON.stringify(schedule)
+      ) {
+        await tx.query(
+          `INSERT INTO audit_log(shop_id,actor_id,action,entity_type,entity_id,details)
+          VALUES($1,$2,'updated','shop_schedule',$1,$3)`,
+          [
+            shopId,
+            actor,
+            JSON.stringify({
+              before: {
+                timeZone: current.time_zone,
+                businessSchedule: current.business_schedule,
+              },
+              after: { timeZone, businessSchedule: schedule },
+            }),
+          ],
+        );
+      }
+      return this.profileDto(row);
+    });
   }
   async filters() {
     const locations = await this.db.query(

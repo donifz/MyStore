@@ -245,7 +245,11 @@ test('two windows post one ordinary draft exactly once before storage events arr
   expect(requests).toHaveLength(2);
   expect(requests[0]).toEqual(requests[1]);
   await page.goto(root + '/products');
-  await expect(page.getByText('4 шт.', { exact: true })).toBeVisible();
+  await expect(
+    page
+      .getByRole('row', { name: /Рюкзак Concurrent/ })
+      .getByText('4 шт.', { exact: true }),
+  ).toBeVisible();
   await page.goto(root + '/sales');
   await expect(page.getByRole('link', { name: 'Открыть продажу' })).toHaveCount(
     salesBefore + 1,

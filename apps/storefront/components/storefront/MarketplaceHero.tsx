@@ -53,18 +53,33 @@ export default function MarketplaceHero({
             <strong>MyStore</strong>
             <small>Хорошие находки рядом</small>
           </div>
-          {photos.map((p, i) => (
-            <div className={'sf-art-product sf-art-product--' + i} key={p.id}>
-              <img src={p.photoUrl} alt="" />
+          {!photos.length ? (
+            <div className="sf-art-showcase">
+              <div className="sf-art-chip sf-art-chip--1">
+                <span className="sf-art-chip-icon">
+                  <Icon name="shop" width={16} height={16} />
+                </span>
+                <span>Магазины города</span>
+              </div>
+              <div className="sf-art-chip sf-art-chip--2">
+                <span className="sf-art-chip-icon">
+                  <Icon name="shield" width={16} height={16} />
+                </span>
+                <span>Честные остатки</span>
+              </div>
+              <div className="sf-art-chip sf-art-chip--3">
+                <span className="sf-art-chip-icon">
+                  <Icon name="box" width={16} height={16} />
+                </span>
+                <span>Быстрый самовывоз</span>
+              </div>
             </div>
-          ))}
-          {!photos.length && (
-            <Icon
-              name="shop"
-              className="sf-art-shop"
-              width={150}
-              height={150}
-            />
+          ) : (
+            photos.map((p, i) => (
+              <div className={'sf-art-product sf-art-product--' + i} key={p.id}>
+                <img src={p.photoUrl} alt="" />
+              </div>
+            ))
           )}
           <span className="sf-art-note">
             <Icon name="pin" /> Ваши местные магазины

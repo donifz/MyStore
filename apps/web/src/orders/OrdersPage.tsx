@@ -6,6 +6,7 @@ import { formatSom, formatDate } from '../api/money';
 import { useSession } from '../auth/SessionProvider';
 import { useCurrentShift } from '../pos/use-current-shift';
 import { useDocument } from '../drafts/use-document';
+import OrderDeadline from './OrderDeadline';
 type Order = {
   id: string;
   status: string;
@@ -16,6 +17,8 @@ type Order = {
   comment: string;
   totalMinor: number;
   createdAt: string;
+  expiresAt: string | null;
+  timeZone: string;
   saleId: string | null;
   lines?: {
     variantId: string;
@@ -108,6 +111,10 @@ function OrderDetail({
           {order.address && <p>{order.address}</p>}
           {order.comment && <p>{order.comment}</p>}
           <p>{formatDate(order.createdAt)}</p>
+          <OrderDeadline
+            expiresAt={order.expiresAt}
+            timeZone={order.timeZone}
+          />
           <div className="table-wrap">
             <table>
               <thead>
@@ -309,7 +316,13 @@ export default function OrdersPage() {
                       {o.name}
                       <small>+{o.phone}</small>
                     </td>
-                    <td>{labels[o.status]}</td>
+                    <td>
+                      {labels[o.status]}
+                      <OrderDeadline
+                        expiresAt={o.expiresAt}
+                        timeZone={o.timeZone}
+                      />
+                    </td>
                     <td>{formatSom(o.totalMinor)}</td>
                     <td>
                       <Link

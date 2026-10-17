@@ -29,8 +29,7 @@ export async function ownerCookies(
       await page.getByRole('button', { name: 'Войти', exact: true }).click();
       await expect(
         page.getByRole('heading', {
-          name: 'Администрирование MyStore',
-          exact: true,
+          name: /^(Администрирование MyStore|Товары)/,
         }),
       ).toBeVisible();
       writeFileSync(

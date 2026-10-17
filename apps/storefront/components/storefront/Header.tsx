@@ -63,14 +63,19 @@ export default async function Header() {
             <Icon name="menu" />
             Все категории
           </Link>
-          {filters.categories.slice(0, 8).map((c) => (
-            <Link
-              key={c}
-              href={'/?category=' + encodeURIComponent(c) + '#catalog'}
-            >
-              {c}
-            </Link>
-          ))}
+          {(filters.categories.length
+            ? filters.categories
+            : ['Кофе и чай', 'Выпечка', 'Цветы', 'Продукты', 'Дом', 'Подарки']
+          )
+            .slice(0, 8)
+            .map((c) => (
+              <Link
+                key={c}
+                href={'/?category=' + encodeURIComponent(c) + '#catalog'}
+              >
+                {c}
+              </Link>
+            ))}
           <Link className="sf-shops-nav" href="/shops">
             <Icon name="shop" />
             Магазины

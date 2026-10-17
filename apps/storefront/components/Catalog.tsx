@@ -61,38 +61,61 @@ export default async function Catalog({
         <MarketplaceHero products={products.items} />
       ) : (
         <section className="sf-store-hero">
-          <div className="sf-store-identity">
-            <span className="sf-store-monogram">{store.name.slice(0, 1)}</span>
-            <div>
-              <p className="sf-eyebrow">
-                {store.city}
-                {store.district ? ' · ' + store.district : ''}
-              </p>
-              <h1>{store.name}</h1>
-              <p>{store.description || 'Товары вашего местного магазина'}</p>
+          <div className="sf-store-hero-main">
+            <div className="sf-store-identity">
+              <span className="sf-store-monogram">
+                {store.name.slice(0, 1)}
+              </span>
+              <div>
+                <p className="sf-eyebrow">
+                  {store.city}
+                  {store.district ? ' · ' + store.district : ''}
+                </p>
+                <h1>{store.name}</h1>
+                <p>{store.description || 'Товары вашего местного магазина'}</p>
+              </div>
+            </div>
+            <div className="sf-store-hero-actions">
+              {phone && (
+                <a
+                  className="sf-button sf-button--primary"
+                  href={'tel:' + phone}
+                >
+                  <Icon name="phone" width={18} height={18} />
+                  Связаться с магазином
+                </a>
+              )}
+              <div className="sf-store-badges">
+                {store.pickupEnabled !== false && (
+                  <span className="sf-store-badge">
+                    <Icon name="shop" width={14} height={14} />
+                    Самовывоз
+                  </span>
+                )}
+                {store.deliveryEnabled && (
+                  <span className="sf-store-badge">
+                    <Icon name="truck" width={14} height={14} />
+                    Доставка
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-          <div className="sf-store-hero-actions">
-            {phone && (
-              <a className="sf-button sf-button--primary" href={'tel:' + phone}>
-                <Icon name="phone" width={18} height={18} />
-                Связаться с магазином
-              </a>
+          <div className="sf-store-info">
+            <span>
+              <Icon name="pin" width={16} height={16} />
+              {store.address || 'Адрес уточните у продавца'}
+            </span>
+            <span>
+              <Icon name="clock" width={16} height={16} />
+              {store.hours || 'Часы работы уточните у продавца'}
+            </span>
+            {store.phone && (
+              <span>
+                <Icon name="phone" width={16} height={16} />
+                {store.phone}
+              </span>
             )}
-            <div className="sf-store-badges">
-              {store.pickupEnabled !== false && (
-                <span className="sf-badge sf-badge--neutral">
-                  <Icon name="shop" width={14} height={14} />
-                  Самовывоз
-                </span>
-              )}
-              {store.deliveryEnabled && (
-                <span className="sf-badge sf-badge--neutral">
-                  <Icon name="truck" width={14} height={14} />
-                  Доставка
-                </span>
-              )}
-            </div>
           </div>
         </section>
       )}
@@ -120,32 +143,41 @@ export default async function Catalog({
           </div>
         </section>
       )}
-      {store && (
-        <div className="sf-store-info">
-          <span>
-            <Icon name="pin" width={16} height={16} />
-            {store.address || 'Адрес уточните у продавца'}
-          </span>
-          <span>
-            <Icon name="clock" width={16} height={16} />
-            {store.hours || 'Часы работы уточните у продавца'}
-          </span>
-          {store.phone && (
-            <span>
-              <Icon name="phone" width={16} height={16} />
-              {store.phone}
-            </span>
-          )}
-        </div>
-      )}
       <section id="catalog" className="sf-stack">
         <div className="sf-section-heading">
           <div>
             <p className="sf-eyebrow">Выбирайте своё</p>
             <h2>{store ? 'Товары магазина' : 'Все товары'}</h2>
           </div>
-          <span className="sf-muted">{products.total} товаров</span>
+          <span className="sf-count-pill">{products.total} товаров</span>
         </div>
+        {products.categories.length > 0 && (
+          <div
+            className="sf-quick-categories"
+            role="navigation"
+            aria-label="Быстрый выбор категории"
+          >
+            <Link
+              href={slug ? `/shops/${slug}#catalog` : '/#catalog'}
+              className={`sf-quick-chip ${!filter.category ? 'sf-quick-chip--active' : ''}`}
+            >
+              Все товары
+            </Link>
+            {products.categories.map((c) => (
+              <Link
+                key={c}
+                href={
+                  slug
+                    ? `/shops/${slug}?category=${encodeURIComponent(c)}#catalog`
+                    : `/?category=${encodeURIComponent(c)}#catalog`
+                }
+                className={`sf-quick-chip ${filter.category === c ? 'sf-quick-chip--active' : ''}`}
+              >
+                {c}
+              </Link>
+            ))}
+          </div>
+        )}
         <div className="sf-catalog-layout">
           <aside className="sf-catalog-sidebar">
             <details open>
@@ -169,6 +201,13 @@ export default async function Catalog({
               </div>
             ) : (
               <EmptyState
+                icon={
+                  filter.page > 1
+                    ? 'arrow'
+                    : filter.q || filter.category || filter.inStock
+                      ? 'search'
+                      : 'shop'
+                }
                 title={
                   filter.page > 1
                     ? 'На этой странице товаров нет'
@@ -182,6 +221,32 @@ export default async function Catalog({
                     : filter.q || filter.category || filter.inStock
                       ? 'Попробуйте другой запрос или измените фильтры.'
                       : 'Магазины смогут добавить товары после настройки витрин.'
+                }
+                action={
+                  filter.page > 1 ? (
+                    <LinkButton
+                      variant="primary"
+                      href={slug ? '/shops/' + slug : '/'}
+                    >
+                      На первую страницу
+                    </LinkButton>
+                  ) : filter.q || filter.category || filter.inStock ? (
+                    <LinkButton
+                      variant="primary"
+                      href={slug ? '/shops/' + slug : '/'}
+                    >
+                      Сбросить фильтры
+                    </LinkButton>
+                  ) : (
+                    <div className="sf-empty-button-group">
+                      <LinkButton variant="primary" href="/shops">
+                        Смотреть магазины
+                      </LinkButton>
+                      <LinkButton variant="secondary" href="/partner">
+                        Стать продавцом
+                      </LinkButton>
+                    </div>
+                  )
                 }
               />
             )}

@@ -3048,3 +3048,111 @@ fieldset {
     white-space: normal;
   }
 }
+
+/* Store working hours: scoped to the seller editor. */
+.business-hours-card {
+  margin-block: 28px;
+  padding-block: 24px;
+  border-block: 1px solid var(--admin-border, #dce5e0);
+}
+.business-hours-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.business-hours-heading h2 {
+  margin: 4px 0 8px;
+}
+.business-hours-heading p {
+  margin: 0;
+}
+.business-hours-heading .badge {
+  white-space: nowrap;
+}
+.business-hours-tools {
+  margin-block: 20px;
+}
+.business-hours-week {
+  display: grid;
+  gap: 10px;
+}
+.business-hours-day {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--admin-border, #dce5e0);
+  border-radius: 12px;
+  background: var(--admin-canvas, #f5f8f6);
+}
+.business-hours-day-name strong {
+  display: block;
+  margin-bottom: 10px;
+}
+.business-hours-day .checkbox-label {
+  font-size: 13px;
+  margin: 0;
+}
+.business-hours-intervals {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  align-content: center;
+}
+.business-hours-interval {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+.business-hours-interval label {
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+.business-hours-interval input {
+  min-width: 0;
+  width: 100%;
+  margin: 0;
+}
+.business-hours-day-note {
+  grid-column: 1 / -1;
+}
+.business-hours-add {
+  justify-self: start;
+}
+.business-hours-preview {
+  padding: 16px;
+  background: var(--admin-canvas, #f5f8f6);
+  border-radius: 12px;
+}
+.business-hours-preview small,
+.order-deadline {
+  display: block;
+  margin-top: 6px;
+}
+@media (max-width: 600px) {
+  .business-hours-day {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 12px;
+    gap: 12px;
+  }
+  .business-hours-day-name {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .business-hours-day-name strong {
+    margin: 0;
+  }
+  .business-hours-interval {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .business-hours-remove {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
