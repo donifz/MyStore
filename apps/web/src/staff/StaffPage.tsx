@@ -56,7 +56,11 @@ export default function StaffPage() {
     setCreating(true);
     setCreated(null);
     try {
-      const result = await api<{ email: string; temporaryPassword: string | null; existingAccount: boolean }>(base + '/direct', {
+      const result = await api<{
+        email: string;
+        temporaryPassword: string | null;
+        existingAccount: boolean;
+      }>(base + '/direct', {
         method: 'POST',
         key: crypto.randomUUID(),
         body: { email, role },
@@ -117,11 +121,20 @@ export default function StaffPage() {
           <h2>Сотрудник добавлен</h2>
           <p>{created.email}</p>
           {created.temporaryPassword ? (
-            <p>Одноразово покажите сотруднику начальный пароль: <strong>{created.temporaryPassword}</strong>. Передайте его лично и попросите сменить пароль. Не отправляйте пароль в открытые чаты.</p>
+            <p>
+              Одноразово покажите сотруднику начальный пароль:{' '}
+              <strong>{created.temporaryPassword}</strong>. Передайте его лично и
+              попросите сменить пароль. Не отправляйте пароль в открытые чаты.
+            </p>
           ) : (
-            <p>У сотрудника уже есть аккаунт MyStore. Он входит со своим существующим паролем.</p>
+            <p>
+              У сотрудника уже есть аккаунт MyStore. Он входит со своим
+              существующим паролем.
+            </p>
           )}
-          <button type="button" onClick={() => setCreated(null)}>Скрыть пароль</button>
+          <button type="button" onClick={() => setCreated(null)}>
+            Скрыть пароль
+          </button>
         </div>
       )}
       <form className="panel" onSubmit={invite}>
@@ -151,7 +164,8 @@ export default function StaffPage() {
           <p className="muted">
             Менеджер ведёт товары, склад и заказы. Кассир работает с продажами и
             своими сменами. Разрешения на возвраты и финансовые отчёты выдаются
-            отдельно в таблице сотрудников. Новый сотрудник получит начальный пароль на этом экране.
+            отдельно в таблице сотрудников. Новый сотрудник получит начальный
+            пароль на этом экране.
           </p>
           <button className="primary" disabled={disabled}>
             {creating ? 'Создание…' : 'Создать сотрудника'}
