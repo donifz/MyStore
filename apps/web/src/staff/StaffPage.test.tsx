@@ -13,7 +13,7 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
-it('invites only manager/cashier and retains the operation key after a lost response', async () => {
+it('creates only manager/cashier directly and retains the operation key after a lost response', async () => {
   const requests: any[] = [];
   let attempt = 0;
   vi.stubGlobal('fetch', async (url: string, options?: RequestInit) => {
@@ -26,11 +26,18 @@ it('invites only manager/cashier and retains the operation key after a lost resp
           csrfToken: 'csrf',
         }),
       );
-    if (url.endsWith('/invitations')) {
+    if (url.endsWith('/direct')) {
       requests.push(options);
       attempt++;
       if (attempt === 1) throw new TypeError('offline');
-      return new Response(JSON.stringify({ id: 'invite' }), { status: 201 });
+      return new Response(
+        JSON.stringify({
+          email: 'new@example.test',
+          temporaryPassword: 'initial-password',
+          existingAccount: false,
+        }),
+        { status: 201 },
+      );
     }
     if (url.endsWith('/email/status'))
       return new Response(
@@ -47,17 +54,19 @@ it('invites only manager/cashier and retains the operation key after a lost resp
       </SessionProvider>
     </MemoryRouter>,
   );
-  await screen.findByLabelText('Email сотрудника');
+  await screen.findByLabelText('Email нового сотрудника');
   expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual([
     'Менеджер',
     'Кассир',
   ]);
-  fireEvent.change(screen.getByLabelText('Email сотрудника'), {
+  fireEvent.change(screen.getByLabelText('Email нового сотрудника'), {
     target: { value: 'new@example.test' },
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Пригласить' }));
-  await screen.findByRole('button', { name: 'Повторить операцию' });
-  fireEvent.click(screen.getByRole('button', { name: 'Повторить операцию' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Создать сотрудника' }));
+  await screen.findByRole('button', { name: 'Повторить создание сотрудника' });
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Повторить создание сотрудника' }),
+  );
   await waitFor(() => expect(requests).toHaveLength(2));
   expect((requests[0].headers as any)['idempotency-key']).toBe(
     (requests[1].headers as any)['idempotency-key'],

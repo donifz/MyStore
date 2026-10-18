@@ -6,7 +6,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { DataSource, EntityManager } from 'typeorm';
 import { DATABASE } from '../database';
 import { EmailQueueService } from '../email/email-queue.service';
@@ -53,14 +53,23 @@ export class StaffService {
     key: string,
   ) {
     email = email.trim().toLowerCase();
-    if (
-      !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) ||
-      email.length > 254
-    )
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254)
       throw new BadRequestException('Invalid email');
     return this.db.transaction(async (tx) => {
       await this.owner(tx, shop, actor);
-      return accessOperation(
+      const initialPassword = createHmac('sha256', process.env.SESSION_SECRET!)
+        .update(
+          JSON.stringify([
+            'direct-staff-password',
+            shop.toLowerCase(),
+            actor,
+            email,
+            key?.toLowerCase(),
+          ]),
+        )
+        .digest('base64url')
+        .slice(0, 32);
+      const result = await accessOperation(
         tx,
         'staff:' + shop.toLowerCase(),
         key,
@@ -74,9 +83,7 @@ export class StaffService {
             'SELECT id FROM users WHERE email=$1 FOR UPDATE',
             [email],
           );
-          const password = existing
-            ? null
-            : randomBytes(24).toString('base64url');
+          const password = existing ? null : initialPassword;
           const userId = existing?.id ?? randomUUID();
           if (!existing)
             await tx.query(
@@ -105,11 +112,14 @@ export class StaffService {
             id: userId,
             email,
             role,
-            temporaryPassword: password,
             existingAccount: !!existing,
           };
         },
       );
+      return {
+        ...result,
+        temporaryPassword: result.existingAccount ? null : initialPassword,
+      };
     });
   }
   async invite(

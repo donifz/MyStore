@@ -1,7 +1,8 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
 import { useSession } from '../auth/SessionProvider';
+import DirectStaffForm from './DirectStaffForm';
 import { useAccessOperation } from '../auth/use-access-operation';
 type Member = {
   id: string;
@@ -24,16 +25,13 @@ export default function StaffPage() {
       members: Member[];
       invitations: Invitation[];
     } | null>(null),
-    [email, setEmail] = useState(''),
-    [role, setRole] = useState('manager'),
     [error, setError] = useState(''),
-    [created, setCreated] = useState<{ email: string; temporaryPassword: string | null; existingAccount: boolean } | null>(null),
-    [creating, setCreating] = useState(false),
+    [directLocked, setDirectLocked] = useState(false),
     [refreshing, setRefreshing] = useState(false),
     [stale, setStale] = useState(true);
   const op = useAccessOperation();
   const base = '/shops/' + shopId + '/staff';
-  const disabled = op.busy || op.pending || creating || refreshing || stale;
+  const disabled = op.busy || op.pending || directLocked || refreshing || stale;
   async function load() {
     setRefreshing(true);
     setStale(true);
@@ -51,29 +49,6 @@ export default function StaffPage() {
   useEffect(() => {
     if (shop?.role === 'owner') void load();
   }, [shopId, shop?.role]);
-  async function invite(e: FormEvent) {
-    e.preventDefault();
-    setCreating(true);
-    setCreated(null);
-    try {
-      const result = await api<{
-        email: string;
-        temporaryPassword: string | null;
-        existingAccount: boolean;
-      }>(base + '/direct', {
-        method: 'POST',
-        key: crypto.randomUUID(),
-        body: { email, role },
-      });
-      setCreated(result);
-      setEmail('');
-      await load();
-    } catch (err) {
-      setError(errorText(err));
-    } finally {
-      setCreating(false);
-    }
-  }
   async function mutate(path: string, body: unknown) {
     if (await op.run(base + path, body)) await load();
   }
@@ -116,62 +91,13 @@ export default function StaffPage() {
           Повторить операцию
         </button>
       )}
-      {created && (
-        <div className="panel" role="status">
-          <h2>Сотрудник добавлен</h2>
-          <p>{created.email}</p>
-          {created.temporaryPassword ? (
-            <p>
-              Одноразово покажите сотруднику начальный пароль:{' '}
-              <strong>{created.temporaryPassword}</strong>. Передайте его лично и
-              попросите сменить пароль. Не отправляйте пароль в открытые чаты.
-            </p>
-          ) : (
-            <p>
-              У сотрудника уже есть аккаунт MyStore. Он входит со своим
-              существующим паролем.
-            </p>
-          )}
-          <button type="button" onClick={() => setCreated(null)}>
-            Скрыть пароль
-          </button>
-        </div>
-      )}
-      <form className="panel" onSubmit={invite}>
-        <h2>Добавить сотрудника без почты</h2>
-        <fieldset disabled={disabled}>
-          <label>
-            Email сотрудника
-            <input
-              type="email"
-              maxLength={254}
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </label>
-          <label>
-            Роль
-            <select
-              aria-label="Роль"
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-            >
-              <option value="manager">Менеджер</option>
-              <option value="cashier">Кассир</option>
-            </select>
-          </label>
-          <p className="muted">
-            Менеджер ведёт товары, склад и заказы. Кассир работает с продажами и
-            своими сменами. Разрешения на возвраты и финансовые отчёты выдаются
-            отдельно в таблице сотрудников. Новый сотрудник получит начальный
-            пароль на этом экране.
-          </p>
-          <button className="primary" disabled={disabled}>
-            {creating ? 'Создание…' : 'Создать сотрудника'}
-          </button>
-        </fieldset>
-      </form>
+      <DirectStaffForm
+        key={shopId}
+        base={base}
+        disabled={disabled}
+        onCreated={load}
+        onLock={setDirectLocked}
+      />
       {!data && !error && <p className="loading">Загрузка сотрудников…</p>}
       {data && (
         <>

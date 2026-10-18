@@ -39,6 +39,70 @@ describe('staff access', () => {
       token: new URL(text.match(/http\S+/)![0]).searchParams.get('token')!,
     };
   }
+  it('creates a cashier without SMTP, replays the initial password, and stores no plaintext password in operation results', async () => {
+    const key = randomUUID(),
+      body = { email: 'Sales@example.test', role: 'cashier' };
+    const first = await post(base + '/direct', body, c.owner, key).expect(201);
+    expect(first.body.email).toBe('sales@example.test');
+    expect(first.body.role).toBe('cashier');
+    expect(first.body.temporaryPassword).toHaveLength(32);
+    const again = await post(base + '/direct', body, c.owner, key).expect(201);
+    expect(again.body).toEqual(first.body);
+    expect(
+      (
+        await c.db.query(
+          'SELECT count(*)::int n FROM memberships WHERE user_id=$1',
+          [first.body.id],
+        )
+      )[0].n,
+    ).toBe(1);
+    expect(
+      (await c.db.query('SELECT count(*)::int n FROM email_deliveries'))[0].n,
+    ).toBe(0);
+    expect(
+      JSON.stringify(await c.db.query('SELECT result FROM access_operations')),
+    ).not.toContain(first.body.temporaryPassword);
+    const login = await request(c.app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: 'sales@example.test',
+        password: first.body.temporaryPassword,
+      })
+      .expect(201);
+    await request(c.app.getHttpServer())
+      .get(base)
+      .auth(login.body.token, { type: 'bearer' })
+      .expect(403);
+    await post(
+      base + '/direct',
+      { email: 'other@example.test', role: 'manager' },
+      c.cashier,
+    ).expect(403);
+    await post(base + '/direct', {
+      email: 'bad@example.test',
+      role: 'owner',
+    }).expect(400);
+    await post(base + '/direct', body).expect(409);
+  });
+  it('adds an existing account without resetting its password', async () => {
+    const { hashPassword } = await import('../src/auth/password');
+    const id = randomUUID(),
+      hash = await hashPassword('existing-test-password');
+    await c.db.query(
+      'INSERT INTO users(id,email,password_hash) VALUES($1,$2,$3)',
+      [id, 'existing@example.test', hash],
+    );
+    const added = await post(base + '/direct', {
+      email: 'existing@example.test',
+      role: 'manager',
+    }).expect(201);
+    expect(added.body.temporaryPassword).toBeNull();
+    expect(added.body.existingAccount).toBe(true);
+    expect(
+      (await c.db.query('SELECT password_hash FROM users WHERE id=$1', [id]))[0]
+        .password_hash,
+    ).toBe(hash);
+  });
   it('owner invites new cashier once, accepts once, audits and disables access', async () => {
     const key = randomUUID();
     await post(

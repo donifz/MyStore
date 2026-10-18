@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { api, ApiError, errorText } from '../api/client';
-export function useAccessOperation() {
+export function useAccessOperation<T = unknown>() {
+  const [result, setResult] = useState<T | null>(null);
   const current = useRef<{ path: string; body: unknown; key: string } | null>(
     null,
   );
@@ -18,7 +19,12 @@ export function useAccessOperation() {
     const op = current.current || { path, body, key: crypto.randomUUID() };
     current.current = op;
     try {
-      await api(op.path, { method: 'POST', body: op.body, key: op.key });
+      const data = await api<T>(op.path, {
+        method: 'POST',
+        body: op.body,
+        key: op.key,
+      });
+      setResult(data);
       current.current = null;
       setPending(false);
       setSuccess(true);
@@ -45,5 +51,5 @@ export function useAccessOperation() {
       ? run(current.current.path, current.current.body)
       : false;
   }
-  return { run, retry, busy, pending, error, success };
+  return { run, retry, busy, pending, error, success, result };
 }

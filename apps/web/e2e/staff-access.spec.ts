@@ -100,7 +100,7 @@ test.afterAll(async () => {
 });
 for (const width of [390, 1440]) {
   test(
-    'owner invites, employee accepts, recovers and loses access at ' +
+    'owner creates employee without email, employee recovers and loses access at ' +
       width +
       'px',
     async ({ page, browser }) => {
@@ -112,33 +112,30 @@ for (const width of [390, 1440]) {
         page.getByRole('heading', { name: 'Сотрудники', exact: true }),
       ).toBeVisible();
       const email = `employee-${randomUUID()}@example.test`;
-      await page.getByLabel('Email сотрудника').fill(email);
-      await page.getByLabel('Роль', { exact: true }).selectOption('cashier');
+      await page.getByLabel('Email нового сотрудника').fill(email);
       await page
-        .getByRole('button', { name: 'Пригласить', exact: true })
+        .getByLabel('Роль нового сотрудника', { exact: true })
+        .selectOption('cashier');
+      await page
+        .getByRole('button', { name: 'Создать сотрудника', exact: true })
         .click();
-      await expect(page.getByText('Изменения сохранены.')).toBeVisible();
-      await expect
-        .poll(() => mailLink(email, '/seller/staff/accept'), { timeout: 15000 })
-        .not.toBe('');
+      await expect(
+        page.getByRole('heading', { name: 'Сотрудник добавлен' }),
+      ).toBeVisible();
+      const initialPassword = (await page
+        .getByRole('status')
+        .filter({
+          has: page.getByRole('heading', { name: 'Сотрудник добавлен' }),
+        })
+        .locator('strong')
+        .textContent())!;
+      expect(smtp.messages.filter((m) => m.to === email)).toHaveLength(0);
       const employee = await browser.newContext({
         baseURL: origin,
         viewport: { width, height: 844 },
       });
       const p = await employee.newPage();
-      const link = mailLink(email, '/seller/staff/accept');
-      const response = await p.goto(link);
-      expect(response?.headers()['referrer-policy']).toBe('no-referrer');
-      expect(response?.headers()['cache-control']).toContain('no-store');
-      await expect(p).toHaveURL(origin + '/seller/staff/accept');
-      await p.getByLabel('Пароль нового аккаунта').fill(password);
-      await p
-        .getByRole('button', { name: 'Принять приглашение', exact: true })
-        .click();
-      await expect(
-        p.getByText('Приглашение принято. Доступ к магазину выдан.'),
-      ).toBeVisible();
-      await login(p, email);
+      await login(p, email, initialPassword);
       // Existing login must be rejected after recovery; emails are received through real compiled worker + SMTP fixture.
       await p.goto('/seller/forgot-password');
       await p.getByLabel('Email', { exact: true }).fill(email);
@@ -190,7 +187,7 @@ for (const width of [390, 1440]) {
       ).not.toBeChecked();
       await page.getByRole('button', { name: 'Обновить отправки' }).click();
       await expect(
-        page.getByText('Принято SMTP', { exact: true }).first(),
+        page.getByText('Отправок пока нет.', { exact: true }),
       ).toBeVisible();
       expect(
         await page.evaluate(
