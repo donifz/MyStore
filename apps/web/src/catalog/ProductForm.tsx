@@ -208,6 +208,7 @@ export default function ProductForm({
                 Фото товара (камера или файл)
                 <input
                   type="file"
+                  aria-label="Фото товара"
                   accept="image/jpeg,image/png,image/webp"
                   multiple
                   capture="environment"
