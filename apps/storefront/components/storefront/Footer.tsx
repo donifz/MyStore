@@ -9,7 +9,9 @@ export default function Footer() {
           </Link>
           <p className="sf-muted">Ваши магазины. Актуальное наличие.</p>
         </div>
-        <nav className="sf-footer__nav" aria-label="Для продавцов">
+        <nav className="sf-footer__nav" aria-label="Информация и вход">
+          <Link href="/terms">Правила сервиса</Link>
+          <Link href="/privacy">Обработка данных</Link>
           <Link href="/partner">
             Стать партнёром <span aria-hidden="true">↗</span>
           </Link>

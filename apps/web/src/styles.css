@@ -436,6 +436,44 @@ td:first-child {
   #root .barcode-preview .no-print {
     display: none !important;
   }
+  #root:has(.sale-receipt-print),
+  #root *:has(.sale-receipt-print) {
+    display: contents !important;
+  }
+  #root .sale-receipt-print,
+  #root .sale-receipt-print * {
+    display: revert !important;
+  }
+  #root .sale-receipt-print {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 80mm !important;
+    margin: 0 auto !important;
+    padding: 8px 4px !important;
+    background: #fff !important;
+    color: #000 !important;
+    font-family:
+      -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+      sans-serif !important;
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+  }
+  #root .sale-receipt-print .receipt-divider {
+    border-top: 1px dashed #000 !important;
+    margin: 6px 0 !important;
+  }
+}
+.sale-receipt-print {
+  display: none;
+}
+.sale-receipt-preview {
+  background: #ffffff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 18px;
+  max-width: 360px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 .error {
   background: #fef2f2;
