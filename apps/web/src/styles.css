@@ -3241,7 +3241,6 @@ fieldset {
   }
 }
 
-
 /* Cashier workspace: fast product selection and a persistent checkout column. */
 .cashier-heading {
   align-items: center;
@@ -3262,7 +3261,8 @@ fieldset {
   gap: 14px;
   flex-wrap: wrap;
 }
-.cashier-catalog-heading h2, .cashier-cart-title h2 {
+.cashier-catalog-heading h2,
+.cashier-cart-title h2 {
   margin: 0 0 8px;
 }
 .cashier-product-search {
@@ -3347,7 +3347,8 @@ fieldset {
   display: grid;
   gap: 14px;
 }
-.cashier-summary-row, .cashier-summary-total {
+.cashier-summary-row,
+.cashier-summary-total {
   display: flex;
   justify-content: space-between;
   align-items: baseline;

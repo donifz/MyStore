@@ -127,11 +127,13 @@ it('restores the card method of a frozen sale after reload', async () => {
     ],
   );
   start('/pos');
-  const field = (await screen.findByLabelText(
-    'Способ оплаты',
-  )) as HTMLSelectElement;
-  expect(field.value).toBe('card');
-  expect(field.disabled).toBe(true);
+  const field = (await screen.findByRole('radio', {
+    name: 'Банковская карта',
+  })) as HTMLInputElement;
+  expect(field.checked).toBe(true);
+  expect((field.closest('fieldset') as HTMLFieldSetElement).disabled).toBe(
+    true,
+  );
 });
 it('shows the source sale and exact financial controls of a recovered return even on another sale URL', async () => {
   pending('return', {

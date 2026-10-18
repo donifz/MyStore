@@ -3,7 +3,7 @@ import { api } from '../api/client';
 import type { Page, Variant } from '../api/types';
 import { Link, useParams } from 'react-router-dom';
 import { useSession } from '../auth/SessionProvider';
-import { formatSom } from '../api/money';
+import { formatSom, parseSom } from '../api/money';
 import { useDocument } from '../drafts/use-document';
 import DocumentEditor from '../drafts/DocumentEditor';
 import { useCurrentShift } from './use-current-shift';
@@ -35,7 +35,7 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
       alive = false;
       window.clearTimeout(timer);
     };
-  }, [shopId, query]);
+  }, [shopId, query, doc.success]);
   const active = shift.current && 'id' in shift.current ? shift.current : null;
   const sum = doc.draft.lines.reduce(
       (n, l) =>
@@ -79,11 +79,20 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
       })),
     });
   }
-  const receivedMinor = /^\d+(?:[.,]\d{0,2})?$/.test(received.trim())
-    ? Math.round(Number(received.replace(',', '.')) * 100)
-    : 0;
+  const paymentMethod = doc.draft.submission?.body.method ?? method;
+  let receivedMinor: number | null = null;
+  let receivedError = '';
+  if (received.trim()) {
+    try {
+      receivedMinor = parseSom(received);
+    } catch (e) {
+      receivedError = e instanceof Error ? e.message : 'Проверьте сумму.';
+    }
+  }
   const changeMinor =
-    safe && method === 'cash' ? BigInt(receivedMinor) - sum : 0n;
+    safe && paymentMethod === 'cash' && receivedMinor !== null
+      ? BigInt(receivedMinor) - sum
+      : null;
   const locked = doc.busy || doc.blocked || !!doc.draft.submission;
   return (
     <>
@@ -99,7 +108,11 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
           {active ? 'Смена открыта · Управление' : 'Открыть смену'}
         </Link>
       </div>
-      {shift.error && <p role="alert" className="error">{shift.error}</p>}
+      {shift.error && (
+        <p role="alert" className="error">
+          {shift.error}
+        </p>
+      )}
       {!shift.loading && !active && (
         <p className="notice">
           {shift.current
@@ -108,7 +121,10 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
         </p>
       )}
       <div className="cashier-workspace">
-        <section className="cashier-catalog panel" aria-label="Каталог для кассы">
+        <section
+          className="cashier-catalog panel"
+          aria-label="Каталог для кассы"
+        >
           <div className="cashier-catalog-heading">
             <div>
               <h2>Быстрый выбор товаров</h2>
@@ -130,7 +146,11 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
               aria-label="Поиск товаров для кассы"
             />
           </label>
-          {catalogError && <p role="alert" className="error">{catalogError}</p>}
+          {catalogError && (
+            <p role="alert" className="error">
+              {catalogError}
+            </p>
+          )}
           {!catalogError && products.length === 0 && (
             <p className="empty-state">
               Товары не найдены. Можно воспользоваться сканером в корзине.
@@ -155,7 +175,9 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
                   {formatSom(product.salePriceMinor)}
                 </span>
                 <small className="muted">
-                  {product.available === undefined ? product.barcode : `Доступно: ${product.available}`}
+                  {product.available === undefined
+                    ? product.barcode
+                    : `Доступно: ${product.available}`}
                 </small>
               </button>
             ))}
@@ -174,55 +196,98 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
           <aside className="panel cashier-payment summary-panel">
             <div className="cashier-summary-row">
               <span>Сумма товаров</span>
-              <strong>{safe ? formatSom(Number(sum)) : 'Сумма превышена'}</strong>
+              <strong>
+                {safe ? formatSom(Number(sum)) : 'Сумма превышена'}
+              </strong>
             </div>
             <div className="cashier-summary-total">
               <span>Итого</span>
-              <strong>{safe ? formatSom(Number(sum)) : 'Сумма превышена'}</strong>
+              <strong>
+                {safe ? formatSom(Number(sum)) : 'Сумма превышена'}
+              </strong>
             </div>
             <fieldset className="cashier-payment-methods" disabled={locked}>
               <legend>Способ оплаты</legend>
-              <label className={method === 'cash'
-                  ? 'cashier-method selected' : 'cashier-method'}>
+              <label
+                className={
+                  paymentMethod === 'cash'
+                    ? 'cashier-method selected'
+                    : 'cashier-method'
+                }
+              >
                 <input
                   type="radio"
                   name="cashier-method"
                   value="cash"
-                  checked={(doc.draft.submission?.body.method ?? method) === 'cash'}
-                  onChange={() => setMethod('cash')} />
+                  checked={
+                    (doc.draft.submission?.body.method ?? method) === 'cash'
+                  }
+                  onChange={() => setMethod('cash')}
+                />
                 Наличные
               </label>
-              <label className={method === 'card'
-                  ? 'cashier-method selected' : 'cashier-method'}>
+              <label
+                className={
+                  paymentMethod === 'card'
+                    ? 'cashier-method selected'
+                    : 'cashier-method'
+                }
+              >
                 <input
                   type="radio"
                   name="cashier-method"
                   value="card"
-                  checked={(doc.draft.submission?.body.method ?? method) === 'card'}
-                  onChange={() => setMethod('card')} />
+                  checked={
+                    (doc.draft.submission?.body.method ?? method) === 'card'
+                  }
+                  onChange={() => setMethod('card')}
+                />
                 Банковская карта
               </label>
             </fieldset>
-            {method === 'cash' && (
+            {paymentMethod === 'cash' && (
               <>
-                <label className="cashier-received">Получено от покупателя, сом
-                  <input inputMode="decimal" value={received} disabled={locked} placeholder="Например, 4000" onChange={(event) => setReceived(event.target.value)} />
+                <label className="cashier-received">
+                  Получено от покупателя, сом
+                  <input
+                    inputMode="decimal"
+                    value={received}
+                    disabled={locked}
+                    placeholder="Например, 4000"
+                    onChange={(event) => setReceived(event.target.value)}
+                  />
                 </label>
-                {received.trim() && (
+                {receivedError && (
+                  <p role="alert" className="error">
+                    {receivedError}
+                  </p>
+                )}
+                {changeMinor !== null && (
                   <div className="cashier-summary-row" role="status">
                     <span>{changeMinor >= 0n ? 'Сдача' : 'Не хватает'}</span>
-                    <strong>{formatSom(Number(changeMinor >= 0n ? changeMinor : -changeMinor))}</strong>
+                    <strong>
+                      {formatSom(
+                        Number(changeMinor >= 0n ? changeMinor : -changeMinor),
+                      )}
+                    </strong>
                   </div>
                 )}
               </>
             )}
             <p className="muted cashier-payment-hint">
-              Проводите продажу только после получения денег. Оплата картой отмечается вручную.
+              Проводите продажу только после получения денег. Оплата картой
+              отмечается вручную.
             </p>
             <button
               className="primary full-width cashier-submit"
               onClick={() => void submit()}
-              disabled={doc.busy || doc.blocked || !doc.online || !doc.draft.lines.length || (!doc.draft.submission && (!active || !safe))}
+              disabled={
+                doc.busy ||
+                doc.blocked ||
+                !doc.online ||
+                !doc.draft.lines.length ||
+                (!doc.draft.submission && (!active || !safe))
+              }
             >
               {doc.busy
                 ? 'Проведение…'
