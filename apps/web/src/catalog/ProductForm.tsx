@@ -205,11 +205,13 @@ export default function ProductForm({
                 )}
               </div>
               <label>
-                Фото товара
+                Фото товара (камера или файл)
                 <input
                   type="file"
+                  aria-label="Фото товара"
                   accept="image/jpeg,image/png,image/webp"
                   multiple
+                  capture="environment"
                   onChange={(e) => void choose(e.target.files)}
                 />
               </label>

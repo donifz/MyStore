@@ -124,6 +124,7 @@ export default function EditProductPhotos({
           type="file"
           multiple
           accept="image/jpeg,image/png,image/webp"
+          capture="environment"
           disabled={busy || photos.length >= 8}
           onChange={(e) => {
             void add(e.target.files);
