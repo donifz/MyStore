@@ -39,6 +39,7 @@ class PermissionsDto {
 class InviteDto extends RoleDto {
   @IsEmail() @MaxLength(254) email!: string;
 }
+class DirectCreateDto extends InviteDto {}
 class AcceptDto {
   @IsString() @MinLength(64) @MaxLength(64) token!: string;
   @IsOptional() @IsString() @MinLength(12) @MaxLength(256) password?: string;
@@ -52,6 +53,14 @@ export class StaffController {
     @Req() r: UserRequest,
   ) {
     return this.staff.list(shop, r.userId);
+  }
+  @Post('direct') direct(
+    @Param('shopId', ParseUUIDPipe) shop: string,
+    @Req() r: UserRequest,
+    @Body() b: DirectCreateDto,
+    @Headers('idempotency-key') key: string,
+  ) {
+    return this.staff.createDirect(shop, r.userId, b.email, b.role, key);
   }
   @Post('invitations') invite(
     @Param('shopId', ParseUUIDPipe) shop: string,

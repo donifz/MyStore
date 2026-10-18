@@ -1,7 +1,8 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
 import { useSession } from '../auth/SessionProvider';
+import DirectStaffForm from './DirectStaffForm';
 import { useAccessOperation } from '../auth/use-access-operation';
 type Member = {
   id: string;
@@ -24,26 +25,20 @@ export default function StaffPage() {
       members: Member[];
       invitations: Invitation[];
     } | null>(null),
-    [email, setEmail] = useState(''),
-    [role, setRole] = useState('manager'),
     [error, setError] = useState(''),
-    [configured, setConfigured] = useState<boolean | null>(null),
+    [directLocked, setDirectLocked] = useState(false),
     [refreshing, setRefreshing] = useState(false),
     [stale, setStale] = useState(true);
   const op = useAccessOperation();
   const base = '/shops/' + shopId + '/staff';
-  const disabled = op.busy || op.pending || refreshing || stale;
+  const disabled = op.busy || op.pending || directLocked || refreshing || stale;
   async function load() {
     setRefreshing(true);
     setStale(true);
     try {
-      const [d, s] = await Promise.all([
-        api<typeof data>(base),
-        api<{ configured: boolean }>('/shops/' + shopId + '/email/status'),
-      ]);
+      const d = await api<typeof data>(base);
       setData(d);
       setStale(false);
-      setConfigured(s.configured);
       setError('');
     } catch (e) {
       setError(errorText(e));
@@ -54,13 +49,6 @@ export default function StaffPage() {
   useEffect(() => {
     if (shop?.role === 'owner') void load();
   }, [shopId, shop?.role]);
-  async function invite(e: FormEvent) {
-    e.preventDefault();
-    if (await op.run(base + '/invitations', { email, role })) {
-      setEmail('');
-      await load();
-    }
-  }
   async function mutate(path: string, body: unknown) {
     if (await op.run(base + path, body)) await load();
   }
@@ -77,12 +65,6 @@ export default function StaffPage() {
           <h1>Сотрудники</h1>
         </div>
       </div>
-      {configured === false && (
-        <p role="status" className="muted">
-          Почта не настроена или отправка отключена. Для приглашений подключите
-          Gmail API или SMTP. Уже выданные права продолжают работать.
-        </p>
-      )}
       {(error || op.error) && (
         <p role="alert" className="error">
           {error || op.error}
@@ -109,40 +91,13 @@ export default function StaffPage() {
           Повторить операцию
         </button>
       )}
-      <form className="panel" onSubmit={invite}>
-        <h2>Пригласить сотрудника</h2>
-        <fieldset disabled={disabled}>
-          <label>
-            Email сотрудника
-            <input
-              type="email"
-              maxLength={254}
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </label>
-          <label>
-            Роль
-            <select
-              aria-label="Роль"
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-            >
-              <option value="manager">Менеджер</option>
-              <option value="cashier">Кассир</option>
-            </select>
-          </label>
-          <p className="muted">
-            Менеджер ведёт товары, склад и заказы. Кассир работает с продажами и
-            своими сменами. Разрешения на возвраты и финансовые отчёты выдаются
-            отдельно после принятия приглашения. Приглашение действует 7 дней.
-          </p>
-          <button className="primary" disabled={op.busy}>
-            Пригласить
-          </button>
-        </fieldset>
-      </form>
+      <DirectStaffForm
+        key={shopId}
+        base={base}
+        disabled={disabled}
+        onCreated={load}
+        onLock={setDirectLocked}
+      />
       {!data && !error && <p className="loading">Загрузка сотрудников…</p>}
       {data && (
         <>
@@ -252,7 +207,7 @@ export default function StaffPage() {
             </div>
           </div>
           <div className="panel">
-            <h2>Ожидают приглашения</h2>
+            <h2>Ранее отправленные приглашения</h2>
             {!data.invitations.length && (
               <p className="muted">Нет ожидающих приглашений.</p>
             )}
