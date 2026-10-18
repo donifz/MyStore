@@ -16,9 +16,6 @@ export class ReceivingDocuments1760000000024 implements MigrationInterface {
       WHERE document_number IS NULL
     `);
     await q.query(
-      `ALTER TABLE stock_documents ALTER COLUMN document_number SET NOT NULL`,
-    );
-    await q.query(
       `CREATE UNIQUE INDEX stock_documents_shop_number_idx ON stock_documents(shop_id,document_number)`,
     );
   }
