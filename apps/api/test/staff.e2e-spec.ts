@@ -103,6 +103,52 @@ describe('staff access', () => {
         .password_hash,
     ).toBe(hash);
   });
+  it('lets the owner reset a staff password without email', async () => {
+    const created = await post(base + '/direct', {
+      email: 'reset@example.test',
+      role: 'cashier',
+    }).expect(201);
+    const key = randomUUID();
+    const reset = await post(
+      base + '/' + created.body.id + '/reset-password',
+      {},
+      c.owner,
+      key,
+    ).expect(201);
+    expect(reset.body.temporaryPassword).toHaveLength(32);
+    expect(reset.body.temporaryPassword).not.toBe(
+      created.body.temporaryPassword,
+    );
+    const replay = await post(
+      base + '/' + created.body.id + '/reset-password',
+      {},
+      c.owner,
+      key,
+    ).expect(201);
+    expect(replay.body).toEqual(reset.body);
+    await request(c.app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: 'reset@example.test',
+        password: created.body.temporaryPassword,
+      })
+      .expect(401);
+    await request(c.app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: 'reset@example.test',
+        password: reset.body.temporaryPassword,
+      })
+      .expect(201);
+    expect(
+      JSON.stringify(await c.db.query('SELECT result FROM access_operations')),
+    ).not.toContain(reset.body.temporaryPassword);
+    await post(
+      base + '/' + created.body.id + '/reset-password',
+      {},
+      c.cashier,
+    ).expect(403);
+  });
   it('owner invites new cashier once, accepts once, audits and disables access', async () => {
     const key = randomUUID();
     await post(

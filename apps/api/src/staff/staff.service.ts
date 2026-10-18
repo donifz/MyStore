@@ -122,6 +122,51 @@ export class StaffService {
       };
     });
   }
+  async resetPassword(shop: string, actor: string, user: string, key: string) {
+    return this.db.transaction(async (tx) => {
+      await this.owner(tx, shop, actor);
+      const temporaryPassword = createHmac(
+        'sha256',
+        process.env.SESSION_SECRET!,
+      )
+        .update(
+          JSON.stringify([
+            'staff-password-reset',
+            shop.toLowerCase(),
+            actor,
+            user,
+            key?.toLowerCase(),
+          ]),
+        )
+        .digest('base64url')
+        .slice(0, 32);
+      const result = await accessOperation(
+        tx,
+        'staff:' + shop.toLowerCase(),
+        key,
+        { actor, kind: 'reset-password', user },
+        async () => {
+          const [member] = await tx.query(
+            `SELECT m.role,u.email FROM memberships m JOIN users u ON u.id=m.user_id
+             WHERE m.shop_id=$1 AND m.user_id=$2 FOR UPDATE`,
+            [shop, user],
+          );
+          if (!member) throw new NotFoundException();
+          if (member.role === 'owner' || user === actor)
+            throw new ForbiddenException();
+          await tx.query('UPDATE users SET password_hash=$2 WHERE id=$1', [
+            user,
+            await hashPassword(temporaryPassword),
+          ]);
+          await this.audit(tx, shop, actor, 'staff:password-reset', user, {
+            email: member.email,
+          });
+          return { userId: user };
+        },
+      );
+      return { ...result, temporaryPassword };
+    });
+  }
   async invite(
     shop: string,
     actor: string,

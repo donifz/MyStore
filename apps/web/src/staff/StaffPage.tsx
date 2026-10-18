@@ -17,6 +17,7 @@ type Invitation = {
   role: 'manager' | 'cashier';
   expires_at: string;
 };
+type ResetResult = { userId: string; temporaryPassword: string };
 export default function StaffPage() {
   const { shopId = '' } = useParams();
   const session = useSession();
@@ -30,8 +31,26 @@ export default function StaffPage() {
     [refreshing, setRefreshing] = useState(false),
     [stale, setStale] = useState(true);
   const op = useAccessOperation();
+  const resetOp = useAccessOperation<ResetResult>();
+  const [resetPasswords, setResetPasswords] = useState<Record<string, string>>(
+    {},
+  );
   const base = '/shops/' + shopId + '/staff';
-  const disabled = op.busy || op.pending || directLocked || refreshing || stale;
+  const disabled =
+    op.busy ||
+    op.pending ||
+    resetOp.busy ||
+    resetOp.pending ||
+    directLocked ||
+    refreshing ||
+    stale;
+  useEffect(() => {
+    if (resetOp.result)
+      setResetPasswords((current) => ({
+        ...current,
+        [resetOp.result!.userId]: resetOp.result!.temporaryPassword,
+      }));
+  }, [resetOp.result]);
   async function load() {
     setRefreshing(true);
     setStale(true);
@@ -68,6 +87,11 @@ export default function StaffPage() {
       {(error || op.error) && (
         <p role="alert" className="error">
           {error || op.error}
+        </p>
+      )}
+      {resetOp.error && (
+        <p role="alert" className="error">
+          {resetOp.error}
         </p>
       )}
       {error && (
@@ -182,22 +206,51 @@ export default function StaffPage() {
                       </td>
                       <td>
                         {m.role !== 'owner' && (
-                          <button
-                            type="button"
-                            disabled={disabled}
-                            onClick={() => {
-                              if (
-                                window.confirm(
-                                  'Отключить доступ ' +
-                                    m.email +
-                                    ' к этому магазину?',
+                          <div className="actions">
+                            <button
+                              type="button"
+                              disabled={disabled}
+                              onClick={async () => {
+                                if (
+                                  !window.confirm(
+                                    'Создать новый временный пароль для ' +
+                                      m.email +
+                                      '?',
+                                  )
                                 )
-                              )
-                                void mutate('/' + m.id + '/disable', {});
-                            }}
-                          >
-                            Отключить
-                          </button>
+                                  return;
+                                await resetOp.run(
+                                  base + '/' + m.id + '/reset-password',
+                                  {},
+                                );
+                              }}
+                            >
+                              Сбросить пароль
+                            </button>
+                            <button
+                              type="button"
+                              disabled={disabled}
+                              onClick={() => {
+                                if (
+                                  window.confirm(
+                                    'Отключить доступ ' +
+                                      m.email +
+                                      ' к этому магазину?',
+                                  )
+                                )
+                                  void mutate('/' + m.id + '/disable', {});
+                              }}
+                            >
+                              Отключить
+                            </button>
+                            {resetPasswords[m.id] && (
+                              <p role="status" className="muted">
+                                Новый временный пароль:{' '}
+                                <strong>{resetPasswords[m.id]}</strong>.
+                                Передайте его сотруднику лично.
+                              </p>
+                            )}
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -225,18 +278,6 @@ export default function StaffPage() {
                     </p>
                   </div>
                   <div className="actions">
-                    <button
-                      type="button"
-                      disabled={disabled}
-                      onClick={() =>
-                        void mutate('/invitations', {
-                          email: i.email,
-                          role: i.role,
-                        })
-                      }
-                    >
-                      Выслать заново
-                    </button>
                     <button
                       type="button"
                       disabled={disabled}
