@@ -53,7 +53,10 @@ export class StaffService {
     key: string,
   ) {
     email = email.trim().toLowerCase();
-    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) || email.length > 254)
+    if (
+      !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) ||
+      email.length > 254
+    )
       throw new BadRequestException('Invalid email');
     return this.db.transaction(async (tx) => {
       await this.owner(tx, shop, actor);
@@ -71,7 +74,9 @@ export class StaffService {
             'SELECT id FROM users WHERE email=$1 FOR UPDATE',
             [email],
           );
-          const password = existing ? null : randomBytes(24).toString('base64url');
+          const password = existing
+            ? null
+            : randomBytes(24).toString('base64url');
           const userId = existing?.id ?? randomUUID();
           if (!existing)
             await tx.query(
