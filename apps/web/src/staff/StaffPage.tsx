@@ -27,23 +27,20 @@ export default function StaffPage() {
     [email, setEmail] = useState(''),
     [role, setRole] = useState('manager'),
     [error, setError] = useState(''),
-    [configured, setConfigured] = useState<boolean | null>(null),
+    [created, setCreated] = useState<{ email: string; temporaryPassword: string | null; existingAccount: boolean } | null>(null),
+    [creating, setCreating] = useState(false),
     [refreshing, setRefreshing] = useState(false),
     [stale, setStale] = useState(true);
   const op = useAccessOperation();
   const base = '/shops/' + shopId + '/staff';
-  const disabled = op.busy || op.pending || refreshing || stale;
+  const disabled = op.busy || op.pending || creating || refreshing || stale;
   async function load() {
     setRefreshing(true);
     setStale(true);
     try {
-      const [d, s] = await Promise.all([
-        api<typeof data>(base),
-        api<{ configured: boolean }>('/shops/' + shopId + '/email/status'),
-      ]);
+      const d = await api<typeof data>(base);
       setData(d);
       setStale(false);
-      setConfigured(s.configured);
       setError('');
     } catch (e) {
       setError(errorText(e));
@@ -56,9 +53,21 @@ export default function StaffPage() {
   }, [shopId, shop?.role]);
   async function invite(e: FormEvent) {
     e.preventDefault();
-    if (await op.run(base + '/invitations', { email, role })) {
+    setCreating(true);
+    setCreated(null);
+    try {
+      const result = await api<{ email: string; temporaryPassword: string | null; existingAccount: boolean }>(base + '/direct', {
+        method: 'POST',
+        key: crypto.randomUUID(),
+        body: { email, role },
+      });
+      setCreated(result);
       setEmail('');
       await load();
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setCreating(false);
     }
   }
   async function mutate(path: string, body: unknown) {
@@ -77,12 +86,6 @@ export default function StaffPage() {
           <h1>Сотрудники</h1>
         </div>
       </div>
-      {configured === false && (
-        <p role="status" className="muted">
-          Почта не настроена или отправка отключена. Для приглашений подключите
-          Gmail API или SMTP. Уже выданные права продолжают работать.
-        </p>
-      )}
       {(error || op.error) && (
         <p role="alert" className="error">
           {error || op.error}
@@ -109,8 +112,20 @@ export default function StaffPage() {
           Повторить операцию
         </button>
       )}
+      {created && (
+        <div className="panel" role="status">
+          <h2>Сотрудник добавлен</h2>
+          <p>{created.email}</p>
+          {created.temporaryPassword ? (
+            <p>Одноразово покажите сотруднику начальный пароль: <strong>{created.temporaryPassword}</strong>. Передайте его лично и попросите сменить пароль. Не отправляйте пароль в открытые чаты.</p>
+          ) : (
+            <p>У сотрудника уже есть аккаунт MyStore. Он входит со своим существующим паролем.</p>
+          )}
+          <button type="button" onClick={() => setCreated(null)}>Скрыть пароль</button>
+        </div>
+      )}
       <form className="panel" onSubmit={invite}>
-        <h2>Пригласить сотрудника</h2>
+        <h2>Добавить сотрудника без почты</h2>
         <fieldset disabled={disabled}>
           <label>
             Email сотрудника
@@ -136,10 +151,10 @@ export default function StaffPage() {
           <p className="muted">
             Менеджер ведёт товары, склад и заказы. Кассир работает с продажами и
             своими сменами. Разрешения на возвраты и финансовые отчёты выдаются
-            отдельно после принятия приглашения. Приглашение действует 7 дней.
+            отдельно в таблице сотрудников. Новый сотрудник получит начальный пароль на этом экране.
           </p>
-          <button className="primary" disabled={op.busy}>
-            Пригласить
+          <button className="primary" disabled={disabled}>
+            {creating ? 'Создание…' : 'Создать сотрудника'}
           </button>
         </fieldset>
       </form>
@@ -252,7 +267,7 @@ export default function StaffPage() {
             </div>
           </div>
           <div className="panel">
-            <h2>Ожидают приглашения</h2>
+            <h2>Ранее отправленные приглашения</h2>
             {!data.invitations.length && (
               <p className="muted">Нет ожидающих приглашений.</p>
             )}
