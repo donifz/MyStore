@@ -45,6 +45,68 @@ export class StaffService {
       };
     });
   }
+  async createDirect(
+    shop: string,
+    actor: string,
+    email: string,
+    role: StaffRole,
+    key: string,
+  ) {
+    email = email.trim().toLowerCase();
+    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) || email.length > 254)
+      throw new BadRequestException('Invalid email');
+    return this.db.transaction(async (tx) => {
+      await this.owner(tx, shop, actor);
+      return accessOperation(
+        tx,
+        'staff:' + shop.toLowerCase(),
+        key,
+        { actor, kind: 'direct-create', email, role },
+        async () => {
+          await tx.query(
+            'SELECT pg_advisory_xact_lock(hashtextextended($1,0))',
+            ['email:' + email],
+          );
+          const [existing] = await tx.query(
+            'SELECT id FROM users WHERE email=$1 FOR UPDATE',
+            [email],
+          );
+          const password = existing ? null : randomBytes(24).toString('base64url');
+          const userId = existing?.id ?? randomUUID();
+          if (!existing)
+            await tx.query(
+              'INSERT INTO users(id,email,password_hash) VALUES($1,$2,$3)',
+              [userId, email, await hashPassword(password!)],
+            );
+          const [member] = await tx.query(
+            'SELECT 1 FROM memberships WHERE shop_id=$1 AND user_id=$2',
+            [shop, userId],
+          );
+          if (member) throw new ConflictException('Already a member');
+          await tx.query(
+            'INSERT INTO memberships(shop_id,user_id,role) VALUES($1,$2,$3)',
+            [shop, userId, role],
+          );
+          await tx.query(
+            'UPDATE staff_invitations SET cancelled_at=now() WHERE shop_id=$1 AND email=$2 AND used_at IS NULL AND cancelled_at IS NULL',
+            [shop, email],
+          );
+          await this.audit(tx, shop, actor, 'staff:direct-create', userId, {
+            email,
+            role,
+            existingAccount: !!existing,
+          });
+          return {
+            id: userId,
+            email,
+            role,
+            temporaryPassword: password,
+            existingAccount: !!existing,
+          };
+        },
+      );
+    });
+  }
   async invite(
     shop: string,
     actor: string,
