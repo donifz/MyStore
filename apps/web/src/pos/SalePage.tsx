@@ -82,7 +82,8 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
   const receivedMinor = /^\d+(?:[.,]\d{0,2})?$/.test(received.trim())
     ? Math.round(Number(received.replace(',', '.')) * 100)
     : 0;
-  const changeMinor = safe && method === 'cash' ? BigInt(receivedMinor) - sum : 0n;
+  const changeMinor =
+    safe && method === 'cash' ? BigInt(receivedMinor) - sum : 0n;
   const locked = doc.busy || doc.blocked || !!doc.draft.submission;
   return (
     <>
@@ -90,7 +91,9 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
         <div>
           <p className="eyebrow">Продажи в торговой точке</p>
           <h1>Касса</h1>
-          <p className="muted">Сканируйте штрихкод или выбирайте товары из каталога.</p>
+          <p className="muted">
+            Сканируйте штрихкод или выбирайте товары из каталога.
+          </p>
         </div>
         <Link className="button" to={'/seller/' + shopId + '/shift'}>
           {active ? 'Смена открыта · Управление' : 'Открыть смену'}
@@ -109,9 +112,13 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
           <div className="cashier-catalog-heading">
             <div>
               <h2>Быстрый выбор товаров</h2>
-              <p className="muted">Поиск по названию и штрихкоду. Один клик — одна штука.</p>
+              <p className="muted">
+                Поиск по названию и штрихкоду. Один клик — одна штука.
+              </p>
             </div>
-            <Link className="button" to={'/seller/' + shopId + '/shift'}>Моя смена</Link>
+            <Link className="button" to={'/seller/' + shopId + '/shift'}>
+              Моя смена
+            </Link>
           </div>
           <label className="cashier-product-search">
             Найти товар
@@ -125,7 +132,9 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
           </label>
           {catalogError && <p role="alert" className="error">{catalogError}</p>}
           {!catalogError && products.length === 0 && (
-            <p className="empty-state">Товары не найдены. Можно воспользоваться сканером в корзине.</p>
+            <p className="empty-state">
+              Товары не найдены. Можно воспользоваться сканером в корзине.
+            </p>
           )}
           <div className="cashier-product-grid">
             {products.map((product) => (
@@ -133,13 +142,21 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
                 type="button"
                 className="cashier-product-card"
                 key={product.id}
-                disabled={locked || !doc.online || (product.available ?? 1) <= 0}
+                disabled={
+                  locked || !doc.online || (product.available ?? 1) <= 0
+                }
                 onClick={() => void doc.addVariant(product)}
               >
-                <span className="cashier-product-glyph" aria-hidden="true">▦</span>
+                <span className="cashier-product-glyph" aria-hidden="true">
+                  ▦
+                </span>
                 <strong>{product.name}</strong>
-                <span className="cashier-product-price">{formatSom(product.salePriceMinor)}</span>
-                <small className="muted">{product.available === undefined ? product.barcode : `Доступно: ${product.available}`}</small>
+                <span className="cashier-product-price">
+                  {formatSom(product.salePriceMinor)}
+                </span>
+                <small className="muted">
+                  {product.available === undefined ? product.barcode : `Доступно: ${product.available}`}
+                </small>
               </button>
             ))}
           </div>
@@ -147,22 +164,42 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
         <div className="cashier-checkout">
           <div className="cashier-cart-title">
             <h2>Корзина</h2>
-            <span className="badge">{doc.draft.lines.reduce((n, l) => n + l.quantity, 0)} шт.</span>
+            <span className="badge">
+              {doc.draft.lines.reduce((n, l) => n + l.quantity, 0)} шт.
+            </span>
           </div>
           <div className="cashier-lines">
             <DocumentEditor doc={doc} receiving={false} shopId={shopId} />
           </div>
           <aside className="panel cashier-payment summary-panel">
-            <div className="cashier-summary-row"><span>Сумма товаров</span><strong>{safe ? formatSom(Number(sum)) : 'Сумма превышена'}</strong></div>
-            <div className="cashier-summary-total"><span>Итого</span><strong>{safe ? formatSom(Number(sum)) : 'Сумма превышена'}</strong></div>
+            <div className="cashier-summary-row">
+              <span>Сумма товаров</span>
+              <strong>{safe ? formatSom(Number(sum)) : 'Сумма превышена'}</strong>
+            </div>
+            <div className="cashier-summary-total">
+              <span>Итого</span>
+              <strong>{safe ? formatSom(Number(sum)) : 'Сумма превышена'}</strong>
+            </div>
             <fieldset className="cashier-payment-methods" disabled={locked}>
               <legend>Способ оплаты</legend>
-              <label className={method === 'cash' ? 'cashier-method selected' : 'cashier-method'}>
-                <input type="radio" name="cashier-method" value="cash" checked={(doc.draft.submission?.body.method ?? method) === 'cash'} onChange={() => setMethod('cash')} />
+              <label className={method === 'cash'
+                  ? 'cashier-method selected' : 'cashier-method'}>
+                <input
+                  type="radio"
+                  name="cashier-method"
+                  value="cash"
+                  checked={(doc.draft.submission?.body.method ?? method) === 'cash'}
+                  onChange={() => setMethod('cash')} />
                 Наличные
               </label>
-              <label className={method === 'card' ? 'cashier-method selected' : 'cashier-method'}>
-                <input type="radio" name="cashier-method" value="card" checked={(doc.draft.submission?.body.method ?? method) === 'card'} onChange={() => setMethod('card')} />
+              <label className={method === 'card'
+                  ? 'cashier-method selected' : 'cashier-method'}>
+                <input
+                  type="radio"
+                  name="cashier-method"
+                  value="card"
+                  checked={(doc.draft.submission?.body.method ?? method) === 'card'}
+                  onChange={() => setMethod('card')} />
                 Банковская карта
               </label>
             </fieldset>
@@ -179,13 +216,19 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
                 )}
               </>
             )}
-            <p className="muted cashier-payment-hint">Проводите продажу только после получения денег. Оплата картой отмечается вручную.</p>
+            <p className="muted cashier-payment-hint">
+              Проводите продажу только после получения денег. Оплата картой отмечается вручную.
+            </p>
             <button
               className="primary full-width cashier-submit"
               onClick={() => void submit()}
               disabled={doc.busy || doc.blocked || !doc.online || !doc.draft.lines.length || (!doc.draft.submission && (!active || !safe))}
             >
-              {doc.busy ? 'Проведение…' : doc.draft.submission ? 'Повторить исходный запрос' : 'Провести продажу'}
+              {doc.busy
+                ? 'Проведение…'
+                : doc.draft.submission
+                  ? 'Повторить исходный запрос'
+                  : 'Провести продажу'}
             </button>
           </aside>
         </div>
