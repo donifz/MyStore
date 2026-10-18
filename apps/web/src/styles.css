@@ -3459,3 +3459,21 @@ fieldset {
     font-size: 18px;
   }
 }
+
+.camera-scanner {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border, #d9e4df);
+  border-radius: 1rem;
+  background: var(--color-surface, #fff);
+}
+
+.camera-scanner video {
+  width: 100%;
+  max-height: 18rem;
+  border-radius: 0.75rem;
+  background: #102d2a;
+  object-fit: cover;
+}

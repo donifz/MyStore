@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import CameraScanner from './CameraScanner';
 export default function ScanField({
   onScan,
   disabled = false,
@@ -7,7 +8,16 @@ export default function ScanField({
   disabled?: boolean;
 }) {
   const [code, setCode] = useState(''),
-    input = useRef<HTMLInputElement>(null);
+    input = useRef<HTMLInputElement>(null),
+    [camera, setCamera] = useState(false);
+  const scan = useCallback(
+    (value: string) => {
+      onScan(value);
+      setCode('');
+      setCamera(false);
+    },
+    [onScan],
+  );
   return (
     <div className="scan-field">
       <label>
@@ -23,7 +33,7 @@ export default function ScanField({
             if (e.key === 'Enter') {
               e.preventDefault();
               const value = code.trim();
-              if (value) onScan(value);
+              if (value) scan(value);
               setCode('');
             }
           }}
@@ -40,6 +50,10 @@ export default function ScanField({
       >
         Фокус для сканера
       </button>
+      <button type="button" disabled={disabled} onClick={() => setCamera(true)}>
+        Сканировать камерой
+      </button>
+      {camera && <CameraScanner onScan={scan} onClose={() => setCamera(false)} />}
     </div>
   );
 }
