@@ -104,6 +104,14 @@ export class StaffController {
   ) {
     return this.staff.change(shop, r.userId, id, null, key);
   }
+  @Post(':id/reset-password') resetPassword(
+    @Param('shopId', ParseUUIDPipe) shop: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() r: UserRequest,
+    @Headers('idempotency-key') key: string,
+  ) {
+    return this.staff.resetPassword(shop, r.userId, id, key);
+  }
 }
 @Controller('auth/staff')
 export class StaffAcceptanceController {
