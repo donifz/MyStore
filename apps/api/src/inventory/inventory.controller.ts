@@ -19,6 +19,8 @@ import {
   Min,
   IsString,
   MaxLength,
+  IsDateString,
+  IsOptional,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -33,6 +35,10 @@ export class ReceiveLineDto {
   @IsInt() @Min(0) @Max(Number.MAX_SAFE_INTEGER) unitCostMinor!: number;
 }
 class ReceiveDto {
+  @IsOptional() @IsString() @MaxLength(120) documentNumber?: string;
+  @IsOptional() @IsString() @MaxLength(200) supplier?: string;
+  @IsOptional() @IsDateString() receivedOn?: string;
+  @IsOptional() @IsString() @MaxLength(1000) comment?: string;
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(100)
@@ -68,7 +74,14 @@ export class InventoryController {
     @Body() body: ReceiveDto,
   ) {
     await this.access.requireMembership(req.userId, shopId, 'receive');
-    return this.receiving.receive(shopId, req.userId, key, body.lines);
+    return this.receiving.receive(shopId, req.userId, key, body);
+  }
+  @Get('receivings') async receivings(
+    @Param('shopId', ParseUUIDPipe) shopId: string,
+    @Req() req: UserRequest,
+  ) {
+    await this.access.requireMembership(req.userId, shopId, 'receive');
+    return this.receiving.list(shopId);
   }
   @Post('inventory/counts') async count(
     @Param('shopId', ParseUUIDPipe) shop: string,

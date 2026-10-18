@@ -24,6 +24,7 @@ import { StorefrontSearch1760000000020 } from './migrations/1760000000020-Storef
 import { ArchiveAndVariants1760000000021 } from './migrations/1760000000021-ArchiveAndVariants';
 import { CashOperationsAndDiscounts1760000000022 } from './migrations/1760000000022-CashOperationsAndDiscounts';
 import { ReportsAndPlatformManagement1760000000023 } from './migrations/1760000000023-ReportsAndPlatformManagement';
+import { ReceivingDocuments1760000000024 } from './migrations/1760000000024-ReceivingDocuments';
 export const DATABASE = Symbol('DATABASE');
 export function buildDataSource(url: string) {
   return new DataSource({
@@ -55,6 +56,7 @@ export function buildDataSource(url: string) {
       ArchiveAndVariants1760000000021,
       CashOperationsAndDiscounts1760000000022,
       ReportsAndPlatformManagement1760000000023,
+      ReceivingDocuments1760000000024,
     ],
   });
 }
