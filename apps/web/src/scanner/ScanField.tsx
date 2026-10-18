@@ -53,7 +53,9 @@ export default function ScanField({
       <button type="button" disabled={disabled} onClick={() => setCamera(true)}>
         Сканировать камерой
       </button>
-      {camera && <CameraScanner onScan={scan} onClose={() => setCamera(false)} />}
+      {camera && (
+        <CameraScanner onScan={scan} onClose={() => setCamera(false)} />
+      )}
     </div>
   );
 }
