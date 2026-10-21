@@ -174,4 +174,19 @@ describe('receiving', () => {
     expect(firstBalance.body.physical).toBe(0);
     expect(lastBalance.body.physical).toBe(1000000000);
   });
+  test('duplicate document number is rejected with 409', async () => {
+    const lines = [{ variantId: id, quantity: 1, unitCostMinor: 10000 }];
+    await request(ctx.app.getHttpServer())
+      .post(`/shops/${fixture.shop}/receivings`)
+      .set('Authorization', `Bearer ${ctx.owner}`)
+      .set('Idempotency-Key', randomUUID())
+      .send({ documentNumber: 'DUP-DOC-01', lines })
+      .expect(201);
+    await request(ctx.app.getHttpServer())
+      .post(`/shops/${fixture.shop}/receivings`)
+      .set('Authorization', `Bearer ${ctx.owner}`)
+      .set('Idempotency-Key', randomUUID())
+      .send({ documentNumber: 'DUP-DOC-01', lines })
+      .expect(409);
+  });
 });

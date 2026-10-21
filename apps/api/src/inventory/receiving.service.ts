@@ -108,19 +108,27 @@ export class ReceivingService {
       normalized.map((l) => l.variantId),
     );
     const id = randomUUID();
-    await tx.query(
-      "INSERT INTO stock_documents(id,shop_id,actor_id,kind,total_minor,document_number,supplier,received_on,comment)VALUES($1,$2,$3,'receiving',$4,$5,$6,$7,$8)",
-      [
-        id,
-        shopId,
-        actorId,
-        total,
-        meta.documentNumber.trim(),
-        meta.supplier?.trim() || null,
-        meta.receivedOn,
-        meta.comment?.trim() || null,
-      ],
-    );
+    try {
+      await tx.query(
+        "INSERT INTO stock_documents(id,shop_id,actor_id,kind,total_minor,document_number,supplier,received_on,comment)VALUES($1,$2,$3,'receiving',$4,$5,$6,$7,$8)",
+        [
+          id,
+          shopId,
+          actorId,
+          total,
+          meta.documentNumber.trim(),
+          meta.supplier?.trim() || null,
+          meta.receivedOn,
+          meta.comment?.trim() || null,
+        ],
+      );
+    } catch (e: any) {
+      if (e?.code === '23505')
+        throw new ConflictException(
+          'Document number already exists in this shop',
+        );
+      throw e;
+    }
     for (const l of normalized) {
       const row = rows.get(l.variantId)!;
       if (row.archived)

@@ -14,21 +14,29 @@ function ReceivingWorkspace({
 }) {
   const doc = useDocument({ userId, shopId, kind: 'receiving' });
   const [documentNumber, setDocumentNumber] = useState(
-      'REC-' +
-        new Date().toISOString().slice(0, 10).replaceAll('-', '') +
-        '-01',
+      doc.draft.submission?.body?.documentNumber ?? '',
     ),
-    [supplier, setSupplier] = useState(''),
+    [supplier, setSupplier] = useState(
+      doc.draft.submission?.body?.supplier ?? '',
+    ),
     [receivedOn, setReceivedOn] = useState(
-      new Date().toISOString().slice(0, 10),
+      doc.draft.submission?.body?.receivedOn ??
+        new Date().toISOString().slice(0, 10),
     ),
-    [comment, setComment] = useState(''),
+    [comment, setComment] = useState(doc.draft.submission?.body?.comment ?? ''),
     [history, setHistory] = useState<any[]>([]);
   useEffect(() => {
     void api<any[]>(`/shops/${shopId}/receivings`)
       .then(setHistory)
       .catch(() => undefined);
   }, [shopId, doc.success]);
+  useEffect(() => {
+    if (doc.success) {
+      setDocumentNumber('');
+      setSupplier('');
+      setComment('');
+    }
+  }, [doc.success]);
   let sum = 0n;
   for (const l of doc.draft.lines) {
     try {
@@ -38,10 +46,12 @@ function ReceivingWorkspace({
   async function submit() {
     try {
       const body = doc.draft.submission?.body ?? {
-        documentNumber,
-        supplier,
+        ...(documentNumber.trim()
+          ? { documentNumber: documentNumber.trim() }
+          : {}),
+        supplier: supplier.trim(),
         receivedOn,
-        comment,
+        comment: comment.trim(),
         lines: doc.draft.lines.map((l) => ({
           variantId: l.id,
           quantity: l.quantity,
@@ -82,6 +92,7 @@ function ReceivingWorkspace({
               value={documentNumber}
               onChange={(e) => setDocumentNumber(e.target.value)}
               disabled={doc.busy || !!doc.draft.submission}
+              placeholder="Например, ТТН-001 (или оставьте пустым)"
             />
           </label>
           <label>
