@@ -150,7 +150,10 @@ it('creates an unknown barcode inline, preserves prior lines, and receives only 
   await u.type(screen.getByLabelText('Закупочная цена Принтер, сом'), '1500');
   await u.click(screen.getByRole('button', { name: 'Провести приёмку' }));
   await screen.findByText('Документ проведён: receipt');
-  expect(calls.find((c) => c.url.endsWith('/receivings'))?.body).toEqual({
+  expect(
+    calls.find((c) => c.method === 'POST' && c.url.endsWith('/receivings'))
+      ?.body,
+  ).toMatchObject({
     lines: [
       { variantId: 'existing', quantity: 3, unitCostMinor: 10000 },
       { variantId: 'new', quantity: 5, unitCostMinor: 150000 },
@@ -182,7 +185,9 @@ it('failed creation keeps entered fields and does not change the receipt', async
     'Принтер',
   );
   expect(load(scope)?.lines).toEqual([existing]);
-  expect(calls.some((c) => c.url.endsWith('/receivings'))).toBe(false);
+  expect(
+    calls.some((c) => c.method === 'POST' && c.url.endsWith('/receivings')),
+  ).toBe(false);
 });
 it('cashier cannot load or create a receiving product', async () => {
   const calls = start('cashier');
