@@ -44,6 +44,7 @@ export class ReceivingService {
     key: string,
     input: ReceiveDocument,
   ): Promise<ReceiptResult> {
+    key = this.operations.requireKey(key);
     const meta = Array.isArray(input)
       ? {
           documentNumber: `DOC-${key.replaceAll('-', '').slice(0, 8).toUpperCase()}`,
