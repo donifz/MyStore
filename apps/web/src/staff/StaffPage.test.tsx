@@ -62,7 +62,15 @@ it('creates only manager/cashier directly and retains the operation key after a 
   fireEvent.change(screen.getByLabelText('Email нового сотрудника'), {
     target: { value: 'new@example.test' },
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Создать сотрудника' }));
+  const submitButton = screen.getByRole('button', {
+    name: 'Создать сотрудника',
+  });
+  await waitFor(() =>
+    expect(
+      (submitButton.closest('fieldset') as HTMLFieldSetElement).disabled,
+    ).toBe(false),
+  );
+  fireEvent.click(submitButton);
   await screen.findByRole('button', { name: 'Повторить создание сотрудника' });
   fireEvent.click(
     screen.getByRole('button', { name: 'Повторить создание сотрудника' }),

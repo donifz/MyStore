@@ -10,6 +10,13 @@ import { DATABASE } from '../database';
 @Injectable()
 export class IdempotencyService {
   constructor(@Inject(DATABASE) private readonly db: DataSource) {}
+  requireKey(key: unknown): string {
+    if (typeof key !== 'string' || !/^[\x21-\x7e]{1,128}$/.test(key))
+      throw new BadRequestException(
+        'Idempotency-Key required, 1–128 printable characters',
+      );
+    return key;
+  }
   async execute<T>(
     shopId: string,
     key: string,
@@ -17,10 +24,7 @@ export class IdempotencyService {
     work: (tx: EntityManager) => Promise<T>,
     authorize?: (tx: EntityManager) => Promise<void>,
   ): Promise<T> {
-    if (typeof key !== 'string' || !/^[\x21-\x7e]{1,128}$/.test(key))
-      throw new BadRequestException(
-        'Idempotency-Key required, 1–128 printable characters',
-      );
+    key = this.requireKey(key);
     const fingerprint = createHash('sha256')
       .update(JSON.stringify(payload))
       .digest('hex');

@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import App from '../App';
@@ -99,7 +99,7 @@ it('allows entering discount and reason on sale line and updates total', async (
 
   // Find discount input
   const discountInput = screen.getByPlaceholderText('0');
-  await u.type(discountInput, '100'); // 100 Som discount
+  fireEvent.change(discountInput, { target: { value: '100' } }); // 100 Som discount
 
   // Reason input appears
   const reasonInput = await screen.findByPlaceholderText(
