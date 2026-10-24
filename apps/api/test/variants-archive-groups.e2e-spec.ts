@@ -53,6 +53,23 @@ describe('catalog archive and variant groups', () => {
       .get(root + path)
       .auth(token, { type: 'bearer' });
 
+  test('replays an identical idempotent product creation without a duplicate', async () => {
+    const key = randomUUID();
+    const body = {
+      name: 'Replay-safe product',
+      barcode: 'REPLAY-SAFE-001',
+      salePriceMinor: 12345,
+    };
+    const first = await post('/variants', body, ctx.owner, key).expect(201);
+    const replay = await post('/variants', body, ctx.owner, key).expect(201);
+    expect(replay.body).toEqual(first.body);
+    const rows = await ctx.db.query(
+      'SELECT id FROM variants WHERE shop_id=$1 AND barcode=$2',
+      [fixture.shop, body.barcode],
+    );
+    expect(rows).toHaveLength(1);
+  });
+
   test('creates root and child variants with independent barcodes and prices', async () => {
     const parentRes = await post('/variants', {
       name: 'Classic Hoodie',

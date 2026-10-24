@@ -10,6 +10,7 @@ import { DATABASE } from '../database';
 import { CategoriesService } from './categories.service';
 import { normalizeProductPhoto } from './product-photo';
 import { stageProduct } from '../platform/product-publication';
+import { IdempotencyService } from '../common/idempotency.service';
 export type VariantInput = {
   name: string;
   barcode?: string;
@@ -47,6 +48,7 @@ export class VariantsService {
   constructor(
     @Inject(DATABASE) private readonly db: DataSource,
     private readonly categories: CategoriesService,
+    private readonly operations: IdempotencyService,
   ) {}
   dto(row: any): Variant {
     return {
@@ -126,6 +128,21 @@ export class VariantsService {
     };
   }
   async createVariant(
+    shopId: string,
+    input: VariantInput,
+    actor: string,
+    key?: string,
+  ): Promise<Variant> {
+    if (key)
+      return this.operations.execute(
+        shopId,
+        key,
+        { kind: 'variant', ...input },
+        () => this.createVariantUnsafe(shopId, input, actor),
+      );
+    return this.createVariantUnsafe(shopId, input, actor);
+  }
+  private async createVariantUnsafe(
     shopId: string,
     input: VariantInput,
     actor: string,
