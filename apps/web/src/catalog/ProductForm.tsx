@@ -50,6 +50,7 @@ export default function ProductForm({
   const submitting = useRef(false),
     photoRevision = useRef(0),
     lookupRevision = useRef(0),
+    creationKey = useRef(crypto.randomUUID()),
     id = useId();
   const updateCategories = useCallback(
     (value: CategoryNode[]) => setCategories(Array.isArray(value) ? value : []),
@@ -131,6 +132,7 @@ export default function ProductForm({
         try {
           variant = await api<Variant>(`/shops/${shopId}/variants`, {
             method: 'POST',
+            key: creationKey.current,
             body: {
               name: name.trim(),
               ...(parentId ? { parentId } : {}),

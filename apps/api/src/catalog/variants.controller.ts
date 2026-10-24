@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   NotFoundException,
   Param,
   ParseUUIDPipe,
@@ -107,9 +108,10 @@ export class VariantsController {
     @Param('shopId', ParseUUIDPipe) shopId: string,
     @Req() req: UserRequest,
     @Body() body: VariantDto,
+    @Headers('idempotency-key') key?: string,
   ) {
     await this.access.requireMembership(req.userId, shopId, 'catalog');
-    return this.variants.createVariant(shopId, body, req.userId);
+    return this.variants.createVariant(shopId, body, req.userId, key);
   }
   @Get('by-barcode') async barcode(
     @Param('shopId', ParseUUIDPipe) shopId: string,

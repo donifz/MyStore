@@ -29,12 +29,18 @@ function start(role = 'owner', creationStatus = 201) {
     submission: null,
     lines: [existing],
   });
-  const calls: { url: string; method: string; body?: any }[] = [];
+  const calls: {
+    url: string;
+    method: string;
+    key?: string | null;
+    body?: any;
+  }[] = [];
   vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET';
     calls.push({
       url,
       method,
+      key: new Headers(init?.headers).get('idempotency-key'),
       ...(init?.body ? { body: JSON.parse(init.body as string) } : {}),
     });
     let status = 200,
@@ -144,6 +150,7 @@ it('creates an unknown barcode inline, preserves prior lines, and receives only 
     barcode: code,
     salePriceMinor: 200000,
   });
+  expect(calls.find((c) => c.method === 'POST')?.key).toBeTruthy();
   fireEvent.change(screen.getByLabelText('Количество Принтер'), {
     target: { value: '5' },
   });
