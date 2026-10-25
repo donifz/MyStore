@@ -49,9 +49,7 @@ export default function DocumentEditor({
           shopId={shopId}
           barcode={doc.productCreation}
           creationKey={doc.draft.primaryReceiving?.productKey}
-          disabled={
-            doc.blocked || !doc.online || doc.busy || !!doc.draft.submission
-          }
+          disabled={doc.blocked || !doc.online || doc.busy}
           onCancel={doc.closeProductCreation}
           onCreated={doc.receiveCreatedVariant}
           onCreatedWithoutReceiving={async () => {

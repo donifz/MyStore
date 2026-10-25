@@ -243,8 +243,7 @@ export function useDocument(scope: DraftScope) {
     };
     const next = await withDraftLock(scope, () => {
       const current = ref.current;
-      if (current.lines.some((item) => item.id === variant.id))
-        throw new Error('Товар уже добавлен в приёмку.');
+      if (current.lines.some((item) => item.id === variant.id)) return current;
       const updated: Draft = {
         ...current,
         revision: crypto.randomUUID(),

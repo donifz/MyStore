@@ -21,7 +21,7 @@ const existing = {
   unitCostText: '100',
 };
 const code = '0009876543210';
-function start(role = 'owner', creationStatus = 201) {
+function start(role = 'owner', creationStatus = 201, receivingStatus = 201) {
   save({
     version: 1,
     scope,
@@ -75,7 +75,10 @@ function start(role = 'owner', creationStatus = 201) {
               salePriceMinor: 200000,
             }
           : { message: 'failed' };
-    } else if (url.endsWith('/receivings')) body = { id: 'receipt' };
+    } else if (url.endsWith('/receivings')) {
+      status = receivingStatus;
+      body = status === 201 ? { id: 'receipt' } : { message: 'failed receipt' };
+    }
     return new Response(JSON.stringify(body), {
       status,
       headers: { 'content-type': 'application/json' },
@@ -198,6 +201,36 @@ it('creates a product without receiving it', async () => {
     '/api/shops/' + shop + '/variants',
   ]);
   expect(load(scope)?.lines).toEqual([existing]);
+});
+it('keeps the saved card and retries only the failed receiving phase', async () => {
+  const calls = start('owner', 201, 500);
+  const { u, form } = await openCreation();
+  await u.type(form.getByLabelText('Название'), 'Повторный приход');
+  await u.type(form.getByLabelText('Цена продажи, сом'), '2000');
+  await u.type(form.getByLabelText('Закупочная цена, сом'), '1500');
+  await u.click(
+    form.getByRole('button', { name: 'Создать и провести приёмку' }),
+  );
+  await form.findByRole('alert');
+  expect(
+    calls.filter((c) => c.method === 'POST' && c.url.endsWith('/variants')),
+  ).toHaveLength(1);
+  expect(
+    calls.filter((c) => c.method === 'POST' && c.url.endsWith('/receivings')),
+  ).toHaveLength(1);
+  expect(load(scope)?.submission?.status).toBe('unknown');
+  const receiptKey = calls.find((c) => c.url.endsWith('/receivings'))?.key;
+  await u.click(form.getByRole('button', { name: 'Добавить в приёмку' }));
+  await form.findByRole('alert');
+  expect(
+    calls.filter((c) => c.method === 'POST' && c.url.endsWith('/variants')),
+  ).toHaveLength(1);
+  expect(
+    calls.filter((c) => c.method === 'POST' && c.url.endsWith('/receivings')),
+  ).toHaveLength(2);
+  expect(calls.find((c) => c.url.endsWith('/receivings'))?.key).toBe(
+    receiptKey,
+  );
 });
 it('cashier cannot load or create a receiving product', async () => {
   const calls = start('cashier');
