@@ -16,6 +16,7 @@ import {
 const profileColumns =
   'name,slug,description,city,address,phone,hours,published,district,pickup_enabled AS \"pickupEnabled\",delivery_enabled AS \"deliveryEnabled\",time_zone AS \"timeZone\",business_schedule AS \"businessSchedule\"';
 export type ProfileInput = {
+  slug?: string;
   timeZone?: string;
   businessSchedule?: unknown;
   district?: string;
@@ -42,6 +43,16 @@ export type PublicQuery = {
   sort: string;
 };
 const escaped = (q: string) => '%' + q.replace(/[\\%_]/g, '\\$&') + '%';
+const reservedSlugs = new Set([
+  'api',
+  'admin',
+  'auth',
+  'login',
+  'public',
+  'shop',
+  'shops',
+  'products',
+]);
 @Injectable()
 export class StorefrontService {
   constructor(@Inject(DATABASE) private readonly db: DataSource) {}
@@ -112,11 +123,34 @@ export class StorefrontService {
       const hours = schedule
         ? formatBusinessSchedule(schedule)
         : input.hours.trim();
+      const requestedSlug = input.slug?.trim().toLowerCase();
+      if (
+        requestedSlug !== undefined &&
+        (!/^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/.test(requestedSlug) ||
+          reservedSlugs.has(requestedSlug))
+      )
+        throw new BadRequestException('Invalid or reserved shop address');
+      if (requestedSlug !== undefined && requestedSlug !== current.slug) {
+        const [taken] = await tx.query(
+          'SELECT 1 FROM shops WHERE slug=$1 AND id<>$2 UNION ALL SELECT 1 FROM shop_slug_history WHERE slug=$1 LIMIT 1',
+          [requestedSlug, shopId],
+        );
+        if (taken) throw new BadRequestException('Shop address is already taken');
+        await tx.query(
+          'INSERT INTO shop_slug_history(shop_id,slug,current_slug) VALUES($1,$2,$3)',
+          [shopId, current.slug, requestedSlug],
+        );
+        await tx.query(
+          'UPDATE shop_slug_history SET current_slug=$2 WHERE shop_id=$1',
+          [shopId, requestedSlug],
+        );
+      }
       const [[row]] = await tx.query(
-        'UPDATE shops SET description=$2,city=$3,address=$4,phone=$5,hours=$6,published=$7,district=COALESCE($8,district),pickup_enabled=COALESCE($9,pickup_enabled),delivery_enabled=COALESCE($10,delivery_enabled),time_zone=$11,business_schedule=$12 WHERE id=$1 RETURNING ' +
+        'UPDATE shops SET slug=COALESCE($2,slug),description=$3,city=$4,address=$5,phone=$6,hours=$7,published=$8,district=COALESCE($9,district),pickup_enabled=COALESCE($10,pickup_enabled),delivery_enabled=COALESCE($11,delivery_enabled),time_zone=$12,business_schedule=$13 WHERE id=$1 RETURNING ' +
           profileColumns,
         [
           shopId,
+          requestedSlug ?? null,
           input.description.trim(),
           input.city.trim(),
           input.address.trim(),
@@ -189,7 +223,7 @@ export class StorefrontService {
   }
   async store(slug: string) {
     const [r] = await this.db.query(
-      'SELECT name,slug,description,city,address,phone,hours,district,pickup_enabled AS "pickupEnabled",delivery_enabled AS "deliveryEnabled" FROM shops WHERE slug=$1 AND published AND (NOT marketplace_blocked)',
+      'SELECT s.name,s.slug,s.description,s.city,s.address,s.phone,s.hours,s.district,s.pickup_enabled AS "pickupEnabled",s.delivery_enabled AS "deliveryEnabled",(h.slug IS NOT NULL) AS "redirectFrom" FROM shops s LEFT JOIN shop_slug_history h ON h.shop_id=s.id AND h.slug=$1 WHERE (s.slug=$1 OR h.slug=$1) AND s.published AND (NOT s.marketplace_blocked)',
       [slug],
     );
     if (!r) throw new NotFoundException();

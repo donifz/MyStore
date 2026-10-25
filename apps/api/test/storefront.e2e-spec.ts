@@ -33,6 +33,7 @@ describe('public storefront', () => {
       await request(http())
         .post(`/shops/${fixture.shop}/variants`)
         .auth(c.owner, { type: 'bearer' })
+        .set('Idempotency-Key', randomUUID())
         .send({ name, salePriceMinor: price })
         .expect(201)
     ).body;
@@ -65,6 +66,27 @@ describe('public storefront', () => {
     expect(published.slug).toBe(own.body.slug);
     const list = await request(http()).get('/public/stores').expect(200);
     expect(list.body.items.map((x: any) => x.slug)).toEqual([published.slug]);
+  });
+  it('keeps a historical slug and redirects it to the canonical address', async () => {
+    const first = await publish();
+    const changed = await request(http())
+      .put(`/shops/${fixture.shop}/storefront`)
+      .auth(c.owner, { type: 'bearer' })
+      .send({ ...profile, slug: 'canonical-home' })
+      .expect(200);
+    expect(changed.body.slug).toBe('canonical-home');
+    await request(http())
+      .get(`/public/stores/${first.slug}`)
+      .redirects(0)
+      .expect(308)
+      .expect('Location', `/api/public/stores/${changed.body.slug}`);
+    const alias = await c.db.query(
+      'SELECT shop_id,current_slug FROM shop_slug_history WHERE slug=$1',
+      [first.slug],
+    );
+    expect(alias).toEqual([
+      { shop_id: fixture.shop, current_slug: changed.body.slug },
+    ]);
   });
   it('uses real inventory after receiving and selling without exposing financial data', async () => {
     const shop = await publish(),
