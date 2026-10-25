@@ -56,7 +56,7 @@ for (const width of [390, 1440]) {
       ),
     ).toBe(true);
     await expect(
-      page.getByRole('button', { name: 'Провести приёмку' }),
+      page.getByRole('button', { name: 'Провести приёмку', exact: true }),
     ).toBeDisabled();
     await form.getByLabel('Название').fill('Принтер ' + tag);
     await form.getByLabel('Цена продажи, сом').fill('2000');
@@ -102,7 +102,9 @@ for (const width of [390, 1440]) {
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
-    await page.getByRole('button', { name: 'Провести приёмку' }).click();
+    await page
+      .getByRole('button', { name: 'Провести приёмку', exact: true })
+      .click();
     await expect(page.getByRole('status')).toContainText('Документ проведён');
     const added = await balance(barcode),
       known = await balance(knownBarcode);
