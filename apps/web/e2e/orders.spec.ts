@@ -33,7 +33,7 @@ test('shopper checkout recovers receipt and seller issues reserved stock once', 
   ).json();
   const variant = await (
     await request.post(`/api/shops/${shop}/variants`, {
-      headers,
+      headers: { ...headers, 'idempotency-key': randomUUID() },
       data: { name: 'Чашка для заказа', salePriceMinor: 15000 },
     })
   ).json();
@@ -191,7 +191,7 @@ async function shopForCart(request: APIRequestContext, name: string) {
   ).json();
   const v = await (
     await request.post(`/api/shops/${shop}/variants`, {
-      headers,
+      headers: { ...headers, 'idempotency-key': randomUUID() },
       data: { name, salePriceMinor: 15000 },
     })
   ).json();

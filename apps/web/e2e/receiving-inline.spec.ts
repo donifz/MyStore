@@ -22,6 +22,7 @@ for (const width of [390, 1440]) {
           headers: {
             'content-type': 'application/json',
             'x-csrf-token': me.csrfToken,
+            'idempotency-key': crypto.randomUUID(),
           },
           body: JSON.stringify({
             name: 'Известный товар',
