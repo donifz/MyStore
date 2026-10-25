@@ -53,6 +53,18 @@ describe('catalog archive and variant groups', () => {
       .get(root + path)
       .auth(token, { type: 'bearer' });
 
+  test('requires an idempotency key to create a product', async () => {
+    await request(ctx.app.getHttpServer())
+      .post(`${root}/variants`)
+      .auth(ctx.owner, { type: 'bearer' })
+      .send({
+        name: 'Key-required product',
+        barcode: 'KEY-REQUIRED-001',
+        salePriceMinor: 12345,
+      })
+      .expect(400);
+  });
+
   test('replays an identical idempotent product creation without a duplicate', async () => {
     const key = randomUUID();
     const body = {
@@ -66,6 +78,32 @@ describe('catalog archive and variant groups', () => {
     const rows = await ctx.db.query(
       'SELECT id FROM variants WHERE shop_id=$1 AND barcode=$2',
       [fixture.shop, body.barcode],
+    );
+    expect(rows).toHaveLength(1);
+    const publications = await ctx.db.query(
+      'SELECT id FROM product_publication_revisions WHERE variant_id=$1',
+      [first.body.id],
+    );
+    expect(publications).toHaveLength(1);
+  });
+
+  test('rejects a product creation key reused with different input', async () => {
+    const key = randomUUID();
+    const first = {
+      name: 'Fingerprint product',
+      barcode: 'FINGERPRINT-001',
+      salePriceMinor: 12345,
+    };
+    await post('/variants', first, ctx.owner, key).expect(201);
+    await post(
+      '/variants',
+      { ...first, salePriceMinor: 67890 },
+      ctx.owner,
+      key,
+    ).expect(409);
+    const rows = await ctx.db.query(
+      'SELECT id FROM variants WHERE shop_id=$1 AND barcode=$2',
+      [fixture.shop, first.barcode],
     );
     expect(rows).toHaveLength(1);
   });

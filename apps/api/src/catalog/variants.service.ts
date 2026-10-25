@@ -131,16 +131,14 @@ export class VariantsService {
     shopId: string,
     input: VariantInput,
     actor: string,
-    key?: string,
+    key: string,
   ): Promise<Variant> {
-    if (key)
-      return this.operations.execute(
-        shopId,
-        key,
-        { kind: 'variant', ...input },
-        () => this.createVariantUnsafe(shopId, input, actor),
-      );
-    return this.createVariantUnsafe(shopId, input, actor);
+    return this.operations.execute(
+      shopId,
+      key,
+      { kind: 'variant', ...input },
+      () => this.createVariantUnsafe(shopId, input, actor),
+    );
   }
   private async createVariantUnsafe(
     shopId: string,

@@ -108,7 +108,7 @@ export class VariantsController {
     @Param('shopId', ParseUUIDPipe) shopId: string,
     @Req() req: UserRequest,
     @Body() body: VariantDto,
-    @Headers('idempotency-key') key?: string,
+    @Headers('idempotency-key') key: string,
   ) {
     await this.access.requireMembership(req.userId, shopId, 'catalog');
     return this.variants.createVariant(shopId, body, req.userId, key);
