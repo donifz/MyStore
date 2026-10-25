@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { DataSource } from 'typeorm';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { IdempotencyService } from '../common/idempotency.service';
 import { minor, quantity, safeMoney } from '../common/money';
 import { StockService } from './stock.service';
@@ -45,9 +45,14 @@ export class ReceivingService {
     input: ReceiveDocument,
   ): Promise<ReceiptResult> {
     key = this.operations.requireKey(key);
+    const fallbackNumber = `DOC-${createHash('sha256')
+      .update(key)
+      .digest('hex')
+      .slice(0, 10)
+      .toUpperCase()}`;
     const meta = Array.isArray(input)
       ? {
-          documentNumber: `DOC-${key.replaceAll('-', '').slice(0, 8).toUpperCase()}`,
+          documentNumber: fallbackNumber,
           receivedOn: new Date().toISOString().slice(0, 10),
           supplier: '',
           comment: '',
@@ -55,9 +60,7 @@ export class ReceivingService {
         }
       : {
           ...input,
-          documentNumber:
-            input.documentNumber?.trim() ||
-            `DOC-${key.replaceAll('-', '').slice(0, 8).toUpperCase()}`,
+          documentNumber: input.documentNumber?.trim() || fallbackNumber,
           receivedOn: input.receivedOn || new Date().toISOString().slice(0, 10),
         };
     if (!/^[-\w ]{1,120}$/.test(meta.documentNumber.trim()))
