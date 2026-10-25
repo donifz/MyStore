@@ -19,6 +19,7 @@ describe('sales', () => {
       await request(ctx.app.getHttpServer())
         .post(`/shops/${fixture.shop}/variants`)
         .set('Authorization', `Bearer ${ctx.owner}`)
+        .set('Idempotency-Key', randomUUID())
         .send({ name: 'Product', salePriceMinor: price })
         .expect(201)
     ).body;
@@ -178,6 +179,7 @@ describe('sales', () => {
       await request(ctx.app.getHttpServer())
         .post(`/shops/${shop}/variants`)
         .set('Authorization', `Bearer ${ctx.owner}`)
+        .set('Idempotency-Key', randomUUID())
         .send({ name: 'Alias Stock', salePriceMinor: 100 })
         .expect(201)
     ).body;

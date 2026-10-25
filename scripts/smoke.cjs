@@ -44,11 +44,15 @@ async function main() {
   );
   const shop = '/shops/11111111-1111-4111-8111-111111111111';
   const barcode = `SMOKE${randomUUID().replaceAll('-', '')}`;
-  const variant = await call(shop + '/variants', {
-    name: 'Smoke product',
-    barcode,
-    salePriceMinor: 15000,
-  });
+  const variant = await call(
+    shop + '/variants',
+    {
+      name: 'Smoke product',
+      barcode,
+      salePriceMinor: 15000,
+    },
+    randomUUID(),
+  );
   assert.equal(
     (await call(shop + '/variants/by-barcode?code=' + barcode)).id,
     variant.id,

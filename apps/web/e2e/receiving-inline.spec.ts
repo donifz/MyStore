@@ -22,6 +22,7 @@ for (const width of [390, 1440]) {
           headers: {
             'content-type': 'application/json',
             'x-csrf-token': me.csrfToken,
+            'idempotency-key': crypto.randomUUID(),
           },
           body: JSON.stringify({
             name: 'Известный товар',
@@ -55,19 +56,20 @@ for (const width of [390, 1440]) {
       ),
     ).toBe(true);
     await expect(
-      page.getByRole('button', { name: 'Провести приёмку' }),
+      page.getByRole('button', { name: 'Провести приёмку', exact: true }),
     ).toBeDisabled();
     await form.getByLabel('Название').fill('Принтер ' + tag);
     await form.getByLabel('Цена продажи, сом').fill('2000');
-    await form
-      .getByRole('button', { name: 'Создать и добавить в приёмку' })
-      .click();
-    await expect(form).toHaveCount(0);
-    await expect(page).toHaveURL(new RegExp(`/seller/${shop}/receiving$`));
-    await expect(page.getByLabel('Количество Принтер ' + tag)).toHaveValue('1');
-    await expect(page.getByLabel('Количество Известный товар')).toHaveValue(
-      '2',
+    await expect(form.getByLabel('Количество первичной приёмки')).toHaveValue(
+      '1',
     );
+    await form.getByLabel('Количество первичной приёмки').fill('5');
+    await form.getByLabel('Закупочная цена, сом').fill('1500');
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
     async function balance(code: string) {
       return await page.evaluate(
         async ({ shop, code }) => {
@@ -85,24 +87,18 @@ for (const width of [390, 1440]) {
         { shop, code },
       );
     }
-    expect((await balance(barcode)).physical).toBe(0);
     expect((await balance(knownBarcode)).physical).toBe(0);
-    await page.getByLabel('Количество Принтер ' + tag).fill('5');
-    await page
-      .getByLabel('Закупочная цена Принтер ' + tag + ', сом')
-      .fill('1500');
-    await page.reload();
-    await expect(page.getByLabel('Количество Принтер ' + tag)).toHaveValue('5');
-    await expect(
-      page.getByLabel('Закупочная цена Известный товар, сом'),
-    ).toHaveValue('50');
+    await form
+      .getByRole('button', { name: 'Создать и провести приёмку' })
+      .click();
+    await expect(form).toHaveCount(0);
+    await expect(page).toHaveURL(new RegExp(`/seller/${shop}/receiving$`));
+    await expect(page.getByRole('status')).toContainText('Документ проведён');
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
-    await page.getByRole('button', { name: 'Провести приёмку' }).click();
-    await expect(page.getByRole('status')).toContainText('Документ проведён');
     const added = await balance(barcode),
       known = await balance(knownBarcode);
     expect(added.physical).toBe(5);

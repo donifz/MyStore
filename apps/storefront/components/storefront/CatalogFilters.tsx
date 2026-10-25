@@ -20,7 +20,7 @@ export default function CatalogFilters({
   return (
     <form
       className="sf-filters"
-      action={slug ? '/shops/' + slug : '/'}
+      action={slug ? '/shop/' + slug : '/'}
       method="get"
     >
       <Input
@@ -88,7 +88,7 @@ export default function CatalogFilters({
         {isFiltered && (
           <LinkButton
             variant="secondary"
-            href={slug ? '/shops/' + slug : '/'}
+            href={slug ? '/shop/' + slug : '/'}
             className="sf-button--reset"
           >
             Сбросить

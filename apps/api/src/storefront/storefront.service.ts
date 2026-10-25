@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
@@ -13,9 +14,16 @@ import {
   validateBusinessSchedule,
   validateTimeZone,
 } from '../orders/business-hours';
+import {
+  activePresentation,
+  savedPresentation,
+  validatePresentation,
+} from './themes';
 const profileColumns =
-  'name,slug,description,city,address,phone,hours,published,district,pickup_enabled AS \"pickupEnabled\",delivery_enabled AS \"deliveryEnabled\",time_zone AS \"timeZone\",business_schedule AS \"businessSchedule\"';
+  'name,slug,storefront_theme AS \"theme\",theme_content AS \"themeContent\",theme_starts_at AS \"themeStartsAt\",theme_ends_at AS \"themeEndsAt\",description,city,address,phone,hours,published,district,pickup_enabled AS \"pickupEnabled\",delivery_enabled AS \"deliveryEnabled\",time_zone AS \"timeZone\",business_schedule AS \"businessSchedule\"';
 export type ProfileInput = {
+  slug?: string;
+  presentation?: unknown;
   timeZone?: string;
   businessSchedule?: unknown;
   district?: string;
@@ -42,6 +50,23 @@ export type PublicQuery = {
   sort: string;
 };
 const escaped = (q: string) => '%' + q.replace(/[\\%_]/g, '\\$&') + '%';
+const reservedSlugs = new Set([
+  'api',
+  'admin',
+  'auth',
+  'login',
+  'public',
+  'shop',
+  'shops',
+  'products',
+  'new',
+  'cart',
+  'checkout',
+  'seller',
+  'terms',
+  'privacy',
+  'ui-kit',
+]);
 @Injectable()
 export class StorefrontService {
   constructor(@Inject(DATABASE) private readonly db: DataSource) {}
@@ -53,12 +78,14 @@ export class StorefrontService {
     if (!m) throw new ForbiddenException();
   }
   private profileDto(row: any) {
+    const { themeContent, themeStartsAt, themeEndsAt, ...profile } = row;
     const from = new Date();
     const expiresAt = row.businessSchedule
       ? businessDeadline(from, row.businessSchedule, row.timeZone)
       : new Date(from.getTime() + 30 * 60_000);
     return {
-      ...row,
+      ...profile,
+      presentation: savedPresentation(row),
       reservationPolicy: row.businessSchedule
         ? 'business-hours'
         : 'legacy-30-minutes',
@@ -84,74 +111,159 @@ export class StorefrontService {
         !/^\d{7,15}$/.test(input.phone.replace(/\D/g, '')))
     )
       throw new BadRequestException('City and phone required for publication');
-    return this.db.transaction(async (tx) => {
-      const [current] = await tx.query(
-        'SELECT * FROM shops WHERE id=$1 FOR UPDATE',
-        [shopId],
-      );
-      if (!current) throw new NotFoundException();
-      if (
-        !(input.pickupEnabled ?? current.pickup_enabled) &&
-        !(input.deliveryEnabled ?? current.delivery_enabled)
-      )
-        throw new BadRequestException('Enable at least one fulfillment method');
-      const timeZone =
-        input.timeZone === undefined ? current.time_zone : input.timeZone;
-      let schedule;
-      try {
-        validateTimeZone(timeZone);
-        const value =
-          input.businessSchedule === undefined
-            ? current.business_schedule
-            : input.businessSchedule;
-        schedule =
-          value === null ? null : validateBusinessSchedule(value, timeZone);
-      } catch (error) {
-        throw new BadRequestException((error as Error).message);
-      }
-      const hours = schedule
-        ? formatBusinessSchedule(schedule)
-        : input.hours.trim();
-      const [[row]] = await tx.query(
-        'UPDATE shops SET description=$2,city=$3,address=$4,phone=$5,hours=$6,published=$7,district=COALESCE($8,district),pickup_enabled=COALESCE($9,pickup_enabled),delivery_enabled=COALESCE($10,delivery_enabled),time_zone=$11,business_schedule=$12 WHERE id=$1 RETURNING ' +
-          profileColumns,
-        [
-          shopId,
-          input.description.trim(),
-          input.city.trim(),
-          input.address.trim(),
-          input.phone.trim(),
-          hours,
-          input.published,
-          input.district?.trim() ?? null,
-          input.pickupEnabled ?? null,
-          input.deliveryEnabled ?? null,
-          timeZone,
-          schedule === null ? null : JSON.stringify(schedule),
-        ],
-      );
-      if (
-        current.time_zone !== timeZone ||
-        JSON.stringify(current.business_schedule) !== JSON.stringify(schedule)
-      ) {
-        await tx.query(
-          `INSERT INTO audit_log(shop_id,actor_id,action,entity_type,entity_id,details)
-          VALUES($1,$2,'updated','shop_schedule',$1,$3)`,
+    const requestedSlug = input.slug?.trim().toLowerCase();
+    const requestedPresentation =
+      input.presentation === undefined
+        ? undefined
+        : await validatePresentation(input.presentation);
+    if (
+      requestedSlug !== undefined &&
+      (!/^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/.test(requestedSlug) ||
+        reservedSlugs.has(requestedSlug))
+    )
+      throw new BadRequestException('Invalid or reserved shop address');
+    try {
+      return await this.db.transaction(async (tx) => {
+        const [current] = await tx.query(
+          'SELECT * FROM shops WHERE id=$1 FOR UPDATE',
+          [shopId],
+        );
+        if (!current) throw new NotFoundException();
+        if (
+          !(input.pickupEnabled ?? current.pickup_enabled) &&
+          !(input.deliveryEnabled ?? current.delivery_enabled)
+        )
+          throw new BadRequestException(
+            'Enable at least one fulfillment method',
+          );
+        const timeZone =
+          input.timeZone === undefined ? current.time_zone : input.timeZone;
+        let schedule;
+        try {
+          validateTimeZone(timeZone);
+          const value =
+            input.businessSchedule === undefined
+              ? current.business_schedule
+              : input.businessSchedule;
+          schedule =
+            value === null ? null : validateBusinessSchedule(value, timeZone);
+        } catch (error) {
+          throw new BadRequestException((error as Error).message);
+        }
+        const hours = schedule
+          ? formatBusinessSchedule(schedule)
+          : input.hours.trim();
+        if (requestedSlug !== undefined && requestedSlug !== current.slug) {
+          await tx.query(
+            'UPDATE shop_slugs SET is_current=false WHERE shop_id=$1 AND is_current',
+            [shopId],
+          );
+          const claimed = await tx.query(
+            `INSERT INTO shop_slugs(slug,shop_id,is_current) VALUES($1,$2,true)
+             ON CONFLICT (slug) DO UPDATE SET is_current=true
+             WHERE shop_slugs.shop_id=excluded.shop_id
+             RETURNING slug`,
+            [requestedSlug, shopId],
+          );
+          if (!claimed.length)
+            throw new ConflictException('Адрес занят, выберите другой');
+          await tx.query(
+            `INSERT INTO audit_log(shop_id,actor_id,action,entity_type,entity_id,details)
+           VALUES($1,$2,'slug_changed','shop',$1,$3)`,
+            [
+              shopId,
+              actor,
+              JSON.stringify({ before: current.slug, after: requestedSlug }),
+            ],
+          );
+        }
+        const [[row]] = await tx.query(
+          'UPDATE shops SET slug=COALESCE($2,slug),storefront_theme=COALESCE($3,storefront_theme),description=$4,city=$5,address=$6,phone=$7,hours=$8,published=$9,district=COALESCE($10,district),pickup_enabled=COALESCE($11,pickup_enabled),delivery_enabled=COALESCE($12,delivery_enabled),time_zone=$13,business_schedule=$14,theme_content=COALESCE($15,theme_content),theme_starts_at=CASE WHEN $3::varchar IS NULL THEN theme_starts_at ELSE $16::timestamptz END,theme_ends_at=CASE WHEN $3::varchar IS NULL THEN theme_ends_at ELSE $17::timestamptz END WHERE id=$1 RETURNING ' +
+            profileColumns,
           [
             shopId,
-            actor,
-            JSON.stringify({
-              before: {
-                timeZone: current.time_zone,
-                businessSchedule: current.business_schedule,
-              },
-              after: { timeZone, businessSchedule: schedule },
-            }),
+            requestedSlug ?? null,
+            requestedPresentation?.id ?? null,
+            input.description.trim(),
+            input.city.trim(),
+            input.address.trim(),
+            input.phone.trim(),
+            hours,
+            input.published,
+            input.district?.trim() ?? null,
+            input.pickupEnabled ?? null,
+            input.deliveryEnabled ?? null,
+            timeZone,
+            schedule === null ? null : JSON.stringify(schedule),
+            requestedPresentation
+              ? JSON.stringify({
+                  ...(requestedPresentation.hero
+                    ? { hero: requestedPresentation.hero }
+                    : {}),
+                  ...(requestedPresentation.info
+                    ? { info: requestedPresentation.info }
+                    : {}),
+                })
+              : null,
+            requestedPresentation?.startsAt ?? null,
+            requestedPresentation?.endsAt ?? null,
           ],
         );
+        if (requestedPresentation) {
+          await tx.query(
+            `INSERT INTO audit_log(shop_id,actor_id,action,entity_type,entity_id,details)
+             VALUES($1,$2,'theme_changed','shop',$1,$3)`,
+            [
+              shopId,
+              actor,
+              JSON.stringify({
+                before: savedPresentation({
+                  theme: current.storefront_theme,
+                  themeContent: current.theme_content,
+                  themeStartsAt: current.theme_starts_at,
+                  themeEndsAt: current.theme_ends_at,
+                }),
+                after: requestedPresentation,
+              }),
+            ],
+          );
+        }
+        if (
+          current.time_zone !== timeZone ||
+          JSON.stringify(current.business_schedule) !== JSON.stringify(schedule)
+        ) {
+          await tx.query(
+            `INSERT INTO audit_log(shop_id,actor_id,action,entity_type,entity_id,details)
+          VALUES($1,$2,'updated','shop_schedule',$1,$3)`,
+            [
+              shopId,
+              actor,
+              JSON.stringify({
+                before: {
+                  timeZone: current.time_zone,
+                  businessSchedule: current.business_schedule,
+                },
+                after: { timeZone, businessSchedule: schedule },
+              }),
+            ],
+          );
+        }
+        return this.profileDto(row);
+      });
+    } catch (error: any) {
+      if (
+        requestedSlug !== undefined &&
+        (error?.code === '23505' || error instanceof ConflictException)
+      ) {
+        await this.db.query(
+          `INSERT INTO audit_log(shop_id,actor_id,action,entity_type,entity_id,details)
+           VALUES($1,$2,'slug_change_rejected','shop',$1,$3)`,
+          [shopId, actor, JSON.stringify({ requested: requestedSlug })],
+        );
+        throw new ConflictException('Адрес занят, выберите другой');
       }
-      return this.profileDto(row);
-    });
+      throw error;
+    }
   }
   async filters() {
     const locations = await this.db.query(
@@ -189,11 +301,12 @@ export class StorefrontService {
   }
   async store(slug: string) {
     const [r] = await this.db.query(
-      'SELECT name,slug,description,city,address,phone,hours,district,pickup_enabled AS "pickupEnabled",delivery_enabled AS "deliveryEnabled" FROM shops WHERE slug=$1 AND published AND (NOT marketplace_blocked)',
+      'SELECT s.name,s.slug,s.storefront_theme AS "theme",s.theme_content AS "themeContent",s.theme_starts_at AS "themeStartsAt",s.theme_ends_at AS "themeEndsAt",s.description,s.city,s.address,s.phone,s.hours,s.district,s.pickup_enabled AS "pickupEnabled",s.delivery_enabled AS "deliveryEnabled",(NOT ss.is_current) AS historical FROM shop_slugs ss JOIN shops s ON s.id=ss.shop_id WHERE ss.slug=$1 AND s.published AND (NOT s.marketplace_blocked)',
       [slug],
     );
     if (!r) throw new NotFoundException();
-    return r;
+    const { themeContent, themeStartsAt, themeEndsAt, theme, ...store } = r;
+    return { ...store, presentation: activePresentation(r) };
   }
   private productDto(r: any, detail = false) {
     return {
@@ -223,6 +336,7 @@ export class StorefrontService {
         district: r.district,
         pickupEnabled: r.pickup_enabled,
         deliveryEnabled: r.delivery_enabled,
+        presentation: activePresentation(r),
         ...(detail
           ? { phone: r.phone, address: r.address, hours: r.hours }
           : {}),
@@ -232,11 +346,19 @@ export class StorefrontService {
   private from =
     ' FROM variants v JOIN shops s ON s.id=v.shop_id JOIN product_publications p ON p.variant_id=v.id AND p.shop_id=s.id LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id';
   private select =
-    `SELECT v.id,v.size,v.color,v.sku,v.parent_id,(p.photo_data IS NOT NULL) has_photo,cardinality(p.photo_album) photo_count,p.name,p.description,p.category,v.sale_price_minor,COALESCE(b.physical,0)-COALESCE(b.reserved,0) available,s.slug,s.name shop_name,s.city,s.phone,s.address,s.hours,s.district,s.pickup_enabled,s.delivery_enabled` +
+    `SELECT v.id,v.size,v.color,v.sku,v.parent_id,(p.photo_data IS NOT NULL) has_photo,cardinality(p.photo_album) photo_count,p.name,p.description,p.category,v.sale_price_minor,COALESCE(b.physical,0)-COALESCE(b.reserved,0) available,s.slug,s.name shop_name,s.city,s.phone,s.address,s.hours,s.district,s.pickup_enabled,s.delivery_enabled,s.storefront_theme AS theme,s.theme_content AS "themeContent",s.theme_starts_at AS "themeStartsAt",s.theme_ends_at AS "themeEndsAt"` +
     this.from;
+  private async canonicalSlug(slug: string) {
+    const [row] = await this.db.query(
+      'SELECT s.slug FROM shop_slugs ss JOIN shops s ON s.id=ss.shop_id WHERE ss.slug=$1 AND s.published AND (NOT s.marketplace_blocked)',
+      [slug],
+    );
+    if (!row) throw new NotFoundException();
+    return row.slug as string;
+  }
   async products(query: PublicQuery) {
     const { q, page, pageSize, store, category, inStock, sort } = query;
-    if (store) await this.store(store);
+    const canonicalStore = store ? await this.canonicalSlug(store) : '';
     const where = `s.published AND (NOT s.marketplace_blocked) AND v.published AND NOT v.archived AND (p.name ILIKE $1 OR s.name ILIKE $1 OR v.barcode ILIKE $1 OR v.sku ILIKE $1) AND ($2='' OR s.slug=$2) AND ($3='' OR p.category=$3) AND ($4=false OR COALESCE(b.physical,0)-COALESCE(b.reserved,0)>0) AND ($5='' OR s.city=$5) AND v.sale_price_minor BETWEEN $6 AND $7`;
     if (
       query.minPrice !== undefined &&
@@ -246,7 +368,7 @@ export class StorefrontService {
       throw new BadRequestException('Invalid price range');
     const params = [
       escaped(q),
-      store,
+      canonicalStore,
       category,
       inStock === 'true',
       query.city || '',
@@ -274,7 +396,7 @@ export class StorefrontService {
     );
     const cats = await this.db.query(
       "SELECT DISTINCT p.category FROM product_publications p JOIN variants v ON v.id=p.variant_id JOIN shops s ON s.id=p.shop_id WHERE s.published AND (NOT s.marketplace_blocked) AND v.published AND NOT v.archived AND p.category<>'' AND ($1='' OR s.slug=$1) ORDER BY p.category",
-      [store],
+      [canonicalStore],
     );
     return {
       items: rows.map((r: any) => this.productDto(r)),
@@ -285,10 +407,11 @@ export class StorefrontService {
     };
   }
   async product(slug: string, id: string) {
+    const canonicalStore = await this.canonicalSlug(slug);
     const [r] = await this.db.query(
       this.select +
         ' WHERE s.published AND (NOT s.marketplace_blocked) AND v.published AND NOT v.archived AND s.slug=$1 AND v.id=$2',
-      [slug, id],
+      [canonicalStore, id],
     );
     if (!r) throw new NotFoundException();
     const rootId = r.parent_id || r.id;
@@ -300,7 +423,7 @@ export class StorefrontService {
        LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id
        WHERE s.slug=$1 AND v.published AND NOT v.archived AND (v.id=$2 OR v.parent_id=$2)
        ORDER BY v.created_at ASC, v.id ASC`,
-      [slug, rootId],
+      [canonicalStore, rootId],
     );
     const dto = this.productDto(r, true);
     return {

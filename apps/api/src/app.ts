@@ -275,7 +275,8 @@ export async function createApp(
               req.path === '/favorites' ||
               req.path === '/ui-kit' ||
               req.path === '/shops' ||
-              /^\/shops\/[^/]+(?:\/products\/[^/]+)?\/?$/.test(req.path)))
+              /^\/shops\/[^/]+(?:\/products\/[^/]+)?\/?$/.test(req.path) ||
+              /^\/shop\/[^/]+(?:\/products\/[^/]+)?\/?$/.test(req.path)))
         ) {
           req.headers['content-security-policy'] = String(
             res.getHeader('Content-Security-Policy'),
@@ -302,6 +303,7 @@ export async function createApp(
           req.path === '/partner' ||
           req.path === '/shops' ||
           /^\/shops\/[^/]+(?:\/products\/[^/]+)?\/?$/.test(req.path) ||
+          /^\/shop\/[^/]+(?:\/products\/[^/]+)?\/?$/.test(req.path) ||
           req.path === '/seller' ||
           req.path.startsWith('/seller/') ||
           req.path === '/platform/admin'

@@ -6,10 +6,17 @@ export default function DocumentEditor({
   doc,
   receiving,
   shopId,
+  receivingMetadata,
 }: {
   doc: ReturnType<typeof useDocument>;
   receiving: boolean;
   shopId: string;
+  receivingMetadata?: {
+    documentNumber?: string;
+    supplier: string;
+    receivedOn: string;
+    comment: string;
+  };
 }) {
   const disabled =
     doc.busy || doc.blocked || !!doc.draft.submission || !!doc.productCreation;
@@ -38,7 +45,7 @@ export default function DocumentEditor({
           type="button"
           className="button"
           disabled={disabled || !doc.online}
-          onClick={doc.beginProductCreation}
+          onClick={() => void doc.beginProductCreation()}
         >
           Создать товар с этим штрихкодом
         </button>
@@ -48,15 +55,24 @@ export default function DocumentEditor({
           key={doc.productCreation}
           shopId={shopId}
           barcode={doc.productCreation}
-          disabled={
-            doc.blocked || !doc.online || doc.busy || !!doc.draft.submission
-          }
+          creationKey={doc.draft.primaryReceiving?.productKey}
+          disabled={doc.blocked || !doc.online || doc.busy}
           onCancel={doc.closeProductCreation}
-          onCreated={async (variant) => {
-            const added = await doc.addVariant(variant);
-            if (added) doc.closeProductCreation();
-            return added;
-          }}
+          onCreated={(variant, quantity, unitCostText) =>
+            doc.receiveCreatedVariant(
+              variant,
+              quantity,
+              unitCostText,
+              receivingMetadata ?? {
+                supplier: '',
+                receivedOn: new Date().toISOString().slice(0, 10),
+                comment: '',
+              },
+            )
+          }
+          onCreatedWithoutReceiving={async () =>
+            doc.finishProductCreationWithoutReceiving()
+          }
         />
       )}
       {doc.priceChange && (

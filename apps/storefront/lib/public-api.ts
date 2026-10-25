@@ -1,5 +1,6 @@
 import { cache } from 'react';
 export type Store = {
+  presentation?: ThemePresentation;
   district?: string;
   pickupEnabled?: boolean;
   deliveryEnabled?: boolean;
@@ -12,6 +13,21 @@ export type Store = {
   address?: string;
   phone?: string;
   hours?: string;
+};
+export type ThemeBlock = {
+  imageDataUrl?: string;
+  imageAlt?: string;
+  title?: string;
+  text?: string;
+  link?: string;
+  buttonLabel?: string;
+};
+export type ThemePresentation = {
+  id: 'base' | 'new-year' | 'womens-day' | 'nooruz';
+  startsAt?: string | null;
+  endsAt?: string | null;
+  hero?: ThemeBlock;
+  info?: ThemeBlock;
 };
 export type ProductVariant = {
   id: string;

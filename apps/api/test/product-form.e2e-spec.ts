@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
 import { createApp } from '../src/app';
 import { setup, teardown, fixture } from './helpers';
@@ -21,6 +22,8 @@ describe('product creation with photo without receiving', () => {
     const a = await request(ctx.app.getHttpServer())
       .post(`/shops/${fixture.shop}/variants`)
       .auth(ctx.owner, { type: 'bearer' })
+      .set('Idempotency-Key', randomUUID())
+      .set('Idempotency-Key', randomUUID())
       .send({
         name: 'Принтер',
         barcode: '000123',
@@ -64,6 +67,7 @@ describe('product creation with photo without receiving', () => {
     await request(ctx.app.getHttpServer())
       .post(`/shops/${fixture.shop}/variants`)
       .auth(ctx.cashier, { type: 'bearer' })
+      .set('Idempotency-Key', randomUUID())
       .send({ name: 'Denied', salePriceMinor: 100, photoDataUrl: photo })
       .expect(403);
   });

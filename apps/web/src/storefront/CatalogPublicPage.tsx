@@ -181,7 +181,7 @@ export default function CatalogPublicPage() {
               <Link
                 className="product-tile"
                 key={v.id}
-                to={'/shops/' + v.store.slug + '/products/' + v.id}
+                to={'/shop/' + v.store.slug + '/products/' + v.id}
               >
                 <div className="product-cover" aria-hidden="true">
                   <span>{v.name.slice(0, 1).toUpperCase()}</span>

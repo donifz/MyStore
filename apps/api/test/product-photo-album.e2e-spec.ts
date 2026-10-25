@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
 import { createApp } from '../src/app';
 import { setup, teardown, fixture } from './helpers';
@@ -42,6 +43,7 @@ describe('product photo album moderation', () => {
       await request(http())
         .post(`/shops/${fixture.shop}/variants`)
         .auth(c.owner, { type: 'bearer' })
+        .set('Idempotency-Key', randomUUID())
         .send({
           name: 'Альбом',
           salePriceMinor: 15000,

@@ -1,4 +1,11 @@
-import { useCallback, useId, useRef, useState, type FormEvent } from 'react';
+import {
+  useCallback,
+  useId,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from 'react';
 import { api, ApiError, errorText } from '../api/client';
 import { parseSom, formatSom } from '../api/money';
 import type { Variant } from '../api/types';
@@ -14,8 +21,12 @@ export default function ProductForm({
   submitLabel = 'Сохранить товар',
   formLabel = 'Добавить товар',
   savedLabel = 'Продолжить',
+  creationKey,
+  footerFields,
+  secondarySubmitLabel,
   onCancel,
   onSaved,
+  onSecondarySaved,
 }: {
   shopId: string;
   parentId?: string;
@@ -26,8 +37,14 @@ export default function ProductForm({
   submitLabel?: string;
   formLabel?: string;
   savedLabel?: string;
+  creationKey?: string;
+  footerFields?: ReactNode;
+  secondarySubmitLabel?: string;
   onCancel?: () => void;
   onSaved: (variant: Variant) => Promise<boolean | void> | boolean | void;
+  onSecondarySaved?: (
+    variant: Variant,
+  ) => Promise<boolean | void> | boolean | void;
 }) {
   const [name, setName] = useState(''),
     [barcode, setBarcode] = useState(initialBarcode),
@@ -50,6 +67,8 @@ export default function ProductForm({
   const submitting = useRef(false),
     photoRevision = useRef(0),
     lookupRevision = useRef(0),
+    productCreationKey = useRef(creationKey ?? crypto.randomUUID()),
+    submitIntent = useRef<'primary' | 'secondary'>('primary'),
     id = useId();
   const updateCategories = useCallback(
     (value: CategoryNode[]) => setCategories(Array.isArray(value) ? value : []),
@@ -120,6 +139,10 @@ export default function ProductForm({
   }
   async function submit(e: FormEvent) {
     e.preventDefault();
+    const submitter = (e.nativeEvent as SubmitEvent)
+      .submitter as HTMLButtonElement | null;
+    submitIntent.current =
+      submitter?.dataset.intent === 'secondary' ? 'secondary' : 'primary';
     if (locked || submitting.current) return;
     submitting.current = true;
     setBusy(true);
@@ -131,6 +154,7 @@ export default function ProductForm({
         try {
           variant = await api<Variant>(`/shops/${shopId}/variants`, {
             method: 'POST',
+            key: productCreationKey.current,
             body: {
               name: name.trim(),
               ...(parentId ? { parentId } : {}),
@@ -160,7 +184,11 @@ export default function ProductForm({
           throw e;
         }
       }
-      if ((await onSaved(variant)) === false)
+      const afterSave =
+        submitIntent.current === 'secondary' && onSecondarySaved
+          ? onSecondarySaved
+          : onSaved;
+      if ((await afterSave(variant)) === false)
         setError(
           'Карточка сохранена, но черновик не изменён. Обновите черновик и добавьте товар.',
         );
@@ -368,6 +396,7 @@ export default function ProductForm({
         </p>
       )}
       <footer className="product-form-footer">
+        {footerFields}
         <p className="muted">
           Сохранение создаёт карточку. Количество и закупочную цену укажите в
           приёмке.
@@ -376,6 +405,16 @@ export default function ProductForm({
           {onCancel && (
             <button type="button" disabled={busy} onClick={onCancel}>
               Отмена
+            </button>
+          )}
+          {secondarySubmitLabel && !saved && (
+            <button
+              type="submit"
+              formNoValidate
+              data-intent="secondary"
+              disabled={locked}
+            >
+              {secondarySubmitLabel}
             </button>
           )}
           <button type="submit" className="primary" disabled={locked}>

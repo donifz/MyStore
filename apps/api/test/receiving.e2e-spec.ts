@@ -10,6 +10,7 @@ describe('receiving', () => {
     const r = await request(ctx.app.getHttpServer())
       .post(`/shops/${fixture.shop}/variants`)
       .set('Authorization', `Bearer ${ctx.owner}`)
+      .set('Idempotency-Key', randomUUID())
       .send({ name: 'Bag', barcode: 'BAG', salePriceMinor: 15000 })
       .expect(201);
     id = r.body.id;

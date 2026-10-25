@@ -13,6 +13,12 @@ const store = {
   phone: '+996700123456',
   address: 'Центр',
   hours: '10–19',
+  presentation: {
+    id: 'new-year',
+    startsAt: null,
+    endsAt: null,
+    hero: { title: 'Новогодние подарки', text: 'Праздничная подборка' },
+  },
 };
 let available = 3,
   failed = false,
@@ -76,7 +82,11 @@ const seen = [];
       else if (url.pathname === '/api/public/stores')
         body = { items: [store], total: 1, page: 1, pageSize: 100 };
       else if (url.pathname.endsWith('/products/' + id)) body = product();
-      else if (url.pathname === '/api/public/stores/shop-a') body = store;
+      else if (
+        url.pathname === '/api/public/stores/shop-a' ||
+        url.pathname === '/api/public/stores/old-shop'
+      )
+        body = store;
       else {
         res.statusCode = 404;
         return res.end('{"message":"not found"}');
@@ -130,8 +140,8 @@ const seen = [];
     assert(nonce, 'Next scripts require a per-request CSP nonce');
     for (const script of root.doc.querySelectorAll('script:not([src])'))
       assert.equal(script.getAttribute('nonce'), nonce[1]);
-    const detail = await get('/shops/shop-a/products/' + id);
-    assert.equal(detail.response.status, 200);
+    const detail = await get('/shop/shop-a/products/' + id);
+    assert.equal(detail.response.status, 200, detail.html.slice(0, 1000));
     assert.equal(
       detail.doc.querySelector('h1')?.textContent,
       'Керамическая чашка',
@@ -146,6 +156,23 @@ const seen = [];
     assert.equal(schema.offers.price, '240.00');
     assert.equal(schema.offers.availability, 'https://schema.org/InStock');
     assert(detail.doc.title.includes('Керамическая чашка'));
+    assert(detail.doc.body.textContent.includes('Новогодние подарки'));
+    const legacy = await fetch(base + '/shops/shop-a?category=Посуда', {
+      redirect: 'manual',
+    });
+    assert.equal(legacy.status, 308);
+    assert.equal(
+      legacy.headers.get('location'),
+      '/shop/shop-a?category=%D0%9F%D0%BE%D1%81%D1%83%D0%B4%D0%B0',
+    );
+    const historical = await fetch(base + '/shop/old-shop?q=чашка', {
+      redirect: 'manual',
+    });
+    assert.equal(historical.status, 308);
+    assert.equal(
+      historical.headers.get('location'),
+      '/shop/shop-a?q=%D1%87%D0%B0%D1%88%D0%BA%D0%B0',
+    );
     assert.equal(
       detail.doc.querySelector('a[href^="tel:"]')?.getAttribute('href'),
       'tel:+996700123456',
@@ -250,7 +277,7 @@ const seen = [];
     failed = false;
     const sitemap = await get('/sitemap.xml');
     assert(
-      sitemap.html.includes('https://storefront.example.test/shops/shop-a'),
+      sitemap.html.includes('https://storefront.example.test/shop/shop-a'),
     );
     assert(!sitemap.html.includes('/seller'));
     assert(!sitemap.html.includes('/ui-kit'));

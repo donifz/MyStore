@@ -1,30 +1,69 @@
+import { useState } from 'react';
 import type { Variant } from '../api/types';
 import ProductForm from '../catalog/ProductForm';
 export default function ReceivingProductForm({
   shopId,
   barcode,
+  creationKey,
   disabled,
   onCancel,
   onCreated,
+  onCreatedWithoutReceiving,
 }: {
   shopId: string;
   barcode: string;
+  creationKey?: string;
   disabled: boolean;
   onCancel: () => void;
-  onCreated: (variant: Variant) => Promise<boolean>;
+  onCreated: (
+    variant: Variant,
+    quantity: number,
+    unitCostText: string,
+  ) => Promise<boolean>;
+  onCreatedWithoutReceiving?: (variant: Variant) => Promise<boolean>;
 }) {
+  const [quantity, setQuantity] = useState('1');
+  const [unitCostText, setUnitCostText] = useState('');
   return (
     <ProductForm
       shopId={shopId}
       initialBarcode={barcode}
+      creationKey={creationKey}
       barcodeReadOnly
       disabled={disabled}
       formLabel="Новый товар в приёмке"
       title="Новый товар в приёмке"
-      submitLabel="Создать и добавить в приёмку"
+      submitLabel="Создать и провести приёмку"
       savedLabel="Добавить в приёмку"
+      footerFields={
+        <div className="product-form-fields">
+          <label>
+            Количество первичной приёмки
+            <input
+              type="number"
+              min={1}
+              max={1e9}
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+            />
+          </label>
+          <label>
+            Закупочная цена, сом
+            <input
+              inputMode="decimal"
+              value={unitCostText}
+              onChange={(e) => setUnitCostText(e.target.value)}
+              placeholder="0,00"
+            />
+          </label>
+        </div>
+      }
+      {...(onCreatedWithoutReceiving
+        ? { secondarySubmitLabel: 'Создать без приёмки' }
+        : {})}
       onCancel={onCancel}
-      onSaved={onCreated}
+      onSaved={(variant) => onCreated(variant, Number(quantity), unitCostText)}
+      onSecondarySaved={onCreatedWithoutReceiving}
     />
   );
 }

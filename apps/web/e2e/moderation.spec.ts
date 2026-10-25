@@ -57,7 +57,7 @@ test('administrator approves a partner and a public card while the owner sees a 
   ).json();
   const product = await (
     await request.post(`/api/shops/${shop}/variants`, {
-      headers,
+      headers: { ...headers, 'idempotency-key': randomUUID() },
       data: { name: 'Кружка для дома', salePriceMinor: 12000 },
     })
   ).json();

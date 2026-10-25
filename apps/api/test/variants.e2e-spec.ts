@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { randomUUID } from 'node:crypto';
 import { createApp } from '../src/app';
 import { setup, teardown, fixture } from './helpers';
 describe('variants', () => {
@@ -17,6 +18,7 @@ describe('variants', () => {
     const r = await request(ctx.app.getHttpServer())
       .post(`/shops/${fixture.shop}/variants`)
       .set('Authorization', `Bearer ${ctx.owner}`)
+      .set('Idempotency-Key', randomUUID())
       .send(payload)
       .expect(201);
     id = r.body.id;
@@ -32,6 +34,7 @@ describe('variants', () => {
     await request(ctx.app.getHttpServer())
       .post(`/shops/${fixture.shop}/variants`)
       .set('Authorization', `Bearer ${ctx.owner}`)
+      .set('Idempotency-Key', randomUUID())
       .send(payload)
       .expect(409);
   });
@@ -43,6 +46,7 @@ describe('variants', () => {
     await request(ctx.app.getHttpServer())
       .post(`/shops/${fixture.otherShop}/variants`)
       .set('Authorization', `Bearer ${ctx.owner}`)
+      .set('Idempotency-Key', randomUUID())
       .send(payload)
       .expect(201);
     await ctx.db.query('DELETE FROM memberships WHERE shop_id=$1', [
@@ -58,6 +62,7 @@ describe('variants', () => {
     await request(ctx.app.getHttpServer())
       .post(`/shops/${fixture.shop}/variants`)
       .set('Authorization', `Bearer ${ctx.owner}`)
+      .set('Idempotency-Key', randomUUID())
       .send(body)
       .expect(400);
   });
@@ -71,6 +76,7 @@ describe('variants', () => {
     await request(ctx.app.getHttpServer())
       .post(`/shops/${fixture.shop}/variants`)
       .set('Authorization', `Bearer ${ctx.cashier}`)
+      .set('Idempotency-Key', randomUUID())
       .send({ ...payload, barcode: 'OTHER' })
       .expect(403);
   });
@@ -78,6 +84,7 @@ describe('variants', () => {
     const created = await request(ctx.app.getHttpServer())
       .post(`/shops/${fixture.shop}/variants`)
       .set('Authorization', `Bearer ${ctx.owner}`)
+      .set('Idempotency-Key', randomUUID())
       .send({ name: 'Cup', salePriceMinor: 200 })
       .expect(201);
     const lookup = await request(ctx.app.getHttpServer())

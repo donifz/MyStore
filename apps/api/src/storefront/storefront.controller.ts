@@ -54,6 +54,8 @@ class ProductQuery extends StoreQuery {
   @IsIn(['name', 'price-asc', 'price-desc', 'newest']) sort = 'name';
 }
 class ProfileDto {
+  @IsOptional() @IsString() @MaxLength(40) slug?: string;
+  @Allow() presentation?: unknown;
   @Allow() timeZone?: string;
   @Allow() businessSchedule?: unknown;
   @IsOptional() @IsString() @MaxLength(80) district?: string;
@@ -94,7 +96,7 @@ export class PublicStorefrontController {
     res.setHeader('Cache-Control', 'no-store');
     return this.service.stores(q.q, q.page, q.pageSize, q);
   }
-  @Get('stores/:slug') store(
+  @Get('stores/:slug') async store(
     @Param('slug') slug: string,
     @Res({ passthrough: true }) res: Response,
   ) {

@@ -27,7 +27,7 @@ export default function ProductPage() {
   const v = r.data;
   return (
     <>
-      <Link className="back-link" to={'/shops/' + v.store.slug}>
+      <Link className="back-link" to={'/shop/' + v.store.slug}>
         ← {v.store.name}
       </Link>
       {r.error && (
@@ -51,7 +51,7 @@ export default function ProductPage() {
             <p className="product-description">{v.description}</p>
           )}
           <div className="contact-card">
-            <Link to={'/shops/' + v.store.slug}>
+            <Link to={'/shop/' + v.store.slug}>
               <h2>{v.store.name}</h2>
             </Link>
             <p>

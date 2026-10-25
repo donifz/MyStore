@@ -77,7 +77,7 @@ test('saved settings determine new order deadline and do not rewrite old reserva
   const db = new Client({ connectionString: url });
   await db.connect();
   const testShop = randomUUID();
-  const slug = 'test-hours-' + randomUUID();
+  const slug = 'th-' + randomUUID().slice(0, 12);
   const variant = randomUUID();
   const key = randomUUID();
   try {

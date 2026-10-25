@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { randomUUID } from 'node:crypto';
 import { createApp } from '../src/app';
 import { setup, teardown, fixture } from './helpers';
 
@@ -30,6 +31,7 @@ describe('product publication review', () => {
       await request(http())
         .post(`/shops/${fixture.shop}/variants`)
         .auth(c.owner, { type: 'bearer' })
+        .set('Idempotency-Key', randomUUID())
         .send({ name: 'Чашка', salePriceMinor: 10000 })
         .expect(201)
     ).body;

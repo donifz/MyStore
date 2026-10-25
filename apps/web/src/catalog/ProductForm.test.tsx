@@ -72,6 +72,50 @@ it('inline receiving creation uses the same photo and barcode form', async () =>
   fireEvent.keyDown(screen.getByLabelText('Штрихкод'), { key: 'Enter' });
 });
 
+it('primary submit resets a previous failed secondary intent', async () => {
+  const { default: ProductForm } = await import('./ProductForm');
+  let attempts = 0;
+  const primary = vi.fn(async () => true);
+  const secondary = vi.fn(async () => true);
+  vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+    if (url.endsWith('/photo-assistant'))
+      return new Response(JSON.stringify({ available: false, categories: [] }));
+    if (url.endsWith('/variants') && init?.method === 'POST') {
+      attempts++;
+      return new Response(
+        JSON.stringify(
+          attempts === 1
+            ? { message: 'temporary failure' }
+            : {
+                id: 'created',
+                name: 'Принтер',
+                barcode: 'MS1',
+                salePriceMinor: 200000,
+              },
+        ),
+        { status: attempts === 1 ? 500 : 201 },
+      );
+    }
+    return new Response(JSON.stringify([]));
+  });
+  render(
+    <ProductForm
+      shopId={shop}
+      onSaved={primary}
+      onSecondarySaved={secondary}
+      secondarySubmitLabel="Создать без приёмки"
+    />,
+  );
+  const u = userEvent.setup();
+  await u.type(screen.getByLabelText('Название', { exact: true }), 'Принтер');
+  await u.type(screen.getByLabelText('Цена продажи, сом'), '2000');
+  await u.click(screen.getByRole('button', { name: 'Создать без приёмки' }));
+  await screen.findByRole('alert');
+  await u.click(screen.getByRole('button', { name: 'Сохранить товар' }));
+  expect(primary).toHaveBeenCalledTimes(1);
+  expect(secondary).not.toHaveBeenCalled();
+});
+
 it('keeps an uncertain legacy photo receiving request available with its original key and body', async () => {
   const body = {
     name: 'Old cup',

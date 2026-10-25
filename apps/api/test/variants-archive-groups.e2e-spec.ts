@@ -34,7 +34,7 @@ describe('catalog archive and variant groups', () => {
     path: string,
     body: any,
     token = ctx.owner,
-    key = randomUUID(),
+    key: string = randomUUID(),
   ) =>
     request(ctx.app.getHttpServer())
       .post(root + path)
@@ -52,6 +52,98 @@ describe('catalog archive and variant groups', () => {
     request(ctx.app.getHttpServer())
       .get(root + path)
       .auth(token, { type: 'bearer' });
+
+  test('requires an idempotency key to create a product', async () => {
+    await request(ctx.app.getHttpServer())
+      .post(`${root}/variants`)
+      .auth(ctx.owner, { type: 'bearer' })
+      .send({
+        name: 'Key-required product',
+        barcode: 'KEY-REQUIRED-001',
+        salePriceMinor: 12345,
+      })
+      .expect(400);
+  });
+
+  test('replays an identical idempotent product creation without a duplicate', async () => {
+    const key = randomUUID();
+    const body = {
+      name: 'Replay-safe product',
+      barcode: 'REPLAY-SAFE-001',
+      salePriceMinor: 12345,
+    };
+    const first = await post('/variants', body, ctx.owner, key).expect(201);
+    const replay = await post('/variants', body, ctx.owner, key).expect(201);
+    expect(replay.body).toEqual(first.body);
+    const rows = await ctx.db.query(
+      'SELECT id FROM variants WHERE shop_id=$1 AND barcode=$2',
+      [fixture.shop, body.barcode],
+    );
+    expect(rows).toHaveLength(1);
+    const publications = await ctx.db.query(
+      'SELECT id FROM product_publication_revisions WHERE variant_id=$1',
+      [first.body.id],
+    );
+    expect(publications).toHaveLength(1);
+  });
+
+  test('rejects a product creation key reused with different input', async () => {
+    const key = randomUUID();
+    const first = {
+      name: 'Fingerprint product',
+      barcode: 'FINGERPRINT-001',
+      salePriceMinor: 12345,
+    };
+    await post('/variants', first, ctx.owner, key).expect(201);
+    await post(
+      '/variants',
+      { ...first, salePriceMinor: 67890 },
+      ctx.owner,
+      key,
+    ).expect(409);
+    const rows = await ctx.db.query(
+      'SELECT id FROM variants WHERE shop_id=$1 AND barcode=$2',
+      [fixture.shop, first.barcode],
+    );
+    expect(rows).toHaveLength(1);
+  });
+
+  test('rolls product creation back when saving the idempotency result fails', async () => {
+    const key: string = 'ROLLBACK-PRODUCT-RESULT';
+    await ctx.db.query(`
+      CREATE OR REPLACE FUNCTION fail_product_operation_result() RETURNS trigger AS $$
+      BEGIN
+        IF NEW.key = '${key}' THEN RAISE EXCEPTION 'forced operation result failure'; END IF;
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+      CREATE TRIGGER fail_product_operation_result
+      BEFORE INSERT ON operation_results
+      FOR EACH ROW EXECUTE FUNCTION fail_product_operation_result();
+    `);
+    try {
+      await post(
+        '/variants',
+        {
+          name: 'Atomic product',
+          barcode: 'ATOMIC-PRODUCT-001',
+          salePriceMinor: 12345,
+        },
+        ctx.owner,
+        key,
+      ).expect(500);
+      expect(
+        await ctx.db.query('SELECT id FROM variants WHERE barcode=$1', [
+          'ATOMIC-PRODUCT-001',
+        ]),
+      ).toHaveLength(0);
+    } finally {
+      await ctx.db.query(`
+        DROP TRIGGER IF EXISTS fail_product_operation_result ON operation_results;
+        DROP FUNCTION IF EXISTS fail_product_operation_result();
+      `);
+    }
+  });
 
   test('creates root and child variants with independent barcodes and prices', async () => {
     const parentRes = await post('/variants', {
@@ -187,10 +279,30 @@ describe('catalog archive and variant groups', () => {
     await put(`/variants/${vId}/archive`).expect(200);
 
     // Attempt to receive stock -> 409 Conflict
+    const movementsBefore = await ctx.db.query(
+      'SELECT id FROM stock_movements WHERE shop_id=$1 AND variant_id=$2',
+      [fixture.shop, vId],
+    );
+    const documentsBefore = await ctx.db.query(
+      "SELECT id FROM stock_documents WHERE shop_id=$1 AND kind='receiving'",
+      [fixture.shop],
+    );
     const receiveBlocked = await post('/receivings', {
       lines: [{ variantId: vId, quantity: 5, unitCostMinor: 400000 }],
     }).expect(409);
     expect(receiveBlocked.body.message).toContain('archived');
+    expect(
+      await ctx.db.query(
+        'SELECT id FROM stock_movements WHERE shop_id=$1 AND variant_id=$2',
+        [fixture.shop, vId],
+      ),
+    ).toEqual(movementsBefore);
+    expect(
+      await ctx.db.query(
+        "SELECT id FROM stock_documents WHERE shop_id=$1 AND kind='receiving'",
+        [fixture.shop],
+      ),
+    ).toEqual(documentsBefore);
 
     // Attempt POS sale -> 409 Conflict
     const saleBlocked = await post('/pos/sales', {

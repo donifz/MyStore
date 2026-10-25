@@ -4,6 +4,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -25,6 +26,7 @@ function setup(role = 'owner', reject = false) {
     phone: '+996700123456',
     hours: 'По звонку',
     published: false,
+    presentation: { id: 'base', startsAt: null, endsAt: null },
     pickupEnabled: true,
     timeZone: 'Asia/Bishkek',
     businessSchedule: null,
@@ -101,6 +103,35 @@ it('makes the legacy policy explicit and saves the selected week and timezone', 
     'value',
     '11:00',
   );
+});
+it('edits and previews the canonical shop address', async () => {
+  const saves = setup();
+  await screen.findByDisplayValue('test');
+  fireEvent.change(screen.getByLabelText('Адрес витрины'), {
+    target: { value: 'new-home' },
+  });
+  expect(screen.getByText('/shop/new-home')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Сохранить витрину' }));
+  await waitFor(() => expect(saves).toHaveLength(1));
+  expect(saves[0].slug).toBe('new-home');
+});
+it('selects a seasonal theme, edits content and previews before saving', async () => {
+  const saves = setup();
+  await screen.findByLabelText('Тематика');
+  fireEvent.change(screen.getByLabelText('Тематика'), {
+    target: { value: 'nooruz' },
+  });
+  const hero = screen.getByRole('group', { name: 'Главный баннер' });
+  fireEvent.change(within(hero).getByLabelText('Заголовок'), {
+    target: { value: 'Нооруз майрамы' },
+  });
+  expect(screen.getByLabelText('Предпросмотр темы').textContent).toContain(
+    'Нооруз майрамы',
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Сохранить витрину' }));
+  await waitFor(() => expect(saves).toHaveLength(1));
+  expect(saves[0].presentation.id).toBe('nooruz');
+  expect(saves[0].presentation.hero.title).toBe('Нооруз майрамы');
 });
 it('retains typed intervals and all fields after a rejected save', async () => {
   setup('owner', true);

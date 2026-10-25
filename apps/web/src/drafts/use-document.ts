@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, ApiError, errorText } from '../api/client';
+import { parseSom } from '../api/money';
 import {
   Draft,
   DraftLine,
@@ -36,7 +37,9 @@ export function useDocument(scope: DraftScope) {
     [success, setSuccess] = useState(''),
     [online, setOnline] = useState(navigator.onLine),
     [unknownBarcode, setUnknownBarcode] = useState<string | null>(null),
-    [productCreation, setProductCreation] = useState<string | null>(null),
+    [productCreation, setProductCreation] = useState<string | null>(
+      initial.draft.primaryReceiving?.barcode ?? null,
+    ),
     [priceChange, setPriceChange] = useState<{
       id: string;
       price: number;
@@ -153,8 +156,19 @@ export function useDocument(scope: DraftScope) {
       setBlocked(true);
     }
   }
-  async function send(path: string, body: unknown) {
-    if (sending.current || blocked || !online || productCreation) return;
+  async function send(
+    path: string,
+    body: unknown,
+    key?: string,
+    allowProductCreation = false,
+  ) {
+    if (
+      sending.current ||
+      blocked ||
+      !online ||
+      (productCreation && !allowProductCreation)
+    )
+      return;
     sending.current = true;
     setBusy(true);
     setError('');
@@ -166,7 +180,7 @@ export function useDocument(scope: DraftScope) {
         : {
             ...ref.current,
             submission: {
-              key: ref.current.revision,
+              key: key ?? ref.current.revision,
               path,
               body,
               status: 'pending',
@@ -210,6 +224,61 @@ export function useDocument(scope: DraftScope) {
       setBusy(false);
     }
   }
+  async function receiveCreatedVariant(
+    variant: Variant,
+    quantity: number,
+    unitCostText: string,
+    metadata: {
+      documentNumber?: string;
+      supplier: string;
+      receivedOn: string;
+      comment: string;
+    },
+  ) {
+    const workflow = ref.current.primaryReceiving;
+    if (!workflow || !Number.isInteger(quantity) || quantity < 1)
+      throw new Error('Укажите корректное количество первичной приёмки.');
+    const unitCostMinor = parseSom(unitCostText);
+    const line: DraftLine = {
+      id: variant.id,
+      name: variant.name,
+      barcode: variant.barcode,
+      quantity,
+      priceMinor: variant.salePriceMinor,
+      unitCostText,
+    };
+    const next = await withDraftLock(scope, () => {
+      const current = ref.current;
+      if (current.lines.some((item) => item.id === variant.id)) return current;
+      const updated: Draft = {
+        ...current,
+        revision: crypto.randomUUID(),
+        lines: [...current.lines, line],
+      };
+      save(updated, current.revision);
+      ref.current = updated;
+      setDraft(updated);
+      return updated;
+    });
+    const result = await send(
+      `/shops/${scope.shopId}/receivings`,
+      {
+        ...metadata,
+        lines: next.lines.map((item) => ({
+          variantId: item.id,
+          quantity: item.quantity,
+          unitCostMinor:
+            item.id === variant.id
+              ? unitCostMinor
+              : parseSom(item.unitCostText ?? ''),
+        })),
+      },
+      workflow.receivingKey,
+      true,
+    );
+    if (result) setProductCreation(null);
+    return !!result;
+  }
   return {
     draft,
     change,
@@ -221,6 +290,7 @@ export function useDocument(scope: DraftScope) {
     blocked,
     reload,
     send,
+    receiveCreatedVariant,
     scan: (code: string) => {
       if (!ref.current.submission && !busy && !blocked && !productCreation)
         queue.current?.enqueue(code);
@@ -228,7 +298,7 @@ export function useDocument(scope: DraftScope) {
     unknownBarcode,
     productCreation,
     addVariant,
-    beginProductCreation: () => {
+    beginProductCreation: async () => {
       if (
         unknownBarcode &&
         online &&
@@ -236,11 +306,55 @@ export function useDocument(scope: DraftScope) {
         !blocked &&
         !ref.current.submission
       ) {
-        setProductCreation(unknownBarcode);
-        setError('');
+        try {
+          await withDraftLock(scope, () => {
+            const current = ref.current;
+            const workflowId = crypto.randomUUID();
+            const next: Draft = {
+              ...current,
+              revision: crypto.randomUUID(),
+              primaryReceiving: {
+                workflowId,
+                barcode: unknownBarcode,
+                productKey: `product:${workflowId}`,
+                receivingKey: `receiving:${workflowId}`,
+              },
+            };
+            save(next, current.revision);
+            ref.current = next;
+            setDraft(next);
+            setProductCreation(unknownBarcode);
+            setError('');
+          });
+        } catch (e) {
+          setError(errorText(e));
+          setBlocked(true);
+        }
       }
     },
     closeProductCreation: () => setProductCreation(null),
+    finishProductCreationWithoutReceiving: async () => {
+      try {
+        await withDraftLock(scope, () => {
+          const current = ref.current;
+          const next: Draft = {
+            ...current,
+            revision: crypto.randomUUID(),
+            primaryReceiving: undefined,
+          };
+          save(next, current.revision);
+          ref.current = next;
+          setDraft(next);
+          setProductCreation(null);
+          setSuccess('Карточка создана без приёмки. Остаток не изменён.');
+        });
+        return true;
+      } catch (e) {
+        setError(errorText(e));
+        setBlocked(true);
+        return false;
+      }
+    },
     priceChange,
     acceptPrice: () => {
       if (priceChange) {

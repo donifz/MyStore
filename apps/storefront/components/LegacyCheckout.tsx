@@ -265,7 +265,7 @@ export default function Checkout() {
             {c.items.map((l) => (
               <div className="sf-cart-row" key={l.id}>
                 <div className="sf-cart-row__name">
-                  <Link href={`/shops/${l.storeSlug}/products/${l.id}`}>
+                  <Link href={`/shop/${l.storeSlug}/products/${l.id}`}>
                     {l.name}
                   </Link>
                   <Price minor={l.price} />

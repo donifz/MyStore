@@ -14,7 +14,7 @@ export default async function sitemap() {
     const stores = await publicApi<Page<Store>>(
       '/stores?page=' + page + '&pageSize=100',
     );
-    urls.push(...stores.items.map((s) => ({ url: base + '/shops/' + s.slug })));
+    urls.push(...stores.items.map((s) => ({ url: base + '/shop/' + s.slug })));
     if (page * 100 >= stores.total || !stores.items.length) break;
     page++;
   }

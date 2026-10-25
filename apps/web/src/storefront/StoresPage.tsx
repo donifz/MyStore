@@ -42,7 +42,7 @@ export default function StoresPage() {
       <div className="store-grid">
         {!r.error &&
           r.data?.items.map((s) => (
-            <Link className="store-tile" key={s.slug} to={'/shops/' + s.slug}>
+            <Link className="store-tile" key={s.slug} to={'/shop/' + s.slug}>
               <span className="store-monogram">{s.name.slice(0, 1)}</span>
               <span className="eyebrow">{s.city}</span>
               <h2>{s.name}</h2>

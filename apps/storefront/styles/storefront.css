@@ -6,6 +6,33 @@
   font-size: var(--sf-text-base);
   line-height: 1.5;
 }
+.sf-theme--festive {
+  --sf-primary: #b42318;
+  --sf-primary-hover: #912018;
+  --sf-primary-soft: #fff1f0;
+}
+.sf-theme--festive .sf-store-hero {
+  background: linear-gradient(135deg, #fff7ed 0%, #fff1f2 52%, #ecfdf3 100%);
+  border-color: #fed7aa;
+}
+.sf-theme--minimal {
+  --sf-primary: #334155;
+  --sf-primary-hover: #1e293b;
+  --sf-primary-soft: #f1f5f9;
+}
+.sf-theme--minimal .sf-store-hero {
+  border-radius: 8px;
+  box-shadow: none;
+}
+.sf-theme--nature {
+  --sf-primary: #3f6212;
+  --sf-primary-hover: #365314;
+  --sf-primary-soft: #f7fee7;
+}
+.sf-theme--nature .sf-store-hero {
+  background: linear-gradient(135deg, #f7fee7, #ecfdf5);
+  border-color: #bef264;
+}
 html {
   height: 100%;
 }
@@ -3111,6 +3138,58 @@ select.sf-input:focus,
   .sf-page .sf-product-copy h3 {
     font-size: 13px;
     height: 38px;
+  }
+}
+
+.sf-theme--new-year {
+  --sf-theme-accent: #176b52;
+  --sf-theme-accent-soft: #e9f6f1;
+}
+.sf-theme--womens-day {
+  --sf-theme-accent: #9d3c78;
+  --sf-theme-accent-soft: #fcecf5;
+}
+.sf-theme--nooruz {
+  --sf-theme-accent: #657a18;
+  --sf-theme-accent-soft: #f4f7df;
+}
+.sf-seasonal-blocks {
+  display: grid;
+  gap: var(--sf-space-4);
+}
+.sf-seasonal-block {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr);
+  align-items: center;
+  gap: var(--sf-space-6);
+  overflow: hidden;
+  padding: var(--sf-space-8);
+  border: 1px solid color-mix(in srgb, var(--sf-theme-accent) 24%, white);
+  border-radius: var(--sf-radius-block);
+  background: var(--sf-theme-accent-soft);
+}
+.sf-seasonal-block--info {
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 1fr);
+  padding: var(--sf-space-6);
+}
+.sf-seasonal-block img {
+  width: 100%;
+  max-height: 360px;
+  object-fit: cover;
+  border-radius: var(--sf-radius-card);
+}
+.sf-seasonal-block h2 {
+  margin-top: 0;
+}
+.sf-seasonal-block .sf-button--primary {
+  margin-top: var(--sf-space-3);
+  background: var(--sf-theme-accent);
+}
+@media (max-width: 767px) {
+  .sf-seasonal-block,
+  .sf-seasonal-block--info {
+    grid-template-columns: 1fr;
+    padding: var(--sf-space-5);
   }
 }
 
