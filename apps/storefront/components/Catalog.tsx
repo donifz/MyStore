@@ -55,7 +55,9 @@ export default async function Catalog({
   }
   const phone = store?.phone?.replace(/[^\d+]/g, '');
   return (
-    <div className="sf-stack">
+    <div
+      className={`sf-stack ${store ? `sf-theme--${store.theme || 'classic'}` : ''}`}
+    >
       <Refresh />
       {!store ? (
         <MarketplaceHero products={products.items} />

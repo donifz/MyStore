@@ -1,5 +1,6 @@
 import { cache } from 'react';
 export type Store = {
+  theme?: 'classic' | 'festive' | 'minimal' | 'nature';
   district?: string;
   pickupEnabled?: boolean;
   deliveryEnabled?: boolean;

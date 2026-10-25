@@ -72,14 +72,19 @@ describe('public storefront', () => {
     const changed = await request(http())
       .put(`/shops/${fixture.shop}/storefront`)
       .auth(c.owner, { type: 'bearer' })
-      .send({ ...profile, slug: 'canonical-home' })
+      .send({ ...profile, slug: 'canonical-home', theme: 'festive' })
       .expect(200);
     expect(changed.body.slug).toBe('canonical-home');
+    expect(changed.body.theme).toBe('festive');
     await request(http())
       .get(`/public/stores/${first.slug}`)
       .redirects(0)
       .expect(308)
       .expect('Location', `/api/public/stores/${changed.body.slug}`);
+    await request(http())
+      .get(`/public/stores/${changed.body.slug}`)
+      .expect(200)
+      .expect((r) => expect(r.body.theme).toBe('festive'));
     const alias = await c.db.query(
       'SELECT shop_id,current_slug FROM shop_slug_history WHERE slug=$1',
       [first.slug],

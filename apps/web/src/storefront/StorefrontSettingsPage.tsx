@@ -56,6 +56,7 @@ export default function StorefrontSettingsPage() {
         deliveryEnabled,
         timeZone,
         businessSchedule,
+        theme,
       } = form;
       setForm(
         await api<StoreProfile>(`/shops/${shopId}/storefront`, {
@@ -72,6 +73,7 @@ export default function StorefrontSettingsPage() {
             deliveryEnabled,
             timeZone: timeZone ?? 'Asia/Bishkek',
             businessSchedule: businessSchedule ?? null,
+            theme,
           },
         }),
       );
@@ -113,6 +115,23 @@ export default function StorefrontSettingsPage() {
                 value={form.description}
                 onChange={(e) => field('description', e.target.value)}
               />
+            </label>
+            <label>
+              Тема витрины
+              <select
+                value={form.theme || 'classic'}
+                onChange={(e) =>
+                  field('theme', e.target.value as StoreProfile['theme'])
+                }
+              >
+                <option value="classic">Классическая</option>
+                <option value="festive">Праздничная</option>
+                <option value="minimal">Минималистичная</option>
+                <option value="nature">Природная</option>
+              </select>
+              <small className="muted">
+                Тему можно менять в любое время — товары и адрес сохранятся.
+              </small>
             </label>
             <label>
               Город

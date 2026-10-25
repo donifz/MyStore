@@ -1,5 +1,6 @@
 import { Page } from '../api/types';
 export type PublicStore = {
+  theme?: 'classic' | 'festive' | 'minimal' | 'nature';
   slug: string;
   name: string;
   description: string;
@@ -19,6 +20,7 @@ export type PublicProduct = {
 };
 export type PublicProducts = Page<PublicProduct> & { categories: string[] };
 export type StoreProfile = PublicStore & {
+  theme: 'classic' | 'festive' | 'minimal' | 'nature';
   timeZone?: string;
   businessSchedule?: BusinessSchedule | null;
   reservationPolicy?: 'business-hours' | 'legacy-30-minutes';

@@ -26,6 +26,7 @@ import { CashOperationsAndDiscounts1760000000022 } from './migrations/1760000000
 import { ReportsAndPlatformManagement1760000000023 } from './migrations/1760000000023-ReportsAndPlatformManagement';
 import { ReceivingDocuments1760000000024 } from './migrations/1760000000024-ReceivingDocuments';
 import { ShopSlugHistory1760000000025 } from './migrations/1760000000025-ShopSlugHistory';
+import { StorefrontThemes1760000000026 } from './migrations/1760000000026-StorefrontThemes';
 export const DATABASE = Symbol('DATABASE');
 export function buildDataSource(url: string) {
   return new DataSource({
@@ -59,6 +60,7 @@ export function buildDataSource(url: string) {
       ReportsAndPlatformManagement1760000000023,
       ReceivingDocuments1760000000024,
       ShopSlugHistory1760000000025,
+      StorefrontThemes1760000000026,
     ],
   });
 }

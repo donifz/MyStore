@@ -14,9 +14,10 @@ import {
   validateTimeZone,
 } from '../orders/business-hours';
 const profileColumns =
-  'name,slug,description,city,address,phone,hours,published,district,pickup_enabled AS \"pickupEnabled\",delivery_enabled AS \"deliveryEnabled\",time_zone AS \"timeZone\",business_schedule AS \"businessSchedule\"';
+  'name,slug,storefront_theme AS \"theme\",description,city,address,phone,hours,published,district,pickup_enabled AS \"pickupEnabled\",delivery_enabled AS \"deliveryEnabled\",time_zone AS \"timeZone\",business_schedule AS \"businessSchedule\"';
 export type ProfileInput = {
   slug?: string;
+  theme?: string;
   timeZone?: string;
   businessSchedule?: unknown;
   district?: string;
@@ -53,6 +54,7 @@ const reservedSlugs = new Set([
   'shops',
   'products',
 ]);
+const storefrontThemes = new Set(['classic', 'festive', 'minimal', 'nature']);
 @Injectable()
 export class StorefrontService {
   constructor(@Inject(DATABASE) private readonly db: DataSource) {}
@@ -124,6 +126,9 @@ export class StorefrontService {
         ? formatBusinessSchedule(schedule)
         : input.hours.trim();
       const requestedSlug = input.slug?.trim().toLowerCase();
+      const requestedTheme = input.theme?.trim().toLowerCase();
+      if (requestedTheme !== undefined && !storefrontThemes.has(requestedTheme))
+        throw new BadRequestException('Unknown storefront theme');
       if (
         requestedSlug !== undefined &&
         (!/^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/.test(requestedSlug) ||
@@ -135,7 +140,8 @@ export class StorefrontService {
           'SELECT 1 FROM shops WHERE slug=$1 AND id<>$2 UNION ALL SELECT 1 FROM shop_slug_history WHERE slug=$1 LIMIT 1',
           [requestedSlug, shopId],
         );
-        if (taken) throw new BadRequestException('Shop address is already taken');
+        if (taken)
+          throw new BadRequestException('Shop address is already taken');
         await tx.query(
           'INSERT INTO shop_slug_history(shop_id,slug,current_slug) VALUES($1,$2,$3)',
           [shopId, current.slug, requestedSlug],
@@ -146,11 +152,12 @@ export class StorefrontService {
         );
       }
       const [[row]] = await tx.query(
-        'UPDATE shops SET slug=COALESCE($2,slug),description=$3,city=$4,address=$5,phone=$6,hours=$7,published=$8,district=COALESCE($9,district),pickup_enabled=COALESCE($10,pickup_enabled),delivery_enabled=COALESCE($11,delivery_enabled),time_zone=$12,business_schedule=$13 WHERE id=$1 RETURNING ' +
+        'UPDATE shops SET slug=COALESCE($2,slug),storefront_theme=COALESCE($3,storefront_theme),description=$4,city=$5,address=$6,phone=$7,hours=$8,published=$9,district=COALESCE($10,district),pickup_enabled=COALESCE($11,pickup_enabled),delivery_enabled=COALESCE($12,delivery_enabled),time_zone=$13,business_schedule=$14 WHERE id=$1 RETURNING ' +
           profileColumns,
         [
           shopId,
           requestedSlug ?? null,
+          requestedTheme ?? null,
           input.description.trim(),
           input.city.trim(),
           input.address.trim(),
@@ -223,7 +230,7 @@ export class StorefrontService {
   }
   async store(slug: string) {
     const [r] = await this.db.query(
-      'SELECT s.name,s.slug,s.description,s.city,s.address,s.phone,s.hours,s.district,s.pickup_enabled AS "pickupEnabled",s.delivery_enabled AS "deliveryEnabled",(h.slug IS NOT NULL) AS "redirectFrom" FROM shops s LEFT JOIN shop_slug_history h ON h.shop_id=s.id AND h.slug=$1 WHERE (s.slug=$1 OR h.slug=$1) AND s.published AND (NOT s.marketplace_blocked)',
+      'SELECT s.name,s.slug,s.storefront_theme AS "theme",s.description,s.city,s.address,s.phone,s.hours,s.district,s.pickup_enabled AS "pickupEnabled",s.delivery_enabled AS "deliveryEnabled",(h.slug IS NOT NULL) AS "redirectFrom" FROM shops s LEFT JOIN shop_slug_history h ON h.shop_id=s.id AND h.slug=$1 WHERE (s.slug=$1 OR h.slug=$1) AND s.published AND (NOT s.marketplace_blocked)',
       [slug],
     );
     if (!r) throw new NotFoundException();
@@ -268,9 +275,17 @@ export class StorefrontService {
   private select =
     `SELECT v.id,v.size,v.color,v.sku,v.parent_id,(p.photo_data IS NOT NULL) has_photo,cardinality(p.photo_album) photo_count,p.name,p.description,p.category,v.sale_price_minor,COALESCE(b.physical,0)-COALESCE(b.reserved,0) available,s.slug,s.name shop_name,s.city,s.phone,s.address,s.hours,s.district,s.pickup_enabled,s.delivery_enabled` +
     this.from;
+  private async canonicalSlug(slug: string) {
+    const [row] = await this.db.query(
+      'SELECT s.slug FROM shops s LEFT JOIN shop_slug_history h ON h.shop_id=s.id AND h.slug=$1 WHERE (s.slug=$1 OR h.slug=$1) AND s.published AND (NOT s.marketplace_blocked)',
+      [slug],
+    );
+    if (!row) throw new NotFoundException();
+    return row.slug as string;
+  }
   async products(query: PublicQuery) {
     const { q, page, pageSize, store, category, inStock, sort } = query;
-    if (store) await this.store(store);
+    const canonicalStore = store ? await this.canonicalSlug(store) : '';
     const where = `s.published AND (NOT s.marketplace_blocked) AND v.published AND NOT v.archived AND (p.name ILIKE $1 OR s.name ILIKE $1 OR v.barcode ILIKE $1 OR v.sku ILIKE $1) AND ($2='' OR s.slug=$2) AND ($3='' OR p.category=$3) AND ($4=false OR COALESCE(b.physical,0)-COALESCE(b.reserved,0)>0) AND ($5='' OR s.city=$5) AND v.sale_price_minor BETWEEN $6 AND $7`;
     if (
       query.minPrice !== undefined &&
@@ -280,7 +295,7 @@ export class StorefrontService {
       throw new BadRequestException('Invalid price range');
     const params = [
       escaped(q),
-      store,
+      canonicalStore,
       category,
       inStock === 'true',
       query.city || '',
@@ -308,7 +323,7 @@ export class StorefrontService {
     );
     const cats = await this.db.query(
       "SELECT DISTINCT p.category FROM product_publications p JOIN variants v ON v.id=p.variant_id JOIN shops s ON s.id=p.shop_id WHERE s.published AND (NOT s.marketplace_blocked) AND v.published AND NOT v.archived AND p.category<>'' AND ($1='' OR s.slug=$1) ORDER BY p.category",
-      [store],
+      [canonicalStore],
     );
     return {
       items: rows.map((r: any) => this.productDto(r)),
@@ -319,10 +334,11 @@ export class StorefrontService {
     };
   }
   async product(slug: string, id: string) {
+    const canonicalStore = await this.canonicalSlug(slug);
     const [r] = await this.db.query(
       this.select +
         ' WHERE s.published AND (NOT s.marketplace_blocked) AND v.published AND NOT v.archived AND s.slug=$1 AND v.id=$2',
-      [slug, id],
+      [canonicalStore, id],
     );
     if (!r) throw new NotFoundException();
     const rootId = r.parent_id || r.id;
@@ -334,7 +350,7 @@ export class StorefrontService {
        LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id
        WHERE s.slug=$1 AND v.published AND NOT v.archived AND (v.id=$2 OR v.parent_id=$2)
        ORDER BY v.created_at ASC, v.id ASC`,
-      [slug, rootId],
+      [canonicalStore, rootId],
     );
     const dto = this.productDto(r, true);
     return {

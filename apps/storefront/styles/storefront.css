@@ -6,6 +6,33 @@
   font-size: var(--sf-text-base);
   line-height: 1.5;
 }
+.sf-theme--festive {
+  --sf-primary: #b42318;
+  --sf-primary-hover: #912018;
+  --sf-primary-soft: #fff1f0;
+}
+.sf-theme--festive .sf-store-hero {
+  background: linear-gradient(135deg, #fff7ed 0%, #fff1f2 52%, #ecfdf3 100%);
+  border-color: #fed7aa;
+}
+.sf-theme--minimal {
+  --sf-primary: #334155;
+  --sf-primary-hover: #1e293b;
+  --sf-primary-soft: #f1f5f9;
+}
+.sf-theme--minimal .sf-store-hero {
+  border-radius: 8px;
+  box-shadow: none;
+}
+.sf-theme--nature {
+  --sf-primary: #3f6212;
+  --sf-primary-hover: #365314;
+  --sf-primary-soft: #f7fee7;
+}
+.sf-theme--nature .sf-store-hero {
+  background: linear-gradient(135deg, #f7fee7, #ecfdf5);
+  border-color: #bef264;
+}
 html {
   height: 100%;
 }
