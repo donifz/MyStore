@@ -11,6 +11,7 @@ describe('atomic POS sales', () => {
       await request(c.app.getHttpServer())
         .post(root + '/variants')
         .auth(c.owner, { type: 'bearer' })
+        .set('Idempotency-Key', randomUUID())
         .send({ name: 'Bag', barcode: '00123', salePriceMinor: 15000 })
         .expect(201)
     ).body.id;
