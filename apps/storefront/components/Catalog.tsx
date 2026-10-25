@@ -16,6 +16,7 @@ import Refresh from './Refresh';
 import { Alert, EmptyState, LinkButton } from './ui';
 import ProductCard from './storefront/ProductCard';
 import CatalogFilters from './storefront/CatalogFilters';
+import SeasonalBlocks from './storefront/SeasonalBlocks';
 export default async function Catalog({
   search,
   slug,
@@ -35,7 +36,7 @@ export default async function Catalog({
       <Alert variant="error">
         <h1>Не удалось загрузить каталог</h1>
         <p>Повторите попытку через несколько минут.</p>
-        <LinkButton variant="secondary" href={slug ? '/shops/' + slug : '/'}>
+        <LinkButton variant="secondary" href={slug ? '/shop/' + slug : '/'}>
           Повторить
         </LinkButton>
       </Alert>
@@ -56,9 +57,10 @@ export default async function Catalog({
   const phone = store?.phone?.replace(/[^\d+]/g, '');
   return (
     <div
-      className={`sf-stack ${store ? `sf-theme--${store.theme || 'classic'}` : ''}`}
+      className={`sf-stack ${store ? `sf-theme--${store.presentation?.id || 'base'}` : ''}`}
     >
       <Refresh />
+      {store && <SeasonalBlocks presentation={store.presentation} />}
       {!store ? (
         <MarketplaceHero products={products.items} />
       ) : (
@@ -131,7 +133,7 @@ export default async function Catalog({
           </div>
           <div className="sf-stores-strip-grid">
             {stores.map((s) => (
-              <Link href={'/shops/' + s.slug} key={s.slug}>
+              <Link href={'/shop/' + s.slug} key={s.slug}>
                 <span className="sf-mini-logo">{s.name.slice(0, 1)}</span>
                 <span>
                   <strong>{s.name}</strong>
@@ -160,7 +162,7 @@ export default async function Catalog({
             aria-label="Быстрый выбор категории"
           >
             <Link
-              href={slug ? `/shops/${slug}#catalog` : '/#catalog'}
+              href={slug ? `/shop/${slug}#catalog` : '/#catalog'}
               className={`sf-quick-chip ${!filter.category ? 'sf-quick-chip--active' : ''}`}
             >
               Все товары
@@ -170,7 +172,7 @@ export default async function Catalog({
                 key={c}
                 href={
                   slug
-                    ? `/shops/${slug}?category=${encodeURIComponent(c)}#catalog`
+                    ? `/shop/${slug}?category=${encodeURIComponent(c)}#catalog`
                     : `/?category=${encodeURIComponent(c)}#catalog`
                 }
                 className={`sf-quick-chip ${filter.category === c ? 'sf-quick-chip--active' : ''}`}
@@ -228,14 +230,14 @@ export default async function Catalog({
                   filter.page > 1 ? (
                     <LinkButton
                       variant="primary"
-                      href={slug ? '/shops/' + slug : '/'}
+                      href={slug ? '/shop/' + slug : '/'}
                     >
                       На первую страницу
                     </LinkButton>
                   ) : filter.q || filter.category || filter.inStock ? (
                     <LinkButton
                       variant="primary"
-                      href={slug ? '/shops/' + slug : '/'}
+                      href={slug ? '/shop/' + slug : '/'}
                     >
                       Сбросить фильтры
                     </LinkButton>
@@ -253,7 +255,7 @@ export default async function Catalog({
               />
             )}
             <Pagination
-              path={slug ? '/shops/' + slug : '/'}
+              path={slug ? '/shop/' + slug : '/'}
               params={
                 new URLSearchParams({
                   ...Object.fromEntries(filter.params),

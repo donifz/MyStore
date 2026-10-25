@@ -5,6 +5,7 @@ import { useSession } from '../auth/SessionProvider';
 import { StoreProfile } from './types';
 import { useResource } from './use-resource';
 import BusinessHoursEditor from './BusinessHoursEditor';
+import ThemeEditor from './ThemeEditor';
 export default function StorefrontSettingsPage() {
   const { shopId } = useParams(),
     session = useSession();
@@ -56,7 +57,8 @@ export default function StorefrontSettingsPage() {
         deliveryEnabled,
         timeZone,
         businessSchedule,
-        theme,
+        presentation,
+        slug,
       } = form;
       setForm(
         await api<StoreProfile>(`/shops/${shopId}/storefront`, {
@@ -73,7 +75,8 @@ export default function StorefrontSettingsPage() {
             deliveryEnabled,
             timeZone: timeZone ?? 'Asia/Bishkek',
             businessSchedule: businessSchedule ?? null,
-            theme,
+            presentation,
+            slug,
           },
         }),
       );
@@ -81,7 +84,9 @@ export default function StorefrontSettingsPage() {
       setDirty(false);
     } catch (e) {
       setError(
-        e instanceof ApiError && e.status === 400 ? e.message : errorText(e),
+        e instanceof ApiError && [400, 409].includes(e.status)
+          ? e.message
+          : errorText(e),
       );
     } finally {
       setBusy(false);
@@ -96,17 +101,30 @@ export default function StorefrontSettingsPage() {
           <p className="muted">Контакты и каталог для покупателей</p>
         </div>
         {form.published && (
-          <a className="button" href={'/shops/' + form.slug}>
+          <a className="button" href={'/shop/' + form.slug}>
             Открыть витрину ↗
           </a>
         )}
       </div>
       <section className="panel form-panel">
-        <p>
-          Адрес витрины: <strong className="code">/shops/{form.slug}</strong>
-        </p>
         <form onSubmit={submit}>
           <fieldset disabled={busy}>
+            <div>
+              <label htmlFor="storefront-slug">Адрес витрины</label>
+              <input
+                id="storefront-slug"
+                required
+                minLength={3}
+                maxLength={40}
+                pattern="[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])"
+                value={form.slug}
+                onChange={(e) => field('slug', e.target.value.toLowerCase())}
+              />
+              <small className="muted storefront-slug-preview">
+                Публичный адрес:{' '}
+                <strong className="code">/shop/{form.slug}</strong>
+              </small>
+            </div>
             <label>
               Описание магазина
               <textarea
@@ -116,23 +134,17 @@ export default function StorefrontSettingsPage() {
                 onChange={(e) => field('description', e.target.value)}
               />
             </label>
-            <label>
-              Тема витрины
-              <select
-                value={form.theme || 'classic'}
-                onChange={(e) =>
-                  field('theme', e.target.value as StoreProfile['theme'])
+            <ThemeEditor
+              value={
+                form.presentation || {
+                  id: 'base',
+                  startsAt: null,
+                  endsAt: null,
                 }
-              >
-                <option value="classic">Классическая</option>
-                <option value="festive">Праздничная</option>
-                <option value="minimal">Минималистичная</option>
-                <option value="nature">Природная</option>
-              </select>
-              <small className="muted">
-                Тему можно менять в любое время — товары и адрес сохранятся.
-              </small>
-            </label>
+              }
+              disabled={busy}
+              onChange={(value) => field('presentation', value)}
+            />
             <label>
               Город
               <input

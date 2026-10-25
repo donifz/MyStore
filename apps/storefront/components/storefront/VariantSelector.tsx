@@ -26,7 +26,7 @@ export default function VariantSelector({
           return (
             <Link
               key={v.id}
-              href={`/shops/${storeSlug}/products/${v.id}`}
+              href={`/shop/${storeSlug}/products/${v.id}`}
               className={`sf-variant-chip ${isSelected ? 'selected' : ''} ${
                 isOutOfStock ? 'out-of-stock' : ''
               }`}

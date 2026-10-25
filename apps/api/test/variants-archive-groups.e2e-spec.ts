@@ -34,7 +34,7 @@ describe('catalog archive and variant groups', () => {
     path: string,
     body: any,
     token = ctx.owner,
-    key = randomUUID(),
+    key: string = randomUUID(),
   ) =>
     request(ctx.app.getHttpServer())
       .post(root + path)
@@ -106,6 +106,43 @@ describe('catalog archive and variant groups', () => {
       [fixture.shop, first.barcode],
     );
     expect(rows).toHaveLength(1);
+  });
+
+  test('rolls product creation back when saving the idempotency result fails', async () => {
+    const key: string = 'ROLLBACK-PRODUCT-RESULT';
+    await ctx.db.query(`
+      CREATE OR REPLACE FUNCTION fail_product_operation_result() RETURNS trigger AS $$
+      BEGIN
+        IF NEW.key = '${key}' THEN RAISE EXCEPTION 'forced operation result failure'; END IF;
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+      CREATE TRIGGER fail_product_operation_result
+      BEFORE INSERT ON operation_results
+      FOR EACH ROW EXECUTE FUNCTION fail_product_operation_result();
+    `);
+    try {
+      await post(
+        '/variants',
+        {
+          name: 'Atomic product',
+          barcode: 'ATOMIC-PRODUCT-001',
+          salePriceMinor: 12345,
+        },
+        ctx.owner,
+        key,
+      ).expect(500);
+      expect(
+        await ctx.db.query('SELECT id FROM variants WHERE barcode=$1', [
+          'ATOMIC-PRODUCT-001',
+        ]),
+      ).toHaveLength(0);
+    } finally {
+      await ctx.db.query(`
+        DROP TRIGGER IF EXISTS fail_product_operation_result ON operation_results;
+        DROP FUNCTION IF EXISTS fail_product_operation_result();
+      `);
+    }
   });
 
   test('creates root and child variants with independent barcodes and prices', async () => {

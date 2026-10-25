@@ -6,10 +6,17 @@ export default function DocumentEditor({
   doc,
   receiving,
   shopId,
+  receivingMetadata,
 }: {
   doc: ReturnType<typeof useDocument>;
   receiving: boolean;
   shopId: string;
+  receivingMetadata?: {
+    documentNumber?: string;
+    supplier: string;
+    receivedOn: string;
+    comment: string;
+  };
 }) {
   const disabled =
     doc.busy || doc.blocked || !!doc.draft.submission || !!doc.productCreation;
@@ -51,11 +58,21 @@ export default function DocumentEditor({
           creationKey={doc.draft.primaryReceiving?.productKey}
           disabled={doc.blocked || !doc.online || doc.busy}
           onCancel={doc.closeProductCreation}
-          onCreated={doc.receiveCreatedVariant}
-          onCreatedWithoutReceiving={async () => {
-            doc.finishProductCreationWithoutReceiving();
-            return true;
-          }}
+          onCreated={(variant, quantity, unitCostText) =>
+            doc.receiveCreatedVariant(
+              variant,
+              quantity,
+              unitCostText,
+              receivingMetadata ?? {
+                supplier: '',
+                receivedOn: new Date().toISOString().slice(0, 10),
+                comment: '',
+              },
+            )
+          }
+          onCreatedWithoutReceiving={async () =>
+            doc.finishProductCreationWithoutReceiving()
+          }
         />
       )}
       {doc.priceChange && (

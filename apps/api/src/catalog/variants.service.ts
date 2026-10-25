@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { randomUUID, randomBytes } from 'node:crypto';
 import { DATABASE } from '../database';
 import { CategoriesService } from './categories.service';
@@ -137,10 +137,11 @@ export class VariantsService {
       shopId,
       key,
       { kind: 'variant', ...input },
-      () => this.createVariantUnsafe(shopId, input, actor),
+      (tx) => this.createVariantUnsafe(tx, shopId, input, actor),
     );
   }
   private async createVariantUnsafe(
+    tx: EntityManager,
     shopId: string,
     input: VariantInput,
     actor: string,
@@ -151,7 +152,7 @@ export class VariantsService {
       input.subcategory ?? '',
     );
     if (input.parentId) {
-      const [parent] = await this.db.query(
+      const [parent] = await tx.query(
         'SELECT id, archived FROM variants WHERE shop_id=$1 AND id=$2',
         [shopId, input.parentId],
       );
@@ -167,28 +168,25 @@ export class VariantsService {
     const barcode =
       input.barcode ?? `MS${randomBytes(12).toString('hex').toUpperCase()}`;
     try {
-      const row = await this.db.transaction(async (tx) => {
-        const [created] = await tx.query(
-          'INSERT INTO variants(id,shop_id,name,barcode,sale_price_minor,category,subcategory,description,photo_data,size,color,photo_album,parent_id)VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)RETURNING *',
-          [
-            randomUUID(),
-            shopId,
-            input.name.trim(),
-            barcode,
-            input.salePriceMinor,
-            input.category?.trim() ?? '',
-            input.subcategory?.trim() ?? '',
-            input.description?.trim() ?? '',
-            photo,
-            input.size?.trim() ?? '',
-            input.color?.trim() ?? '',
-            album,
-            input.parentId ?? null,
-          ],
-        );
-        await stageProduct(tx, created, actor);
-        return created;
-      });
+      const [row] = await tx.query(
+        'INSERT INTO variants(id,shop_id,name,barcode,sale_price_minor,category,subcategory,description,photo_data,size,color,photo_album,parent_id)VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)RETURNING *',
+        [
+          randomUUID(),
+          shopId,
+          input.name.trim(),
+          barcode,
+          input.salePriceMinor,
+          input.category?.trim() ?? '',
+          input.subcategory?.trim() ?? '',
+          input.description?.trim() ?? '',
+          photo,
+          input.size?.trim() ?? '',
+          input.color?.trim() ?? '',
+          album,
+          input.parentId ?? null,
+        ],
+      );
+      await stageProduct(tx, row, actor);
       return this.dto({ ...row, publication_status: 'pending' });
     } catch (e: any) {
       if (e.code === '23505')

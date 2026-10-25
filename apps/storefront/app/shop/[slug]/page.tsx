@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import Catalog from '../../../components/Catalog';
 import {
   publicApi,
@@ -22,7 +22,7 @@ export async function generateMetadata({ params, searchParams }: Props) {
     return metadata(
       s.name + ' — MyStore',
       s.description || `Каталог магазина ${s.name}, ${s.city}. Цены и наличие.`,
-      '/shop/' + slug,
+      '/shop/' + s.slug,
       Object.keys(await searchParams).length > 0,
     );
   } catch (e) {
@@ -37,5 +37,25 @@ export async function generateMetadata({ params, searchParams }: Props) {
 }
 
 export default async function StorePage({ params, searchParams }: Props) {
-  return <Catalog slug={(await params).slug} search={await searchParams} />;
+  const { slug } = await params;
+  const search = await searchParams;
+  let store: Store;
+  try {
+    store = await publicApi<Store>('/stores/' + encodeURIComponent(slug));
+  } catch (error) {
+    if (error instanceof PublicApiError && error.status === 404) notFound();
+    throw error;
+  }
+  if (store.slug !== slug) {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(search)) {
+      if (Array.isArray(value))
+        value.forEach((item) => query.append(key, item));
+      else if (value !== undefined) query.set(key, value);
+    }
+    permanentRedirect(
+      `/shop/${encodeURIComponent(store.slug)}${query.size ? `?${query}` : ''}`,
+    );
+  }
+  return <Catalog slug={slug} search={search} />;
 }

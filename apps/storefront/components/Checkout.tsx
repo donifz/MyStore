@@ -305,7 +305,7 @@ function MarketplaceCheckout() {
               return (
                 <section key={slug} className="sf-cart-shop sf-panel">
                   <div className="sf-cart-shop-heading">
-                    <Link href={'/shops/' + slug}>
+                    <Link href={'/shop/' + slug}>
                       <span className="sf-mini-logo">
                         <Icon name="shop" />
                       </span>
@@ -322,7 +322,7 @@ function MarketplaceCheckout() {
                       <div className="sf-cart-line" key={l.id}>
                         <Link
                           className="sf-cart-image"
-                          href={`/shops/${slug}/products/${l.id}`}
+                          href={`/shop/${slug}/products/${l.id}`}
                         >
                           {l.photoUrl ? (
                             <img src={l.photoUrl} alt={l.name} />
@@ -333,7 +333,7 @@ function MarketplaceCheckout() {
                         <div>
                           <Link
                             className="sf-cart-name"
-                            href={`/shops/${slug}/products/${l.id}`}
+                            href={`/shop/${slug}/products/${l.id}`}
                           >
                             {l.name}
                           </Link>

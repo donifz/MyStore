@@ -43,7 +43,7 @@ export function productJson(v: Product) {
       availability: v.available
         ? 'https://schema.org/InStock'
         : 'https://schema.org/OutOfStock',
-      url: publicBase() + `/shops/${v.store.slug}/products/${v.id}`,
+      url: publicBase() + `/shop/${v.store.slug}/products/${v.id}`,
       seller: { '@type': 'Organization', name: v.store.name },
     },
   }).replace(/</g, '\\u003c');

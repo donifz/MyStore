@@ -67,31 +67,147 @@ describe('public storefront', () => {
     const list = await request(http()).get('/public/stores').expect(200);
     expect(list.body.items.map((x: any) => x.slug)).toEqual([published.slug]);
   });
-  it('keeps a historical slug and redirects it to the canonical address', async () => {
+  it('keeps a historical slug and resolves it to the canonical address', async () => {
     const first = await publish();
     const changed = await request(http())
       .put(`/shops/${fixture.shop}/storefront`)
       .auth(c.owner, { type: 'bearer' })
-      .send({ ...profile, slug: 'canonical-home', theme: 'festive' })
+      .send({ ...profile, slug: 'canonical-home' })
       .expect(200);
     expect(changed.body.slug).toBe('canonical-home');
-    expect(changed.body.theme).toBe('festive');
     await request(http())
       .get(`/public/stores/${first.slug}`)
-      .redirects(0)
-      .expect(308)
-      .expect('Location', `/api/public/stores/${changed.body.slug}`);
+      .expect(200)
+      .expect((r) => {
+        expect(r.body.slug).toBe(changed.body.slug);
+        expect(r.body.historical).toBe(true);
+      });
     await request(http())
       .get(`/public/stores/${changed.body.slug}`)
       .expect(200)
-      .expect((r) => expect(r.body.theme).toBe('festive'));
+      .expect((r) => expect(r.body.slug).toBe('canonical-home'));
     const alias = await c.db.query(
-      'SELECT shop_id,current_slug FROM shop_slug_history WHERE slug=$1',
+      'SELECT shop_id,is_current FROM shop_slugs WHERE slug=$1',
       [first.slug],
     );
-    expect(alias).toEqual([
-      { shop_id: fixture.shop, current_slug: changed.body.slug },
+    expect(alias).toEqual([{ shop_id: fixture.shop, is_current: false }]);
+    const restored = await request(http())
+      .put(`/shops/${fixture.shop}/storefront`)
+      .auth(c.owner, { type: 'bearer' })
+      .send({ ...profile, slug: first.slug })
+      .expect(200);
+    expect(restored.body.slug).toBe(first.slug);
+  });
+  it('publishes validated seasonal content only during its active period', async () => {
+    const shop = await publish();
+    const presentation = {
+      id: 'new-year',
+      startsAt: null,
+      endsAt: null,
+      hero: {
+        title: 'Новогодние подарки',
+        text: 'Выберите подарок близким',
+        link: '/?category=Подарки',
+        buttonLabel: 'Смотреть',
+        imageAlt: 'Праздничные коробки',
+      },
+      info: {
+        title: 'Успейте заказать',
+        text: 'Самовывоз сегодня',
+        link: 'https://example.test/delivery',
+        buttonLabel: 'Условия',
+      },
+    };
+    const saved = await request(http())
+      .put(`/shops/${fixture.shop}/storefront`)
+      .auth(c.owner, { type: 'bearer' })
+      .send({ ...profile, presentation })
+      .expect(200);
+    expect(saved.body.presentation).toEqual(presentation);
+    const publicStore = await request(http())
+      .get(`/public/stores/${shop.slug}`)
+      .expect(200);
+    expect(publicStore.body.presentation).toEqual(presentation);
+
+    await request(http())
+      .put(`/shops/${fixture.shop}/storefront`)
+      .auth(c.owner, { type: 'bearer' })
+      .send({
+        ...profile,
+        presentation: {
+          ...presentation,
+          hero: { ...presentation.hero, link: 'javascript:alert(1)' },
+        },
+      })
+      .expect(400);
+    const unchanged = await request(http())
+      .get(`/shops/${fixture.shop}/storefront`)
+      .auth(c.owner, { type: 'bearer' })
+      .expect(200);
+    expect(unchanged.body.presentation).toEqual(presentation);
+
+    const future = {
+      ...presentation,
+      id: 'nooruz',
+      startsAt: '2099-03-20T00:00:00.000Z',
+      endsAt: '2099-03-22T00:00:00.000Z',
+    };
+    await request(http())
+      .put(`/shops/${fixture.shop}/storefront`)
+      .auth(c.owner, { type: 'bearer' })
+      .send({ ...profile, presentation: future })
+      .expect(200);
+    const inactive = await request(http())
+      .get(`/public/stores/${shop.slug}`)
+      .expect(200);
+    expect(inactive.body.presentation).toEqual({ id: 'base' });
+  });
+  it('normalizes and validates addresses and serializes simultaneous claims', async () => {
+    await publish();
+    await request(http())
+      .put(`/shops/${fixture.shop}/storefront`)
+      .auth(c.owner, { type: 'bearer' })
+      .send({ ...profile, slug: 'ab' })
+      .expect(400);
+    for (const slug of [
+      'new',
+      'cart',
+      'checkout',
+      'seller',
+      'terms',
+      'privacy',
+      'ui-kit',
+    ])
+      await request(http())
+        .put(`/shops/${fixture.shop}/storefront`)
+        .auth(c.owner, { type: 'bearer' })
+        .send({ ...profile, slug })
+        .expect(400);
+    const normalized = await request(http())
+      .put(`/shops/${fixture.shop}/storefront`)
+      .auth(c.owner, { type: 'bearer' })
+      .send({ ...profile, slug: 'My-New-Home' })
+      .expect(200);
+    expect(normalized.body.slug).toBe('my-new-home');
+
+    await c.db.query(
+      "INSERT INTO memberships(shop_id,user_id,role) VALUES($1,$2,'owner') ON CONFLICT DO NOTHING",
+      [fixture.otherShop, fixture.owner],
+    );
+    const claim = (shopId: string) =>
+      request(http())
+        .put(`/shops/${shopId}/storefront`)
+        .auth(c.owner, { type: 'bearer' })
+        .send({ ...profile, slug: 'shared-address' });
+    const results = await Promise.all([
+      claim(fixture.shop),
+      claim(fixture.otherShop),
     ]);
+    expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
+    const rejected = await c.db.query(
+      "SELECT action FROM audit_log WHERE action='slug_change_rejected'",
+    );
+    expect(rejected).toHaveLength(1);
   });
   it('uses real inventory after receiving and selling without exposing financial data', async () => {
     const shop = await publish(),
@@ -147,6 +263,7 @@ describe('public storefront', () => {
         district: '',
         pickupEnabled: true,
         deliveryEnabled: false,
+        presentation: { id: 'base', startsAt: null, endsAt: null },
         phone: profile.phone,
         address: 'Центр',
         hours: '10:00–19:00',

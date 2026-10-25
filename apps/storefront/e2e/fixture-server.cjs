@@ -21,6 +21,17 @@ const store = {
   deliveryEnabled: false,
   productCount: 1,
   categories: ['Посуда'],
+  presentation: {
+    id: 'nooruz',
+    startsAt: null,
+    endsAt: null,
+    hero: {
+      title: 'Нооруз майрамы',
+      text: 'Праздничная подборка магазина',
+      link: '/?category=Посуда',
+      buttonLabel: 'Смотреть товары',
+    },
+  },
 };
 const product = {
   id: '11111111-1111-4111-8111-111111111111',

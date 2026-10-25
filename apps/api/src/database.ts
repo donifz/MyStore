@@ -27,6 +27,9 @@ import { ReportsAndPlatformManagement1760000000023 } from './migrations/17600000
 import { ReceivingDocuments1760000000024 } from './migrations/1760000000024-ReceivingDocuments';
 import { ShopSlugHistory1760000000025 } from './migrations/1760000000025-ShopSlugHistory';
 import { StorefrontThemes1760000000026 } from './migrations/1760000000026-StorefrontThemes';
+import { CanonicalStorefrontSettings1760000000027 } from './migrations/1760000000027-CanonicalStorefrontSettings';
+import { SeasonalStorefrontThemes1760000000028 } from './migrations/1760000000028-SeasonalStorefrontThemes';
+import { RegisterNewShopSlugs1760000000029 } from './migrations/1760000000029-RegisterNewShopSlugs';
 export const DATABASE = Symbol('DATABASE');
 export function buildDataSource(url: string) {
   return new DataSource({
@@ -61,6 +64,9 @@ export function buildDataSource(url: string) {
       ReceivingDocuments1760000000024,
       ShopSlugHistory1760000000025,
       StorefrontThemes1760000000026,
+      CanonicalStorefrontSettings1760000000027,
+      SeasonalStorefrontThemes1760000000028,
+      RegisterNewShopSlugs1760000000029,
     ],
   });
 }

@@ -55,9 +55,7 @@ class ProductQuery extends StoreQuery {
 }
 class ProfileDto {
   @IsOptional() @IsString() @MaxLength(40) slug?: string;
-  @IsOptional()
-  @IsIn(['classic', 'festive', 'minimal', 'nature'])
-  theme?: string;
+  @Allow() presentation?: unknown;
   @Allow() timeZone?: string;
   @Allow() businessSchedule?: unknown;
   @IsOptional() @IsString() @MaxLength(80) district?: string;
@@ -103,17 +101,7 @@ export class PublicStorefrontController {
     @Res({ passthrough: true }) res: Response,
   ) {
     res.setHeader('Cache-Control', 'no-store');
-    const result = await this.service.store(slug);
-    if (result.redirectFrom) {
-      res
-        .status(308)
-        .setHeader(
-          'Location',
-          `/api/public/stores/${encodeURIComponent(result.slug)}`,
-        );
-      return null;
-    }
-    return result;
+    return this.service.store(slug);
   }
   @Get('products') products(
     @Query() q: ProductQuery,

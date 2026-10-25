@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { randomUUID } from 'node:crypto';
 import { createApp } from '../src/app';
 import { setup, teardown, fixture } from './helpers';
 describe('catalog list', () => {
@@ -17,6 +18,7 @@ describe('catalog list', () => {
       await request(c.app.getHttpServer())
         .post(`/shops/${fixture.shop}/variants`)
         .auth(c.owner, { type: 'bearer' })
+        .set('Idempotency-Key', randomUUID())
         .send({ name, barcode, salePriceMinor: 15000 })
         .expect(201);
     const first = await request(c.app.getHttpServer())

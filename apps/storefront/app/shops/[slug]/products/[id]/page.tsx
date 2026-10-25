@@ -8,7 +8,7 @@ import StockBadge from '../../../../../components/storefront/StockBadge';
 import BuyButton from '../../../../../components/BuyButton';
 import Link from 'next/link';
 import { headers } from 'next/headers';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import {
   publicApi,
   PublicApiError,
@@ -19,6 +19,7 @@ import {
 import { metadata, productJson } from '../../../../../lib/seo';
 import Refresh from '../../../../../components/Refresh';
 import VariantSelector from '../../../../../components/storefront/VariantSelector';
+import SeasonalBlocks from '../../../../../components/storefront/SeasonalBlocks';
 export const dynamic = 'force-dynamic';
 type Props = { params: Promise<{ slug: string; id: string }> };
 async function load(params: Props['params']) {
@@ -37,7 +38,7 @@ export async function generateMetadata({ params }: Props) {
       p.name + ' — ' + p.store.name + ' | MyStore',
       p.description ||
         `${p.name}: цена ${formatSom(p.salePriceMinor)}, магазин ${p.store.name}, ${p.store.city}.`,
-      `/shops/${p.store.slug}/products/${p.id}`,
+      `/shop/${p.store.slug}/products/${p.id}`,
     );
   } catch (e) {
     if (e instanceof PublicApiError && e.status === 404) notFound();
@@ -50,6 +51,7 @@ export async function generateMetadata({ params }: Props) {
   }
 }
 export default async function ProductPage({ params }: Props) {
+  const requested = await params;
   let v: Product;
   try {
     v = await load(params);
@@ -63,6 +65,8 @@ export default async function ProductPage({ params }: Props) {
       </Alert>
     );
   }
+  if (v.store.slug !== requested.slug)
+    permanentRedirect(`/shop/${v.store.slug}/products/${v.id}`);
   const phone = v.store.phone?.replace(/[^\d+]/g, '');
   let related: Product[] = [];
   try {
@@ -77,8 +81,9 @@ export default async function ProductPage({ params }: Props) {
     /* Product remains available. */
   }
   return (
-    <div className="sf-stack">
+    <div className={`sf-stack sf-theme--${v.store.presentation?.id || 'base'}`}>
       <Refresh />
+      <SeasonalBlocks presentation={v.store.presentation} />
       <script
         type="application/ld+json"
         nonce={(await headers()).get('x-nonce') || undefined}
@@ -95,7 +100,7 @@ export default async function ProductPage({ params }: Props) {
             <span>›</span>
           </>
         )}
-        <Link href={'/shops/' + v.store.slug}>{v.store.name}</Link>
+        <Link href={'/shop/' + v.store.slug}>{v.store.name}</Link>
         <span>›</span>
         <span>{v.name}</span>
       </nav>
@@ -156,7 +161,7 @@ export default async function ProductPage({ params }: Props) {
               <div>
                 <dt>Магазин</dt>
                 <dd>
-                  <Link href={'/shops/' + v.store.slug}>{v.store.name}</Link>
+                  <Link href={'/shop/' + v.store.slug}>{v.store.name}</Link>
                 </dd>
               </div>
               <div>
@@ -176,7 +181,7 @@ export default async function ProductPage({ params }: Props) {
         >
           <Price minor={v.salePriceMinor} className="sf-detail-price" />
           <StockBadge available={v.available} />
-          <Link className="sf-seller-box" href={'/shops/' + v.store.slug}>
+          <Link className="sf-seller-box" href={'/shop/' + v.store.slug}>
             <span className="sf-mini-logo">{v.store.name.slice(0, 1)}</span>
             <span>
               <strong>{v.store.name}</strong>

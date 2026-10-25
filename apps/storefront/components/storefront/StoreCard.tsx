@@ -13,7 +13,7 @@ export default function StoreCard({ store: s }: { store: Store }) {
           {s.name.slice(0, 1).toUpperCase()}
         </span>
         <h2>
-          <Link href={'/shops/' + s.slug}>{s.name}</Link>
+          <Link href={'/shop/' + s.slug}>{s.name}</Link>
         </h2>
         <p className="sf-shop-meta">
           <Icon name="pin" />
@@ -34,7 +34,7 @@ export default function StoreCard({ store: s }: { store: Store }) {
         </p>
         <Link
           className="sf-button sf-button--secondary"
-          href={'/shops/' + s.slug}
+          href={'/shop/' + s.slug}
         >
           Перейти в магазин <Icon name="arrow" />
         </Link>

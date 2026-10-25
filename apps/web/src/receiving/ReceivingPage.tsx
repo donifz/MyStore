@@ -87,7 +87,19 @@ function ReceivingWorkspace({
         </Link>
       </div>
       <div className="pos-grid">
-        <DocumentEditor doc={doc} receiving shopId={shopId} />
+        <DocumentEditor
+          doc={doc}
+          receiving
+          shopId={shopId}
+          receivingMetadata={{
+            ...(documentNumber.trim()
+              ? { documentNumber: documentNumber.trim() }
+              : {}),
+            supplier: supplier.trim(),
+            receivedOn,
+            comment: comment.trim(),
+          }}
+        />
         <aside className="panel summary-panel">
           <h2>Документ прихода</h2>
           <label>

@@ -156,6 +156,7 @@ describe('photo receiving', () => {
     const r = await request(c.app.getHttpServer())
       .post(`/shops/${fixture.shop}/variants`)
       .auth(c.owner, { type: 'bearer' })
+      .set('Idempotency-Key', randomUUID())
       .send({ name: 'Обычный товар', salePriceMinor: 100 })
       .expect(201);
     expect(r.body.sku).toBe('MS-100000001');

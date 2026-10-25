@@ -139,6 +139,10 @@ export default function ProductForm({
   }
   async function submit(e: FormEvent) {
     e.preventDefault();
+    const submitter = (e.nativeEvent as SubmitEvent)
+      .submitter as HTMLButtonElement | null;
+    submitIntent.current =
+      submitter?.dataset.intent === 'secondary' ? 'secondary' : 'primary';
     if (locked || submitting.current) return;
     submitting.current = true;
     setBusy(true);
@@ -407,10 +411,8 @@ export default function ProductForm({
             <button
               type="submit"
               formNoValidate
+              data-intent="secondary"
               disabled={locked}
-              onClick={() => {
-                submitIntent.current = 'secondary';
-              }}
             >
               {secondarySubmitLabel}
             </button>

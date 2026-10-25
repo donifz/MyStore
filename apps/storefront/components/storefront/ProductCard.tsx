@@ -6,7 +6,7 @@ import BuyButton from '../BuyButton';
 import FavoriteButton from './FavoriteButton';
 import Icon from './Icon';
 export default function ProductCard({ product: p }: { product: Product }) {
-  const href = `/shops/${p.store.slug}/products/${p.id}`;
+  const href = `/shop/${p.store.slug}/products/${p.id}`;
   return (
     <article className="sf-product-card">
       <div className="sf-card-media">
@@ -30,7 +30,7 @@ export default function ProductCard({ product: p }: { product: Product }) {
           <Link href={href}>{p.name}</Link>
         </h3>
         <Price minor={p.salePriceMinor} />
-        <Link className="sf-card-seller" href={'/shops/' + p.store.slug}>
+        <Link className="sf-card-seller" href={'/shop/' + p.store.slug}>
           <span className="sf-mini-logo">{p.store.name.slice(0, 1)}</span>
           <span className="sf-card-seller-name">{p.store.name}</span>
         </Link>

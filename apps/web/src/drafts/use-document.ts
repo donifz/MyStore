@@ -228,6 +228,12 @@ export function useDocument(scope: DraftScope) {
     variant: Variant,
     quantity: number,
     unitCostText: string,
+    metadata: {
+      documentNumber?: string;
+      supplier: string;
+      receivedOn: string;
+      comment: string;
+    },
   ) {
     const workflow = ref.current.primaryReceiving;
     if (!workflow || !Number.isInteger(quantity) || quantity < 1)
@@ -257,6 +263,7 @@ export function useDocument(scope: DraftScope) {
     const result = await send(
       `/shops/${scope.shopId}/receivings`,
       {
+        ...metadata,
         lines: next.lines.map((item) => ({
           variantId: item.id,
           quantity: item.quantity,
@@ -326,9 +333,27 @@ export function useDocument(scope: DraftScope) {
       }
     },
     closeProductCreation: () => setProductCreation(null),
-    finishProductCreationWithoutReceiving: () => {
-      setProductCreation(null);
-      setSuccess('Карточка создана без приёмки. Остаток не изменён.');
+    finishProductCreationWithoutReceiving: async () => {
+      try {
+        await withDraftLock(scope, () => {
+          const current = ref.current;
+          const next: Draft = {
+            ...current,
+            revision: crypto.randomUUID(),
+            primaryReceiving: undefined,
+          };
+          save(next, current.revision);
+          ref.current = next;
+          setDraft(next);
+          setProductCreation(null);
+          setSuccess('Карточка создана без приёмки. Остаток не изменён.');
+        });
+        return true;
+      } catch (e) {
+        setError(errorText(e));
+        setBlocked(true);
+        return false;
+      }
     },
     priceChange,
     acceptPrice: () => {

@@ -40,6 +40,8 @@ export default function App() {
           <Route path="/shops" element={<StoresPage />} />
           <Route path="/shops/:slug" element={<CatalogPublicPage />} />
           <Route path="/shops/:slug/products/:id" element={<ProductPage />} />
+          <Route path="/shop/:slug" element={<CatalogPublicPage />} />
+          <Route path="/shop/:slug/products/:id" element={<ProductPage />} />
           <Route path="/partner" element={<PartnerPage />} />
         </Route>
         <Route path="/seller/staff/accept" element={<StaffActivationPage />} />

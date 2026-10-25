@@ -128,6 +128,12 @@ it('creates an unknown barcode, preserves prior lines, and posts its first recei
   ).toBe('1');
   await u.type(form.getByLabelText('Название'), 'Принтер');
   await u.type(form.getByLabelText('Цена продажи, сом'), '2000');
+  await u.type(screen.getByLabelText('Номер документа'), 'ТТН-42');
+  await u.type(screen.getByLabelText('Поставщик'), 'ОсОО Поставка');
+  fireEvent.change(screen.getByLabelText('Дата поставки'), {
+    target: { value: '2026-10-25' },
+  });
+  await u.type(screen.getByLabelText('Комментарий'), 'Первая партия');
   fireEvent.change(form.getByLabelText('Количество первичной приёмки'), {
     target: { value: '5' },
   });
@@ -154,6 +160,10 @@ it('creates an unknown barcode, preserves prior lines, and posts its first recei
     calls.find((c) => c.method === 'POST' && c.url.endsWith('/receivings'))
       ?.body,
   ).toMatchObject({
+    documentNumber: 'ТТН-42',
+    supplier: 'ОсОО Поставка',
+    receivedOn: '2026-10-25',
+    comment: 'Первая партия',
     lines: [
       { variantId: 'existing', quantity: 3, unitCostMinor: 10000 },
       { variantId: 'new', quantity: 5, unitCostMinor: 150000 },
@@ -201,6 +211,7 @@ it('creates a product without receiving it', async () => {
     '/api/shops/' + shop + '/variants',
   ]);
   expect(load(scope)?.lines).toEqual([existing]);
+  expect(load(scope)?.primaryReceiving).toBeUndefined();
 });
 it('keeps the saved card and retries only the failed receiving phase', async () => {
   const calls = start('owner', 201, 500);
