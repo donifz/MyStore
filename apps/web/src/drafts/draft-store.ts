@@ -20,11 +20,18 @@ export type DraftLine = {
   discountMinor?: number;
   discountReason?: string;
 };
+export type PrimaryReceivingWorkflow = {
+  workflowId: string;
+  barcode: string;
+  productKey: string;
+  receivingKey: string;
+};
 export type Draft = {
   version: 1;
   scope: DraftScope;
   revision: string;
   lines: DraftLine[];
+  primaryReceiving?: PrimaryReceivingWorkflow;
   submission: null | {
     key: string;
     path?: string;
@@ -81,6 +88,19 @@ function validate(d: any, scope: DraftScope): asserts d is Draft {
     )
       throw new Error('Черновик содержит неверные данные.');
   }
+  if (
+    d.primaryReceiving !== undefined &&
+    (!d.primaryReceiving ||
+      typeof d.primaryReceiving.workflowId !== 'string' ||
+      !d.primaryReceiving.workflowId ||
+      typeof d.primaryReceiving.barcode !== 'string' ||
+      !d.primaryReceiving.barcode ||
+      typeof d.primaryReceiving.productKey !== 'string' ||
+      !d.primaryReceiving.productKey ||
+      typeof d.primaryReceiving.receivingKey !== 'string' ||
+      !d.primaryReceiving.receivingKey)
+  )
+    throw new Error('Сценарий первичной приёмки повреждён.');
   if (
     d.submission !== null &&
     (typeof d.submission?.key !== 'string' ||

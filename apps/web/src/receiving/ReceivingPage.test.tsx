@@ -112,6 +112,10 @@ async function openCreation() {
 it('creates an unknown barcode inline, preserves prior lines, and receives only after confirmation', async () => {
   const calls = start();
   const { u, form } = await openCreation();
+  const workflow = (load(scope) as any)?.primaryReceiving;
+  expect(workflow?.barcode).toBe(code);
+  expect(workflow?.productKey).toMatch(/^product:/);
+  expect(workflow?.receivingKey).toMatch(/^receiving:/);
   expect((form.getByLabelText('Штрихкод') as HTMLInputElement).value).toBe(
     code,
   );
@@ -159,6 +163,10 @@ it('creates an unknown barcode inline, preserves prior lines, and receives only 
   await screen.findByText('Документ проведён: receipt');
   expect(
     calls.find((c) => c.method === 'POST' && c.url.endsWith('/receivings'))
+      ?.key,
+  ).toBe(workflow?.receivingKey);
+  expect(
+    calls.find((c) => c.method === 'POST' && c.url.endsWith('/receivings'))
       ?.body,
   ).toMatchObject({
     lines: [
@@ -195,6 +203,18 @@ it('failed creation keeps entered fields and does not change the receipt', async
   expect(
     calls.some((c) => c.method === 'POST' && c.url.endsWith('/receivings')),
   ).toBe(false);
+});
+it('creates a product without receiving it', async () => {
+  const calls = start();
+  const { u, form } = await openCreation();
+  await u.type(form.getByLabelText('Название'), 'Товар без остатка');
+  await u.type(form.getByLabelText('Цена продажи, сом'), '2000');
+  await u.click(form.getByRole('button', { name: 'Создать без приёмки' }));
+  await screen.findByText('Карточка создана без приёмки. Остаток не изменён.');
+  expect(calls.filter((c) => c.method === 'POST').map((c) => c.url)).toEqual([
+    '/api/shops/' + shop + '/variants',
+  ]);
+  expect(load(scope)?.lines).toEqual([existing]);
 });
 it('cashier cannot load or create a receiving product', async () => {
   const calls = start('cashier');

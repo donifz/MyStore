@@ -242,10 +242,30 @@ describe('catalog archive and variant groups', () => {
     await put(`/variants/${vId}/archive`).expect(200);
 
     // Attempt to receive stock -> 409 Conflict
+    const movementsBefore = await ctx.db.query(
+      'SELECT id FROM stock_movements WHERE shop_id=$1 AND variant_id=$2',
+      [fixture.shop, vId],
+    );
+    const documentsBefore = await ctx.db.query(
+      "SELECT id FROM stock_documents WHERE shop_id=$1 AND kind='receiving'",
+      [fixture.shop],
+    );
     const receiveBlocked = await post('/receivings', {
       lines: [{ variantId: vId, quantity: 5, unitCostMinor: 400000 }],
     }).expect(409);
     expect(receiveBlocked.body.message).toContain('archived');
+    expect(
+      await ctx.db.query(
+        'SELECT id FROM stock_movements WHERE shop_id=$1 AND variant_id=$2',
+        [fixture.shop, vId],
+      ),
+    ).toEqual(movementsBefore);
+    expect(
+      await ctx.db.query(
+        "SELECT id FROM stock_documents WHERE shop_id=$1 AND kind='receiving'",
+        [fixture.shop],
+      ),
+    ).toEqual(documentsBefore);
 
     // Attempt POS sale -> 409 Conflict
     const saleBlocked = await post('/pos/sales', {

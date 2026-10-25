@@ -63,7 +63,11 @@ function ReceivingWorkspace({
       ).reduce((n, l) => n + BigInt(l.quantity) * BigInt(l.unitCostMinor), 0n);
       if (total > BigInt(Number.MAX_SAFE_INTEGER))
         throw new Error('Сумма слишком велика.');
-      await doc.send(`/shops/${shopId}/receivings`, body);
+      await doc.send(
+        `/shops/${shopId}/receivings`,
+        body,
+        doc.draft.primaryReceiving?.receivingKey,
+      );
     } catch (e) {
       doc.setError(errorText(e));
     }

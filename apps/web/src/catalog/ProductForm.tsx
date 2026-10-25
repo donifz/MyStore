@@ -14,8 +14,11 @@ export default function ProductForm({
   submitLabel = 'Сохранить товар',
   formLabel = 'Добавить товар',
   savedLabel = 'Продолжить',
+  creationKey,
+  secondarySubmitLabel,
   onCancel,
   onSaved,
+  onSecondarySaved,
 }: {
   shopId: string;
   parentId?: string;
@@ -26,8 +29,13 @@ export default function ProductForm({
   submitLabel?: string;
   formLabel?: string;
   savedLabel?: string;
+  creationKey?: string;
+  secondarySubmitLabel?: string;
   onCancel?: () => void;
   onSaved: (variant: Variant) => Promise<boolean | void> | boolean | void;
+  onSecondarySaved?: (
+    variant: Variant,
+  ) => Promise<boolean | void> | boolean | void;
 }) {
   const [name, setName] = useState(''),
     [barcode, setBarcode] = useState(initialBarcode),
@@ -50,7 +58,8 @@ export default function ProductForm({
   const submitting = useRef(false),
     photoRevision = useRef(0),
     lookupRevision = useRef(0),
-    creationKey = useRef(crypto.randomUUID()),
+    productCreationKey = useRef(creationKey ?? crypto.randomUUID()),
+    submitIntent = useRef<'primary' | 'secondary'>('primary'),
     id = useId();
   const updateCategories = useCallback(
     (value: CategoryNode[]) => setCategories(Array.isArray(value) ? value : []),
@@ -132,7 +141,7 @@ export default function ProductForm({
         try {
           variant = await api<Variant>(`/shops/${shopId}/variants`, {
             method: 'POST',
-            key: creationKey.current,
+            key: productCreationKey.current,
             body: {
               name: name.trim(),
               ...(parentId ? { parentId } : {}),
@@ -162,7 +171,11 @@ export default function ProductForm({
           throw e;
         }
       }
-      if ((await onSaved(variant)) === false)
+      const afterSave =
+        submitIntent.current === 'secondary' && onSecondarySaved
+          ? onSecondarySaved
+          : onSaved;
+      if ((await afterSave(variant)) === false)
         setError(
           'Карточка сохранена, но черновик не изменён. Обновите черновик и добавьте товар.',
         );
@@ -378,6 +391,17 @@ export default function ProductForm({
           {onCancel && (
             <button type="button" disabled={busy} onClick={onCancel}>
               Отмена
+            </button>
+          )}
+          {secondarySubmitLabel && !saved && (
+            <button
+              type="submit"
+              disabled={locked}
+              onClick={() => {
+                submitIntent.current = 'secondary';
+              }}
+            >
+              {secondarySubmitLabel}
             </button>
           )}
           <button type="submit" className="primary" disabled={locked}>

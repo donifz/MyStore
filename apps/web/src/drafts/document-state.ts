@@ -11,10 +11,7 @@ export async function submitDocument<T>(
     if (current && current.revision !== draft.revision)
       throw new Error('Черновик изменён в другом окне. Обновите его.');
     // An existing pending request always wins, including its immutable URL/body.
-    const submission = current?.submission ?? {
-      ...draft.submission!,
-      key: current ? current.revision : draft.submission!.key,
-    };
+    const submission = current?.submission ?? draft.submission!;
     const next: Draft = {
       ...draft,
       submission: { ...submission, status: 'pending' },

@@ -38,7 +38,7 @@ export default function DocumentEditor({
           type="button"
           className="button"
           disabled={disabled || !doc.online}
-          onClick={doc.beginProductCreation}
+          onClick={() => void doc.beginProductCreation()}
         >
           Создать товар с этим штрихкодом
         </button>
@@ -48,6 +48,7 @@ export default function DocumentEditor({
           key={doc.productCreation}
           shopId={shopId}
           barcode={doc.productCreation}
+          creationKey={doc.draft.primaryReceiving?.productKey}
           disabled={
             doc.blocked || !doc.online || doc.busy || !!doc.draft.submission
           }
@@ -56,6 +57,10 @@ export default function DocumentEditor({
             const added = await doc.addVariant(variant);
             if (added) doc.closeProductCreation();
             return added;
+          }}
+          onCreatedWithoutReceiving={async () => {
+            doc.finishProductCreationWithoutReceiving();
+            return true;
           }}
         />
       )}

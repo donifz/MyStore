@@ -36,7 +36,9 @@ export function useDocument(scope: DraftScope) {
     [success, setSuccess] = useState(''),
     [online, setOnline] = useState(navigator.onLine),
     [unknownBarcode, setUnknownBarcode] = useState<string | null>(null),
-    [productCreation, setProductCreation] = useState<string | null>(null),
+    [productCreation, setProductCreation] = useState<string | null>(
+      initial.draft.primaryReceiving?.barcode ?? null,
+    ),
     [priceChange, setPriceChange] = useState<{
       id: string;
       price: number;
@@ -153,7 +155,7 @@ export function useDocument(scope: DraftScope) {
       setBlocked(true);
     }
   }
-  async function send(path: string, body: unknown) {
+  async function send(path: string, body: unknown, key?: string) {
     if (sending.current || blocked || !online || productCreation) return;
     sending.current = true;
     setBusy(true);
@@ -166,7 +168,7 @@ export function useDocument(scope: DraftScope) {
         : {
             ...ref.current,
             submission: {
-              key: ref.current.revision,
+              key: key ?? ref.current.revision,
               path,
               body,
               status: 'pending',
@@ -228,7 +230,7 @@ export function useDocument(scope: DraftScope) {
     unknownBarcode,
     productCreation,
     addVariant,
-    beginProductCreation: () => {
+    beginProductCreation: async () => {
       if (
         unknownBarcode &&
         online &&
@@ -236,11 +238,37 @@ export function useDocument(scope: DraftScope) {
         !blocked &&
         !ref.current.submission
       ) {
-        setProductCreation(unknownBarcode);
-        setError('');
+        try {
+          await withDraftLock(scope, () => {
+            const current = ref.current;
+            const workflowId = crypto.randomUUID();
+            const next: Draft = {
+              ...current,
+              revision: crypto.randomUUID(),
+              primaryReceiving: {
+                workflowId,
+                barcode: unknownBarcode,
+                productKey: `product:${workflowId}`,
+                receivingKey: `receiving:${workflowId}`,
+              },
+            };
+            save(next, current.revision);
+            ref.current = next;
+            setDraft(next);
+            setProductCreation(unknownBarcode);
+            setError('');
+          });
+        } catch (e) {
+          setError(errorText(e));
+          setBlocked(true);
+        }
       }
     },
     closeProductCreation: () => setProductCreation(null),
+    finishProductCreationWithoutReceiving: () => {
+      setProductCreation(null);
+      setSuccess('Карточка создана без приёмки. Остаток не изменён.');
+    },
     priceChange,
     acceptPrice: () => {
       if (priceChange) {
