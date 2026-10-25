@@ -1,4 +1,11 @@
-import { useCallback, useId, useRef, useState, type FormEvent } from 'react';
+import {
+  useCallback,
+  useId,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from 'react';
 import { api, ApiError, errorText } from '../api/client';
 import { parseSom, formatSom } from '../api/money';
 import type { Variant } from '../api/types';
@@ -15,6 +22,7 @@ export default function ProductForm({
   formLabel = 'Добавить товар',
   savedLabel = 'Продолжить',
   creationKey,
+  footerFields,
   secondarySubmitLabel,
   onCancel,
   onSaved,
@@ -30,6 +38,7 @@ export default function ProductForm({
   formLabel?: string;
   savedLabel?: string;
   creationKey?: string;
+  footerFields?: ReactNode;
   secondarySubmitLabel?: string;
   onCancel?: () => void;
   onSaved: (variant: Variant) => Promise<boolean | void> | boolean | void;
@@ -383,6 +392,7 @@ export default function ProductForm({
         </p>
       )}
       <footer className="product-form-footer">
+        {footerFields}
         <p className="muted">
           Сохранение создаёт карточку. Количество и закупочную цену укажите в
           приёмке.
@@ -396,6 +406,7 @@ export default function ProductForm({
           {secondarySubmitLabel && !saved && (
             <button
               type="submit"
+              formNoValidate
               disabled={locked}
               onClick={() => {
                 submitIntent.current = 'secondary';

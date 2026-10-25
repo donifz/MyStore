@@ -109,7 +109,7 @@ async function openCreation() {
     form: within(screen.getByRole('form', { name: 'Новый товар в приёмке' })),
   };
 }
-it('creates an unknown barcode inline, preserves prior lines, and receives only after confirmation', async () => {
+it('creates an unknown barcode, preserves prior lines, and posts its first receiving', async () => {
   const calls = start();
   const { u, form } = await openCreation();
   const workflow = (load(scope) as any)?.primaryReceiving;
@@ -120,34 +120,22 @@ it('creates an unknown barcode inline, preserves prior lines, and receives only 
     code,
   );
   expect(
-    (
-      screen.getByRole('button', {
-        name: 'Провести приёмку',
-      }) as HTMLButtonElement
-    ).disabled,
-  ).toBe(true);
+    (form.getByLabelText('Количество первичной приёмки') as HTMLInputElement)
+      .value,
+  ).toBe('1');
   await u.type(form.getByLabelText('Название'), 'Принтер');
   await u.type(form.getByLabelText('Цена продажи, сом'), '2000');
+  fireEvent.change(form.getByLabelText('Количество первичной приёмки'), {
+    target: { value: '5' },
+  });
+  await u.type(form.getByLabelText('Закупочная цена, сом'), '1500');
   await u.click(
-    form.getByRole('button', { name: 'Создать и добавить в приёмку' }),
+    form.getByRole('button', { name: 'Создать и провести приёмку' }),
   );
-  await screen.findByLabelText('Количество Принтер');
-  expect(
-    screen.queryByRole('form', { name: 'Новый товар в приёмке' }),
-  ).toBeNull();
-  expect(load(scope)?.lines).toEqual([
-    existing,
-    {
-      id: 'new',
-      name: 'Принтер',
-      barcode: code,
-      quantity: 1,
-      priceMinor: 200000,
-      unitCostText: '',
-    },
-  ]);
+  await screen.findByText('Документ проведён: receipt');
   expect(calls.filter((c) => c.method === 'POST').map((c) => c.url)).toEqual([
     '/api/shops/' + shop + '/variants',
+    '/api/shops/' + shop + '/receivings',
   ]);
   expect(calls.find((c) => c.method === 'POST')?.body).toEqual({
     name: 'Принтер',
@@ -155,12 +143,6 @@ it('creates an unknown barcode inline, preserves prior lines, and receives only 
     salePriceMinor: 200000,
   });
   expect(calls.find((c) => c.method === 'POST')?.key).toBeTruthy();
-  fireEvent.change(screen.getByLabelText('Количество Принтер'), {
-    target: { value: '5' },
-  });
-  await u.type(screen.getByLabelText('Закупочная цена Принтер, сом'), '1500');
-  await u.click(screen.getByRole('button', { name: 'Провести приёмку' }));
-  await screen.findByText('Документ проведён: receipt');
   expect(
     calls.find((c) => c.method === 'POST' && c.url.endsWith('/receivings'))
       ?.key,
@@ -192,8 +174,9 @@ it('failed creation keeps entered fields and does not change the receipt', async
   const { u, form } = await openCreation();
   await u.type(form.getByLabelText('Название'), 'Принтер');
   await u.type(form.getByLabelText('Цена продажи, сом'), '2000');
+  await u.type(form.getByLabelText('Закупочная цена, сом'), '1500');
   await u.click(
-    form.getByRole('button', { name: 'Создать и добавить в приёмку' }),
+    form.getByRole('button', { name: 'Создать и провести приёмку' }),
   );
   await form.findByRole('alert');
   expect((form.getByLabelText('Название') as HTMLInputElement).value).toBe(
@@ -228,17 +211,20 @@ it('a barcode created concurrently is confirmed explicitly without creating a se
   const { u, form } = await openCreation();
   await u.type(form.getByLabelText('Название'), 'Принтер');
   await u.type(form.getByLabelText('Цена продажи, сом'), '2000');
+  await u.type(form.getByLabelText('Закупочная цена, сом'), '1500');
   await u.click(
-    form.getByRole('button', { name: 'Создать и добавить в приёмку' }),
+    form.getByRole('button', { name: 'Создать и провести приёмку' }),
   );
   await form.findByText(/Существующий принтер/);
   expect(load(scope)?.lines).toEqual([existing]);
   await u.click(form.getByRole('button', { name: 'Добавить в приёмку' }));
-  await screen.findByLabelText('Количество Существующий принтер');
+  await screen.findByText('Документ проведён: receipt');
   expect(
     calls.filter((c) => c.method === 'POST' && c.url.endsWith('/variants')),
   ).toHaveLength(1);
-  expect(load(scope)?.lines[1].priceMinor).toBe(210000);
+  expect(
+    calls.some((c) => c.method === 'POST' && c.url.endsWith('/receivings')),
+  ).toBe(true);
 });
 it('a receiving document with an uncertain result cannot scan or create another product', async () => {
   start();

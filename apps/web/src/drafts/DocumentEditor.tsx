@@ -53,11 +53,7 @@ export default function DocumentEditor({
             doc.blocked || !doc.online || doc.busy || !!doc.draft.submission
           }
           onCancel={doc.closeProductCreation}
-          onCreated={async (variant) => {
-            const added = await doc.addVariant(variant);
-            if (added) doc.closeProductCreation();
-            return added;
-          }}
+          onCreated={doc.receiveCreatedVariant}
           onCreatedWithoutReceiving={async () => {
             doc.finishProductCreationWithoutReceiving();
             return true;

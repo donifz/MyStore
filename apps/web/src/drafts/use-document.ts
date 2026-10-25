@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, ApiError, errorText } from '../api/client';
+import { parseSom } from '../api/money';
 import {
   Draft,
   DraftLine,
@@ -155,8 +156,19 @@ export function useDocument(scope: DraftScope) {
       setBlocked(true);
     }
   }
-  async function send(path: string, body: unknown, key?: string) {
-    if (sending.current || blocked || !online || productCreation) return;
+  async function send(
+    path: string,
+    body: unknown,
+    key?: string,
+    allowProductCreation = false,
+  ) {
+    if (
+      sending.current ||
+      blocked ||
+      !online ||
+      (productCreation && !allowProductCreation)
+    )
+      return;
     sending.current = true;
     setBusy(true);
     setError('');
@@ -212,6 +224,55 @@ export function useDocument(scope: DraftScope) {
       setBusy(false);
     }
   }
+  async function receiveCreatedVariant(
+    variant: Variant,
+    quantity: number,
+    unitCostText: string,
+  ) {
+    const workflow = ref.current.primaryReceiving;
+    if (!workflow || !Number.isInteger(quantity) || quantity < 1)
+      throw new Error('Укажите корректное количество первичной приёмки.');
+    const unitCostMinor = parseSom(unitCostText);
+    const line: DraftLine = {
+      id: variant.id,
+      name: variant.name,
+      barcode: variant.barcode,
+      quantity,
+      priceMinor: variant.salePriceMinor,
+      unitCostText,
+    };
+    const next = await withDraftLock(scope, () => {
+      const current = ref.current;
+      if (current.lines.some((item) => item.id === variant.id))
+        throw new Error('Товар уже добавлен в приёмку.');
+      const updated: Draft = {
+        ...current,
+        revision: crypto.randomUUID(),
+        lines: [...current.lines, line],
+      };
+      save(updated, current.revision);
+      ref.current = updated;
+      setDraft(updated);
+      return updated;
+    });
+    const result = await send(
+      `/shops/${scope.shopId}/receivings`,
+      {
+        lines: next.lines.map((item) => ({
+          variantId: item.id,
+          quantity: item.quantity,
+          unitCostMinor:
+            item.id === variant.id
+              ? unitCostMinor
+              : parseSom(item.unitCostText ?? ''),
+        })),
+      },
+      workflow.receivingKey,
+      true,
+    );
+    if (result) setProductCreation(null);
+    return !!result;
+  }
   return {
     draft,
     change,
@@ -223,6 +284,7 @@ export function useDocument(scope: DraftScope) {
     blocked,
     reload,
     send,
+    receiveCreatedVariant,
     scan: (code: string) => {
       if (!ref.current.submission && !busy && !blocked && !productCreation)
         queue.current?.enqueue(code);
