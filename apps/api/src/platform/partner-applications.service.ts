@@ -38,6 +38,10 @@ export class PartnerApplicationsService {
     private readonly email: EmailQueueService,
   ) {}
 
+  async shopTypes() {
+    return this.db.query('SELECT code,name FROM shop_types ORDER BY name');
+  }
+
   async create(input: ApplicationInput) {
     if (!input.agreed) throw new BadRequestException('Agreement required');
     const email = input.email.trim().toLowerCase();
