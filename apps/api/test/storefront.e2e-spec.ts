@@ -40,6 +40,48 @@ describe('public storefront', () => {
     await approveTestProduct(c.db, item.id);
     return item;
   }
+  it('groups toy-store categories under global Toys while retaining local filters', async () => {
+    await c.db.query("UPDATE shops SET shop_type='toys' WHERE id=$1", [
+      fixture.shop,
+    ]);
+    await request(http())
+      .get(`/shops/${fixture.shop}/categories`)
+      .auth(c.owner, { type: 'bearer' })
+      .expect(200);
+    const product = (
+      await request(http())
+        .post(`/shops/${fixture.shop}/variants`)
+        .auth(c.owner, { type: 'bearer' })
+        .set('Idempotency-Key', randomUUID())
+        .send({
+          name: 'Робот STEM',
+          salePriceMinor: 10000,
+          category: 'Робототехника',
+          subcategory: 'STEM-наборы',
+        })
+        .expect(201)
+    ).body;
+    await approveTestProduct(c.db, product.id);
+    const shop = await publish();
+    const global = await request(http())
+      .get('/public/products')
+      .query({ category: 'Игрушки' })
+      .expect(200);
+    expect(global.body.items.some((item: any) => item.id === product.id)).toBe(
+      true,
+    );
+    expect(global.body.items.find((item: any) => item.id === product.id).platformCategory).toBe(
+      'Игрушки',
+    );
+    const local = await request(http())
+      .get('/public/products')
+      .query({ store: shop.slug, category: 'Робототехника' })
+      .expect(200);
+    expect(local.body.items.some((item: any) => item.id === product.id)).toBe(
+      true,
+    );
+  });
+
   it('keeps existing shops hidden, restricts profile to owner and validates publication', async () => {
     const r = await request(http()).get('/public/stores').expect(200);
     expect(r.body.total).toBe(0);
