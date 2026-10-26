@@ -19,6 +19,7 @@ export type ApplicationInput = {
   city: string;
   address: string;
   category: string;
+  shopType: string;
   agreed: boolean;
 };
 export type DecisionInput = {
@@ -49,7 +50,7 @@ export class PartnerApplicationsService {
         if (existing) throw new ConflictException('Application unavailable');
         const id = randomUUID();
         await tx.query(
-          'INSERT INTO partner_applications(id,shop_name,email,phone,city,address,category) VALUES($1,$2,$3,$4,$5,$6,$7)',
+          'INSERT INTO partner_applications(id,shop_name,email,phone,city,address,category,shop_type) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',
           [
             id,
             input.shopName.trim(),
@@ -58,6 +59,7 @@ export class PartnerApplicationsService {
             input.city.trim(),
             input.address.trim(),
             input.category.trim(),
+            input.shopType,
           ],
         );
         await tx.query(
@@ -135,9 +137,10 @@ export class PartnerApplicationsService {
         );
         if (existing) throw new ConflictException('Application unavailable');
         shopId = randomUUID();
-        await tx.query('INSERT INTO shops(id,name) VALUES($1,$2)', [
+        await tx.query('INSERT INTO shops(id,name,shop_type) VALUES($1,$2,$3)', [
           shopId,
           row.shop_name,
+          row.shop_type,
         ]);
         const token = randomBytes(32).toString('hex');
         await tx.query(
