@@ -160,9 +160,7 @@ it('disables sale when entered cash is below total and calculates the correct ch
     '11111{Enter}',
   );
   await screen.findByText('Чайник');
-  const cashInput = screen.getByLabelText(
-    'Получено от покупателя, сом',
-  );
+  const cashInput = screen.getByLabelText('Получено от покупателя, сом');
   fireEvent.change(cashInput, { target: { value: '1000' } });
   expect(screen.getByRole('button', { name: 'Провести продажу' })).toHaveProperty(
     'disabled',
