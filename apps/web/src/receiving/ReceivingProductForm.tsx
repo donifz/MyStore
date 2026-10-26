@@ -4,6 +4,7 @@ import ProductForm from '../catalog/ProductForm';
 export default function ReceivingProductForm({
   shopId,
   barcode,
+  parentId,
   creationKey,
   disabled,
   onCancel,
@@ -12,6 +13,7 @@ export default function ReceivingProductForm({
 }: {
   shopId: string;
   barcode: string;
+  parentId?: string;
   creationKey?: string;
   disabled: boolean;
   onCancel: () => void;
@@ -27,9 +29,10 @@ export default function ReceivingProductForm({
   return (
     <ProductForm
       shopId={shopId}
-      initialBarcode={barcode}
+      parentId={parentId}
+      initialBarcode={barcode === '__new__' ? '' : barcode}
       creationKey={creationKey}
-      barcodeReadOnly
+      barcodeReadOnly={barcode !== '__new__'}
       disabled={disabled}
       formLabel="Новый товар в приёмке"
       title="Новый товар в приёмке"
