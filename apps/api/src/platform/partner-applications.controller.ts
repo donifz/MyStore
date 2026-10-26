@@ -67,6 +67,10 @@ export class PartnerApplicationsController {
     private readonly auth: AuthService,
   ) {}
 
+  @Get('shop-types') shopTypes() {
+    return this.applications.shopTypes();
+  }
+
   @Post('applications') create(
     @Body() body: ApplicationDto,
     @Req() req: Request,
