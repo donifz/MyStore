@@ -38,7 +38,9 @@ export function useDocument(scope: DraftScope) {
     [online, setOnline] = useState(navigator.onLine),
     [unknownBarcode, setUnknownBarcode] = useState<string | null>(null),
     [productCreation, setProductCreation] = useState<string | null>(
-      initial.draft.primaryReceiving?.barcode ?? null,
+      initial.draft.primaryReceiving
+        ? initial.draft.primaryReceiving.barcode || '__new__'
+        : null,
     ),
     [priceChange, setPriceChange] = useState<{
       id: string;
@@ -298,9 +300,10 @@ export function useDocument(scope: DraftScope) {
     unknownBarcode,
     productCreation,
     addVariant,
-    beginProductCreation: async () => {
+    beginProductCreation: async (requestedBarcode?: string) => {
+      const code = requestedBarcode === undefined ? unknownBarcode : requestedBarcode;
       if (
-        unknownBarcode &&
+        code !== null && code !== undefined &&
         online &&
         !busy &&
         !blocked &&
@@ -315,7 +318,7 @@ export function useDocument(scope: DraftScope) {
               revision: crypto.randomUUID(),
               primaryReceiving: {
                 workflowId,
-                barcode: unknownBarcode,
+                barcode: code,
                 productKey: `product:${workflowId}`,
                 receivingKey: `receiving:${workflowId}`,
               },
@@ -323,7 +326,7 @@ export function useDocument(scope: DraftScope) {
             save(next, current.revision);
             ref.current = next;
             setDraft(next);
-            setProductCreation(unknownBarcode);
+            setProductCreation(code || '__new__');
             setError('');
           });
         } catch (e) {
