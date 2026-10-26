@@ -7,7 +7,8 @@ export default function PartnerPage() {
     [phone, setPhone] = useState(''),
     [city, setCity] = useState(''),
     [address, setAddress] = useState(''),
-    [category, setCategory] = useState(''),
+    [category, setCategory] = useState('Игрушки'),
+    [shopType, setShopType] = useState('toys'),
     [agreed, setAgreed] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
@@ -26,6 +27,7 @@ export default function PartnerPage() {
           city: city.trim(),
           address: address.trim(),
           category: category.trim(),
+          shopType,
           agreed,
         },
       });
@@ -128,12 +130,30 @@ export default function PartnerPage() {
               </label>
               <label>
                 Категория бизнеса
-                <input
+                <select
                   required
-                  maxLength={80}
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                />
+                  value={shopType}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setShopType(value);
+                    const names: Record<string, string> = {
+                      toys: 'Игрушки',
+                      grocery: 'Продукты питания',
+                      fashion: 'Одежда и обувь',
+                      electronics: 'Электроника',
+                      home: 'Товары для дома',
+                      general: 'Универсальный магазин',
+                    };
+                    setCategory(names[value]);
+                  }}
+                >
+                  <option value="toys">Игрушки</option>
+                  <option value="grocery">Продукты питания</option>
+                  <option value="fashion">Одежда и обувь</option>
+                  <option value="electronics">Электроника</option>
+                  <option value="home">Товары для дома</option>
+                  <option value="general">Универсальный магазин</option>
+                </select>
               </label>
               <label>
                 <input
