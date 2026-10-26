@@ -320,7 +320,7 @@ export function useDocument(scope: DraftScope) {
               revision: crypto.randomUUID(),
               primaryReceiving: {
                 workflowId,
-                barcode: code,
+                barcode: code || '__new__',
                 productKey: `product:${workflowId}`,
                 receivingKey: `receiving:${workflowId}`,
               },
