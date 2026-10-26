@@ -162,18 +162,13 @@ it('disables sale when entered cash is below total and calculates the correct ch
   await screen.findByText('Чайник');
   const cashInput = screen.getByLabelText('Получено от покупателя, сом');
   fireEvent.change(cashInput, { target: { value: '1000' } });
-  expect(screen.getByRole('button', { name: 'Провести продажу' })).toHaveProperty(
-    'disabled',
-    true,
-  );
+  const pay = screen.getByRole('button', { name: 'Провести продажу' });
+  expect(pay).toHaveProperty('disabled', true);
   expect(screen.getByText('Не хватает')).toBeTruthy();
   expect(sales).toHaveLength(0);
 
   fireEvent.change(cashInput, { target: { value: '2000' } });
   expect(screen.getByText('Сдача')).toBeTruthy();
   expect(screen.getByText('500,00 сом')).toBeTruthy();
-  expect(screen.getByRole('button', { name: 'Провести продажу' })).toHaveProperty(
-    'disabled',
-    false,
-  );
+  expect(pay).toHaveProperty('disabled', false);
 });
