@@ -81,6 +81,38 @@ it('product creation starts in the shared receiving form with automatic barcode'
   ).toBeTruthy();
 });
 
+it('invalid first receiving cannot create an orphan product', async () => {
+  const posts: string[] = [];
+  vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+    if (init?.method === 'POST') posts.push(url);
+    const body = url.endsWith('/me')
+      ? {
+          userId: 'owner',
+          email: 'owner@test.tld',
+          csrfToken: 'csrf',
+          shops: [{ id: shop, name: 'Shop', role: 'owner' }],
+        }
+      : url.endsWith('/photo-assistant')
+        ? { available: false, categories: [] }
+        : [];
+    return new Response(JSON.stringify(body));
+  });
+  render(
+    <MemoryRouter initialEntries={[`/seller/${shop}/products/new`]}>
+      <App />
+    </MemoryRouter>,
+  );
+  await screen.findByRole('form', { name: 'Новый товар в приёмке' });
+  const u = userEvent.setup();
+  await u.type(screen.getByLabelText('Название', { exact: true }), 'Кружка');
+  await u.type(screen.getByLabelText('Цена продажи, сом'), '150');
+  await u.click(
+    screen.getByRole('button', { name: 'Создать и провести приёмку' }),
+  );
+  expect(posts).toHaveLength(0);
+  expect(await screen.findByRole('alert')).toBeTruthy();
+});
+
 it('inline receiving creation uses the same photo and barcode form', async () => {
   const { default: ReceivingProductForm } =
     await import('../receiving/ReceivingProductForm');
