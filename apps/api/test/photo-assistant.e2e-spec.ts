@@ -131,6 +131,31 @@ describe('photo product suggestions', () => {
       upstream.mockRestore();
     }
   });
+  it('returns a missing-category proposal without forcing an unrelated category', async () => {
+    provider({
+      recognized: true,
+      name: 'Садовые грабли',
+      description: 'Инструмент с зубцами.',
+      category: '',
+      subcategory: '',
+      categoryMissing: true,
+      suggestedCategory: 'Садовый инвентарь',
+      confidence: 'high',
+      warning: 'Создайте подходящую категорию.',
+    });
+    const result = (await infer().expect(201)).body;
+    expect(result.categoryMissing).toBe(true);
+    expect(result.category).toBe('');
+    expect(result.suggestedCategory).toBe('Садовый инвентарь');
+  });
+  it('rejects attempts to invent category selection while reporting a missing category', async () => {
+    provider({
+      ...suggestion,
+      categoryMissing: true,
+      suggestedCategory: 'Садовый инвентарь',
+    });
+    expect((await infer().expect(502)).body.code).toBe('AI_INVALID_RESPONSE');
+  });
   it('handles unrecognized images without inventing a product', async () => {
     provider({ ...suggestion, recognized: false });
     const result = (await infer().expect(201)).body;
