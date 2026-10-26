@@ -75,7 +75,10 @@ describe('photo product suggestions', () => {
       [fixture.shop, fixture.otherShop],
     );
     const upstream = provider();
-    expect((await infer().expect(201)).body).toEqual(suggestion);
+    expect((await infer().expect(201)).body).toEqual({
+      ...suggestion,
+      suggestedCategory: '',
+    });
     const [url, options] = upstream.mock.calls[0];
     expect(String(url)).toBe(
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent',
