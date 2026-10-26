@@ -19,7 +19,7 @@ export type ApplicationInput = {
   city: string;
   address: string;
   category: string;
-  shopType: string;
+  shopType?: string;
   agreed: boolean;
 };
 export type DecisionInput = {
@@ -63,7 +63,7 @@ export class PartnerApplicationsService {
             input.city.trim(),
             input.address.trim(),
             input.category.trim(),
-            input.shopType,
+            input.shopType ?? 'general',
           ],
         );
         await tx.query(
