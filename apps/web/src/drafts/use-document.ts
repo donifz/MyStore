@@ -40,7 +40,9 @@ export function useDocument(scope: DraftScope) {
     [productCreation, setProductCreation] = useState<string | null>(
       initial.draft.primaryReceiving?.barcode ?? null,
     ),
-    [lastCreatedVariant, setLastCreatedVariant] = useState<Variant | null>(null),
+    [lastCreatedVariant, setLastCreatedVariant] = useState<Variant | null>(
+      null,
+    ),
     [priceChange, setPriceChange] = useState<{
       id: string;
       price: number;
