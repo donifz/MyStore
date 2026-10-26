@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, ApiError, errorText } from '../api/client';
 export default function PartnerPage() {
@@ -7,12 +7,18 @@ export default function PartnerPage() {
     [phone, setPhone] = useState(''),
     [city, setCity] = useState(''),
     [address, setAddress] = useState(''),
-    [category, setCategory] = useState('Игрушки'),
-    [shopType, setShopType] = useState('toys'),
+    [category, setCategory] = useState(''),
+    [shopType, setShopType] = useState(''),
+    [shopTypes, setShopTypes] = useState<{ code: string; name: string }[]>([]),
     [agreed, setAgreed] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [done, setDone] = useState(false);
+  useEffect(() => {
+    void api<{ code: string; name: string }[]>('/partners/shop-types')
+      .then((types) => setShopTypes(types))
+      .catch((error) => setError(errorText(error)));
+  }, []);
   async function submit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -77,7 +83,7 @@ export default function PartnerPage() {
           </>
         ) : (
           <form onSubmit={submit}>
-            <fieldset disabled={busy}>
+            <fieldset disabled={busy || shopTypes.length === 0}>
               <label>
                 Название магазина
                 <input
@@ -136,23 +142,15 @@ export default function PartnerPage() {
                   onChange={(e) => {
                     const value = e.target.value;
                     setShopType(value);
-                    const names: Record<string, string> = {
-                      toys: 'Игрушки',
-                      grocery: 'Продукты питания',
-                      fashion: 'Одежда и обувь',
-                      electronics: 'Электроника',
-                      home: 'Товары для дома',
-                      general: 'Универсальный магазин',
-                    };
-                    setCategory(names[value]);
+                    setCategory(shopTypes.find((type) => type.code === value)?.name ?? '');
                   }}
                 >
-                  <option value="toys">Игрушки</option>
-                  <option value="grocery">Продукты питания</option>
-                  <option value="fashion">Одежда и обувь</option>
-                  <option value="electronics">Электроника</option>
-                  <option value="home">Товары для дома</option>
-                  <option value="general">Универсальный магазин</option>
+                  <option value="" disabled>Выберите тип магазина</option>
+                  {shopTypes.map((type) => (
+                    <option key={type.code} value={type.code}>
+                      {type.name}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label>
