@@ -286,6 +286,7 @@ describe('public storefront', () => {
       name: 'Чашка%',
       description: '',
       category: '',
+      platformCategory: '',
       salePriceMinor: 15000,
       available: 3,
       variants: [
