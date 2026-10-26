@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { parseSom } from '../api/money';
 import type { Variant } from '../api/types';
 import ProductForm from '../catalog/ProductForm';
 export default function ReceivingProductForm({
@@ -30,6 +31,12 @@ export default function ReceivingProductForm({
     <ProductForm
       shopId={shopId}
       parentId={parentId}
+      validateBeforeSave={() => {
+        const count = Number(quantity);
+        if (!Number.isInteger(count) || count < 1 || count > 1e9)
+          throw new Error('Укажите корректное количество (1–1 000 000 000).');
+        parseSom(unitCostText);
+      }}
       initialBarcode={barcode === '__new__' ? '' : barcode}
       creationKey={creationKey}
       barcodeReadOnly={barcode !== '__new__'}
