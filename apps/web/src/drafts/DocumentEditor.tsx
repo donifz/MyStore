@@ -1,3 +1,4 @@
+import BarcodeLabel from '../catalog/BarcodeLabel';
 import ReceivingProductForm from '../receiving/ReceivingProductForm';
 import { formatSom } from '../api/money';
 import { useDocument } from './use-document';
@@ -87,6 +88,12 @@ export default function DocumentEditor({
         <p role="status" className="success">
           {doc.success}
         </p>
+      )}
+      {receiving && doc.success && doc.lastCreatedVariant && (
+        <div className="barcode-print-container">
+          <h2>Этикетка созданного товара</h2>
+          <BarcodeLabel product={doc.lastCreatedVariant} />
+        </div>
       )}
       {!doc.draft.lines.length && (
         <p className="empty-state">
