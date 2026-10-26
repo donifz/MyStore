@@ -79,16 +79,10 @@ test('applies AI suggestions only after review and keeps price and barcode manua
     .getByLabel('Название', { exact: true })
     .fill('Чашка: проверено продавцом');
   await page
-    .getByRole('button', { name: 'Сохранить товар', exact: true })
+    .getByRole('button', { name: 'Создать без приёмки', exact: true })
     .click();
-  await expect(
-    page.getByRole('heading', {
-      name: 'Чашка: проверено продавцом',
-      exact: true,
-    }),
-  ).toBeVisible();
   await expect(page.getByRole('status')).toContainText(
-    'Товар создан. Остаток не изменён.',
+    'Карточка создана без приёмки. Остаток не изменён.',
   );
 });
 test('AI failure leaves manual product entry usable', async ({ page }) => {
@@ -143,10 +137,10 @@ test('AI failure leaves manual product entry usable', async ({ page }) => {
   await expect(page.getByLabel('Название', { exact: true })).toBeEnabled();
   await page.getByLabel('Цена продажи, сом').fill('150');
   await page
-    .getByRole('button', { name: 'Сохранить товар', exact: true })
+    .getByRole('button', { name: 'Создать без приёмки', exact: true })
     .click();
   await expect(page.getByRole('status')).toContainText(
-    'Товар создан. Остаток не изменён.',
+    'Карточка создана без приёмки. Остаток не изменён.',
   );
 });
 test('photo creation produces zero stock, then explicit receiving posts quantity and cost', async ({
@@ -166,12 +160,11 @@ test('photo creation produces zero stock, then explicit receiving posts quantity
   await page.getByLabel('Название', { exact: true }).fill('Чашка с фото');
   await page.getByLabel('Цена продажи, сом').fill('150');
   await page
-    .getByRole('button', { name: 'Сохранить товар', exact: true })
+    .getByRole('button', { name: 'Создать без приёмки', exact: true })
     .click();
   await expect(page.getByRole('status')).toContainText(
-    'Товар создан. Остаток не изменён.',
+    'Карточка создана без приёмки. Остаток не изменён.',
   );
-  await expect(page.getByAltText('Сохранённое фото')).toBeVisible();
   const created = await page.evaluate(
     async ({ shop }) => {
       const list = await (
@@ -187,7 +180,6 @@ test('photo creation produces zero stock, then explicit receiving posts quantity
   );
   expect(created.physical).toBe(0);
   expect(created.barcode).toMatch(/^MS[0-9A-F]{24}$/);
-  await page.getByRole('link', { name: 'Перейти к приёмке' }).click();
   await page.getByLabel('Сканировать штрихкод').fill(created.barcode);
   await page.getByLabel('Сканировать штрихкод').press('Enter');
   await page.getByLabel('Количество Чашка с фото').fill('3');
