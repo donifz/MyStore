@@ -27,6 +27,7 @@ export default function ProductForm({
   onCancel,
   onSaved,
   onSecondarySaved,
+  validateBeforeSave,
 }: {
   shopId: string;
   parentId?: string;
@@ -40,6 +41,7 @@ export default function ProductForm({
   creationKey?: string;
   footerFields?: ReactNode;
   secondarySubmitLabel?: string;
+  validateBeforeSave?: () => void;
   onCancel?: () => void;
   onSaved: (variant: Variant) => Promise<boolean | void> | boolean | void;
   onSecondarySaved?: (
@@ -148,6 +150,7 @@ export default function ProductForm({
     setBusy(true);
     setError('');
     try {
+      if (submitIntent.current === 'primary') validateBeforeSave?.();
       let variant = saved;
       if (!variant) {
         if (!name.trim()) throw new Error('Укажите название товара.');
