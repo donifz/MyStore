@@ -142,6 +142,24 @@ export class PartnerApplicationsService {
           row.shop_name,
           row.shop_type,
         ]);
+        // Bootstrap category tree atomically with approved shop creation.
+        await tx.query(
+          `INSERT INTO shop_categories(shop_id,name,built_in,platform_category_code)
+           SELECT $1,name,true,platform_category_code
+           FROM shop_category_templates WHERE shop_type=$2 AND parent_name=''
+           ON CONFLICT DO NOTHING`,
+          [shopId, row.shop_type],
+        );
+        await tx.query(
+          `INSERT INTO shop_categories(shop_id,parent_id,name,built_in,platform_category_code)
+           SELECT $1,root.id,t.name,true,t.platform_category_code
+           FROM shop_category_templates t
+           JOIN shop_categories root ON root.shop_id=$1 AND root.parent_id IS NULL
+             AND root.name=t.parent_name
+           WHERE t.shop_type=$2 AND t.parent_name<>''
+           ON CONFLICT DO NOTHING`,
+          [shopId, row.shop_type],
+        );
         const token = randomBytes(32).toString('hex');
         await tx.query(
           "INSERT INTO partner_invitations(application_id,token_hash,expires_at) VALUES($1,$2,now()+interval '7 days')",
