@@ -7,10 +7,12 @@ export default function DocumentEditor({
   receiving,
   shopId,
   receivingMetadata,
+  parentId,
 }: {
   doc: ReturnType<typeof useDocument>;
   receiving: boolean;
   shopId: string;
+  parentId?: string;
   receivingMetadata?: {
     documentNumber?: string;
     supplier: string;
@@ -54,6 +56,7 @@ export default function DocumentEditor({
         <ReceivingProductForm
           key={doc.productCreation}
           shopId={shopId}
+          parentId={parentId}
           barcode={doc.productCreation}
           creationKey={doc.draft.primaryReceiving?.productKey}
           disabled={doc.blocked || !doc.online || doc.busy}
