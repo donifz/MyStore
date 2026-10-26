@@ -270,7 +270,7 @@ export class StorefrontService {
       "SELECT DISTINCT city,district FROM shops WHERE published AND (NOT marketplace_blocked) AND city<>'' ORDER BY city,district",
     );
     const categories = await this.db.query(
-      "SELECT DISTINCT p.category FROM product_publications p JOIN variants v ON v.id=p.variant_id JOIN shops s ON s.id=v.shop_id WHERE s.published AND (NOT s.marketplace_blocked) AND v.published AND p.category<>'' ORDER BY p.category",
+      "SELECT DISTINCT COALESCE(pc.name,p.category) AS category FROM product_publications p JOIN variants v ON v.id=p.variant_id JOIN shops s ON s.id=v.shop_id LEFT JOIN shop_categories sc ON sc.shop_id=s.id AND sc.parent_id IS NULL AND sc.name=p.category LEFT JOIN platform_categories pc ON pc.code=sc.platform_category_code WHERE s.published AND (NOT s.marketplace_blocked) AND v.published AND p.category<>'' ORDER BY category",
     );
     return { locations, categories: categories.map((r: any) => r.category) };
   }
@@ -327,6 +327,7 @@ export class StorefrontService {
       name: r.name,
       description: r.description,
       category: r.category,
+      platformCategory: r.platform_category,
       salePriceMinor: Number(r.sale_price_minor),
       available: Number(r.available),
       store: {
@@ -344,9 +345,9 @@ export class StorefrontService {
     };
   }
   private from =
-    ' FROM variants v JOIN shops s ON s.id=v.shop_id JOIN product_publications p ON p.variant_id=v.id AND p.shop_id=s.id LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id';
+    ' FROM variants v JOIN shops s ON s.id=v.shop_id JOIN product_publications p ON p.variant_id=v.id AND p.shop_id=s.id LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id LEFT JOIN shop_categories sc ON sc.shop_id=s.id AND sc.parent_id IS NULL AND sc.name=p.category LEFT JOIN platform_categories pc ON pc.code=sc.platform_category_code';
   private select =
-    `SELECT v.id,v.size,v.color,v.sku,v.parent_id,(p.photo_data IS NOT NULL) has_photo,cardinality(p.photo_album) photo_count,p.name,p.description,p.category,v.sale_price_minor,COALESCE(b.physical,0)-COALESCE(b.reserved,0) available,s.slug,s.name shop_name,s.city,s.phone,s.address,s.hours,s.district,s.pickup_enabled,s.delivery_enabled,s.storefront_theme AS theme,s.theme_content AS "themeContent",s.theme_starts_at AS "themeStartsAt",s.theme_ends_at AS "themeEndsAt"` +
+    `SELECT v.id,v.size,v.color,v.sku,v.parent_id,(p.photo_data IS NOT NULL) has_photo,cardinality(p.photo_album) photo_count,p.name,p.description,p.category,COALESCE(pc.name,p.category) AS platform_category,v.sale_price_minor,COALESCE(b.physical,0)-COALESCE(b.reserved,0) available,s.slug,s.name shop_name,s.city,s.phone,s.address,s.hours,s.district,s.pickup_enabled,s.delivery_enabled,s.storefront_theme AS theme,s.theme_content AS "themeContent",s.theme_starts_at AS "themeStartsAt",s.theme_ends_at AS "themeEndsAt"` +
     this.from;
   private async canonicalSlug(slug: string) {
     const [row] = await this.db.query(
@@ -359,7 +360,7 @@ export class StorefrontService {
   async products(query: PublicQuery) {
     const { q, page, pageSize, store, category, inStock, sort } = query;
     const canonicalStore = store ? await this.canonicalSlug(store) : '';
-    const where = `s.published AND (NOT s.marketplace_blocked) AND v.published AND NOT v.archived AND (p.name ILIKE $1 OR s.name ILIKE $1 OR v.barcode ILIKE $1 OR v.sku ILIKE $1) AND ($2='' OR s.slug=$2) AND ($3='' OR p.category=$3) AND ($4=false OR COALESCE(b.physical,0)-COALESCE(b.reserved,0)>0) AND ($5='' OR s.city=$5) AND v.sale_price_minor BETWEEN $6 AND $7`;
+    const where = `s.published AND (NOT s.marketplace_blocked) AND v.published AND NOT v.archived AND (p.name ILIKE $1 OR s.name ILIKE $1 OR v.barcode ILIKE $1 OR v.sku ILIKE $1) AND ($2='' OR s.slug=$2) AND ($3='' OR (CASE WHEN $2='' THEN COALESCE(pc.name,p.category) ELSE p.category END)=$3) AND ($4=false OR COALESCE(b.physical,0)-COALESCE(b.reserved,0)>0) AND ($5='' OR s.city=$5) AND v.sale_price_minor BETWEEN $6 AND $7`;
     if (
       query.minPrice !== undefined &&
       query.maxPrice !== undefined &&
@@ -395,7 +396,7 @@ export class StorefrontService {
       params,
     );
     const cats = await this.db.query(
-      "SELECT DISTINCT p.category FROM product_publications p JOIN variants v ON v.id=p.variant_id JOIN shops s ON s.id=p.shop_id WHERE s.published AND (NOT s.marketplace_blocked) AND v.published AND NOT v.archived AND p.category<>'' AND ($1='' OR s.slug=$1) ORDER BY p.category",
+      "SELECT DISTINCT CASE WHEN $1='' THEN COALESCE(pc.name,p.category) ELSE p.category END AS category FROM product_publications p JOIN variants v ON v.id=p.variant_id JOIN shops s ON s.id=p.shop_id LEFT JOIN shop_categories sc ON sc.shop_id=s.id AND sc.parent_id IS NULL AND sc.name=p.category LEFT JOIN platform_categories pc ON pc.code=sc.platform_category_code WHERE s.published AND (NOT s.marketplace_blocked) AND v.published AND NOT v.archived AND p.category<>'' AND ($1='' OR s.slug=$1) ORDER BY category",
       [canonicalStore],
     );
     return {
