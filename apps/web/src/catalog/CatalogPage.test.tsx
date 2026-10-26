@@ -115,6 +115,12 @@ it('creation does not silently receive stock', async () => {
   await u.type(screen.getByLabelText('Цена продажи, сом'), '150,25');
   await u.click(screen.getByRole('button', { name: 'Создать без приёмки' }));
   await screen.findByText('Карточка создана без приёмки. Остаток не изменён.');
-  expect(calls.some((x) => x.startsWith('POST ') && x.endsWith('/variants'))).toBe(true);
-  expect(calls.some((x) => x.startsWith('POST ') && x.endsWith('/receivings'))).toBe(false);
+  const postedVariant = calls.some(
+    (x) => x.startsWith('POST ') && x.endsWith('/variants'),
+  );
+  const postedReceiving = calls.some(
+    (x) => x.startsWith('POST ') && x.endsWith('/receivings'),
+  );
+  expect(postedVariant).toBe(true);
+  expect(postedReceiving).toBe(false);
 });
