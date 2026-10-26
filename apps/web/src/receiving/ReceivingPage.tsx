@@ -95,7 +95,13 @@ function ReceivingWorkspace({
         <button
           type="button"
           className="button"
-          disabled={doc.busy || doc.blocked || !doc.online || !!doc.draft.submission || !!doc.productCreation}
+          disabled={
+            doc.busy ||
+            doc.blocked ||
+            !doc.online ||
+            !!doc.draft.submission ||
+            !!doc.productCreation
+          }
           onClick={() => void doc.beginProductCreation('')}
         >
           Создать товар
