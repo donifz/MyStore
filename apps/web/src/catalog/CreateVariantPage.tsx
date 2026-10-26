@@ -12,10 +12,6 @@ export default function CreateVariantPage() {
   const params = new URLSearchParams({ create: '1' });
   const parentId = searchParams.get('parentId');
   if (parentId) params.set('parentId', parentId);
-  return (
-    <Navigate
-      replace
-      to={`/seller/${shopId}/receiving?${params.toString()}`}
-    />
-  );
+  const target = `/seller/${shopId}/receiving?${params.toString()}`;
+  return <Navigate replace to={target} />;
 }
