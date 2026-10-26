@@ -13,13 +13,16 @@ function ReceivingWorkspace({
   userId: string;
 }) {
   const doc = useDocument({ userId, shopId, kind: 'receiving' });
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const createAtEntry = searchParams.get('create') === '1';
   const parentId = searchParams.get('parentId') || undefined;
   const beganEntry = useRef(false);
   useEffect(() => {
     if (createAtEntry && !beganEntry.current) {
       beganEntry.current = true;
+      const next = new URLSearchParams(searchParams);
+      next.delete('create');
+      setSearchParams(next, { replace: true });
       if (!doc.draft.primaryReceiving) void doc.beginProductCreation('');
     }
   }, [createAtEntry]);
