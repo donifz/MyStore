@@ -304,8 +304,7 @@ export function useDocument(scope: DraftScope) {
     productCreation,
     addVariant,
     beginProductCreation: async (requestedBarcode?: string) => {
-      const code =
-        requestedBarcode === undefined ? unknownBarcode : requestedBarcode;
+      const code = requestedBarcode ?? unknownBarcode;
       if (
         code !== null &&
         code !== undefined &&
