@@ -1,8 +1,8 @@
-import { Link, useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useSession } from '../auth/SessionProvider';
 import { parseSom, formatSom } from '../api/money';
 import { api, errorText } from '../api/client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDocument } from '../drafts/use-document';
 import DocumentEditor from '../drafts/DocumentEditor';
 function ReceivingWorkspace({
@@ -13,6 +13,16 @@ function ReceivingWorkspace({
   userId: string;
 }) {
   const doc = useDocument({ userId, shopId, kind: 'receiving' });
+  const [searchParams] = useSearchParams();
+  const createAtEntry = searchParams.get('create') === '1';
+  const parentId = searchParams.get('parentId') || undefined;
+  const beganEntry = useRef(false);
+  useEffect(() => {
+    if (createAtEntry && !beganEntry.current) {
+      beganEntry.current = true;
+      if (!doc.draft.primaryReceiving) void doc.beginProductCreation('');
+    }
+  }, [createAtEntry]);
   const [documentNumber, setDocumentNumber] = useState(
       doc.draft.submission?.body?.documentNumber ?? '',
     ),
@@ -82,15 +92,21 @@ function ReceivingWorkspace({
             Отсканируйте товары, укажите количество и закупочную цену
           </p>
         </div>
-        <Link className="button" to={'/seller/' + shopId + '/products/new'}>
+        <button
+          type="button"
+          className="button"
+          disabled={doc.busy || doc.blocked || !doc.online || !!doc.draft.submission || !!doc.productCreation}
+          onClick={() => void doc.beginProductCreation('')}
+        >
           Создать товар
-        </Link>
+        </button>
       </div>
       <div className="pos-grid">
         <DocumentEditor
           doc={doc}
           receiving
           shopId={shopId}
+          parentId={parentId}
           receivingMetadata={{
             ...(documentNumber.trim()
               ? { documentNumber: documentNumber.trim() }
