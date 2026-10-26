@@ -31,10 +31,10 @@ it('legacy scan/photo URL opens the single create form and Enter scanning never 
       <App />
     </MemoryRouter>,
   );
-  await screen.findByRole('heading', { name: 'Добавить товар' });
+  await screen.findByRole('form', { name: 'Новый товар в приёмке' });
   expect(screen.getByLabelText('Фото товара')).toBeTruthy();
-  expect(screen.queryByLabelText('Количество', { exact: true })).toBeNull();
-  expect(screen.queryByLabelText('Закупочная цена, сом')).toBeNull();
+  expect(screen.getByLabelText('Количество первичной приёмки')).toBeTruthy();
+  expect(screen.getByLabelText('Закупочная цена, сом')).toBeTruthy();
   const u = userEvent.setup();
   await u.type(screen.getByLabelText('Название', { exact: true }), 'Принтер');
   await u.type(screen.getByLabelText('Цена продажи, сом'), '2000');
@@ -48,6 +48,39 @@ it('legacy scan/photo URL opens the single create form and Enter scanning never 
       .value,
   ).toBe('000123');
 });
+it('product creation starts in the shared receiving form with automatic barcode', async () => {
+  vi.stubGlobal('fetch', async (url: string) => {
+    const body = url.endsWith('/me')
+      ? {
+          userId: 'owner',
+          email: 'owner@test.tld',
+          csrfToken: 'csrf',
+          shops: [{ id: shop, name: 'Shop', role: 'owner' }],
+        }
+      : url.endsWith('/photo-assistant')
+        ? { available: false, categories: [] }
+        : [];
+    return new Response(JSON.stringify(body));
+  });
+  render(
+    <MemoryRouter initialEntries={[`/seller/${shop}/products/new`]}>
+      <App />
+    </MemoryRouter>,
+  );
+  const form = await screen.findByRole('form', {
+    name: 'Новый товар в приёмке',
+  });
+  expect(form).toBeTruthy();
+  const barcode = screen.getByLabelText('Штрихкод') as HTMLInputElement;
+  expect(barcode.value).toBe('');
+  expect(barcode.readOnly).toBe(false);
+  expect(screen.getByLabelText('Количество первичной приёмки')).toBeTruthy();
+  expect(screen.getByLabelText('Закупочная цена, сом')).toBeTruthy();
+  expect(
+    screen.getByRole('button', { name: 'Создать и провести приёмку' }),
+  ).toBeTruthy();
+});
+
 it('inline receiving creation uses the same photo and barcode form', async () => {
   const { default: ReceivingProductForm } =
     await import('../receiving/ReceivingProductForm');
