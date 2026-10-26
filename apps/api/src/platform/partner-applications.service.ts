@@ -141,11 +141,10 @@ export class PartnerApplicationsService {
         );
         if (existing) throw new ConflictException('Application unavailable');
         shopId = randomUUID();
-        await tx.query('INSERT INTO shops(id,name,shop_type) VALUES($1,$2,$3)', [
-          shopId,
-          row.shop_name,
-          row.shop_type,
-        ]);
+        await tx.query(
+          'INSERT INTO shops(id,name,shop_type) VALUES($1,$2,$3)',
+          [shopId, row.shop_name, row.shop_type],
+        );
         // Bootstrap category tree atomically with approved shop creation.
         await tx.query(
           `INSERT INTO shop_categories(shop_id,name,built_in,platform_category_code)

@@ -77,7 +77,9 @@ export default function PhotoAssistant({
         method: 'POST',
         body: { name: suggestion.suggestedCategory },
       });
-      const refreshed = await api<Info>(`/shops/${shopId}/variants/photo-assistant`);
+      const refreshed = await api<Info>(
+        `/shops/${shopId}/variants/photo-assistant`,
+      );
       setInfo(refreshed);
       onCategories(refreshed.categories);
       const matching = refreshed.categories.find(
@@ -95,7 +97,9 @@ export default function PhotoAssistant({
       onApply(next);
       setApplied(true);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Не удалось создать категорию.');
+      setError(
+        e instanceof ApiError ? e.message : 'Не удалось создать категорию.',
+      );
     } finally {
       setCreatingCategory(false);
     }
@@ -180,10 +184,12 @@ export default function PhotoAssistant({
             <>
               <h3>{suggestion.name}</h3>
               <p>{suggestion.description}</p>
-              {!suggestion.categoryMissing && <p>
-                Категория: {suggestion.category}
-                {suggestion.subcategory ? ` → ${suggestion.subcategory}` : ''}
-              </p>}
+              {!suggestion.categoryMissing && (
+                <p>
+                  Категория: {suggestion.category}
+                  {suggestion.subcategory ? ` → ${suggestion.subcategory}` : ''}
+                </p>
+              )}
               <p className="muted">
                 Уверенность:{' '}
                 {
@@ -196,10 +202,19 @@ export default function PhotoAssistant({
           )}
           {suggestion.categoryMissing && (
             <div role="status">
-              <p>Подходящая категория не найдена. Товар не будет отнесён к случайной категории.</p>
+              <p>
+                Подходящая категория не найдена. Товар не будет отнесён к
+                случайной категории.
+              </p>
               <p>Предложение: {suggestion.suggestedCategory}</p>
-              <button type="button" disabled={creatingCategory} onClick={() => void addCategory()}>
-                {creatingCategory ? 'Создаём категорию…' : 'Создать категорию и применить'}
+              <button
+                type="button"
+                disabled={creatingCategory}
+                onClick={() => void addCategory()}
+              >
+                {creatingCategory
+                  ? 'Создаём категорию…'
+                  : 'Создать категорию и применить'}
               </button>
             </div>
           )}

@@ -302,7 +302,10 @@ export class PhotoAssistantService implements OnApplicationBootstrap {
         !['low', 'medium', 'high'].includes(parsed.confidence)
       )
         throw invalid();
-      if (parsed.categoryMissing !== undefined && typeof parsed.categoryMissing !== 'boolean')
+      if (
+        parsed.categoryMissing !== undefined &&
+        typeof parsed.categoryMissing !== 'boolean'
+      )
         throw invalid();
       if (parsed.suggestedCategory === undefined) parsed.suggestedCategory = '';
       for (const [key, max] of [
@@ -322,16 +325,23 @@ export class PhotoAssistantService implements OnApplicationBootstrap {
         parsed[key] = parsed[key].trim();
       }
       const missing = parsed.categoryMissing === true;
-      if (missing && (!parsed.suggestedCategory || parsed.category || parsed.subcategory || !parsed.recognized))
+      if (
+        missing &&
+        (!parsed.suggestedCategory ||
+          parsed.category ||
+          parsed.subcategory ||
+          !parsed.recognized)
+      )
         throw invalid();
       if (!missing && parsed.suggestedCategory) throw invalid();
       const selected = categories.find((c: any) => c.name === parsed.category);
       if (
         parsed.recognized &&
-        (!missing && (!selected ||
+        !missing &&
+        (!selected ||
           (!selected.children.some((c: any) => c.name === parsed.subcategory) &&
             parsed.subcategory !== '') ||
-          !parsed.name))
+          !parsed.name)
       )
         throw invalid();
       if (parsed.recognized && missing && !parsed.name) throw invalid();

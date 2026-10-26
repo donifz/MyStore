@@ -41,7 +41,9 @@ export class CategoriesService {
           'UPDATE shop_categories SET platform_category_code=$3 WHERE id=$1 AND shop_id=$2 AND platform_category_code IS NULL',
           [parentId, shopId, root.platform_category_code],
         );
-        for (const child of templates.filter((row: any) => row.parent_name === root.name)) {
+        for (const child of templates.filter(
+          (row: any) => row.parent_name === root.name,
+        )) {
           await this.db.query(
             'INSERT INTO shop_categories(shop_id,parent_id,name,built_in,platform_category_code) VALUES($1,$2,$3,true,$4) ON CONFLICT DO NOTHING',
             [shopId, parentId, child.name, child.platform_category_code],

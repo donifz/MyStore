@@ -142,10 +142,14 @@ export default function PartnerPage() {
                   onChange={(e) => {
                     const value = e.target.value;
                     setShopType(value);
-                    setCategory(shopTypes.find((type) => type.code === value)?.name ?? '');
+                    setCategory(
+                      shopTypes.find((type) => type.code === value)?.name ?? '',
+                    );
                   }}
                 >
-                  <option value="" disabled>Выберите тип магазина</option>
+                  <option value="" disabled>
+                    Выберите тип магазина
+                  </option>
                   {shopTypes.map((type) => (
                     <option key={type.code} value={type.code}>
                       {type.name}

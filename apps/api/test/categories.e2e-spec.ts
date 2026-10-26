@@ -77,5 +77,4 @@ describe('shop categories', () => {
       .expect(200);
     expect(response2.body.length).toBe(response.body.length);
   });
-
 });

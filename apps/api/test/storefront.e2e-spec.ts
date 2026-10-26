@@ -70,9 +70,10 @@ describe('public storefront', () => {
     expect(global.body.items.some((item: any) => item.id === product.id)).toBe(
       true,
     );
-    expect(global.body.items.find((item: any) => item.id === product.id).platformCategory).toBe(
-      'Игрушки',
-    );
+    expect(
+      global.body.items.find((item: any) => item.id === product.id)
+        .platformCategory,
+    ).toBe('Игрушки');
     const local = await request(http())
       .get('/public/products')
       .query({ store: shop.slug, category: 'Робототехника' })

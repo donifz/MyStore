@@ -199,22 +199,22 @@ describe('partner review and activation', () => {
       .auth(token, { type: 'bearer' })
       .send({ expectedStatus: 'new', decision: 'approved' })
       .expect(201);
-    const [shop] = await c.db.query(
-      'SELECT shop_type FROM shops WHERE id=$1',
-      [result.body.shopId],
-    );
+    const [shop] = await c.db.query('SELECT shop_type FROM shops WHERE id=$1', [
+      result.body.shopId,
+    ]);
     expect(shop.shop_type).toBe('toys');
     const categories = await c.db.query(
       'SELECT name,platform_category_code FROM shop_categories WHERE shop_id=$1 AND parent_id IS NULL ORDER BY name',
       [result.body.shopId],
     );
     expect(categories.map((row: any) => row.name)).toContain('Робототехника');
-    expect(categories.every((row: any) => row.platform_category_code === 'toys')).toBe(true);
+    expect(
+      categories.every((row: any) => row.platform_category_code === 'toys'),
+    ).toBe(true);
     const [leaks] = await c.db.query(
       "SELECT count(*)::int n FROM shop_categories WHERE shop_id=$1 AND name='Робототехника'",
       [fixture.shop],
     );
     expect(leaks.n).toBe(0);
   });
-
 });
