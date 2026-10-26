@@ -38,9 +38,8 @@ export function useDocument(scope: DraftScope) {
     [online, setOnline] = useState(navigator.onLine),
     [unknownBarcode, setUnknownBarcode] = useState<string | null>(null),
     [productCreation, setProductCreation] = useState<string | null>(
-      initial.draft.primaryReceiving
-        ? initial.draft.primaryReceiving.barcode || '__new__'
-        : null,
+      initial.draft.primaryReceiving?.barcode ||
+        (initial.draft.primaryReceiving ? '__new__' : null),
     ),
     [lastCreatedVariant, setLastCreatedVariant] = useState<Variant | null>(null),
     [priceChange, setPriceChange] = useState<{
