@@ -5,12 +5,13 @@ import { MemoryRouter } from 'react-router-dom';
 const shop = '11111111-1111-4111-8111-111111111111';
 afterEach(() => {
   cleanup();
+  localStorage.clear();
   vi.unstubAllGlobals();
 });
 function server(role = 'cashier') {
   let calls: string[] = [];
   vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
-    calls.push(url);
+    calls.push((init?.method || 'GET') + ' ' + url);
     let body: any = url.endsWith('/me')
       ? {
           userId: 'user',
@@ -112,9 +113,8 @@ it('creation does not silently receive stock', async () => {
   const u = userEvent.setup();
   await u.type(await screen.findByLabelText('Название'), 'Сумка');
   await u.type(screen.getByLabelText('Цена продажи, сом'), '150,25');
-  await u.click(screen.getByRole('button', { name: 'Сохранить товар' }));
-  await screen.findByText('Товар создан. Остаток не изменён.');
-  expect(screen.getByRole('button', { name: 'Печать этикетки' })).toBeTruthy();
-  expect(screen.getByRole('img', { name: 'Штрихкод' })).toBeTruthy();
-  expect(calls.some((x) => x.includes('/receivings'))).toBe(false);
+  await u.click(screen.getByRole('button', { name: 'Создать без приёмки' }));
+  await screen.findByText('Карточка создана без приёмки. Остаток не изменён.');
+  expect(calls.some((x) => x.startsWith('POST ') && x.endsWith('/variants'))).toBe(true);
+  expect(calls.some((x) => x.startsWith('POST ') && x.endsWith('/receivings'))).toBe(false);
 });
