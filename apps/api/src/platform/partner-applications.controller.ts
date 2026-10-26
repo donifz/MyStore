@@ -37,8 +37,9 @@ class ApplicationDto {
   @IsString() @MinLength(1) @MaxLength(80) city!: string;
   @IsString() @MaxLength(250) address!: string;
   @IsString() @MinLength(1) @MaxLength(80) category!: string;
+  @IsOptional()
   @IsIn(['general', 'toys', 'grocery', 'fashion', 'electronics', 'home'])
-  shopType!: string;
+  shopType?: string;
   @Equals(true) agreed!: boolean;
 }
 class ActivationDto {
