@@ -301,9 +301,11 @@ export function useDocument(scope: DraftScope) {
     productCreation,
     addVariant,
     beginProductCreation: async (requestedBarcode?: string) => {
-      const code = requestedBarcode === undefined ? unknownBarcode : requestedBarcode;
+      const code =
+        requestedBarcode === undefined ? unknownBarcode : requestedBarcode;
       if (
-        code !== null && code !== undefined &&
+        code !== null &&
+        code !== undefined &&
         online &&
         !busy &&
         !blocked &&
