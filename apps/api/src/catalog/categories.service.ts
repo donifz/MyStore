@@ -13,6 +13,43 @@ export class CategoriesService {
   constructor(@Inject(DATABASE) private readonly db: DataSource) {}
 
   private async ensureDefaults(shopId: string) {
+    const [shop] = await this.db.query(
+      'SELECT shop_type FROM shops WHERE id=$1',
+      [shopId],
+    );
+    if (!shop) throw new BadRequestException('Shop not found');
+    if (shop.shop_type !== 'general') {
+      const templates = await this.db.query(
+        'SELECT name,parent_name,platform_category_code FROM shop_category_templates WHERE shop_type=$1 ORDER BY parent_name,name',
+        [shop.shop_type],
+      );
+      const roots = templates.filter((row: any) => !row.parent_name);
+      for (const root of roots) {
+        const [existing] = await this.db.query(
+          'SELECT id FROM shop_categories WHERE shop_id=$1 AND parent_id IS NULL AND lower(name)=lower($2)',
+          [shopId, root.name],
+        );
+        const [inserted] = existing
+          ? [existing]
+          : await this.db.query(
+              'INSERT INTO shop_categories(shop_id,name,built_in,platform_category_code) VALUES($1,$2,true,$3) ON CONFLICT DO NOTHING RETURNING id',
+              [shopId, root.name, root.platform_category_code],
+            );
+        const parentId = inserted?.id;
+        if (!parentId) continue;
+        await this.db.query(
+          'UPDATE shop_categories SET platform_category_code=$3 WHERE id=$1 AND shop_id=$2 AND platform_category_code IS NULL',
+          [parentId, shopId, root.platform_category_code],
+        );
+        for (const child of templates.filter((row: any) => row.parent_name === root.name)) {
+          await this.db.query(
+            'INSERT INTO shop_categories(shop_id,parent_id,name,built_in,platform_category_code) VALUES($1,$2,$3,true,$4) ON CONFLICT DO NOTHING',
+            [shopId, parentId, child.name, child.platform_category_code],
+          );
+        }
+      }
+      return;
+    }
     for (const category of DEFAULT_CATEGORIES) {
       const [root] = await this.db.query(
         `INSERT INTO shop_categories(shop_id,name,built_in) VALUES($1,$2,true)
@@ -34,7 +71,7 @@ export class CategoriesService {
   async list(shopId: string) {
     await this.ensureDefaults(shopId);
     const rows = await this.db.query(
-      'SELECT id,parent_id,name,built_in FROM shop_categories WHERE shop_id=$1 ORDER BY parent_id NULLS FIRST, lower(name)',
+      'SELECT id,parent_id,name,built_in,platform_category_code FROM shop_categories WHERE shop_id=$1 ORDER BY parent_id NULLS FIRST, lower(name)',
       [shopId],
     );
     const roots = rows
@@ -43,6 +80,7 @@ export class CategoriesService {
         id: r.id,
         name: r.name,
         builtIn: r.built_in,
+        platformCategoryCode: r.platform_category_code,
         parentId: null as string | null,
         children: [] as any[],
       }));
@@ -54,6 +92,7 @@ export class CategoriesService {
           id: row.id,
           name: row.name,
           builtIn: row.built_in,
+          platformCategoryCode: row.platform_category_code,
           parentId: row.parent_id,
         });
     }
