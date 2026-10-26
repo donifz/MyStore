@@ -42,6 +42,7 @@ export function useDocument(scope: DraftScope) {
         ? initial.draft.primaryReceiving.barcode || '__new__'
         : null,
     ),
+    [lastCreatedVariant, setLastCreatedVariant] = useState<Variant | null>(null),
     [priceChange, setPriceChange] = useState<{
       id: string;
       price: number;
@@ -278,7 +279,10 @@ export function useDocument(scope: DraftScope) {
       workflow.receivingKey,
       true,
     );
-    if (result) setProductCreation(null);
+    if (result) {
+      setProductCreation(null);
+      setLastCreatedVariant(variant);
+    }
     return !!result;
   }
   return {
@@ -293,6 +297,7 @@ export function useDocument(scope: DraftScope) {
     reload,
     send,
     receiveCreatedVariant,
+    lastCreatedVariant,
     scan: (code: string) => {
       if (!ref.current.submission && !busy && !blocked && !productCreation)
         queue.current?.enqueue(code);
@@ -329,6 +334,7 @@ export function useDocument(scope: DraftScope) {
             ref.current = next;
             setDraft(next);
             setProductCreation(code || '__new__');
+            setLastCreatedVariant(null);
             setError('');
           });
         } catch (e) {
