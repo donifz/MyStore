@@ -12,6 +12,7 @@ describe('partner review and activation', () => {
     city: 'Ош',
     address: 'Центр',
     category: 'Подарки',
+    shopType: 'general',
     agreed: true,
   };
   const http = () => c.app.getHttpServer();
