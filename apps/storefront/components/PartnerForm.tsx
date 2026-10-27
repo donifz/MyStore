@@ -33,7 +33,8 @@ export default function PartnerPage() {
           phone: phone.trim(),
           city: city.trim(),
           address: address.trim(),
-          category: shopTypes.find((type) => type.code === shopType)?.name ?? '',
+          category:
+            shopTypes.find((type) => type.code === shopType)?.name ?? '',
           shopType,
           agreed,
         },
@@ -131,9 +132,7 @@ export default function PartnerPage() {
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
               />
-              <label htmlFor="partner-category">
-                Категория бизнеса
-              </label>
+              <label htmlFor="partner-category">Категория бизнеса</label>
               <select
                 id="partner-category"
                 className="sf-input"
@@ -141,7 +140,9 @@ export default function PartnerPage() {
                 value={shopType}
                 onChange={(event) => setShopType(event.target.value)}
               >
-                <option value="" disabled>Выберите тип магазина</option>
+                <option value="" disabled>
+                  Выберите тип магазина
+                </option>
                 {shopTypes.map((type) => (
                   <option key={type.code} value={type.code}>
                     {type.name}
