@@ -3206,7 +3206,6 @@ select.sf-input:focus,
   }
 }
 
-
 /* Product detail: keep the mobile title visible before the gallery, and avoid
    desktop-sized whitespace and thumbnails on narrow screens. */
 .sf-mobile-product-heading {

@@ -53,19 +53,24 @@ export default function ProductGallery({
           >
             <img src={photo} alt={name} />
           </button>
-          {photos.length > 1 && <div className="sf-gallery-thumbnails" aria-label="Фотографии товара">
-            {photos.map((url, index) => (
-              <button
-                key={url}
-                type="button"
-                aria-label={`Фото ${index + 1} из ${photos.length}`}
-                aria-pressed={index === active}
-                onClick={() => setActive(index)}
-              >
-                <img src={url} alt={`Фото ${index + 1}`} />
-              </button>
-            ))}
-          </div>}
+          {photos.length > 1 && (
+            <div
+              className="sf-gallery-thumbnails"
+              aria-label="Фотографии товара"
+            >
+              {photos.map((url, index) => (
+                <button
+                  key={url}
+                  type="button"
+                  aria-label={`Фото ${index + 1} из ${photos.length}`}
+                  aria-pressed={index === active}
+                  onClick={() => setActive(index)}
+                >
+                  <img src={url} alt={`Фото ${index + 1}`} />
+                </button>
+              ))}
+            </div>
+          )}
           <dialog
             ref={dialog}
             className="sf-photo-dialog"
