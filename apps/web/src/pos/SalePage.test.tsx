@@ -114,3 +114,61 @@ it('allows entering discount and reason on sale line and updates total', async (
   expect(raw).toContain('"discountMinor":10000');
   expect(raw).toContain('Сезонная акция');
 });
+
+it('disables sale when entered cash is below total and calculates the correct change', async () => {
+  const sales: string[] = [];
+  vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+    if (url.endsWith('/pos/sales') && init?.method === 'POST') {
+      sales.push(url);
+      return new Response(JSON.stringify({ id: 'sale-1' }));
+    }
+    const body = url.endsWith('/me')
+      ? {
+          userId: 'cashier',
+          email: 'cashier@test.tld',
+          csrfToken: 'csrf',
+          shops: [{ id: shop, name: 'Магазин', role: 'cashier' }],
+        }
+      : url.endsWith('/current')
+        ? {
+            id: 'shift',
+            actorId: 'cashier',
+            status: 'open',
+            expectedCashMinor: 0,
+          }
+        : url.includes('/by-barcode')
+          ? {
+              id: 'v1',
+              name: 'Чайник',
+              barcode: '11111',
+              salePriceMinor: 150000,
+            }
+          : { items: [], total: 0, page: 1, pageSize: 24 };
+    return new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  });
+  render(
+    <MemoryRouter initialEntries={['/seller/' + shop + '/pos']}>
+      <App />
+    </MemoryRouter>,
+  );
+  const user = userEvent.setup();
+  await user.type(
+    await screen.findByLabelText('Сканировать штрихкод'),
+    '11111{Enter}',
+  );
+  await screen.findByText('Чайник');
+  const cashInput = screen.getByLabelText('Получено от покупателя, сом');
+  fireEvent.change(cashInput, { target: { value: '1000' } });
+  const pay = screen.getByRole('button', { name: 'Провести продажу' });
+  expect(pay).toHaveProperty('disabled', true);
+  expect(screen.getByText('Не хватает')).toBeTruthy();
+  expect(sales).toHaveLength(0);
+
+  fireEvent.change(cashInput, { target: { value: '2000' } });
+  expect(screen.getByText('Сдача')).toBeTruthy();
+  expect(screen.getByText('500,00 сом')).toBeTruthy();
+  expect(pay).toHaveProperty('disabled', false);
+});

@@ -36,6 +36,9 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
       window.clearTimeout(timer);
     };
   }, [shopId, query, doc.success]);
+  useEffect(() => {
+    if (doc.success) setReceived('');
+  }, [doc.success]);
   const active = shift.current && 'id' in shift.current ? shift.current : null;
   const sum = doc.draft.lines.reduce(
       (n, l) =>
@@ -55,6 +58,16 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
     if (!safe) {
       doc.setError('Сумма слишком велика.');
       return;
+    }
+    if (method === 'cash' && received.trim()) {
+      if (receivedError || receivedMinor === null) {
+        doc.setError('Укажите корректную полученную сумму.');
+        return;
+      }
+      if (BigInt(receivedMinor) < sum) {
+        doc.setError('Полученных наличных недостаточно для продажи.');
+        return;
+      }
     }
     const missingReason = doc.draft.lines.find(
       (l) => (l.discountMinor || 0) > 0 && !l.discountReason?.trim(),
@@ -286,7 +299,14 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
                 doc.blocked ||
                 !doc.online ||
                 !doc.draft.lines.length ||
-                (!doc.draft.submission && (!active || !safe))
+                (!doc.draft.submission &&
+                  (!active ||
+                    !safe ||
+                    (paymentMethod === 'cash' &&
+                      !!received.trim() &&
+                      (!!receivedError ||
+                        changeMinor === null ||
+                        changeMinor < 0n))))
               }
             >
               {doc.busy
