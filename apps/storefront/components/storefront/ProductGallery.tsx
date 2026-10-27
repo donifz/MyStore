@@ -13,7 +13,7 @@ export default function ProductGallery({
   const dialog = useRef<HTMLDialogElement>(null);
   const [active, setActive] = useState(0);
   const photos = [
-    ...new Set([...(photoUrls ?? []), ...(photoUrl ? [photoUrl] : [])]),
+    ...new Set([...(photoUrls?.length ? photoUrls : photoUrl ? [photoUrl] : [])]),
   ]
     .filter(Boolean)
     .slice(0, 8);
@@ -30,7 +30,7 @@ export default function ProductGallery({
           >
             <img src={photo} alt={name} />
           </button>
-          <div className="sf-gallery-thumbnails" aria-label="Фотографии товара">
+          {photos.length > 1 && <div className="sf-gallery-thumbnails" aria-label="Фотографии товара">
             {photos.map((url, index) => (
               <button
                 key={url}
@@ -42,10 +42,7 @@ export default function ProductGallery({
                 <img src={url} alt={`Фото ${index + 1}`} />
               </button>
             ))}
-            {photos.length === 1 && (
-              <small>Нажмите на фото, чтобы рассмотреть</small>
-            )}
-          </div>
+          </div>}
           <dialog
             ref={dialog}
             className="sf-photo-dialog"
