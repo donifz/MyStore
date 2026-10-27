@@ -1,5 +1,5 @@
 'use client';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { Button, Input, Checkbox, Alert } from './ui';
 
 import { api, ApiError, errorText } from '../../web/src/api/client';
@@ -9,11 +9,17 @@ export default function PartnerPage() {
     [phone, setPhone] = useState(''),
     [city, setCity] = useState(''),
     [address, setAddress] = useState(''),
-    [category, setCategory] = useState(''),
+    [shopType, setShopType] = useState(''),
+    [shopTypes, setShopTypes] = useState<{ code: string; name: string }[]>([]),
     [agreed, setAgreed] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [done, setDone] = useState(false);
+  useEffect(() => {
+    void api<{ code: string; name: string }[]>('/partners/shop-types')
+      .then((types) => setShopTypes(types))
+      .catch((err) => setError(errorText(err)));
+  }, []);
   async function submit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -27,7 +33,8 @@ export default function PartnerPage() {
           phone: phone.trim(),
           city: city.trim(),
           address: address.trim(),
-          category: category.trim(),
+          category: shopTypes.find((type) => type.code === shopType)?.name ?? '',
+          shopType,
           agreed,
         },
       });
@@ -124,14 +131,23 @@ export default function PartnerPage() {
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
               />
-              <Input
+              <label htmlFor="partner-category">
+                Категория бизнеса
+              </label>
+              <select
                 id="partner-category"
-                label="Категория бизнеса"
+                className="sf-input"
                 required
-                maxLength={80}
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              />
+                value={shopType}
+                onChange={(event) => setShopType(event.target.value)}
+              >
+                <option value="" disabled>Выберите тип магазина</option>
+                {shopTypes.map((type) => (
+                  <option key={type.code} value={type.code}>
+                    {type.name}
+                  </option>
+                ))}
+              </select>
               <Checkbox
                 label={
                   <span>
