@@ -1,5 +1,6 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { distinctPhotoUrls } from './gallery-photos';
 import Icon from './Icon';
 export default function ProductGallery({
   photoUrl,
@@ -12,11 +13,33 @@ export default function ProductGallery({
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [active, setActive] = useState(0);
-  const photos = [
-    ...new Set([...(photoUrls?.length ? photoUrls : photoUrl ? [photoUrl] : [])]),
+  const sourcePhotos = [
+    ...new Set(photoUrls?.length ? photoUrls : photoUrl ? [photoUrl] : []),
   ]
     .filter(Boolean)
     .slice(0, 8);
+  const photoKey = sourcePhotos.join('|');
+  const [uniquePhotos, setUniquePhotos] = useState<string[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setUniquePhotos(null);
+    if (sourcePhotos.length < 2) return;
+    void distinctPhotoUrls(
+      sourcePhotos,
+      async (url) => {
+        const response = await fetch(url, { credentials: 'same-origin' });
+        if (!response.ok) throw new Error('Photo unavailable');
+        return response.arrayBuffer();
+      },
+      (bytes) => crypto.subtle.digest('SHA-256', bytes),
+    ).then((result) => {
+      if (!cancelled) setUniquePhotos(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [photoKey]);
+  const photos = uniquePhotos ?? sourcePhotos.slice(0, 1);
   const photo = photos[Math.min(active, photos.length - 1)];
   return (
     <div className="sf-gallery">
