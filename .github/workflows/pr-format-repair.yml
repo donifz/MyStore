@@ -1,4 +1,4 @@
-name: Temporary format repair
+name: Temporary format repair for product gallery
 on: push
 permissions:
   contents: write
