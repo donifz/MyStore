@@ -3205,3 +3205,70 @@ select.sf-input:focus,
     display: none;
   }
 }
+
+
+/* Product detail: keep the mobile title visible before the gallery, and avoid
+   desktop-sized whitespace and thumbnails on narrow screens. */
+.sf-mobile-product-heading {
+  display: none;
+}
+.sf-detail-layout > * {
+  min-width: 0;
+}
+@media (max-width: 600px) {
+  .sf-mobile-product-heading {
+    display: block;
+    min-width: 0;
+    margin-bottom: 12px;
+  }
+  .sf-mobile-product-heading .sf-eyebrow {
+    margin-bottom: 6px;
+  }
+  .sf-mobile-product-heading h1 {
+    font-size: clamp(20px, 5.5vw, 26px);
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+    margin: 0;
+  }
+  .sf-detail-layout {
+    gap: 12px;
+  }
+  .sf-gallery {
+    padding: 10px;
+  }
+  .sf-gallery-main {
+    aspect-ratio: 4 / 3;
+  }
+  .sf-gallery-thumbnails {
+    gap: 8px;
+    margin-top: 10px;
+    overflow-x: auto;
+  }
+  .sf-gallery-thumbnails > button {
+    flex: 0 0 64px;
+    width: 64px;
+    height: 64px;
+  }
+  .sf-purchase-panel {
+    gap: 12px;
+    padding: 16px;
+  }
+  .sf-purchase-panel > .sf-price {
+    font-size: clamp(24px, 7vw, 30px);
+  }
+  .sf-seller-box,
+  .sf-fulfillment {
+    padding: 12px;
+  }
+  .sf-detail-copy {
+    padding: 16px;
+  }
+  .sf-detail-copy > .sf-eyebrow,
+  .sf-detail-copy > .sf-detail-title {
+    display: none;
+  }
+  .sf-detail-tabs {
+    margin-block: 12px;
+    gap: 20px;
+  }
+}
