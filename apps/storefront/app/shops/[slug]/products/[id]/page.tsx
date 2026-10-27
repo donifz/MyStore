@@ -104,6 +104,10 @@ export default async function ProductPage({ params }: Props) {
         <span>›</span>
         <span>{v.name}</span>
       </nav>
+      <div className="sf-mobile-product-heading">
+        <p className="sf-eyebrow">{v.category || 'Товар магазина'}</p>
+        <h1>{v.name}</h1>
+      </div>
       <article className="sf-detail-layout">
         <ProductGallery
           photoUrl={v.photoUrl}
