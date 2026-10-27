@@ -7,7 +7,7 @@ test.beforeEach(async ({ browser, context }) => {
 async function openCapture(page: import('@playwright/test').Page) {
   await page.goto('/seller/' + shop + '/products/capture');
   await expect(
-    page.getByRole('heading', { name: 'Добавить товар', exact: true }),
+    page.getByRole('heading', { name: 'Новый товар в приёмке', exact: true }),
   ).toBeVisible();
 }
 for (const width of [821, 1024, 1440]) {

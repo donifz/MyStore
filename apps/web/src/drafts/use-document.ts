@@ -40,6 +40,9 @@ export function useDocument(scope: DraftScope) {
     [productCreation, setProductCreation] = useState<string | null>(
       initial.draft.primaryReceiving?.barcode ?? null,
     ),
+    [lastCreatedVariant, setLastCreatedVariant] = useState<Variant | null>(
+      null,
+    ),
     [priceChange, setPriceChange] = useState<{
       id: string;
       price: number;
@@ -276,7 +279,10 @@ export function useDocument(scope: DraftScope) {
       workflow.receivingKey,
       true,
     );
-    if (result) setProductCreation(null);
+    if (result) {
+      setProductCreation(null);
+      setLastCreatedVariant(variant);
+    }
     return !!result;
   }
   return {
@@ -291,6 +297,7 @@ export function useDocument(scope: DraftScope) {
     reload,
     send,
     receiveCreatedVariant,
+    lastCreatedVariant,
     scan: (code: string) => {
       if (!ref.current.submission && !busy && !blocked && !productCreation)
         queue.current?.enqueue(code);
@@ -298,9 +305,11 @@ export function useDocument(scope: DraftScope) {
     unknownBarcode,
     productCreation,
     addVariant,
-    beginProductCreation: async () => {
+    beginProductCreation: async (requestedBarcode?: string) => {
+      const code = requestedBarcode ?? unknownBarcode;
       if (
-        unknownBarcode &&
+        code !== null &&
+        code !== undefined &&
         online &&
         !busy &&
         !blocked &&
@@ -315,7 +324,7 @@ export function useDocument(scope: DraftScope) {
               revision: crypto.randomUUID(),
               primaryReceiving: {
                 workflowId,
-                barcode: unknownBarcode,
+                barcode: code || '__new__',
                 productKey: `product:${workflowId}`,
                 receivingKey: `receiving:${workflowId}`,
               },
@@ -323,7 +332,8 @@ export function useDocument(scope: DraftScope) {
             save(next, current.revision);
             ref.current = next;
             setDraft(next);
-            setProductCreation(unknownBarcode);
+            setProductCreation(code || '__new__');
+            setLastCreatedVariant(null);
             setError('');
           });
         } catch (e) {

@@ -39,11 +39,10 @@ test('seller flow: receive, shift, lost response retry, return and close', async
   await page.getByLabel('Название', { exact: true }).fill('Рюкзак City');
   await page.getByLabel('Штрихкод', { exact: true }).fill('0012345678905');
   await page.getByLabel('Цена продажи, сом').fill('150');
-  await page.getByRole('button', { name: 'Сохранить товар' }).click();
+  await page.getByRole('button', { name: 'Создать без приёмки' }).click();
   await expect(
-    page.getByText('Товар создан. Остаток не изменён.'),
+    page.getByText('Карточка создана без приёмки. Остаток не изменён.'),
   ).toBeVisible();
-  await page.getByRole('link', { name: 'Перейти к приёмке' }).click();
   await scan(page, 3);
   await expect(page.getByLabel('Количество Рюкзак City')).toHaveValue('3');
   await page.getByLabel('Количество Рюкзак City').fill('10');
@@ -139,9 +138,9 @@ test('cashier isolation, keyboard entry and responsive layout', async ({
   await page.getByLabel('Название', { exact: true }).fill('Рюкзак Cashier');
   await page.getByLabel('Штрихкод', { exact: true }).fill('0012345678912');
   await page.getByLabel('Цена продажи, сом').fill('150');
-  await page.getByRole('button', { name: 'Сохранить товар' }).click();
+  await page.getByRole('button', { name: 'Создать без приёмки' }).click();
   await expect(
-    page.getByText('Товар создан. Остаток не изменён.'),
+    page.getByText('Карточка создана без приёмки. Остаток не изменён.'),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Выйти', exact: true }).click();
   await login(page, 'cashier@example.test');
@@ -199,8 +198,7 @@ test('two windows post one ordinary draft exactly once before storage events arr
   await page.getByLabel('Название', { exact: true }).fill('Рюкзак Concurrent');
   await page.getByLabel('Штрихкод', { exact: true }).fill('0012345678929');
   await page.getByLabel('Цена продажи, сом').fill('150');
-  await page.getByRole('button', { name: 'Сохранить товар' }).click();
-  await page.getByRole('link', { name: 'Перейти к приёмке' }).click();
+  await page.getByRole('button', { name: 'Создать без приёмки' }).click();
   await scan(page, 1, '0012345678929');
   await page.getByLabel('Количество Рюкзак Concurrent').fill('5');
   await page.getByLabel('Закупочная цена Рюкзак Concurrent, сом').fill('100');

@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { parseSom } from '../api/money';
 import type { Variant } from '../api/types';
 import ProductForm from '../catalog/ProductForm';
 export default function ReceivingProductForm({
   shopId,
   barcode,
+  parentId,
   creationKey,
   disabled,
   onCancel,
@@ -12,6 +14,7 @@ export default function ReceivingProductForm({
 }: {
   shopId: string;
   barcode: string;
+  parentId?: string;
   creationKey?: string;
   disabled: boolean;
   onCancel: () => void;
@@ -27,9 +30,16 @@ export default function ReceivingProductForm({
   return (
     <ProductForm
       shopId={shopId}
-      initialBarcode={barcode}
+      parentId={parentId}
+      validateBeforeSave={() => {
+        const count = Number(quantity);
+        if (!Number.isInteger(count) || count < 1 || count > 1e9)
+          throw new Error('Укажите корректное количество (1–1 000 000 000).');
+        parseSom(unitCostText);
+      }}
+      initialBarcode={barcode === '__new__' ? '' : barcode}
       creationKey={creationKey}
-      barcodeReadOnly
+      barcodeReadOnly={barcode !== '__new__'}
       disabled={disabled}
       formLabel="Новый товар в приёмке"
       title="Новый товар в приёмке"
