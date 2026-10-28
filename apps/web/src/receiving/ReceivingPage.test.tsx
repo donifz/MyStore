@@ -179,7 +179,9 @@ it('warns on expensive stock and still posts receiving', async () => {
   await screen.findByText(/Закупочная цена за штуку выше цены продажи/);
   await u.click(screen.getByRole('button', { name: 'Провести приёмку' }));
   await screen.findByText('Документ проведён: receipt');
-  const receipt = calls.find((c) => c.url.endsWith('/receivings'));
+  const receipt = calls.find(
+    (c) => c.method === 'POST' && c.url.endsWith('/receivings'),
+  );
   expect(receipt?.body.lines[0].unitCostMinor).toBe(20000);
 });
 it('warns on a new product and still posts receiving', async () => {
@@ -193,7 +195,9 @@ it('warns on a new product and still posts receiving', async () => {
   const post = form.getByRole('button', { name: 'Создать и провести приёмку' });
   await u.click(post);
   await screen.findByText('Документ проведён: receipt');
-  const receipt = calls.find((c) => c.url.endsWith('/receivings'));
+  const receipt = calls.find(
+    (c) => c.method === 'POST' && c.url.endsWith('/receivings'),
+  );
   expect(receipt?.body.lines[1].unitCostMinor).toBe(250000);
 });
 it('cancelling inline creation leaves the current receipt unchanged', async () => {
