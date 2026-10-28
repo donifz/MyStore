@@ -274,7 +274,6 @@ describe('public storefront', () => {
         district: '',
         pickupEnabled: true,
         deliveryEnabled: false,
-        banner: null,
         phone: profile.phone,
         address: 'Центр',
         hours: '10:00–19:00',
