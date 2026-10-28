@@ -16,7 +16,7 @@ test('buyer submits a partner application without creating a login', async ({
   await page.getByLabel('Телефон').fill('+996700123456');
   await page.getByRole('main').getByLabel('Город', { exact: true }).fill('Ош');
   await page.getByLabel('Адрес').fill('Центр');
-  await page.getByLabel('Категория бизнеса').fill('Подарки');
+  await page.getByLabel('Категория бизнеса').selectOption('toys');
   await page.getByLabel('Согласен с условиями подключения').check();
   await page.getByRole('button', { name: 'Отправить заявку' }).click();
   await expect(page.getByRole('status')).toContainText('Заявка отправлена.');

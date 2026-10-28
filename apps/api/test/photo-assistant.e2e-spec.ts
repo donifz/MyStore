@@ -75,7 +75,10 @@ describe('photo product suggestions', () => {
       [fixture.shop, fixture.otherShop],
     );
     const upstream = provider();
-    expect((await infer().expect(201)).body).toEqual(suggestion);
+    expect((await infer().expect(201)).body).toEqual({
+      ...suggestion,
+      suggestedCategory: '',
+    });
     const [url, options] = upstream.mock.calls[0];
     expect(String(url)).toBe(
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent',
@@ -130,6 +133,31 @@ describe('photo product suggestions', () => {
       expect((await infer().expect(502)).body.code).toBe('AI_INVALID_RESPONSE');
       upstream.mockRestore();
     }
+  });
+  it('returns a missing-category proposal without forcing an unrelated category', async () => {
+    provider({
+      recognized: true,
+      name: 'Садовые грабли',
+      description: 'Инструмент с зубцами.',
+      category: '',
+      subcategory: '',
+      categoryMissing: true,
+      suggestedCategory: 'Садовый инвентарь',
+      confidence: 'high',
+      warning: 'Создайте подходящую категорию.',
+    });
+    const result = (await infer().expect(201)).body;
+    expect(result.categoryMissing).toBe(true);
+    expect(result.category).toBe('');
+    expect(result.suggestedCategory).toBe('Садовый инвентарь');
+  });
+  it('rejects attempts to invent category selection while reporting a missing category', async () => {
+    provider({
+      ...suggestion,
+      categoryMissing: true,
+      suggestedCategory: 'Садовый инвентарь',
+    });
+    expect((await infer().expect(502)).body.code).toBe('AI_INVALID_RESPONSE');
   });
   it('handles unrecognized images without inventing a product', async () => {
     provider({ ...suggestion, recognized: false });

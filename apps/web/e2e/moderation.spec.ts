@@ -15,6 +15,7 @@ test('administrator approves a partner and a public card while the owner sees a 
       city: 'Ош',
       address: 'Центр',
       category: 'Посуда',
+      shopType: 'general',
       agreed: true,
     },
   });

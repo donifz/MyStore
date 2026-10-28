@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, ApiError, errorText } from '../api/client';
 export default function PartnerPage() {
@@ -8,10 +8,17 @@ export default function PartnerPage() {
     [city, setCity] = useState(''),
     [address, setAddress] = useState(''),
     [category, setCategory] = useState(''),
+    [shopType, setShopType] = useState(''),
+    [shopTypes, setShopTypes] = useState<{ code: string; name: string }[]>([]),
     [agreed, setAgreed] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [done, setDone] = useState(false);
+  useEffect(() => {
+    void api<{ code: string; name: string }[]>('/partners/shop-types')
+      .then((types) => setShopTypes(types))
+      .catch((error) => setError(errorText(error)));
+  }, []);
   async function submit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -26,6 +33,7 @@ export default function PartnerPage() {
           city: city.trim(),
           address: address.trim(),
           category: category.trim(),
+          shopType,
           agreed,
         },
       });
@@ -75,7 +83,7 @@ export default function PartnerPage() {
           </>
         ) : (
           <form onSubmit={submit}>
-            <fieldset disabled={busy}>
+            <fieldset disabled={busy || shopTypes.length === 0}>
               <label>
                 Название магазина
                 <input
@@ -128,12 +136,26 @@ export default function PartnerPage() {
               </label>
               <label>
                 Категория бизнеса
-                <input
+                <select
                   required
-                  maxLength={80}
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                />
+                  value={shopType}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setShopType(value);
+                    setCategory(
+                      shopTypes.find((type) => type.code === value)?.name ?? '',
+                    );
+                  }}
+                >
+                  <option value="" disabled>
+                    Выберите тип магазина
+                  </option>
+                  {shopTypes.map((type) => (
+                    <option key={type.code} value={type.code}>
+                      {type.name}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label>
                 <input

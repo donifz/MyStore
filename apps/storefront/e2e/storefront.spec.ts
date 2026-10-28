@@ -257,9 +257,30 @@ test('multi-store checkout preserves successful groups and retries rejected grou
 test('partner form submits the same data and announces success', async ({
   page,
 }) => {
-  await page.route('**/api/partners/applications', (route) =>
-    route.fulfill({ status: 201, contentType: 'application/json', body: '{}' }),
+  const shopTypes = [
+    { code: 'general', name: 'Универсальный магазин' },
+    { code: 'toys', name: 'Игрушки' },
+    { code: 'grocery', name: 'Продукты питания' },
+    { code: 'fashion', name: 'Одежда и обувь' },
+    { code: 'electronics', name: 'Электроника' },
+    { code: 'home', name: 'Товары для дома' },
+  ];
+  let submitted: Record<string, unknown> | undefined;
+  await page.route('**/api/partners/shop-types', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(shopTypes),
+    }),
   );
+  await page.route('**/api/partners/applications', async (route) => {
+    submitted = route.request().postDataJSON();
+    await route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: '{}',
+    });
+  });
   await page.goto('/partner');
   await page.getByLabel('Название магазина').fill('Мастерская');
   await page.getByLabel('Email', { exact: true }).fill('example@example.test');
@@ -268,9 +289,27 @@ test('partner form submits the same data and announces success', async ({
     .getByRole('main')
     .getByLabel('Город', { exact: true })
     .fill('Бишкек');
-  await page.getByLabel('Категория бизнеса').fill('Посуда');
+  const shopTypeSelect = page.getByLabel('Категория бизнеса');
+  await expect(shopTypeSelect.locator('option')).toHaveText([
+    'Выберите тип магазина',
+    ...shopTypes.map((type) => type.name),
+  ]);
+  await shopTypeSelect.selectOption('home');
+  await expect(shopTypeSelect).toHaveValue('home');
   await page.getByLabel('Согласен с условиями подключения').check();
   await page.getByRole('button', { name: 'Отправить заявку' }).click();
+  await expect
+    .poll(() => submitted)
+    .toEqual({
+      shopName: 'Мастерская',
+      email: 'example@example.test',
+      phone: '+996700123456',
+      city: 'Бишкек',
+      address: '',
+      category: 'Товары для дома',
+      shopType: 'home',
+      agreed: true,
+    });
   await expect(page.getByRole('main').getByRole('status')).toContainText(
     'Заявка отправлена',
   );

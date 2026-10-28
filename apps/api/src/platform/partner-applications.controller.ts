@@ -37,6 +37,9 @@ class ApplicationDto {
   @IsString() @MinLength(1) @MaxLength(80) city!: string;
   @IsString() @MaxLength(250) address!: string;
   @IsString() @MinLength(1) @MaxLength(80) category!: string;
+  @IsOptional()
+  @IsIn(['general', 'toys', 'grocery', 'fashion', 'electronics', 'home'])
+  shopType?: string;
   @Equals(true) agreed!: boolean;
 }
 class ActivationDto {
@@ -65,6 +68,10 @@ export class PartnerApplicationsController {
     private readonly applications: PartnerApplicationsService,
     private readonly auth: AuthService,
   ) {}
+
+  @Get('shop-types') shopTypes() {
+    return this.applications.shopTypes();
+  }
 
   @Post('applications') create(
     @Body() body: ApplicationDto,

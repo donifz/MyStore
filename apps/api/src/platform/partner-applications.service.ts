@@ -19,6 +19,7 @@ export type ApplicationInput = {
   city: string;
   address: string;
   category: string;
+  shopType?: string;
   agreed: boolean;
 };
 export type DecisionInput = {
@@ -37,6 +38,10 @@ export class PartnerApplicationsService {
     private readonly email: EmailQueueService,
   ) {}
 
+  async shopTypes() {
+    return this.db.query('SELECT code,name FROM shop_types ORDER BY name');
+  }
+
   async create(input: ApplicationInput) {
     if (!input.agreed) throw new BadRequestException('Agreement required');
     const email = input.email.trim().toLowerCase();
@@ -49,7 +54,7 @@ export class PartnerApplicationsService {
         if (existing) throw new ConflictException('Application unavailable');
         const id = randomUUID();
         await tx.query(
-          'INSERT INTO partner_applications(id,shop_name,email,phone,city,address,category) VALUES($1,$2,$3,$4,$5,$6,$7)',
+          'INSERT INTO partner_applications(id,shop_name,email,phone,city,address,category,shop_type) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',
           [
             id,
             input.shopName.trim(),
@@ -58,6 +63,7 @@ export class PartnerApplicationsService {
             input.city.trim(),
             input.address.trim(),
             input.category.trim(),
+            input.shopType ?? 'general',
           ],
         );
         await tx.query(
@@ -135,10 +141,28 @@ export class PartnerApplicationsService {
         );
         if (existing) throw new ConflictException('Application unavailable');
         shopId = randomUUID();
-        await tx.query('INSERT INTO shops(id,name) VALUES($1,$2)', [
-          shopId,
-          row.shop_name,
-        ]);
+        await tx.query(
+          'INSERT INTO shops(id,name,shop_type) VALUES($1,$2,$3)',
+          [shopId, row.shop_name, row.shop_type],
+        );
+        // Bootstrap category tree atomically with approved shop creation.
+        await tx.query(
+          `INSERT INTO shop_categories(shop_id,name,built_in,platform_category_code)
+           SELECT $1,name,true,platform_category_code
+           FROM shop_category_templates WHERE shop_type=$2 AND parent_name=''
+           ON CONFLICT DO NOTHING`,
+          [shopId, row.shop_type],
+        );
+        await tx.query(
+          `INSERT INTO shop_categories(shop_id,parent_id,name,built_in,platform_category_code)
+           SELECT $1,root.id,t.name,true,t.platform_category_code
+           FROM shop_category_templates t
+           JOIN shop_categories root ON root.shop_id=$1 AND root.parent_id IS NULL
+             AND root.name=t.parent_name
+           WHERE t.shop_type=$2 AND t.parent_name<>''
+           ON CONFLICT DO NOTHING`,
+          [shopId, row.shop_type],
+        );
         const token = randomBytes(32).toString('hex');
         await tx.query(
           "INSERT INTO partner_invitations(application_id,token_hash,expires_at) VALUES($1,$2,now()+interval '7 days')",

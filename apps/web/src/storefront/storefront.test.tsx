@@ -74,14 +74,14 @@ it('displays public product availability and contact purchase without cost field
   expect(screen.queryByText(/себестоимость/i)).toBeNull();
 });
 it('shows confirmation after a partner application without requesting a password', async () => {
-  mock({ status: 'new' });
+  mock([{ code: 'toys', name: 'Игрушки' }]);
   open('/partner');
   const u = userEvent.setup();
   await u.type(await screen.findByLabelText('Название магазина'), 'Дом');
   await u.type(screen.getByLabelText('Email'), 'new@example.test');
   await u.type(screen.getByLabelText('Телефон'), '+996700123456');
   await u.type(screen.getByLabelText('Город'), 'Ош');
-  await u.type(screen.getByLabelText('Категория бизнеса'), 'Подарки');
+  await u.selectOptions(screen.getByLabelText('Категория бизнеса'), 'toys');
   await u.click(screen.getByLabelText('Согласен с условиями подключения'));
   await u.click(screen.getByRole('button', { name: 'Отправить заявку' }));
   await screen.findByText(

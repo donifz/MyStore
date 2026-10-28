@@ -30,6 +30,7 @@ import { StorefrontThemes1760000000026 } from './migrations/1760000000026-Storef
 import { CanonicalStorefrontSettings1760000000027 } from './migrations/1760000000027-CanonicalStorefrontSettings';
 import { SeasonalStorefrontThemes1760000000028 } from './migrations/1760000000028-SeasonalStorefrontThemes';
 import { RegisterNewShopSlugs1760000000029 } from './migrations/1760000000029-RegisterNewShopSlugs';
+import { ShopCategoryTemplates1760000000030 } from './migrations/1760000000030-ShopCategoryTemplates';
 export const DATABASE = Symbol('DATABASE');
 export function buildDataSource(url: string) {
   return new DataSource({
@@ -67,6 +68,7 @@ export function buildDataSource(url: string) {
       CanonicalStorefrontSettings1760000000027,
       SeasonalStorefrontThemes1760000000028,
       RegisterNewShopSlugs1760000000029,
+      ShopCategoryTemplates1760000000030,
     ],
   });
 }

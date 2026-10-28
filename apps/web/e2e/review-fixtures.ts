@@ -16,6 +16,7 @@ export async function reviewedPartner(
       city: 'Ош',
       address: '',
       category: 'Розница',
+      shopType: 'general',
       agreed: true,
     },
   });

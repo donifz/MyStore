@@ -6,6 +6,8 @@ type Suggestion = {
   description: string;
   category: string;
   subcategory: string;
+  categoryMissing?: boolean;
+  suggestedCategory?: string;
   confidence: 'low' | 'medium' | 'high';
   warning: string;
 };
@@ -33,7 +35,8 @@ export default function PhotoAssistant({
     [busy, setBusy] = useState(false),
     [suggestion, setSuggestion] = useState<Suggestion | null>(null),
     [error, setError] = useState(''),
-    [applied, setApplied] = useState(false);
+    [applied, setApplied] = useState(false),
+    [creatingCategory, setCreatingCategory] = useState(false);
   const current = useRef<AbortController | null>(null),
     sending = useRef(false);
   useEffect(() => {
@@ -65,6 +68,42 @@ export default function PhotoAssistant({
       onBusyChange(false);
     };
   }, [photo, onBusyChange]);
+  async function addCategory() {
+    if (!suggestion?.categoryMissing || !suggestion.suggestedCategory) return;
+    setCreatingCategory(true);
+    setError('');
+    try {
+      await api(`/shops/${shopId}/categories`, {
+        method: 'POST',
+        body: { name: suggestion.suggestedCategory },
+      });
+      const refreshed = await api<Info>(
+        `/shops/${shopId}/variants/photo-assistant`,
+      );
+      setInfo(refreshed);
+      onCategories(refreshed.categories);
+      const matching = refreshed.categories.find(
+        (category) => category.name === suggestion.suggestedCategory,
+      );
+      if (!matching) throw new Error('Категория не появилась в магазине.');
+      const next = {
+        ...suggestion,
+        category: matching.name,
+        subcategory: '',
+        categoryMissing: false,
+        suggestedCategory: '',
+      };
+      setSuggestion(next);
+      onApply(next);
+      setApplied(true);
+    } catch (e) {
+      setError(
+        e instanceof ApiError ? e.message : 'Не удалось создать категорию.',
+      );
+    } finally {
+      setCreatingCategory(false);
+    }
+  }
   async function recognize() {
     if (!photo || !info?.available || sending.current) return;
     sending.current = true;
@@ -145,10 +184,12 @@ export default function PhotoAssistant({
             <>
               <h3>{suggestion.name}</h3>
               <p>{suggestion.description}</p>
-              <p>
-                Категория: {suggestion.category}
-                {suggestion.subcategory ? ` → ${suggestion.subcategory}` : ''}
-              </p>
+              {!suggestion.categoryMissing && (
+                <p>
+                  Категория: {suggestion.category}
+                  {suggestion.subcategory ? ` → ${suggestion.subcategory}` : ''}
+                </p>
+              )}
               <p className="muted">
                 Уверенность:{' '}
                 {
@@ -159,8 +200,26 @@ export default function PhotoAssistant({
               </p>
             </>
           )}
+          {suggestion.categoryMissing && (
+            <div role="status">
+              <p>
+                Подходящая категория не найдена. Товар не будет отнесён к
+                случайной категории.
+              </p>
+              <p>Предложение: {suggestion.suggestedCategory}</p>
+              <button
+                type="button"
+                disabled={creatingCategory}
+                onClick={() => void addCategory()}
+              >
+                {creatingCategory
+                  ? 'Создаём категорию…'
+                  : 'Создать категорию и применить'}
+              </button>
+            </div>
+          )}
           {suggestion.warning && <p>{suggestion.warning}</p>}
-          {suggestion.recognized && (
+          {suggestion.recognized && !suggestion.categoryMissing && (
             <button
               type="button"
               onClick={() => {

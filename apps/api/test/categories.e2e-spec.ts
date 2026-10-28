@@ -49,4 +49,32 @@ describe('shop categories', () => {
       .send({ name: 'Моя категория' })
       .expect(403);
   });
+  it('seeds database category templates for toy shops without leaking categories across shops', async () => {
+    const [type] = await c.db.query(
+      "SELECT code FROM shop_types WHERE code='toys'",
+    );
+    expect(type.code).toBe('toys');
+    const [template] = await c.db.query(
+      "SELECT count(*)::int n FROM shop_category_templates WHERE shop_type='toys'",
+    );
+    expect(template.n).toBeGreaterThan(10);
+
+    await c.db.query("UPDATE shops SET shop_type='toys' WHERE id=$1", [
+      fixture.shop,
+    ]);
+    const response = await request(c.app.getHttpServer())
+      .get(`/shops/${fixture.shop}/categories`)
+      .auth(c.owner, { type: 'bearer' })
+      .expect(200);
+    const robotics = response.body.find(
+      (category: any) => category.name === 'Робототехника',
+    );
+    expect(robotics.platformCategoryCode).toBe('toys');
+    expect(robotics.children.map((c: any) => c.name)).toContain('STEM-наборы');
+    const response2 = await request(c.app.getHttpServer())
+      .get(`/shops/${fixture.shop}/categories`)
+      .auth(c.owner, { type: 'bearer' })
+      .expect(200);
+    expect(response2.body.length).toBe(response.body.length);
+  });
 });
