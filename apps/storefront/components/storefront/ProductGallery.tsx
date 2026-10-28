@@ -1,5 +1,6 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { distinctPhotoUrls } from './gallery-photos';
 import Icon from './Icon';
 export default function ProductGallery({
   photoUrl,
@@ -12,11 +13,33 @@ export default function ProductGallery({
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [active, setActive] = useState(0);
-  const photos = [
-    ...new Set([...(photoUrls ?? []), ...(photoUrl ? [photoUrl] : [])]),
+  const sourcePhotos = [
+    ...new Set(photoUrls?.length ? photoUrls : photoUrl ? [photoUrl] : []),
   ]
     .filter(Boolean)
     .slice(0, 8);
+  const photoKey = sourcePhotos.join('|');
+  const [uniquePhotos, setUniquePhotos] = useState<string[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setUniquePhotos(null);
+    if (sourcePhotos.length < 2) return;
+    void distinctPhotoUrls(
+      sourcePhotos,
+      async (url) => {
+        const response = await fetch(url, { credentials: 'same-origin' });
+        if (!response.ok) throw new Error('Photo unavailable');
+        return response.arrayBuffer();
+      },
+      (bytes) => crypto.subtle.digest('SHA-256', bytes),
+    ).then((result) => {
+      if (!cancelled) setUniquePhotos(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [photoKey]);
+  const photos = uniquePhotos ?? sourcePhotos.slice(0, 1);
   const photo = photos[Math.min(active, photos.length - 1)];
   return (
     <div className="sf-gallery">
@@ -30,22 +53,24 @@ export default function ProductGallery({
           >
             <img src={photo} alt={name} />
           </button>
-          <div className="sf-gallery-thumbnails" aria-label="Фотографии товара">
-            {photos.map((url, index) => (
-              <button
-                key={url}
-                type="button"
-                aria-label={`Фото ${index + 1} из ${photos.length}`}
-                aria-pressed={index === active}
-                onClick={() => setActive(index)}
-              >
-                <img src={url} alt={`Фото ${index + 1}`} />
-              </button>
-            ))}
-            {photos.length === 1 && (
-              <small>Нажмите на фото, чтобы рассмотреть</small>
-            )}
-          </div>
+          {photos.length > 1 && (
+            <div
+              className="sf-gallery-thumbnails"
+              aria-label="Фотографии товара"
+            >
+              {photos.map((url, index) => (
+                <button
+                  key={url}
+                  type="button"
+                  aria-label={`Фото ${index + 1} из ${photos.length}`}
+                  aria-pressed={index === active}
+                  onClick={() => setActive(index)}
+                >
+                  <img src={url} alt={`Фото ${index + 1}`} />
+                </button>
+              ))}
+            </div>
+          )}
           <dialog
             ref={dialog}
             className="sf-photo-dialog"
