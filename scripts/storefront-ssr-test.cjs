@@ -13,11 +13,9 @@ const store = {
   phone: '+996700123456',
   address: 'Центр',
   hours: '10–19',
-  presentation: {
-    id: 'new-year',
-    startsAt: null,
-    endsAt: null,
-    hero: { title: 'Новогодние подарки', text: 'Праздничная подборка' },
+  banner: {
+    title: 'Баннер магазина',
+    text: 'Праздничная подборка',
   },
 };
 let available = 3,
@@ -156,7 +154,11 @@ const seen = [];
     assert.equal(schema.offers.price, '240.00');
     assert.equal(schema.offers.availability, 'https://schema.org/InStock');
     assert(detail.doc.title.includes('Керамическая чашка'));
-    assert(detail.doc.body.textContent.includes('Новогодние подарки'));
+    assert.equal(detail.doc.querySelector('.sf-store-banner'), null);
+    const storefront = await get('/shop/shop-a');
+    assert.equal(storefront.response.status, 200);
+    assert(storefront.doc.querySelector('.sf-store-banner'));
+    assert(storefront.doc.body.textContent.includes('Баннер магазина'));
     const legacy = await fetch(base + '/shops/shop-a?category=Посуда', {
       redirect: 'manual',
     });

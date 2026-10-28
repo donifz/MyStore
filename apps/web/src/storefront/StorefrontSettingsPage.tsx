@@ -5,7 +5,7 @@ import { useSession } from '../auth/SessionProvider';
 import { StoreProfile } from './types';
 import { useResource } from './use-resource';
 import BusinessHoursEditor from './BusinessHoursEditor';
-import ThemeEditor from './ThemeEditor';
+import BannerEditor from './BannerEditor';
 export default function StorefrontSettingsPage() {
   const { shopId } = useParams(),
     session = useSession();
@@ -57,7 +57,7 @@ export default function StorefrontSettingsPage() {
         deliveryEnabled,
         timeZone,
         businessSchedule,
-        presentation,
+        banner,
         slug,
       } = form;
       setForm(
@@ -75,7 +75,7 @@ export default function StorefrontSettingsPage() {
             deliveryEnabled,
             timeZone: timeZone ?? 'Asia/Bishkek',
             businessSchedule: businessSchedule ?? null,
-            presentation,
+            banner,
             slug,
           },
         }),
@@ -134,16 +134,10 @@ export default function StorefrontSettingsPage() {
                 onChange={(e) => field('description', e.target.value)}
               />
             </label>
-            <ThemeEditor
-              value={
-                form.presentation || {
-                  id: 'base',
-                  startsAt: null,
-                  endsAt: null,
-                }
-              }
+            <BannerEditor
+              value={form.banner}
               disabled={busy}
-              onChange={(value) => field('presentation', value)}
+              onChange={(value) => field('banner', value)}
             />
             <label>
               Город

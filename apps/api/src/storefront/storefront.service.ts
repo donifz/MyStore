@@ -14,16 +14,11 @@ import {
   validateBusinessSchedule,
   validateTimeZone,
 } from '../orders/business-hours';
-import {
-  activePresentation,
-  savedPresentation,
-  validatePresentation,
-} from './themes';
-const profileColumns =
-  'name,slug,storefront_theme AS \"theme\",theme_content AS \"themeContent\",theme_starts_at AS \"themeStartsAt\",theme_ends_at AS \"themeEndsAt\",description,city,address,phone,hours,published,district,pickup_enabled AS \"pickupEnabled\",delivery_enabled AS \"deliveryEnabled\",time_zone AS \"timeZone\",business_schedule AS \"businessSchedule\"';
+import { validateBanner } from './banner';
+const profileColumns = `name,slug,theme_content->'hero' AS "banner",description,city,address,phone,hours,published,district,pickup_enabled AS "pickupEnabled",delivery_enabled AS "deliveryEnabled",time_zone AS "timeZone",business_schedule AS "businessSchedule"`;
 export type ProfileInput = {
   slug?: string;
-  presentation?: unknown;
+  banner?: unknown;
   timeZone?: string;
   businessSchedule?: unknown;
   district?: string;
@@ -78,14 +73,13 @@ export class StorefrontService {
     if (!m) throw new ForbiddenException();
   }
   private profileDto(row: any) {
-    const { themeContent, themeStartsAt, themeEndsAt, ...profile } = row;
     const from = new Date();
     const expiresAt = row.businessSchedule
       ? businessDeadline(from, row.businessSchedule, row.timeZone)
       : new Date(from.getTime() + 30 * 60_000);
     return {
-      ...profile,
-      presentation: savedPresentation(row),
+      ...row,
+      banner: row.banner ?? null,
       reservationPolicy: row.businessSchedule
         ? 'business-hours'
         : 'legacy-30-minutes',
@@ -112,10 +106,10 @@ export class StorefrontService {
     )
       throw new BadRequestException('City and phone required for publication');
     const requestedSlug = input.slug?.trim().toLowerCase();
-    const requestedPresentation =
-      input.presentation === undefined
+    const requestedBanner =
+      input.banner === undefined
         ? undefined
-        : await validatePresentation(input.presentation);
+        : await validateBanner(input.banner);
     if (
       requestedSlug !== undefined &&
       (!/^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/.test(requestedSlug) ||
@@ -178,12 +172,11 @@ export class StorefrontService {
           );
         }
         const [[row]] = await tx.query(
-          'UPDATE shops SET slug=COALESCE($2,slug),storefront_theme=COALESCE($3,storefront_theme),description=$4,city=$5,address=$6,phone=$7,hours=$8,published=$9,district=COALESCE($10,district),pickup_enabled=COALESCE($11,pickup_enabled),delivery_enabled=COALESCE($12,delivery_enabled),time_zone=$13,business_schedule=$14,theme_content=COALESCE($15,theme_content),theme_starts_at=CASE WHEN $3::varchar IS NULL THEN theme_starts_at ELSE $16::timestamptz END,theme_ends_at=CASE WHEN $3::varchar IS NULL THEN theme_ends_at ELSE $17::timestamptz END WHERE id=$1 RETURNING ' +
+          `UPDATE shops SET slug=COALESCE($2,slug),storefront_theme='base',description=$3,city=$4,address=$5,phone=$6,hours=$7,published=$8,district=COALESCE($9,district),pickup_enabled=COALESCE($10,pickup_enabled),delivery_enabled=COALESCE($11,delivery_enabled),time_zone=$12,business_schedule=$13,theme_content=CASE WHEN $14::jsonb IS NULL THEN theme_content WHEN $14::jsonb='{}'::jsonb THEN theme_content-'hero' ELSE jsonb_set(COALESCE(theme_content,'{}'::jsonb),'{hero}',$14::jsonb,true) END,theme_starts_at=NULL,theme_ends_at=NULL WHERE id=$1 RETURNING ` +
             profileColumns,
           [
             shopId,
             requestedSlug ?? null,
-            requestedPresentation?.id ?? null,
             input.description.trim(),
             input.city.trim(),
             input.address.trim(),
@@ -195,35 +188,21 @@ export class StorefrontService {
             input.deliveryEnabled ?? null,
             timeZone,
             schedule === null ? null : JSON.stringify(schedule),
-            requestedPresentation
-              ? JSON.stringify({
-                  ...(requestedPresentation.hero
-                    ? { hero: requestedPresentation.hero }
-                    : {}),
-                  ...(requestedPresentation.info
-                    ? { info: requestedPresentation.info }
-                    : {}),
-                })
-              : null,
-            requestedPresentation?.startsAt ?? null,
-            requestedPresentation?.endsAt ?? null,
+            requestedBanner === undefined
+              ? null
+              : JSON.stringify(requestedBanner ?? {}),
           ],
         );
-        if (requestedPresentation) {
+        if (requestedBanner !== undefined) {
           await tx.query(
             `INSERT INTO audit_log(shop_id,actor_id,action,entity_type,entity_id,details)
-             VALUES($1,$2,'theme_changed','shop',$1,$3)`,
+             VALUES($1,$2,'banner_changed','shop',$1,$3)`,
             [
               shopId,
               actor,
               JSON.stringify({
-                before: savedPresentation({
-                  theme: current.storefront_theme,
-                  themeContent: current.theme_content,
-                  themeStartsAt: current.theme_starts_at,
-                  themeEndsAt: current.theme_ends_at,
-                }),
-                after: requestedPresentation,
+                before: current.theme_content?.hero ?? null,
+                after: requestedBanner,
               }),
             ],
           );
@@ -301,12 +280,11 @@ export class StorefrontService {
   }
   async store(slug: string) {
     const [r] = await this.db.query(
-      'SELECT s.name,s.slug,s.storefront_theme AS "theme",s.theme_content AS "themeContent",s.theme_starts_at AS "themeStartsAt",s.theme_ends_at AS "themeEndsAt",s.description,s.city,s.address,s.phone,s.hours,s.district,s.pickup_enabled AS "pickupEnabled",s.delivery_enabled AS "deliveryEnabled",(NOT ss.is_current) AS historical FROM shop_slugs ss JOIN shops s ON s.id=ss.shop_id WHERE ss.slug=$1 AND s.published AND (NOT s.marketplace_blocked)',
+      `SELECT s.name,s.slug,s.theme_content->'hero' AS banner,s.description,s.city,s.address,s.phone,s.hours,s.district,s.pickup_enabled AS "pickupEnabled",s.delivery_enabled AS "deliveryEnabled",(NOT ss.is_current) AS historical FROM shop_slugs ss JOIN shops s ON s.id=ss.shop_id WHERE ss.slug=$1 AND s.published AND (NOT s.marketplace_blocked)`,
       [slug],
     );
     if (!r) throw new NotFoundException();
-    const { themeContent, themeStartsAt, themeEndsAt, theme, ...store } = r;
-    return { ...store, presentation: activePresentation(r) };
+    return { ...r, banner: r.banner ?? null };
   }
   private productDto(r: any, detail = false) {
     return {
@@ -337,7 +315,6 @@ export class StorefrontService {
         district: r.district,
         pickupEnabled: r.pickup_enabled,
         deliveryEnabled: r.delivery_enabled,
-        presentation: activePresentation(r),
         ...(detail
           ? { phone: r.phone, address: r.address, hours: r.hours }
           : {}),
@@ -347,7 +324,7 @@ export class StorefrontService {
   private from =
     ' FROM variants v JOIN shops s ON s.id=v.shop_id JOIN product_publications p ON p.variant_id=v.id AND p.shop_id=s.id LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id LEFT JOIN shop_categories sc ON sc.shop_id=s.id AND sc.parent_id IS NULL AND sc.name=p.category LEFT JOIN platform_categories pc ON pc.code=sc.platform_category_code';
   private select =
-    `SELECT v.id,v.size,v.color,v.sku,v.parent_id,(p.photo_data IS NOT NULL) has_photo,cardinality(p.photo_album) photo_count,p.name,p.description,p.category,COALESCE(pc.name,p.category) AS platform_category,v.sale_price_minor,COALESCE(b.physical,0)-COALESCE(b.reserved,0) available,s.slug,s.name shop_name,s.city,s.phone,s.address,s.hours,s.district,s.pickup_enabled,s.delivery_enabled,s.storefront_theme AS theme,s.theme_content AS "themeContent",s.theme_starts_at AS "themeStartsAt",s.theme_ends_at AS "themeEndsAt"` +
+    `SELECT v.id,v.size,v.color,v.sku,v.parent_id,(p.photo_data IS NOT NULL) has_photo,cardinality(p.photo_album) photo_count,p.name,p.description,p.category,COALESCE(pc.name,p.category) AS platform_category,v.sale_price_minor,COALESCE(b.physical,0)-COALESCE(b.reserved,0) available,s.slug,s.name shop_name,s.city,s.phone,s.address,s.hours,s.district,s.pickup_enabled,s.delivery_enabled` +
     this.from;
   private async canonicalSlug(slug: string) {
     const [row] = await this.db.query(

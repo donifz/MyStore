@@ -21,16 +21,11 @@ const store = {
   deliveryEnabled: false,
   productCount: 1,
   categories: ['Посуда'],
-  presentation: {
-    id: 'nooruz',
-    startsAt: null,
-    endsAt: null,
-    hero: {
-      title: 'Нооруз майрамы',
-      text: 'Праздничная подборка магазина',
-      link: '/?category=Посуда',
-      buttonLabel: 'Смотреть товары',
-    },
+  banner: {
+    title: 'Посуда для дома',
+    text: 'Праздничная подборка магазина',
+    link: '/?category=Посуда',
+    buttonLabel: 'Смотреть товары',
   },
 };
 const product = {
