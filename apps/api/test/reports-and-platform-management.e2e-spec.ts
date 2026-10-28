@@ -303,6 +303,26 @@ describe('reports and platform management', () => {
       orphanShopId,
       'Магазин без владельца',
     ]);
+    const applicationId = randomUUID();
+    await ctx.db.query(
+      `INSERT INTO partner_applications
+       (id,shop_name,email,phone,city,address,category,status,shop_id)
+       VALUES($1,$2,$3,$4,$5,$6,$7,'approved',$8)`,
+      [
+        applicationId,
+        'Магазин без владельца',
+        'new-owner@example.test',
+        '+996555112233',
+        'Ош',
+        'Улица 1',
+        'Посуда',
+        orphanShopId,
+      ],
+    );
+    await ctx.db.query(
+      "INSERT INTO partner_invitations(application_id,token_hash,expires_at) VALUES($1,$2,now()+interval '7 days')",
+      [applicationId, randomUUID()],
+    );
     const overview = await request(ctx.app.getHttpServer())
       .get('/platform/admin/overview')
       .auth(adminToken, { type: 'bearer' })
@@ -313,6 +333,15 @@ describe('reports and platform management', () => {
     expect(
       overview.body.shops.find((s: any) => s.id === orphanShopId).hasOwner,
     ).toBe(false);
+    expect(
+      overview.body.shops.find((s: any) => s.id === orphanShopId)
+        .ownerCandidateEmail,
+    ).toBe('new-owner@example.test');
+
+    const ownerSession = await request(ctx.app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: 'owner@example.test', password: 'correct-test-password' })
+      .expect(201);
 
     await request(ctx.app.getHttpServer())
       .post(`/platform/admin/shops/${fixture.shop}/reset-owner-password`)
@@ -327,6 +356,10 @@ describe('reports and platform management', () => {
     expect(reset.body.shopId).toBe(fixture.shop);
     expect(reset.body.email).toBe('owner@example.test');
     expect(reset.body.temporaryPassword).toHaveLength(32);
+    await request(ctx.app.getHttpServer())
+      .get('/auth/me')
+      .auth(ownerSession.body.token, { type: 'bearer' })
+      .expect(401);
 
     await request(ctx.app.getHttpServer())
       .post('/auth/login')
@@ -354,7 +387,45 @@ describe('reports and platform management', () => {
     await request(ctx.app.getHttpServer())
       .post(`/platform/admin/shops/${orphanShopId}/reset-owner-password`)
       .auth(adminToken, { type: 'bearer' })
-      .expect(404);
+      .expect(400);
+    await request(ctx.app.getHttpServer())
+      .post(`/platform/admin/shops/${orphanShopId}/reset-owner-password`)
+      .auth(adminToken, { type: 'bearer' })
+      .send({ ownerEmail: 'owner@example.test' })
+      .expect(409);
+
+    const initial = await request(ctx.app.getHttpServer())
+      .post(`/platform/admin/shops/${orphanShopId}/reset-owner-password`)
+      .auth(adminToken, { type: 'bearer' })
+      .send({ ownerEmail: 'new-owner@example.test' })
+      .expect(201);
+    expect(initial.body.temporaryPassword).toHaveLength(32);
+    expect(initial.body.email).toBe('new-owner@example.test');
+    const [membership] = await ctx.db.query(
+      `SELECT m.role FROM memberships m JOIN users u ON u.id=m.user_id
+       WHERE m.shop_id=$1 AND u.email=$2`,
+      [orphanShopId, 'new-owner@example.test'],
+    );
+    expect(membership.role).toBe('owner');
+    const [invitation] = await ctx.db.query(
+      'SELECT used_at FROM partner_invitations WHERE application_id=$1',
+      [applicationId],
+    );
+    expect(invitation.used_at).not.toBeNull();
+    await request(ctx.app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: 'new-owner@example.test',
+        password: initial.body.temporaryPassword,
+      })
+      .expect(201);
+    const after = await request(ctx.app.getHttpServer())
+      .get('/platform/admin/overview')
+      .auth(adminToken, { type: 'bearer' })
+      .expect(200);
+    expect(
+      after.body.shops.find((s: any) => s.id === orphanShopId).hasOwner,
+    ).toBe(true);
 
     await request(ctx.app.getHttpServer())
       .post(

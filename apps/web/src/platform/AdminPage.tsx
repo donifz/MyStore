@@ -61,6 +61,7 @@ type AdminOverview = {
     marketplaceBlockReason?: string | null;
     subscriptionUntil?: string | null;
     hasOwner: boolean;
+    ownerCandidateEmail: string | null;
   }[];
 };
 type OwnerPassword = { email: string; password: string };
@@ -95,6 +96,11 @@ export default function AdminPage() {
   const [blockModalReason, setBlockModalReason] = useState('');
   const [subModalShopId, setSubModalShopId] = useState<string | null>(null);
   const [subModalDate, setSubModalDate] = useState('');
+  const [ownerSetupShop, setOwnerSetupShop] = useState<{
+    id: string;
+    name: string;
+    email: string;
+  } | null>(null);
   const [params, setParams] = useSearchParams();
   const location = useLocation();
   const tab = platformSection(location.search);
@@ -253,8 +259,13 @@ export default function AdminPage() {
     }
   }
 
-  async function resetOwnerPassword(shopId: string, shopName: string) {
+  async function resetOwnerPassword(
+    shopId: string,
+    shopName: string,
+    ownerEmail?: string,
+  ) {
     if (
+      !ownerEmail &&
       !window.confirm(
         `Сбросить пароль владельца магазина «${shopName}»? Текущий пароль перестанет работать.`,
       )
@@ -271,17 +282,20 @@ export default function AdminPage() {
         temporaryPassword: string;
       }>(`/platform/admin/shops/${shopId}/reset-owner-password`, {
         method: 'POST',
+        ...(ownerEmail ? { body: { ownerEmail: ownerEmail.trim() } } : {}),
       });
+      setOwnerSetupShop(null);
       setOwnerPassword({
         email: result.email,
         password: result.temporaryPassword,
       });
+      if (ownerEmail) void load().catch(() => {});
     } catch (e) {
       setError(
         e instanceof ApiError &&
-          e.status === 404 &&
-          e.message === 'Shop owner not found'
-          ? `У магазина «${shopName}» нет назначенного владельца. Сбросить пароль некому.`
+          e.status === 409 &&
+          e.message === 'An account with this email already exists'
+          ? 'Учётная запись с этим email уже существует. Проверьте владельца магазина.'
           : errorText(e),
       );
     } finally {
@@ -600,6 +614,55 @@ export default function AdminPage() {
                   title="Магазины"
                   subtitle="Зарегистрированные магазины платформы"
                 >
+                  {ownerSetupShop && (
+                    <form
+                      className="panel form-panel"
+                      style={{ marginBottom: '1rem' }}
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        void resetOwnerPassword(
+                          ownerSetupShop.id,
+                          ownerSetupShop.name,
+                          ownerSetupShop.email,
+                        );
+                      }}
+                    >
+                      <h3>Первый пароль владельца «{ownerSetupShop.name}»</h3>
+                      <p className="muted">
+                        Укажите email владельца. Пароль будет показан один раз,
+                        передайте его лично.
+                      </p>
+                      <label>
+                        Email владельца
+                        <input
+                          type="email"
+                          required
+                          value={ownerSetupShop.email}
+                          onChange={(event) =>
+                            setOwnerSetupShop({
+                              ...ownerSetupShop,
+                              email: event.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                      <div className="admin-kit-actions">
+                        <button
+                          className="admin-kit-approve"
+                          disabled={busy || !ownerSetupShop.email.trim()}
+                        >
+                          Создать владельца и выдать пароль
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => setOwnerSetupShop(null)}
+                        >
+                          Отмена
+                        </button>
+                      </div>
+                    </form>
+                  )}
                   {blockModalShopId && (
                     <div
                       className="panel form-panel"
@@ -822,21 +885,25 @@ export default function AdminPage() {
                                   </button>
                                   <button
                                     className="admin-kit-approve"
-                                    disabled={busy || !shop.hasOwner}
-                                    onClick={() =>
-                                      void resetOwnerPassword(
-                                        shop.id,
-                                        shop.name,
-                                      )
-                                    }
+                                    disabled={busy}
+                                    onClick={() => {
+                                      if (shop.hasOwner)
+                                        void resetOwnerPassword(
+                                          shop.id,
+                                          shop.name,
+                                        );
+                                      else
+                                        setOwnerSetupShop({
+                                          id: shop.id,
+                                          name: shop.name,
+                                          email: shop.ownerCandidateEmail ?? '',
+                                        });
+                                    }}
                                   >
-                                    Сбросить пароль владельца
+                                    {shop.hasOwner
+                                      ? 'Сбросить пароль владельца'
+                                      : 'Выдать первый пароль владельцу'}
                                   </button>
-                                  {!shop.hasOwner && (
-                                    <span className="muted">
-                                      У магазина нет назначенного владельца
-                                    </span>
-                                  )}
                                 </div>
                               </td>
                             </tr>

@@ -8,7 +8,13 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { IsBoolean, IsOptional, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { PlatformAdminService } from './platform-admin.service';
 
@@ -25,6 +31,13 @@ class SubscriptionDto {
   @IsOptional()
   @IsString()
   until?: string | null;
+}
+
+class OwnerPasswordDto {
+  @IsOptional()
+  @IsEmail()
+  @MaxLength(254)
+  ownerEmail?: string;
 }
 
 @Controller('platform/admin')
@@ -71,8 +84,9 @@ export class AdminSessionController {
   async resetOwnerPassword(
     @Req() req: UserRequest,
     @Param('shopId', ParseUUIDPipe) shopId: string,
+    @Body() body: OwnerPasswordDto,
   ) {
     await this.admins.requireAdmin(req.userId);
-    return this.admins.resetOwnerPassword(req.userId, shopId);
+    return this.admins.resetOwnerPassword(req.userId, shopId, body?.ownerEmail);
   }
 }
