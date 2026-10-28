@@ -82,6 +82,7 @@ export default function AdminPage() {
   const [selected, setSelected] = useState<Revision | null>(null);
   const [reason, setReason] = useState('');
   const [invitation, setInvitation] = useState('');
+  const [generatedPassword, setGeneratedPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -125,20 +126,29 @@ export default function AdminPage() {
   async function decideApplication(
     row: Application,
     decision: 'in_review' | 'approved' | 'rejected',
+    credentialDelivery?: 'invite' | 'password',
   ) {
     setError('');
     setInvitation('');
+    setGeneratedPassword('');
     setBusy(true);
     try {
-      const result = await api<{ activationUrl?: string }>(
-        `/platform/admin/applications/${row.id}/decision`,
-        {
-          method: 'POST',
-          body: { expectedStatus: row.status, decision, reason },
+      const result = await api<{
+        activationUrl?: string;
+        generatedPassword?: string;
+      }>(`/platform/admin/applications/${row.id}/decision`, {
+        method: 'POST',
+        body: {
+          expectedStatus: row.status,
+          decision,
+          reason,
+          ...(credentialDelivery ? { credentialDelivery } : {}),
         },
-      );
+      });
       if (result.activationUrl)
         setInvitation(window.location.origin + result.activationUrl);
+      if (result.generatedPassword)
+        setGeneratedPassword(result.generatedPassword);
       setReason('');
       await load();
     } catch (e) {
@@ -344,6 +354,15 @@ export default function AdminPage() {
                           Одобрить
                         </button>
                         <button
+                          className="admin-kit-approve"
+                          disabled={busy}
+                          onClick={() =>
+                            void decideApplication(a, 'approved', 'password')
+                          }
+                        >
+                          Одобрить и выдать пароль
+                        </button>
+                        <button
                           className="admin-kit-reject"
                           disabled={busy || !reason.trim()}
                           onClick={() => void decideApplication(a, 'rejected')}
@@ -457,6 +476,28 @@ export default function AdminPage() {
             }
           >
             Скопировать
+          </button>
+        </AdminCard>
+      )}
+      {generatedPassword && (
+        <AdminCard
+          title="Пароль для партнёра"
+          subtitle="Передайте пароль партнёру вручную. Он показан только сейчас."
+        >
+          <input
+            aria-label="Сгенерированный пароль"
+            readOnly
+            value={generatedPassword}
+            onFocus={(e) => e.target.select()}
+          />
+          <button
+            onClick={() =>
+              void navigator.clipboard
+                .writeText(generatedPassword)
+                .catch((e) => setError(errorText(e)))
+            }
+          >
+            Скопировать пароль
           </button>
         </AdminCard>
       )}
