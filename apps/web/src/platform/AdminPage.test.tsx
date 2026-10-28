@@ -83,10 +83,18 @@ it('resets a registered shop owner password and shows it once to the admin', asy
   ).toBe(true);
 });
 
-it('does not offer a password reset for a shop without an owner', async () => {
-  const requests: string[] = [];
-  vi.stubGlobal('fetch', async (url: string) => {
-    requests.push(url);
+it('issues the first password for a shop without an owner', async () => {
+  const requests: { url: string; init?: RequestInit }[] = [];
+  vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+    requests.push({ url, init });
+    if (url.endsWith('/reset-owner-password'))
+      return new Response(
+        JSON.stringify({
+          email: 'new-owner@example.test',
+          temporaryPassword: 'first-password-value',
+        }),
+        { headers: { 'content-type': 'application/json' } },
+      );
     const body =
       url === '/api/auth/me'
         ? {
@@ -101,7 +109,14 @@ it('does not offer a password reset for a shop without an owner', async () => {
               shopCount: 1,
               pendingPartners: 0,
               pendingProducts: 0,
-              shops: [{ id: 'shop-1', name: 'Новый магазин', hasOwner: false }],
+              shops: [
+                {
+                  id: 'shop-1',
+                  name: 'Новый магазин',
+                  hasOwner: false,
+                  ownerCandidateEmail: 'new-owner@example.test',
+                },
+              ],
             }
           : { items: [], total: 0 };
     return new Response(JSON.stringify(body), {
@@ -117,28 +132,45 @@ it('does not offer a password reset for a shop without an owner', async () => {
     </MemoryRouter>,
   );
 
-  expect(
-    await screen.findByText('У магазина нет назначенного владельца'),
-  ).not.toBeNull();
-  expect(
-    screen.getByRole('button', { name: 'Сбросить пароль владельца' }),
-  ).toHaveProperty('disabled', true);
-  expect(requests.some((url) => url.endsWith('/reset-owner-password'))).toBe(
-    false,
+  await userEvent.setup().click(
+    await screen.findByRole('button', {
+      name: 'Выдать первый пароль владельцу',
+    }),
   );
+  expect(
+    screen.getByRole('textbox', { name: 'Email владельца' }),
+  ).toHaveProperty('value', 'new-owner@example.test');
+  await userEvent
+    .setup()
+    .click(
+      screen.getByRole('button', { name: 'Создать владельца и выдать пароль' }),
+    );
+  expect(
+    await screen.findByRole('textbox', { name: 'Новый пароль владельца' }),
+  ).toHaveProperty('value', 'first-password-value');
+  expect(
+    requests.some(
+      ({ url, init }) =>
+        url === '/api/platform/admin/shops/shop-1/reset-owner-password' &&
+        init?.method === 'POST' &&
+        JSON.parse(String(init.body)).ownerEmail === 'new-owner@example.test',
+    ),
+  ).toBe(true);
 });
 
-it('explains when the shop owner disappears before the reset request', async () => {
+it('explains a conflicting email when creating a shop owner', async () => {
   vi.stubGlobal(
     'confirm',
     vi.fn(() => true),
   );
   vi.stubGlobal('fetch', async (url: string) => {
     if (url.endsWith('/reset-owner-password'))
-      return new Response(JSON.stringify({ message: 'Shop owner not found' }), {
-        status: 404,
-        headers: { 'content-type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({
+          message: 'An account with this email already exists',
+        }),
+        { status: 409, headers: { 'content-type': 'application/json' } },
+      );
     const body =
       url === '/api/auth/me'
         ? {
@@ -153,7 +185,14 @@ it('explains when the shop owner disappears before the reset request', async () 
               shopCount: 1,
               pendingPartners: 0,
               pendingProducts: 0,
-              shops: [{ id: 'shop-1', name: 'Магазин у дома', hasOwner: true }],
+              shops: [
+                {
+                  id: 'shop-1',
+                  name: 'Магазин у дома',
+                  hasOwner: false,
+                  ownerCandidateEmail: 'owner@example.test',
+                },
+              ],
             }
           : { items: [], total: 0 };
     return new Response(JSON.stringify(body), {
@@ -169,14 +208,19 @@ it('explains when the shop owner disappears before the reset request', async () 
     </MemoryRouter>,
   );
 
+  await userEvent.setup().click(
+    await screen.findByRole('button', {
+      name: 'Выдать первый пароль владельцу',
+    }),
+  );
   await userEvent
     .setup()
     .click(
-      await screen.findByRole('button', { name: 'Сбросить пароль владельца' }),
+      screen.getByRole('button', { name: 'Создать владельца и выдать пароль' }),
     );
   expect(
     await screen.findByText(
-      'У магазина «Магазин у дома» нет назначенного владельца. Сбросить пароль некому.',
+      'Учётная запись с этим email уже существует. Проверьте владельца магазина.',
     ),
   ).not.toBeNull();
 });
