@@ -171,6 +171,10 @@ test('mixed-role shops switch safely on phone, tablet and desktop without reques
     await expect(page).toHaveURL(new RegExp(`/seller/${secondShop}/pos$`));
     await expect(page.getByText('Кассир', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Выйти' })).toBeVisible();
+    if (width <= 768) {
+      const header = page.locator('.workspace-shop > .sidebar');
+      expect((await header.boundingBox())!.height).toBeLessThan(230);
+    }
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
@@ -180,6 +184,21 @@ test('mixed-role shops switch safely on phone, tablet and desktop without reques
       .getByRole('combobox', { name: 'Рабочий контекст' })
       .selectOption('shop:' + shop);
     await expect(page).toHaveURL(new RegExp(`/seller/${shop}/products$`));
+    if (width <= 768) {
+      await page.getByRole('link', { name: 'Категории', exact: true }).click();
+      await expect(
+        page.getByRole('heading', { name: 'Категории магазина', exact: true }),
+      ).toBeVisible();
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+      await page
+        .getByRole('link', { name: 'Товары', exact: true })
+        .last()
+        .click();
+    }
   }
   expect(reports).toHaveLength(0);
   await page.goto('/seller/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/pos');
