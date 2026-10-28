@@ -296,4 +296,50 @@ describe('reports and platform management', () => {
 
     expect(clearRes.body.subscriptionUntil).toBeNull();
   });
+
+  test('platform admin can reset a shop owner password without email', async () => {
+    await request(ctx.app.getHttpServer())
+      .post(`/platform/admin/shops/${fixture.shop}/reset-owner-password`)
+      .auth(ctx.owner, { type: 'bearer' })
+      .expect(403);
+
+    const reset = await request(ctx.app.getHttpServer())
+      .post(`/platform/admin/shops/${fixture.shop}/reset-owner-password`)
+      .auth(adminToken, { type: 'bearer' })
+      .expect(201);
+
+    expect(reset.body.shopId).toBe(fixture.shop);
+    expect(reset.body.email).toBe('owner@example.test');
+    expect(reset.body.temporaryPassword).toHaveLength(32);
+
+    await request(ctx.app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: 'owner@example.test',
+        password: 'correct-test-password',
+      })
+      .expect(401);
+    await request(ctx.app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: 'owner@example.test',
+        password: reset.body.temporaryPassword,
+      })
+      .expect(201);
+
+    const audit = await ctx.db.query(
+      `SELECT details FROM audit_log
+       WHERE shop_id=$1 AND action='platform:owner-password-reset'`,
+      [fixture.shop],
+    );
+    expect(audit).toHaveLength(1);
+    expect(JSON.stringify(audit)).not.toContain(reset.body.temporaryPassword);
+
+    await request(ctx.app.getHttpServer())
+      .post(
+        '/platform/admin/shops/99999999-9999-4999-8999-999999999999/reset-owner-password',
+      )
+      .auth(adminToken, { type: 'bearer' })
+      .expect(404);
+  });
 });

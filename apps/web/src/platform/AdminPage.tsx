@@ -62,6 +62,7 @@ type AdminOverview = {
     subscriptionUntil?: string | null;
   }[];
 };
+type OwnerPassword = { email: string; password: string };
 const money = (minor: number) =>
   new Intl.NumberFormat('ru-RU', {
     maximumFractionDigits: 0,
@@ -83,6 +84,9 @@ export default function AdminPage() {
   const [reason, setReason] = useState('');
   const [invitation, setInvitation] = useState('');
   const [generatedPassword, setGeneratedPassword] = useState('');
+  const [ownerPassword, setOwnerPassword] = useState<OwnerPassword | null>(
+    null,
+  );
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -131,6 +135,7 @@ export default function AdminPage() {
     setError('');
     setInvitation('');
     setGeneratedPassword('');
+    setOwnerPassword(null);
     setBusy(true);
     try {
       const result = await api<{
@@ -240,6 +245,36 @@ export default function AdminPage() {
       setSubModalShopId(null);
       setSubModalDate('');
       await load();
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resetOwnerPassword(shopId: string, shopName: string) {
+    if (
+      !window.confirm(
+        `Сбросить пароль владельца магазина «${shopName}»? Текущий пароль перестанет работать.`,
+      )
+    )
+      return;
+    setBusy(true);
+    setError('');
+    setOwnerPassword(null);
+    setGeneratedPassword('');
+    setInvitation('');
+    try {
+      const result = await api<{
+        email: string;
+        temporaryPassword: string;
+      }>(`/platform/admin/shops/${shopId}/reset-owner-password`, {
+        method: 'POST',
+      });
+      setOwnerPassword({
+        email: result.email,
+        password: result.temporaryPassword,
+      });
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -501,6 +536,28 @@ export default function AdminPage() {
           </button>
         </AdminCard>
       )}
+      {ownerPassword && (
+        <AdminCard
+          title="Новый пароль владельца"
+          subtitle={`Передайте пароль владельцу ${ownerPassword.email} лично. Он показан только сейчас.`}
+        >
+          <input
+            aria-label="Новый пароль владельца"
+            readOnly
+            value={ownerPassword.password}
+            onFocus={(e) => e.target.select()}
+          />
+          <button
+            onClick={() =>
+              void navigator.clipboard
+                .writeText(ownerPassword.password)
+                .catch((e) => setError(errorText(e)))
+            }
+          >
+            Скопировать пароль
+          </button>
+        </AdminCard>
+      )}
       {loading ? (
         <p role="status">Загрузка данных…</p>
       ) : (
@@ -755,6 +812,18 @@ export default function AdminPage() {
                                     }}
                                   >
                                     Подписка
+                                  </button>
+                                  <button
+                                    className="admin-kit-approve"
+                                    disabled={busy}
+                                    onClick={() =>
+                                      void resetOwnerPassword(
+                                        shop.id,
+                                        shop.name,
+                                      )
+                                    }
+                                  >
+                                    Сбросить пароль владельца
                                   </button>
                                 </div>
                               </td>

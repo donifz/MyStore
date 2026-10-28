@@ -5,8 +5,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { randomBytes } from 'node:crypto';
 import { DataSource } from 'typeorm';
 import { DATABASE } from '../database';
+import { hashPassword } from '../auth/password';
 
 @Injectable()
 export class PlatformAdminService {
@@ -116,5 +118,40 @@ export class PlatformAdminService {
       marketplaceBlockReason: updated.marketplace_block_reason,
       subscriptionUntil: updated.subscription_until,
     };
+  }
+
+  async resetOwnerPassword(adminId: string, shopId: string) {
+    const temporaryPassword = randomBytes(24).toString('base64url');
+    const passwordHash = await hashPassword(temporaryPassword);
+    return this.db.transaction(async (tx) => {
+      const [owner] = await tx.query(
+        `SELECT s.name AS "shopName", u.id AS "userId", u.email
+         FROM shops s
+         JOIN memberships m ON m.shop_id=s.id AND m.role='owner'
+         JOIN users u ON u.id=m.user_id
+         WHERE s.id=$1
+         ORDER BY u.id
+         LIMIT 1
+         FOR UPDATE OF u`,
+        [shopId],
+      );
+      if (!owner) throw new NotFoundException('Shop owner not found');
+
+      await tx.query('UPDATE users SET password_hash=$2 WHERE id=$1', [
+        owner.userId,
+        passwordHash,
+      ]);
+      await tx.query(
+        `INSERT INTO audit_log(shop_id,actor_id,action,entity_type,entity_id,details)
+         VALUES($1,$2,'platform:owner-password-reset','shop_owner',$3,$4)`,
+        [shopId, adminId, owner.userId, JSON.stringify({ email: owner.email })],
+      );
+      return {
+        shopId,
+        shopName: owner.shopName,
+        email: owner.email,
+        temporaryPassword,
+      };
+    });
   }
 }
