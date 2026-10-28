@@ -3511,21 +3511,7 @@ fieldset {
   border-radius: 1rem;
   background: #eaf5f0;
 }
-.theme-editor--new-year .theme-preview {
-  background: #e9f6f1;
-}
-.theme-editor--womens-day .theme-preview {
-  background: #fcecf5;
-}
-.theme-editor--nooruz .theme-preview {
-  background: #f4f7df;
-}
 .storefront-slug-preview {
   display: block;
   margin-top: 0.35rem;
-}
-@media (max-width: 700px) {
-  .theme-schedule {
-    grid-template-columns: 1fr;
-  }
 }

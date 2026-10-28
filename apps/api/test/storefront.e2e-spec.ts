@@ -141,69 +141,36 @@ describe('public storefront', () => {
       .expect(200);
     expect(restored.body.slug).toBe(first.slug);
   });
-  it('publishes validated seasonal content only during its active period', async () => {
+  it('publishes a validated permanent store banner', async () => {
     const shop = await publish();
-    const presentation = {
-      id: 'new-year',
-      startsAt: null,
-      endsAt: null,
-      hero: {
-        title: 'Новогодние подарки',
-        text: 'Выберите подарок близким',
-        link: '/?category=Подарки',
-        buttonLabel: 'Смотреть',
-        imageAlt: 'Праздничные коробки',
-      },
-      info: {
-        title: 'Успейте заказать',
-        text: 'Самовывоз сегодня',
-        link: 'https://example.test/delivery',
-        buttonLabel: 'Условия',
-      },
+    const banner = {
+      title: 'Баннер магазина',
+      text: 'Выберите товары для дома',
+      link: '/?category=Посуда',
+      buttonLabel: 'Смотреть товары',
+      imageAlt: 'Посуда на столе',
     };
     const saved = await request(http())
       .put(`/shops/${fixture.shop}/storefront`)
       .auth(c.owner, { type: 'bearer' })
-      .send({ ...profile, presentation })
+      .send({ ...profile, banner })
       .expect(200);
-    expect(saved.body.presentation).toEqual(presentation);
+    expect(saved.body.banner).toEqual(banner);
     const publicStore = await request(http())
       .get(`/public/stores/${shop.slug}`)
       .expect(200);
-    expect(publicStore.body.presentation).toEqual(presentation);
+    expect(publicStore.body.banner).toEqual(banner);
 
     await request(http())
       .put(`/shops/${fixture.shop}/storefront`)
       .auth(c.owner, { type: 'bearer' })
-      .send({
-        ...profile,
-        presentation: {
-          ...presentation,
-          hero: { ...presentation.hero, link: 'javascript:alert(1)' },
-        },
-      })
+      .send({ ...profile, banner: { ...banner, link: 'javascript:alert(1)' } })
       .expect(400);
     const unchanged = await request(http())
       .get(`/shops/${fixture.shop}/storefront`)
       .auth(c.owner, { type: 'bearer' })
       .expect(200);
-    expect(unchanged.body.presentation).toEqual(presentation);
-
-    const future = {
-      ...presentation,
-      id: 'nooruz',
-      startsAt: '2099-03-20T00:00:00.000Z',
-      endsAt: '2099-03-22T00:00:00.000Z',
-    };
-    await request(http())
-      .put(`/shops/${fixture.shop}/storefront`)
-      .auth(c.owner, { type: 'bearer' })
-      .send({ ...profile, presentation: future })
-      .expect(200);
-    const inactive = await request(http())
-      .get(`/public/stores/${shop.slug}`)
-      .expect(200);
-    expect(inactive.body.presentation).toEqual({ id: 'base' });
+    expect(unchanged.body.banner).toEqual(banner);
   });
   it('normalizes and validates addresses and serializes simultaneous claims', async () => {
     await publish();
@@ -307,7 +274,7 @@ describe('public storefront', () => {
         district: '',
         pickupEnabled: true,
         deliveryEnabled: false,
-        presentation: { id: 'base', startsAt: null, endsAt: null },
+        banner: null,
         phone: profile.phone,
         address: 'Центр',
         hours: '10:00–19:00',

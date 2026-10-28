@@ -16,7 +16,7 @@ import Refresh from './Refresh';
 import { Alert, EmptyState, LinkButton } from './ui';
 import ProductCard from './storefront/ProductCard';
 import CatalogFilters from './storefront/CatalogFilters';
-import SeasonalBlocks from './storefront/SeasonalBlocks';
+import StorefrontBanner from './storefront/StorefrontBanner';
 export default async function Catalog({
   search,
   slug,
@@ -56,11 +56,9 @@ export default async function Catalog({
   }
   const phone = store?.phone?.replace(/[^\d+]/g, '');
   return (
-    <div
-      className={`sf-stack ${store ? `sf-theme--${store.presentation?.id || 'base'}` : ''}`}
-    >
+    <div className="sf-stack">
       <Refresh />
-      {store && <SeasonalBlocks presentation={store.presentation} />}
+      {store && <StorefrontBanner banner={store.banner} />}
       {!store ? (
         <MarketplaceHero products={products.items} />
       ) : (
