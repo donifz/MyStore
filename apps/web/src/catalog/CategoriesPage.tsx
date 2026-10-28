@@ -38,20 +38,26 @@ export default function CategoriesPage() {
     }
   }
   return (
-    <>
+    <div className="category-page page-stack">
       <Link className="back-link" to={`/seller/${shopId}/products`}>
         ← Товары
       </Link>
-      <h1>Категории</h1>
-      <p className="muted">
-        Готовые категории уже добавлены. Можно создавать свои и подкатегории.
-      </p>
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">Каталог магазина</p>
+          <h1>Категории</h1>
+          <p className="muted">
+            Готовые категории уже добавлены. Здесь можно создать свои.
+          </p>
+        </div>
+      </div>
       {error && (
         <p role="alert" className="error">
           {error}
         </p>
       )}
-      <section className="panel">
+      <section className="panel category-create">
+        <h2>Добавить категорию</h2>
         <form onSubmit={submit}>
           <label>
             Новая категория или подкатегория
@@ -81,23 +87,36 @@ export default function CategoriesPage() {
           </button>
         </form>
       </section>
-      <section className="panel">
-        <ul>
+      <section className="category-list" aria-label="Категории магазина">
+        <div className="category-list-heading">
+          <h2>Категории магазина</h2>
+          <span className="badge">{categories.length}</span>
+        </div>
+        {categories.length === 0 && (
+          <p className="empty-state">Категорий пока нет.</p>
+        )}
+        <div className="category-grid">
           {categories.map((c) => (
-            <li key={c.id}>
-              <strong>{c.name}</strong>
-              {c.builtIn ? ' · готовая' : ' · своя'}
-              {c.children.length > 0 && (
-                <ul>
+            <article className="panel category-card" key={c.id}>
+              <div className="category-card-heading">
+                <h3>{c.name}</h3>
+                <span className="category-origin">
+                  {c.builtIn ? 'Готовая' : 'Своя'}
+                </span>
+              </div>
+              {c.children.length > 0 ? (
+                <ul className="category-children">
                   {c.children.map((child) => (
                     <li key={child.id}>{child.name}</li>
                   ))}
                 </ul>
+              ) : (
+                <p className="muted">Пока без подкатегорий</p>
               )}
-            </li>
+            </article>
           ))}
-        </ul>
+        </div>
       </section>
-    </>
+    </div>
   );
 }

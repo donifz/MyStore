@@ -118,7 +118,11 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
           </p>
         </div>
         <Link className="button" to={'/seller/' + shopId + '/shift'}>
-          {active ? 'Смена открыта · Управление' : 'Открыть смену'}
+          {active
+            ? 'Моя смена открыта'
+            : shift.current
+              ? 'Посмотреть смену'
+              : 'Открыть смену'}
         </Link>
       </div>
       {shift.error && (
@@ -140,14 +144,11 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
         >
           <div className="cashier-catalog-heading">
             <div>
-              <h2>Быстрый выбор товаров</h2>
+              <h2>Выбрать товар</h2>
               <p className="muted">
-                Поиск по названию и штрихкоду. Один клик — одна штука.
+                Найдите товар и нажмите, чтобы добавить его в чек.
               </p>
             </div>
-            <Link className="button" to={'/seller/' + shopId + '/shift'}>
-              Моя смена
-            </Link>
           </div>
           <label className="cashier-product-search">
             Найти товар

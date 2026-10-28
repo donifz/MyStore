@@ -94,28 +94,21 @@ export default function ReportsPage() {
     : [];
 
   return (
-    <section>
+    <section className="reports-page page-stack">
       <div className="page-heading">
         <div>
           <p className="eyebrow">Финансы и склад</p>
           <h1>Отчёты</h1>
         </div>
       </div>
-      <p className="muted">
+      <p className="muted reports-explanation">
         Валовая прибыль не учитывает аренду, зарплаты, налоги и другие расходы
         бизнеса.
       </p>
 
       <form
         onSubmit={handleApplyFilter}
-        className="panel form-panel"
-        style={{
-          display: 'flex',
-          gap: '1rem',
-          alignItems: 'flex-end',
-          flexWrap: 'wrap',
-          marginBottom: '1.5rem',
-        }}
+        className="panel form-panel reports-filter"
       >
         <label style={{ margin: 0 }}>
           Период с
@@ -133,14 +126,20 @@ export default function ReportsPage() {
             onChange={(e) => setToDate(e.target.value)}
           />
         </label>
-        <button type="submit" className="primary" disabled={loading}>
-          Применить
-        </button>
-        {(fromDate || toDate) && (
-          <button type="button" onClick={handleResetFilter} disabled={loading}>
-            Сбросить
+        <div className="reports-filter-actions">
+          <button type="submit" className="primary" disabled={loading}>
+            Применить
           </button>
-        )}
+          {(fromDate || toDate) && (
+            <button
+              type="button"
+              onClick={handleResetFilter}
+              disabled={loading}
+            >
+              Сбросить
+            </button>
+          )}
+        </div>
       </form>
 
       {error && (
