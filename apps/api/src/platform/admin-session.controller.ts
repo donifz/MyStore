@@ -66,4 +66,13 @@ export class AdminSessionController {
     await this.admins.requireAdmin(req.userId);
     return this.admins.setSubscription(req.userId, shopId, body.until ?? null);
   }
+
+  @Post('shops/:shopId/reset-owner-password')
+  async resetOwnerPassword(
+    @Req() req: UserRequest,
+    @Param('shopId', ParseUUIDPipe) shopId: string,
+  ) {
+    await this.admins.requireAdmin(req.userId);
+    return this.admins.resetOwnerPassword(req.userId, shopId);
+  }
 }
