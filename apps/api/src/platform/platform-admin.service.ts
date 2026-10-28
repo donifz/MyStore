@@ -31,7 +31,11 @@ export class PlatformAdminService {
       `SELECT id, name, city, published,
               marketplace_blocked AS "marketplaceBlocked",
               marketplace_block_reason AS "marketplaceBlockReason",
-              subscription_until AS "subscriptionUntil"
+              subscription_until AS "subscriptionUntil",
+              EXISTS (
+                SELECT 1 FROM memberships m
+                WHERE m.shop_id=shops.id AND m.role='owner'
+              ) AS "hasOwner"
        FROM shops ORDER BY name, id LIMIT 100`,
     );
     return {

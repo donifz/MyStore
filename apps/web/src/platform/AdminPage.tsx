@@ -5,7 +5,7 @@ import {
   platformSection,
   type PlatformSection,
 } from '../layout/workspace-navigation';
-import { api, errorText } from '../api/client';
+import { api, ApiError, errorText } from '../api/client';
 import { useSession } from '../auth/SessionProvider';
 import { AdminCard, AdminEmpty, AdminMetric, AdminStatus } from './AdminKit';
 import type { PlatformFinancialGrant, FinancialSummary } from '../api/types';
@@ -60,6 +60,7 @@ type AdminOverview = {
     marketplaceBlocked?: boolean;
     marketplaceBlockReason?: string | null;
     subscriptionUntil?: string | null;
+    hasOwner: boolean;
   }[];
 };
 type OwnerPassword = { email: string; password: string };
@@ -276,7 +277,13 @@ export default function AdminPage() {
         password: result.temporaryPassword,
       });
     } catch (e) {
-      setError(errorText(e));
+      setError(
+        e instanceof ApiError &&
+          e.status === 404 &&
+          e.message === 'Shop owner not found'
+          ? `У магазина «${shopName}» нет назначенного владельца. Сбросить пароль некому.`
+          : errorText(e),
+      );
     } finally {
       setBusy(false);
     }
@@ -815,7 +822,7 @@ export default function AdminPage() {
                                   </button>
                                   <button
                                     className="admin-kit-approve"
-                                    disabled={busy}
+                                    disabled={busy || !shop.hasOwner}
                                     onClick={() =>
                                       void resetOwnerPassword(
                                         shop.id,
@@ -825,6 +832,11 @@ export default function AdminPage() {
                                   >
                                     Сбросить пароль владельца
                                   </button>
+                                  {!shop.hasOwner && (
+                                    <span className="muted">
+                                      У магазина нет назначенного владельца
+                                    </span>
+                                  )}
                                 </div>
                               </td>
                             </tr>
