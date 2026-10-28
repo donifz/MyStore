@@ -42,10 +42,8 @@ test('uses canonical shop routes and renders the store banner', async ({
 }) => {
   await page.goto('/shops/shop-a?category=Посуда');
   await expect(page).toHaveURL(/\/shop\/shop-a\?category=/);
-  await expect(
-    page.getByRole('heading', { name: 'Посуда для дома' }),
-  ).toBeVisible();
   await expect(page.locator('.sf-store-banner')).toBeVisible();
+  await expect(page.locator('.sf-store-banner img')).toBeVisible();
   await page.goto(
     '/shops/shop-a/products/11111111-1111-4111-8111-111111111111',
   );

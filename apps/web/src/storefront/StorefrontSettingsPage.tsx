@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, ApiError, errorText } from '../api/client';
 import { useSession } from '../auth/SessionProvider';
-import { StoreProfile } from './types';
+import { StoreProfile, StorefrontBanner } from './types';
 import { useResource } from './use-resource';
 import BusinessHoursEditor from './BusinessHoursEditor';
 import BannerEditor from './BannerEditor';
@@ -15,12 +15,20 @@ export default function StorefrontSettingsPage() {
     owner ? `/shops/${shopId}/storefront` : null,
   );
   const [form, setForm] = useState<StoreProfile | null>(null),
+    [bannerDraft, setBannerDraft] = useState<StorefrontBanner | null>(null),
     [busy, setBusy] = useState(false),
+    [bannerBusy, setBannerBusy] = useState(false),
+    [bannerDirty, setBannerDirty] = useState(false),
+    [bannerError, setBannerError] = useState(''),
+    [bannerSaved, setBannerSaved] = useState(false),
     [error, setError] = useState(''),
     [saved, setSaved] = useState(false),
     [dirty, setDirty] = useState(false);
   useEffect(() => {
     setForm(resource.data);
+    setBannerDraft(resource.data?.banner ?? null);
+    setBannerDirty(false);
+    setBannerSaved(false);
     setSaved(false);
     setDirty(false);
   }, [resource.data]);
@@ -57,7 +65,6 @@ export default function StorefrontSettingsPage() {
         deliveryEnabled,
         timeZone,
         businessSchedule,
-        banner,
         slug,
       } = form;
       setForm(
@@ -75,7 +82,6 @@ export default function StorefrontSettingsPage() {
             deliveryEnabled,
             timeZone: timeZone ?? 'Asia/Bishkek',
             businessSchedule: businessSchedule ?? null,
-            banner,
             slug,
           },
         }),
@@ -90,6 +96,32 @@ export default function StorefrontSettingsPage() {
       );
     } finally {
       setBusy(false);
+    }
+  }
+  async function saveBanner() {
+    if (!form) return;
+    setBannerBusy(true);
+    setBannerError('');
+    setBannerSaved(false);
+    try {
+      const result = await api<{ banner: StorefrontBanner | null }>(
+        `/shops/${shopId}/storefront/banner`,
+        { method: 'PUT', body: { banner: bannerDraft } },
+      );
+      setBannerDraft(result.banner);
+      setBannerDirty(false);
+      setBannerSaved(true);
+      setForm((current) =>
+        current ? { ...current, banner: result.banner } : current,
+      );
+    } catch (e) {
+      setBannerError(
+        e instanceof ApiError && e.status === 400
+          ? 'Не удалось сохранить изображение. Проверьте формат и размер файла.'
+          : errorText(e),
+      );
+    } finally {
+      setBannerBusy(false);
     }
   }
   return (
@@ -135,9 +167,19 @@ export default function StorefrontSettingsPage() {
               />
             </label>
             <BannerEditor
-              value={form.banner}
+              value={bannerDraft}
               disabled={busy}
-              onChange={(value) => field('banner', value)}
+              saving={bannerBusy}
+              dirty={bannerDirty}
+              saved={bannerSaved}
+              error={bannerError}
+              onChange={(value) => {
+                setBannerDraft(value);
+                setBannerDirty(true);
+                setBannerSaved(false);
+                setBannerError('');
+              }}
+              onSave={() => void saveBanner()}
             />
             <label>
               Город

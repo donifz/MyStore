@@ -1,6 +1,6 @@
 import { cache } from 'react';
 export type Store = {
-  banner?: ThemeBlock | null;
+  banner?: StorefrontBanner | null;
   district?: string;
   pickupEnabled?: boolean;
   deliveryEnabled?: boolean;
@@ -14,14 +14,7 @@ export type Store = {
   phone?: string;
   hours?: string;
 };
-export type ThemeBlock = {
-  imageDataUrl?: string;
-  imageAlt?: string;
-  title?: string;
-  text?: string;
-  link?: string;
-  buttonLabel?: string;
-};
+export type StorefrontBanner = { imageDataUrl: string };
 export type ProductVariant = {
   id: string;
   name: string;

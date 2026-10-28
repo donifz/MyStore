@@ -15,8 +15,8 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
-function setup(role = 'owner', reject = false) {
-  const saves: any[] = [];
+function setup(role = 'owner', reject = false, overrides: any = {}) {
+  const saves = Object.assign([] as any[], { bannerSaves: [] as any[] });
   const profile = {
     name: 'Тест',
     slug: 'test',
@@ -35,6 +35,7 @@ function setup(role = 'owner', reject = false) {
       from: '2026-10-17T12:00:00Z',
       expiresAt: '2026-10-17T12:30:00Z',
     },
+    ...overrides,
   };
   vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
     if (url === '/api/auth/me')
@@ -46,6 +47,11 @@ function setup(role = 'owner', reject = false) {
           shops: [{ id: 'shop', name: 'Тест', role }],
         }),
       );
+    if (init?.method === 'PUT' && url.endsWith('/storefront/banner')) {
+      const body = JSON.parse(String(init.body));
+      saves.bannerSaves.push(body);
+      return new Response(JSON.stringify({ banner: body.banner }));
+    }
     if (init?.method === 'PUT') {
       saves.push(JSON.parse(String(init.body)));
       if (reject)
@@ -115,18 +121,28 @@ it('edits and previews the canonical shop address', async () => {
   await waitFor(() => expect(saves).toHaveLength(1));
   expect(saves[0].slug).toBe('new-home');
 });
-it('edits and previews the permanent store banner before saving', async () => {
-  const saves = setup();
-  await screen.findByLabelText('Заголовок');
-  fireEvent.change(screen.getByLabelText('Заголовок'), {
-    target: { value: 'Баннер магазина' },
+it('saves an image-only banner without validating storefront profile fields', async () => {
+  const saves = setup('owner', false, {
+    published: true,
+    city: '',
+    phone: '',
   });
-  expect(screen.getByLabelText('Предпросмотр баннера').textContent).toContain(
-    'Баннер магазина',
+  await screen.findByLabelText('Изображение JPEG (до 512 КБ)');
+  expect(screen.queryByLabelText('Заголовок')).toBeNull();
+  const file = new File(['jpeg image bytes'], 'banner.jpg', {
+    type: 'image/jpeg',
+  });
+  fireEvent.change(screen.getByLabelText('Изображение JPEG (до 512 КБ)'), {
+    target: { files: [file] },
+  });
+  await screen.findByRole('img', { name: 'Предпросмотр баннера' });
+  fireEvent.click(screen.getByRole('button', { name: 'Сохранить баннер' }));
+  await waitFor(() => expect(saves.bannerSaves).toHaveLength(1));
+  expect(saves.bannerSaves[0].banner.imageDataUrl).toMatch(
+    /^data:image\/jpeg;base64,/,
   );
-  fireEvent.click(screen.getByRole('button', { name: 'Сохранить витрину' }));
-  await waitFor(() => expect(saves).toHaveLength(1));
-  expect(saves[0].banner.title).toBe('Баннер магазина');
+  expect(saves).toHaveLength(0);
+  await screen.findByText('Баннер сохранён.');
 });
 it('retains typed intervals and all fields after a rejected save', async () => {
   setup('owner', true);

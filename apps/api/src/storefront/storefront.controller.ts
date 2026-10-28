@@ -68,6 +68,9 @@ class ProfileDto {
   @IsString() @MaxLength(1000) hours!: string;
   @IsBoolean() published!: boolean;
 }
+class BannerDto {
+  @Allow() banner?: unknown;
+}
 @Controller('public')
 export class PublicStorefrontController {
   constructor(
@@ -129,6 +132,14 @@ export class StorefrontSettingsController {
   ) {
     await this.service.owner(req.userId, shop);
     return this.service.profile(shop);
+  }
+  @Put('banner') async updateBanner(
+    @Param('shopId', ParseUUIDPipe) shop: string,
+    @Req() req: UserRequest,
+    @Body() body: BannerDto,
+  ) {
+    await this.service.owner(req.userId, shop);
+    return this.service.updateBanner(shop, body.banner, req.userId);
   }
   @Put() async update(
     @Param('shopId', ParseUUIDPipe) shop: string,
