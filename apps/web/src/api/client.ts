@@ -49,7 +49,7 @@ export function errorText(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.status === 401) return 'Сессия истекла. Войдите снова.';
     if (error.status === 403) return 'Недостаточно прав для этой операции.';
-    if (error.status === 404) return 'Товар или документ не найден.';
+    if (error.status === 404) return 'Запрашиваемые данные не найдены.';
     if (error.status === 409)
       return error.details?.currentUnitPriceMinor !== undefined
         ? 'Цена изменилась. Подтвердите новую цену.'

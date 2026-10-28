@@ -298,6 +298,22 @@ describe('reports and platform management', () => {
   });
 
   test('platform admin can reset a shop owner password without email', async () => {
+    const orphanShopId = randomUUID();
+    await ctx.db.query('INSERT INTO shops(id,name) VALUES($1,$2)', [
+      orphanShopId,
+      'Магазин без владельца',
+    ]);
+    const overview = await request(ctx.app.getHttpServer())
+      .get('/platform/admin/overview')
+      .auth(adminToken, { type: 'bearer' })
+      .expect(200);
+    expect(
+      overview.body.shops.find((s: any) => s.id === fixture.shop).hasOwner,
+    ).toBe(true);
+    expect(
+      overview.body.shops.find((s: any) => s.id === orphanShopId).hasOwner,
+    ).toBe(false);
+
     await request(ctx.app.getHttpServer())
       .post(`/platform/admin/shops/${fixture.shop}/reset-owner-password`)
       .auth(ctx.owner, { type: 'bearer' })
@@ -334,6 +350,11 @@ describe('reports and platform management', () => {
     );
     expect(audit).toHaveLength(1);
     expect(JSON.stringify(audit)).not.toContain(reset.body.temporaryPassword);
+
+    await request(ctx.app.getHttpServer())
+      .post(`/platform/admin/shops/${orphanShopId}/reset-owner-password`)
+      .auth(adminToken, { type: 'bearer' })
+      .expect(404);
 
     await request(ctx.app.getHttpServer())
       .post(
