@@ -1,11 +1,12 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { DataSource } from 'typeorm';
 import { DATABASE } from '../database';
 import { hashPassword } from '../auth/password';
@@ -35,7 +36,9 @@ export class PlatformAdminService {
               EXISTS (
                 SELECT 1 FROM memberships m
                 WHERE m.shop_id=shops.id AND m.role='owner'
-              ) AS "hasOwner"
+              ) AS "hasOwner",
+              (SELECT a.email FROM partner_applications a
+               WHERE a.shop_id=shops.id AND a.status='approved') AS "ownerCandidateEmail"
        FROM shops ORDER BY name, id LIMIT 100`,
     );
     return {
@@ -124,38 +127,85 @@ export class PlatformAdminService {
     };
   }
 
-  async resetOwnerPassword(adminId: string, shopId: string) {
+  async resetOwnerPassword(
+    adminId: string,
+    shopId: string,
+    ownerEmail?: string,
+  ) {
     const temporaryPassword = randomBytes(24).toString('base64url');
     const passwordHash = await hashPassword(temporaryPassword);
-    return this.db.transaction(async (tx) => {
-      const [owner] = await tx.query(
-        `SELECT s.name AS "shopName", u.id AS "userId", u.email
-         FROM shops s
-         JOIN memberships m ON m.shop_id=s.id AND m.role='owner'
+    try {
+      return await this.db.transaction(async (tx) => {
+        const [shop] = await tx.query(
+          'SELECT id,name FROM shops WHERE id=$1 FOR UPDATE',
+          [shopId],
+        );
+        if (!shop) throw new NotFoundException('Shop not found');
+        const [owner] = await tx.query(
+          `SELECT u.id AS "userId", u.email
+         FROM memberships m
          JOIN users u ON u.id=m.user_id
-         WHERE s.id=$1
+         WHERE m.shop_id=$1 AND m.role='owner'
          ORDER BY u.id
          LIMIT 1
          FOR UPDATE OF u`,
-        [shopId],
-      );
-      if (!owner) throw new NotFoundException('Shop owner not found');
-
-      await tx.query('UPDATE users SET password_hash=$2 WHERE id=$1', [
-        owner.userId,
-        passwordHash,
-      ]);
-      await tx.query(
-        `INSERT INTO audit_log(shop_id,actor_id,action,entity_type,entity_id,details)
+          [shopId],
+        );
+        let userId: string;
+        let email: string;
+        if (owner) {
+          userId = owner.userId;
+          email = owner.email;
+          await tx.query('UPDATE users SET password_hash=$2 WHERE id=$1', [
+            userId,
+            passwordHash,
+          ]);
+          await tx.query('DELETE FROM sessions WHERE user_id=$1', [userId]);
+        } else {
+          email = ownerEmail?.trim().toLowerCase() ?? '';
+          if (!email) throw new BadRequestException('Owner email required');
+          const [existing] = await tx.query(
+            'SELECT 1 FROM users WHERE email=$1',
+            [email],
+          );
+          if (existing)
+            throw new ConflictException(
+              'An account with this email already exists',
+            );
+          userId = randomUUID();
+          await tx.query(
+            'INSERT INTO users(id,email,password_hash) VALUES($1,$2,$3)',
+            [userId, email, passwordHash],
+          );
+          await tx.query(
+            "INSERT INTO memberships(shop_id,user_id,role) VALUES($1,$2,'owner')",
+            [shopId, userId],
+          );
+          await tx.query(
+            `UPDATE partner_invitations i SET used_at=now()
+           FROM partner_applications a
+           WHERE i.application_id=a.id AND a.shop_id=$1 AND i.used_at IS NULL`,
+            [shopId],
+          );
+        }
+        await tx.query(
+          `INSERT INTO audit_log(shop_id,actor_id,action,entity_type,entity_id,details)
          VALUES($1,$2,'platform:owner-password-reset','shop_owner',$3,$4)`,
-        [shopId, adminId, owner.userId, JSON.stringify({ email: owner.email })],
-      );
-      return {
-        shopId,
-        shopName: owner.shopName,
-        email: owner.email,
-        temporaryPassword,
-      };
-    });
+          [shopId, adminId, userId, JSON.stringify({ email, created: !owner })],
+        );
+        return {
+          shopId,
+          shopName: shop.name,
+          email,
+          temporaryPassword,
+        };
+      });
+    } catch (error: any) {
+      if (error.code === '23505')
+        throw new ConflictException(
+          'An account with this email already exists',
+        );
+      throw error;
+    }
   }
 }
