@@ -14,8 +14,8 @@ const store = {
   address: 'Центр',
   hours: '10–19',
   banner: {
-    title: 'Баннер магазина',
-    text: 'Праздничная подборка',
+    imageDataUrl:
+      'data:image/jpeg;base64,/9j/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAgDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAABgf/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCaAUIOf//Z',
   },
 };
 let available = 3,
@@ -158,7 +158,12 @@ const seen = [];
     const storefront = await get('/shop/shop-a');
     assert.equal(storefront.response.status, 200);
     assert(storefront.doc.querySelector('.sf-store-banner'));
-    assert(storefront.doc.body.textContent.includes('Баннер магазина'));
+    assert(
+      storefront.doc
+        .querySelector('.sf-store-banner img')
+        ?.getAttribute('src')
+        ?.startsWith('data:image/jpeg;base64,'),
+    );
     const legacy = await fetch(base + '/shops/shop-a?category=Посуда', {
       redirect: 'manual',
     });

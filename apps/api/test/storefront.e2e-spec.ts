@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { randomUUID } from 'node:crypto';
+import sharp from 'sharp';
 import { createApp } from '../src/app';
 import { setup, teardown, fixture, approveTestProduct } from './helpers';
 describe('public storefront', () => {
@@ -141,36 +142,52 @@ describe('public storefront', () => {
       .expect(200);
     expect(restored.body.slug).toBe(first.slug);
   });
-  it('publishes a validated permanent store banner', async () => {
+  it('saves an image-only banner independently from storefront profile fields', async () => {
     const shop = await publish();
-    const banner = {
-      title: 'Баннер магазина',
-      text: 'Выберите товары для дома',
-      link: '/?category=Посуда',
-      buttonLabel: 'Смотреть товары',
-      imageAlt: 'Посуда на столе',
-    };
+    const imageDataUrl =
+      'data:image/jpeg;base64,' +
+      (
+        await sharp({
+          create: { width: 8, height: 8, channels: 3, background: '#286fcb' },
+        })
+          .jpeg()
+          .toBuffer()
+      ).toString('base64');
     const saved = await request(http())
-      .put(`/shops/${fixture.shop}/storefront`)
+      .put(`/shops/${fixture.shop}/storefront/banner`)
       .auth(c.owner, { type: 'bearer' })
-      .send({ ...profile, banner })
+      .send({ banner: { imageDataUrl } })
       .expect(200);
-    expect(saved.body.banner).toEqual(banner);
-    const publicStore = await request(http())
-      .get(`/public/stores/${shop.slug}`)
-      .expect(200);
-    expect(publicStore.body.banner).toEqual(banner);
-
-    await request(http())
-      .put(`/shops/${fixture.shop}/storefront`)
-      .auth(c.owner, { type: 'bearer' })
-      .send({ ...profile, banner: { ...banner, link: 'javascript:alert(1)' } })
-      .expect(400);
-    const unchanged = await request(http())
+    expect(saved.body.banner.imageDataUrl).toMatch(/^data:image\/jpeg;base64,/);
+    const savedProfile = await request(http())
       .get(`/shops/${fixture.shop}/storefront`)
       .auth(c.owner, { type: 'bearer' })
       .expect(200);
-    expect(unchanged.body.banner).toEqual(banner);
+    expect(savedProfile.body.city).toBe(profile.city);
+    const publicStore = await request(http())
+      .get(`/public/stores/${shop.slug}`)
+      .expect(200);
+    expect(publicStore.body.banner).toEqual(saved.body.banner);
+
+    await request(http())
+      .put(`/shops/${fixture.shop}/storefront/banner`)
+      .auth(c.owner, { type: 'bearer' })
+      .send({ banner: { imageDataUrl: 'data:image/jpeg;base64,invalid' } })
+      .expect(400);
+    const unchanged = await request(http())
+      .get(`/public/stores/${shop.slug}`)
+      .expect(200);
+    expect(unchanged.body.banner).toEqual(saved.body.banner);
+
+    await request(http())
+      .put(`/shops/${fixture.shop}/storefront/banner`)
+      .auth(c.owner, { type: 'bearer' })
+      .send({ banner: null })
+      .expect(200);
+    const cleared = await request(http())
+      .get(`/public/stores/${shop.slug}`)
+      .expect(200);
+    expect(cleared.body.banner).toBeNull();
   });
   it('normalizes and validates addresses and serializes simultaneous claims', async () => {
     await publish();

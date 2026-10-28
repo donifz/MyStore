@@ -97,6 +97,36 @@ export class StorefrontService {
     if (!r) throw new NotFoundException();
     return this.profileDto(r);
   }
+  async updateBanner(shopId: string, value: unknown, actor: string) {
+    const banner = await validateBanner(value);
+    return this.db.transaction(async (tx) => {
+      const [current] = await tx.query(
+        'SELECT theme_content FROM shops WHERE id=$1 FOR UPDATE',
+        [shopId],
+      );
+      if (!current) throw new NotFoundException();
+      await tx.query(
+        `UPDATE shops SET theme_content=CASE
+           WHEN $2::jsonb IS NULL THEN COALESCE(theme_content,'{}'::jsonb)-'hero'
+           ELSE jsonb_set(COALESCE(theme_content,'{}'::jsonb),'{hero}',$2::jsonb,true)
+         END WHERE id=$1`,
+        [shopId, banner ? JSON.stringify(banner) : null],
+      );
+      await tx.query(
+        `INSERT INTO audit_log(shop_id,actor_id,action,entity_type,entity_id,details)
+         VALUES($1,$2,'banner_changed','shop',$1,$3)`,
+        [
+          shopId,
+          actor,
+          JSON.stringify({
+            before: current.theme_content?.hero ?? null,
+            after: banner,
+          }),
+        ],
+      );
+      return { banner };
+    });
+  }
   async updateProfile(shopId: string, input: ProfileInput, actor: string) {
     if (
       input.published &&

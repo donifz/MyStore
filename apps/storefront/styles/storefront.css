@@ -3115,33 +3115,15 @@ select.sf-input:focus,
 }
 
 .sf-store-banner {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr);
-  align-items: center;
-  gap: var(--sf-space-6);
   overflow: hidden;
-  padding: var(--sf-space-8);
-  border: 1px solid var(--sf-border);
   border-radius: var(--sf-radius-block);
-  background: var(--sf-primary-soft);
 }
 .sf-store-banner img {
+  display: block;
   width: 100%;
-  max-height: 360px;
+  height: auto;
+  max-height: 420px;
   object-fit: cover;
-  border-radius: var(--sf-radius-card);
-}
-.sf-store-banner h2 {
-  margin-top: 0;
-}
-.sf-store-banner .sf-button--primary {
-  margin-top: var(--sf-space-3);
-}
-@media (max-width: 767px) {
-  .sf-store-banner {
-    grid-template-columns: 1fr;
-    padding: var(--sf-space-5);
-  }
 }
 
 @media (max-width: 767px) {

@@ -3477,7 +3477,7 @@ fieldset {
   background: #102d2a;
   object-fit: cover;
 }
-.theme-editor {
+.banner-editor {
   display: grid;
   gap: 1rem;
   margin-block: 1.5rem;
@@ -3486,30 +3486,17 @@ fieldset {
   border-radius: 1rem;
   background: var(--surface-subtle, #f8fafc);
 }
-.theme-editor h2,
-.theme-editor p {
+.banner-editor h2,
+.banner-editor p {
   margin: 0;
 }
-.theme-schedule {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-}
-.theme-block-editor {
-  display: grid;
-  gap: 0.75rem;
-  padding: 1rem;
+.banner-editor .theme-preview-image {
+  display: block;
+  width: min(100%, 36rem);
+  max-height: 18rem;
+  object-fit: contain;
   border: 1px solid var(--border, #d8dee4);
   border-radius: 0.75rem;
-}
-.theme-preview {
-  display: grid;
-  gap: 0.5rem;
-  min-height: 9rem;
-  align-content: center;
-  padding: 1.5rem;
-  border-radius: 1rem;
-  background: #eaf5f0;
 }
 .storefront-slug-preview {
   display: block;

@@ -1,6 +1,6 @@
 import { Page } from '../api/types';
 export type PublicStore = {
-  banner?: ThemeBlock | null;
+  banner?: StorefrontBanner | null;
   slug: string;
   name: string;
   description: string;
@@ -34,11 +34,4 @@ export type StoreProfile = PublicStore & {
 };
 export type BusinessInterval = { open: string; close: string };
 export type BusinessSchedule = BusinessInterval[][];
-export type ThemeBlock = {
-  imageDataUrl?: string;
-  imageAlt?: string;
-  title?: string;
-  text?: string;
-  link?: string;
-  buttonLabel?: string;
-};
+export type StorefrontBanner = { imageDataUrl: string };
