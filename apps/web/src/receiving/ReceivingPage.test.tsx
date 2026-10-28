@@ -171,6 +171,39 @@ it('creates an unknown barcode, preserves prior lines, and posts its first recei
     ],
   });
 });
+it('warns on expensive stock and still posts receiving', async () => {
+  const calls = start();
+  const input = await screen.findByLabelText('Закупочная цена Рюкзак, сом');
+  fireEvent.change(input, { target: { value: '200' } });
+  await screen.findByText(/Закупочная цена за штуку выше цены продажи/);
+  await userEvent.setup().click(
+    screen.getByRole('button', { name: 'Провести приёмку' }),
+  );
+  await screen.findByText('Документ проведён: receipt');
+  expect(
+    calls.find((c) => c.method === 'POST' && c.url.endsWith('/receivings'))
+      ?.body.lines[0].unitCostMinor,
+  ).toBe(20000);
+});
+
+it('warns on a new product and still posts receiving', async () => {
+  const calls = start();
+  const { u, form } = await openCreation();
+  await u.type(form.getByLabelText('Название'), 'Принтер');
+  await u.type(form.getByLabelText('Цена продажи, сом'), '2000');
+  await u.type(form.getByLabelText('Закупочная цена, сом'), '2500');
+  expect(
+    form.getByText(/Закупочная цена за штуку выше цены продажи/),
+  ).toBeTruthy();
+  await u.click(
+    form.getByRole('button', { name: 'Создать и провести приёмку' }),
+  );
+  await screen.findByText('Документ проведён: receipt');
+  expect(
+    calls.find((c) => c.method === 'POST' && c.url.endsWith('/receivings'))
+      ?.body.lines[1].unitCostMinor,
+  ).toBe(250000);
+});
 it('cancelling inline creation leaves the current receipt unchanged', async () => {
   const calls = start('manager');
   const { u, form } = await openCreation();

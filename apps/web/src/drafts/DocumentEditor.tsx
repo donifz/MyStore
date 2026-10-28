@@ -3,6 +3,7 @@ import ReceivingProductForm from '../receiving/ReceivingProductForm';
 import { formatSom } from '../api/money';
 import { useDocument } from './use-document';
 import ScanField from '../scanner/ScanField';
+import { isPurchaseAboveSale } from '../receiving/purchase-warning';
 export default function DocumentEditor({
   doc,
   receiving,
@@ -148,22 +149,34 @@ export default function DocumentEditor({
             />
           </label>
           {receiving && (
-            <label>
-              Закупочная цена {l.name}, сом
-              <input
-                inputMode="decimal"
-                value={l.unitCostText ?? ''}
-                disabled={disabled}
-                onChange={(e) => {
-                  const value = e.currentTarget.value;
-                  void doc.change((lines) =>
-                    lines.map((x) =>
-                      x.id === l.id ? { ...x, unitCostText: value } : x,
-                    ),
-                  );
-                }}
-              />
-            </label>
+            <>
+              <label>
+                Закупочная цена {l.name}, сом
+                <input
+                  inputMode="decimal"
+                  value={l.unitCostText ?? ''}
+                  disabled={disabled}
+                  onChange={(e) => {
+                    const value = e.currentTarget.value;
+                    void doc.change((lines) =>
+                      lines.map((x) =>
+                        x.id === l.id ? { ...x, unitCostText: value } : x,
+                      ),
+                    );
+                  }}
+                />
+              </label>
+              {isPurchaseAboveSale(l.unitCostText ?? '', l.priceMinor) && (
+                <p
+                  role="status"
+                  className="notice"
+                  style={{ gridColumn: '1 / -1' }}
+                >
+                  Закупочная цена за штуку выше цены продажи. Проверьте цены:
+                  продажа может быть убыточной.
+                </p>
+              )}
+            </>
           )}
           {!receiving && (
             <div
