@@ -26,7 +26,7 @@ function setup(role = 'owner', reject = false) {
     phone: '+996700123456',
     hours: 'По звонку',
     published: false,
-    presentation: { id: 'base', startsAt: null, endsAt: null },
+    banner: null,
     pickupEnabled: true,
     timeZone: 'Asia/Bishkek',
     businessSchedule: null,
@@ -115,23 +115,18 @@ it('edits and previews the canonical shop address', async () => {
   await waitFor(() => expect(saves).toHaveLength(1));
   expect(saves[0].slug).toBe('new-home');
 });
-it('selects a seasonal theme, edits content and previews before saving', async () => {
+it('edits and previews the permanent store banner before saving', async () => {
   const saves = setup();
-  await screen.findByLabelText('Тематика');
-  fireEvent.change(screen.getByLabelText('Тематика'), {
-    target: { value: 'nooruz' },
+  await screen.findByLabelText('Заголовок');
+  fireEvent.change(screen.getByLabelText('Заголовок'), {
+    target: { value: 'Баннер магазина' },
   });
-  const hero = screen.getByRole('group', { name: 'Главный баннер' });
-  fireEvent.change(within(hero).getByLabelText('Заголовок'), {
-    target: { value: 'Нооруз майрамы' },
-  });
-  expect(screen.getByLabelText('Предпросмотр темы').textContent).toContain(
-    'Нооруз майрамы',
+  expect(screen.getByLabelText('Предпросмотр баннера').textContent).toContain(
+    'Баннер магазина',
   );
   fireEvent.click(screen.getByRole('button', { name: 'Сохранить витрину' }));
   await waitFor(() => expect(saves).toHaveLength(1));
-  expect(saves[0].presentation.id).toBe('nooruz');
-  expect(saves[0].presentation.hero.title).toBe('Нооруз майрамы');
+  expect(saves[0].banner.title).toBe('Баннер магазина');
 });
 it('retains typed intervals and all fields after a rejected save', async () => {
   setup('owner', true);

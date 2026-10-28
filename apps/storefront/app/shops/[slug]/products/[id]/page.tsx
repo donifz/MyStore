@@ -19,7 +19,6 @@ import {
 import { metadata, productJson } from '../../../../../lib/seo';
 import Refresh from '../../../../../components/Refresh';
 import VariantSelector from '../../../../../components/storefront/VariantSelector';
-import SeasonalBlocks from '../../../../../components/storefront/SeasonalBlocks';
 export const dynamic = 'force-dynamic';
 type Props = { params: Promise<{ slug: string; id: string }> };
 async function load(params: Props['params']) {
@@ -81,9 +80,8 @@ export default async function ProductPage({ params }: Props) {
     /* Product remains available. */
   }
   return (
-    <div className={`sf-stack sf-theme--${v.store.presentation?.id || 'base'}`}>
+    <div className="sf-stack">
       <Refresh />
-      <SeasonalBlocks presentation={v.store.presentation} />
       <script
         type="application/ld+json"
         nonce={(await headers()).get('x-nonce') || undefined}

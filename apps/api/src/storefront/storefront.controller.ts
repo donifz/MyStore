@@ -55,7 +55,7 @@ class ProductQuery extends StoreQuery {
 }
 class ProfileDto {
   @IsOptional() @IsString() @MaxLength(40) slug?: string;
-  @Allow() presentation?: unknown;
+  @Allow() banner?: unknown;
   @Allow() timeZone?: string;
   @Allow() businessSchedule?: unknown;
   @IsOptional() @IsString() @MaxLength(80) district?: string;

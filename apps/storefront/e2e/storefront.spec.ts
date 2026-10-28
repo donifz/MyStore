@@ -37,15 +37,19 @@ test('pagination preserves the selected filters', async ({ page }) => {
     page.getByRole('heading', { name: 'На этой странице товаров нет' }),
   ).toBeVisible();
 });
-test('uses canonical shop routes and renders the active seasonal theme', async ({
+test('uses canonical shop routes and renders the store banner', async ({
   page,
 }) => {
   await page.goto('/shops/shop-a?category=Посуда');
   await expect(page).toHaveURL(/\/shop\/shop-a\?category=/);
   await expect(
-    page.getByRole('heading', { name: 'Нооруз майрамы' }),
+    page.getByRole('heading', { name: 'Посуда для дома' }),
   ).toBeVisible();
-  await expect(page.locator('.sf-theme--nooruz')).toBeVisible();
+  await expect(page.locator('.sf-store-banner')).toBeVisible();
+  await page.goto(
+    '/shops/shop-a/products/11111111-1111-4111-8111-111111111111',
+  );
+  await expect(page.locator('.sf-store-banner')).toHaveCount(0);
 });
 test('product with no phone has no broken contact link and sold-out product cannot be added', async ({
   page,
