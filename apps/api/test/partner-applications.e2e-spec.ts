@@ -153,6 +153,44 @@ describe('partner review and activation', () => {
     expect(membership.role).toBe('owner');
   });
 
+  it('approves with a generated password when email delivery is unavailable', async () => {
+    const created = await submit({
+      ...application,
+      email: 'manual@example.test',
+    }).expect(201);
+    const token = await admin();
+    const approved = await request(http())
+      .post(`/platform/admin/applications/${created.body.id}/decision`)
+      .auth(token, { type: 'bearer' })
+      .send({
+        expectedStatus: 'new',
+        decision: 'approved',
+        credentialDelivery: 'password',
+      })
+      .expect(201);
+
+    expect(approved.body.generatedPassword).toMatch(/^[A-Za-z0-9_-]{32}$/);
+    expect(approved.body).not.toHaveProperty('activationUrl');
+    await request(http())
+      .post('/auth/login')
+      .send({
+        email: 'manual@example.test',
+        password: approved.body.generatedPassword,
+      })
+      .expect(201);
+
+    const [membership] = await c.db.query(
+      "SELECT m.role FROM memberships m JOIN users u ON u.id=m.user_id WHERE u.email='manual@example.test' AND m.shop_id=$1",
+      [approved.body.shopId],
+    );
+    expect(membership.role).toBe('owner');
+    const [invitation] = await c.db.query(
+      'SELECT count(*)::int n FROM partner_invitations WHERE application_id=$1',
+      [created.body.id],
+    );
+    expect(invitation.n).toBe(0);
+  });
+
   it('rejects expired invites and competing decisions without duplicates', async () => {
     const created = await submit().expect(201);
     const token = await admin();

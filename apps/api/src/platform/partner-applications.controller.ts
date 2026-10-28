@@ -51,6 +51,8 @@ class DecisionDto {
     'new' | 'in_review' | 'rejected';
   @IsIn(['in_review', 'approved', 'rejected']) decision!:
     'in_review' | 'approved' | 'rejected';
+  @IsOptional() @IsIn(['invite', 'password']) credentialDelivery?:
+    'invite' | 'password';
   @IsOptional() @IsString() @MaxLength(500) reason?: string;
 }
 class PageQuery {

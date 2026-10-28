@@ -25,6 +25,7 @@ export type ApplicationInput = {
 export type DecisionInput = {
   expectedStatus: 'new' | 'in_review' | 'rejected';
   decision: 'in_review' | 'approved' | 'rejected';
+  credentialDelivery?: 'invite' | 'password';
   reason?: string;
 };
 
@@ -114,6 +115,10 @@ export class PartnerApplicationsService {
   }
 
   async decide(id: string, actor: string, input: DecisionInput) {
+    if (input.credentialDelivery && input.decision !== 'approved')
+      throw new BadRequestException(
+        'Credential delivery is only available when approving an application',
+      );
     const reason = (input.reason ?? '').replace(/[\x00-\x1f\x7f]/g, ' ').trim();
     if (input.decision === 'rejected' && (!reason || reason.length > 500))
       throw new BadRequestException('Rejection reason required');
@@ -134,6 +139,7 @@ export class PartnerApplicationsService {
         throw new ConflictException('Application status changed');
       let shopId: string | null = row.shop_id;
       let activationUrl: string | undefined;
+      let generatedPassword: string | undefined;
       if (input.decision === 'approved') {
         const [existing] = await tx.query(
           'SELECT 1 FROM users WHERE email=$1',
@@ -163,29 +169,42 @@ export class PartnerApplicationsService {
            ON CONFLICT DO NOTHING`,
           [shopId, row.shop_type],
         );
-        const token = randomBytes(32).toString('hex');
-        await tx.query(
-          "INSERT INTO partner_invitations(application_id,token_hash,expires_at) VALUES($1,$2,now()+interval '7 days')",
-          [id, hashToken(token)],
-        );
-        activationUrl = `/partner/activate?token=${token}`;
-        let canEmail = false;
-        try {
-          encryptionKey();
-          canEmail = true;
-        } catch {}
-        if (canEmail)
-          await this.email.enqueue(
-            tx,
-            'partner:' + id,
-            {
-              to: row.email,
-              subject: 'Ваш магазин одобрен в MyStore',
-              text: `Установите пароль для кабинета магазина «${row.shop_name}». Ссылка действует 7 дней:\n${publicBaseUrl()}${activationUrl}`,
-              secret: { kind: 'partner', referenceId: id },
-            },
-            shopId,
+        if (input.credentialDelivery === 'password') {
+          generatedPassword = randomBytes(24).toString('base64url');
+          const ownerId = randomUUID();
+          await tx.query(
+            'INSERT INTO users(id,email,password_hash) VALUES($1,$2,$3)',
+            [ownerId, row.email, await hashPassword(generatedPassword)],
           );
+          await tx.query(
+            "INSERT INTO memberships(shop_id,user_id,role) VALUES($1,$2,'owner')",
+            [shopId, ownerId],
+          );
+        } else {
+          const token = randomBytes(32).toString('hex');
+          await tx.query(
+            "INSERT INTO partner_invitations(application_id,token_hash,expires_at) VALUES($1,$2,now()+interval '7 days')",
+            [id, hashToken(token)],
+          );
+          activationUrl = `/partner/activate?token=${token}`;
+          let canEmail = false;
+          try {
+            encryptionKey();
+            canEmail = true;
+          } catch {}
+          if (canEmail)
+            await this.email.enqueue(
+              tx,
+              'partner:' + id,
+              {
+                to: row.email,
+                subject: 'Ваш магазин одобрен в MyStore',
+                text: `Установите пароль для кабинета магазина «${row.shop_name}». Ссылка действует 7 дней:\n${publicBaseUrl()}${activationUrl}`,
+                secret: { kind: 'partner', referenceId: id },
+              },
+              shopId,
+            );
+        }
       }
       await tx.query(
         'UPDATE partner_applications SET status=$2,rejection_reason=$3,shop_id=$4,updated_at=now() WHERE id=$1',
@@ -205,6 +224,7 @@ export class PartnerApplicationsService {
         status: input.decision,
         shopId,
         ...(activationUrl ? { activationUrl } : {}),
+        ...(generatedPassword ? { generatedPassword } : {}),
       };
     });
   }
