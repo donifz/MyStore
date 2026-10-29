@@ -77,6 +77,8 @@ class ListQuery {
   @Type(() => Number) @IsInt() @Min(1) @Max(1000000) page = 1;
   @Type(() => Number) @IsInt() @Min(1) @Max(100) pageSize = 25;
   @IsOptional() @IsIn(['true', 'false']) archived?: string;
+  @IsOptional() @IsIn(['all', 'in_stock', 'low', 'out']) stock?:
+    'all' | 'in_stock' | 'low' | 'out';
 }
 @Controller('shops/:shopId/variants')
 @UseGuards(AuthGuard)
@@ -102,6 +104,7 @@ export class VariantsController {
       query.pageSize,
       member.role !== 'cashier' || member.canViewReports,
       query.archived === 'true',
+      query.stock,
     );
   }
   @Post() async create(

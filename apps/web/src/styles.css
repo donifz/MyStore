@@ -391,6 +391,33 @@ td:first-child {
   color: #475467;
   font-weight: 500;
 }
+.stock.low {
+  background: #fef6e7;
+  color: #935310;
+  font-weight: 600;
+}
+.hardware-guide {
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border: 1px solid #d7e4df;
+  border-radius: 10px;
+  background: #f7fbf9;
+  font-size: 13px;
+}
+.hardware-guide summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #175c4a;
+}
+.hardware-guide-body {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+  color: #3a4a58;
+}
+.hardware-guide-body p {
+  margin: 0;
+}
 .pagination {
   display: flex;
   justify-content: flex-end;

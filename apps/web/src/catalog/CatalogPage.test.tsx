@@ -124,3 +124,18 @@ it('creation does not silently receive stock', async () => {
   expect(postedVariant).toBe(true);
   expect(postedReceiving).toBe(false);
 });
+it('filters catalog variants by stock availability', async () => {
+  const calls = server('owner');
+  const app = await import('../App');
+  render(
+    <MemoryRouter initialEntries={['/seller/' + shop + '/products']}>
+      <app.default />
+    </MemoryRouter>,
+  );
+  const u = userEvent.setup();
+  await screen.findByText('Рюкзак');
+  await u.selectOptions(screen.getByLabelText('Наличие'), 'low');
+  await vi.waitFor(() =>
+    expect(calls.some((x) => x.includes('stock=low'))).toBe(true),
+  );
+});

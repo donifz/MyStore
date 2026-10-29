@@ -92,12 +92,25 @@ export class VariantsService {
     pageSize: number,
     showCost: boolean,
     archived = false,
+    stock?: 'all' | 'in_stock' | 'low' | 'out',
   ) {
     const pattern = '%' + q.replace(/[\\%_]/g, '\\$&') + '%';
+    const stockClause =
+      stock === 'in_stock'
+        ? ' AND (COALESCE(b.physical,0) - COALESCE(b.reserved,0)) > 0'
+        : stock === 'low'
+          ? ' AND (COALESCE(b.physical,0) - COALESCE(b.reserved,0)) BETWEEN 1 AND 5'
+          : stock === 'out'
+            ? ' AND (COALESCE(b.physical,0) - COALESCE(b.reserved,0)) <= 0'
+            : '';
     const filter =
-      'v.shop_id=$1 AND v.archived=$2 AND (v.name ILIKE $3 OR v.barcode ILIKE $3 OR v.sku ILIKE $3)';
+      'v.shop_id=$1 AND v.archived=$2 AND (v.name ILIKE $3 OR v.barcode ILIKE $3 OR v.sku ILIKE $3)' +
+      stockClause;
+    const countFrom = stockClause
+      ? 'FROM variants v LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id WHERE '
+      : 'FROM variants v WHERE ';
     const [count] = await this.db.query(
-      'SELECT count(*) FROM variants v WHERE ' + filter,
+      'SELECT count(*) ' + countFrom + filter,
       [shopId, archived, pattern],
     );
     const rows = await this.db.query(

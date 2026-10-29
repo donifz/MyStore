@@ -142,6 +142,20 @@ export default function SaleDetailPage() {
                 Формат чека для кассовой термоленты (58 / 80 мм) или
                 стандартного принтера.
               </p>
+              <details
+                className="hardware-guide"
+                style={{ marginBottom: '1rem' }}
+              >
+                <summary>Памятка по печати на чековом термопринтере</summary>
+                <div className="hardware-guide-body">
+                  <p>
+                    В окне печати браузера выберите чековый принтер (ширина
+                    ленты <code>58 мм</code> или <code>80 мм</code>), поля —{' '}
+                    <code>Нет / Минимальные</code>, масштаб — <code>100%</code>{' '}
+                    и снимите галочку «Колонтитулы».
+                  </p>
+                </div>
+              </details>
               <div className="sale-receipt-preview">
                 <ReceiptContent sale={sale} shopName={shop?.name} />
               </div>

@@ -11,6 +11,9 @@ export default function CatalogPage() {
     [q, setQ] = useState(''),
     [page, setPage] = useState(1),
     [archived, setArchived] = useState(false),
+    [stockFilter, setStockFilter] = useState<
+      'all' | 'in_stock' | 'low' | 'out'
+    >('all'),
     [data, setData] = useState<Page<Variant> | null>(null),
     [error, setError] = useState(''),
     [loading, setLoading] = useState(false),
@@ -20,8 +23,9 @@ export default function CatalogPage() {
     let alive = true;
     setLoading(true);
     setError('');
+    const stockParam = stockFilter !== 'all' ? `&stock=${stockFilter}` : '';
     api<Page<Variant>>(
-      `/shops/${shopId}/variants?q=${encodeURIComponent(q)}&page=${page}&archived=${archived}`,
+      `/shops/${shopId}/variants?q=${encodeURIComponent(q)}&page=${page}&archived=${archived}${stockParam}`,
     )
       .then((r) => {
         if (alive) setData(r);
@@ -35,7 +39,7 @@ export default function CatalogPage() {
     return () => {
       alive = false;
     };
-  }, [shopId, q, page, archived]);
+  }, [shopId, q, page, archived, stockFilter]);
   return (
     <>
       <div className="page-heading">
@@ -96,6 +100,23 @@ export default function CatalogPage() {
               В архиве
             </button>
           </div>
+          <label>
+            Наличие
+            <select
+              value={stockFilter}
+              onChange={(e) => {
+                setStockFilter(
+                  e.target.value as 'all' | 'in_stock' | 'low' | 'out',
+                );
+                setPage(1);
+              }}
+            >
+              <option value="all">Все остатки</option>
+              <option value="in_stock">В наличии (&gt; 0)</option>
+              <option value="low">Мало на складе (1–5 шт.)</option>
+              <option value="out">Нет в наличии (0 шт.)</option>
+            </select>
+          </label>
           <span
             className="muted"
             style={{ marginLeft: 'auto', alignSelf: 'center' }}
@@ -149,7 +170,16 @@ export default function CatalogPage() {
                   </td>
                   <td>{formatSom(v.salePriceMinor)}</td>
                   <td>
-                    <span className={'stock ' + (v.available ? '' : 'empty')}>
+                    <span
+                      className={
+                        'stock ' +
+                        (v.available
+                          ? v.available <= 5
+                            ? 'low'
+                            : ''
+                          : 'empty')
+                      }
+                    >
                       {v.available} шт.
                     </span>
                   </td>
