@@ -142,6 +142,10 @@ it('creates an unknown barcode, preserves prior lines, and posts its first recei
     form.getByRole('button', { name: 'Создать и провести приёмку' }),
   );
   await screen.findByText('Документ проведён: receipt');
+  expect(screen.getByRole('status').textContent).toContain('Документ проведён');
+  expect(
+    screen.queryByRole('button', { name: 'Создать товар с этим штрихкодом' }),
+  ).toBeNull();
   expect(screen.getByRole('button', { name: 'Печать этикетки' })).toBeTruthy();
   expect(calls.filter((c) => c.method === 'POST').map((c) => c.url)).toEqual([
     '/api/shops/' + shop + '/variants',

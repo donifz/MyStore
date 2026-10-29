@@ -271,10 +271,7 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
                     onChange={(event) => setReceived(event.target.value)}
                   />
                 </label>
-                <div
-                  className="cashier-quick-cash"
-                  style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}
-                >
+                <div className="cashier-quick-cash">
                   <button
                     type="button"
                     className="button secondary"

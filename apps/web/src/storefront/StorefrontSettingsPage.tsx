@@ -140,7 +140,7 @@ export default function StorefrontSettingsPage() {
       </div>
       <section className="panel form-panel">
         <form onSubmit={submit}>
-          <fieldset disabled={busy}>
+          <fieldset disabled={busy} className="form-grid">
             <div>
               <label htmlFor="storefront-slug">Адрес витрины</label>
               <input
@@ -158,6 +158,17 @@ export default function StorefrontSettingsPage() {
               </small>
             </div>
             <label>
+              Телефон для покупателей
+              <input
+                type="tel"
+                required={form.published}
+                maxLength={30}
+                placeholder="+996 …"
+                value={form.phone}
+                onChange={(e) => field('phone', e.target.value)}
+              />
+            </label>
+            <label className="form-grid-full">
               Описание магазина
               <textarea
                 maxLength={2000}
@@ -166,21 +177,23 @@ export default function StorefrontSettingsPage() {
                 onChange={(e) => field('description', e.target.value)}
               />
             </label>
-            <BannerEditor
-              value={bannerDraft}
-              disabled={busy}
-              saving={bannerBusy}
-              dirty={bannerDirty}
-              saved={bannerSaved}
-              error={bannerError}
-              onChange={(value) => {
-                setBannerDraft(value);
-                setBannerDirty(true);
-                setBannerSaved(false);
-                setBannerError('');
-              }}
-              onSave={() => void saveBanner()}
-            />
+            <div className="form-grid-full">
+              <BannerEditor
+                value={bannerDraft}
+                disabled={busy}
+                saving={bannerBusy}
+                dirty={bannerDirty}
+                saved={bannerSaved}
+                error={bannerError}
+                onChange={(value) => {
+                  setBannerDraft(value);
+                  setBannerDirty(true);
+                  setBannerSaved(false);
+                  setBannerError('');
+                }}
+                onSave={() => void saveBanner()}
+              />
+            </div>
             <label>
               Город
               <input
@@ -198,23 +211,7 @@ export default function StorefrontSettingsPage() {
                 onChange={(e) => field('district', e.target.value)}
               />
             </label>
-            <label className="checkbox">
-              <input
-                type="checkbox"
-                checked={form.pickupEnabled ?? true}
-                onChange={(e) => field('pickupEnabled', e.target.checked)}
-              />
-              Самовывоз из магазина
-            </label>
-            <label className="checkbox">
-              <input
-                type="checkbox"
-                checked={form.deliveryEnabled ?? false}
-                onChange={(e) => field('deliveryEnabled', e.target.checked)}
-              />
-              Доставка по согласованию с покупателем
-            </label>
-            <label>
+            <label className="form-grid-full">
               Адрес
               <input
                 maxLength={250}
@@ -222,19 +219,26 @@ export default function StorefrontSettingsPage() {
                 onChange={(e) => field('address', e.target.value)}
               />
             </label>
-            <label>
-              Телефон для покупателей
-              <input
-                type="tel"
-                required={form.published}
-                maxLength={30}
-                placeholder="+996 …"
-                value={form.phone}
-                onChange={(e) => field('phone', e.target.value)}
-              />
-            </label>
+            <div className="actions form-grid-full">
+              <label className="checkbox checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={form.pickupEnabled ?? true}
+                  onChange={(e) => field('pickupEnabled', e.target.checked)}
+                />
+                Самовывоз из магазина
+              </label>
+              <label className="checkbox checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={form.deliveryEnabled ?? false}
+                  onChange={(e) => field('deliveryEnabled', e.target.checked)}
+                />
+                Доставка по согласованию с покупателем
+              </label>
+            </div>
             {!form.businessSchedule && (
-              <label>
+              <label className="form-grid-full">
                 Часы работы (описание)
                 <input
                   maxLength={1000}
@@ -244,20 +248,22 @@ export default function StorefrontSettingsPage() {
                 />
               </label>
             )}
-            <BusinessHoursEditor
-              value={form.businessSchedule ?? null}
-              timeZone={form.timeZone ?? 'Asia/Bishkek'}
-              disabled={busy}
-              onChange={(value) => field('businessSchedule', value)}
-              onTimeZoneChange={(value) => field('timeZone', value)}
-            />
+            <div className="form-grid-full">
+              <BusinessHoursEditor
+                value={form.businessSchedule ?? null}
+                timeZone={form.timeZone ?? 'Asia/Bishkek'}
+                disabled={busy}
+                onChange={(value) => field('businessSchedule', value)}
+                onTimeZoneChange={(value) => field('timeZone', value)}
+              />
+            </div>
             {dirty ? (
-              <p className="muted">
+              <p className="muted form-grid-full">
                 Сохраните изменения, чтобы обновить пример срока.
               </p>
             ) : (
               form.confirmationPreview && (
-                <p className="business-hours-preview">
+                <p className="business-hours-preview form-grid-full">
                   Если заказ поступит сейчас, подтвердить его нужно до{' '}
                   <strong>
                     {new Intl.DateTimeFormat('ru-RU', {
@@ -274,7 +280,7 @@ export default function StorefrontSettingsPage() {
                 </p>
               )
             )}
-            <label className="checkbox">
+            <label className="checkbox checkbox-label form-grid-full">
               <input
                 type="checkbox"
                 checked={form.published}
@@ -282,25 +288,27 @@ export default function StorefrontSettingsPage() {
               />
               Опубликовать магазин
             </label>
-            <p className="notice">
+            <p className="notice form-grid-full">
               После публикации покупатели увидят ваш каталог, город и указанные
               контакты. Новые карточки появляются после одобрения
               администратором платформы. Публикацию каждого товара можно
               отключить в его настройках.
             </p>
             {error && (
-              <p className="error" role="alert">
+              <p className="error form-grid-full" role="alert">
                 {error}
               </p>
             )}
             {saved && (
-              <p className="success" role="status">
+              <p className="success form-grid-full" role="status">
                 Настройки витрины сохранены.
               </p>
             )}
-            <button className="primary">
-              {busy ? 'Сохранение…' : 'Сохранить витрину'}
-            </button>
+            <div className="actions form-grid-full">
+              <button className="primary">
+                {busy ? 'Сохранение…' : 'Сохранить витрину'}
+              </button>
+            </div>
           </fieldset>
         </form>
       </section>

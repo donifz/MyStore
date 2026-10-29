@@ -127,7 +127,12 @@ export function useDocument(scope: DraftScope) {
       addVariant,
       (e, code) => {
         const missing = e instanceof ApiError && e.status === 404;
-        setUnknownBarcode(missing && scope.kind === 'receiving' ? code : null);
+        if (missing && scope.kind === 'receiving') {
+          setUnknownBarcode(code);
+          setError('');
+          return;
+        }
+        setUnknownBarcode(null);
         setError(
           missing
             ? 'Неизвестный штрихкод. Проверьте код товара.'
@@ -208,6 +213,7 @@ export function useDocument(scope: DraftScope) {
       const next = load(scope) ?? freshDraft(scope);
       setDraft(next);
       ref.current = next;
+      setUnknownBarcode(null);
       setSuccess('Документ проведён: ' + result.id);
       return result;
     } catch (e) {
@@ -288,6 +294,7 @@ export function useDocument(scope: DraftScope) {
     );
     if (result) {
       setProductCreation(null);
+      setUnknownBarcode(null);
       setLastCreatedVariant(variant);
     }
     return !!result;
@@ -363,6 +370,7 @@ export function useDocument(scope: DraftScope) {
           ref.current = next;
           setDraft(next);
           setProductCreation(null);
+          setUnknownBarcode(null);
           setSuccess('Карточка создана без приёмки. Остаток не изменён.');
         });
         return true;

@@ -97,6 +97,23 @@ export default function BarcodeLabelsPage() {
       </div>
 
       <section className="panel no-print">
+        <details className="hardware-guide">
+          <summary>Настройка принтера этикеток (58 × 40 мм) и сканера</summary>
+          <div className="hardware-guide-body">
+            <p>
+              <strong>Термопринтер этикеток (58 × 40 мм):</strong> в окне
+              системной печати выберите размер бумаги <code>58 × 40 мм</code>,
+              поля — <code>Нет (0 мм)</code>, масштаб — <code>100%</code> и
+              отключите «Верхние и нижние колонтитулы».
+            </p>
+            <p>
+              <strong>USB-сканер штрихкодов (EAN-13 / EAN-8 / Code128):</strong>{' '}
+              подключите сканер в режиме клавиатуры (<code>USB HID</code>) с
+              суффиксом <code>Enter</code>. Нажмите пробную наклейку и проверьте
+              считывание в разделе «Продажа» или «Приёмка».
+            </p>
+          </div>
+        </details>
         <div className="toolbar">
           <label className="search-label">
             Поиск товара
