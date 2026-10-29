@@ -7,6 +7,7 @@ export default function ReceivingProductForm({
   barcode,
   parentId,
   creationKey,
+  draftLines,
   disabled,
   onCancel,
   onCreated,
@@ -16,6 +17,7 @@ export default function ReceivingProductForm({
   barcode: string;
   parentId?: string;
   creationKey?: string;
+  draftLines?: { name: string; quantity: number; unitCostText?: string }[];
   disabled: boolean;
   onCancel: () => void;
   onCreated: (
@@ -35,7 +37,21 @@ export default function ReceivingProductForm({
         const count = Number(quantity);
         if (!Number.isInteger(count) || count < 1 || count > 1e9)
           throw new Error('Укажите корректное количество (1–1 000 000 000).');
-        parseSom(unitCostText);
+        const unitCostMinor = parseSom(unitCostText);
+        let total = BigInt(count) * BigInt(unitCostMinor);
+        for (const line of draftLines ?? []) {
+          let lineCost: number;
+          try {
+            lineCost = parseSom(line.unitCostText ?? '');
+          } catch {
+            throw new Error(
+              `Укажите корректную закупочную цену для «${line.name}».`,
+            );
+          }
+          total += BigInt(line.quantity) * BigInt(lineCost);
+        }
+        if (total > BigInt(Number.MAX_SAFE_INTEGER))
+          throw new Error('Сумма слишком велика.');
       }}
       initialBarcode={barcode === '__new__' ? '' : barcode}
       creationKey={creationKey}

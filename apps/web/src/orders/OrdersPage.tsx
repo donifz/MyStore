@@ -95,16 +95,32 @@ function OrderDetail({
   }
   return (
     <section className="panel order-detail">
-      <Link to={`/seller/${shopId}/orders`}>← Все заказы</Link>
+      <Link className="back-link" to={`/seller/${shopId}/orders`}>
+        ← Все заказы
+      </Link>
       <h1>Заказ {id.slice(0, 8)}</h1>
-      {error && <p role="alert">{error}</p>}
-      {document.error && <p role="alert">{document.error}</p>}
-      {shift.error && <p role="alert">{shift.error}</p>}
+      {error && (
+        <p role="alert" className="error">
+          {error}
+        </p>
+      )}
+      {document.error && (
+        <p role="alert" className="error">
+          {document.error}
+        </p>
+      )}
+      {shift.error && (
+        <p role="alert" className="error">
+          {shift.error}
+        </p>
+      )}
       {!order ? (
         <p role="status">Загрузка заказа…</p>
       ) : (
         <>
-          <p className="badge">{labels[order.status]}</p>
+          <p className="badge" style={{ display: 'inline-block' }}>
+            {labels[order.status]}
+          </p>
           <h2>{order.name}</h2>
           <a href={`tel:+${order.phone}`}>+{order.phone}</a>
           <p>{order.fulfillment === 'delivery' ? 'Доставка' : 'Самовывоз'}</p>
@@ -164,6 +180,7 @@ function OrderDetail({
               )}
               {['new', 'confirmed', 'ready'].includes(order.status) && (
                 <button
+                  className="danger"
                   disabled={busy || document.busy || !!pending}
                   onClick={() => void change('cancelled')}
                 >
@@ -173,7 +190,7 @@ function OrderDetail({
             </div>
           )}
           {otherPending ? (
-            <p role="alert">
+            <p role="alert" className="notice">
               Есть неподтверждённая выдача другого заказа.{' '}
               <Link
                 to={pending!
@@ -229,17 +246,22 @@ function OrderDetail({
               </div>
             )
           )}
-          {order.saleId && (
-            <Link to={`/seller/${shopId}/sales/${order.saleId}`}>
-              Открыть продажу
-            </Link>
-          )}
-          <button
-            disabled={busy || document.busy}
-            onClick={() => setTrigger((x) => x + 1)}
-          >
-            Обновить заказ
-          </button>
+          <div className="actions" style={{ marginTop: '0.75rem' }}>
+            {order.saleId && (
+              <Link
+                className="button"
+                to={`/seller/${shopId}/sales/${order.saleId}`}
+              >
+                Открыть продажу
+              </Link>
+            )}
+            <button
+              disabled={busy || document.busy}
+              onClick={() => setTrigger((x) => x + 1)}
+            >
+              Обновить заказ
+            </button>
+          </div>
         </>
       )}
     </section>
@@ -251,6 +273,8 @@ export default function OrdersPage() {
     shop = session.user?.shops.find((s) => s.id === shopId),
     [data, setData] = useState<Page<Order> | null>(null),
     [page, setPage] = useState(1),
+    [statusFilter, setStatusFilter] = useState(''),
+    [searchQuery, setSearchQuery] = useState(''),
     [trigger, setTrigger] = useState(0),
     [error, setError] = useState('');
   useEffect(() => {
@@ -258,7 +282,10 @@ export default function OrdersPage() {
     const controller = new AbortController();
     setData(null);
     setError('');
-    api<Page<Order>>(`/shops/${shopId}/orders?page=${page}`, {
+    const params = new URLSearchParams({ page: String(page) });
+    if (statusFilter) params.set('status', statusFilter);
+    if (searchQuery.trim()) params.set('q', searchQuery.trim());
+    api<Page<Order>>(`/shops/${shopId}/orders?${params.toString()}`, {
       signal: controller.signal,
     })
       .then(setData)
@@ -266,7 +293,7 @@ export default function OrdersPage() {
         if (!controller.signal.aborted) setError(errorText(e));
       });
     return () => controller.abort();
-  }, [shopId, page, trigger, id]);
+  }, [shopId, page, statusFilter, searchQuery, trigger, id]);
   if (!shop || !session.user) return <p>Нет доступа.</p>;
   if (id)
     return (
@@ -290,69 +317,112 @@ export default function OrdersPage() {
         </div>
         <button onClick={() => setTrigger((x) => x + 1)}>Обновить</button>
       </div>
-      {error && <p role="alert">{error}</p>}
-      {!data && !error && <p role="status">Загрузка…</p>}
-      {data && (
-        <section className="panel">
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Заказ</th>
-                  <th>Покупатель</th>
-                  <th>Статус</th>
-                  <th>Сумма</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {data.items.map((o) => (
-                  <tr key={o.id}>
-                    <td>
-                      {o.id.slice(0, 8)}
-                      <small>{formatDate(o.createdAt)}</small>
-                    </td>
-                    <td>
-                      {o.name}
-                      <small>+{o.phone}</small>
-                    </td>
-                    <td>
-                      {labels[o.status]}
-                      <OrderDeadline
-                        expiresAt={o.expiresAt}
-                        timeZone={o.timeZone}
-                      />
-                    </td>
-                    <td>{formatSom(o.totalMinor)}</td>
-                    <td>
-                      <Link
-                        className="button"
-                        role="button"
-                        to={`/seller/${shop.id}/orders/${o.id}`}
-                      >
-                        Открыть заказ {o.id.slice(0, 8)}
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {!data.items.length && <p>Заказов пока нет.</p>}
-          <div className="toolbar">
-            <button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
-              Назад
-            </button>
-            <span>Страница {page}</span>
-            <button
-              disabled={page * data.pageSize >= data.total}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Далее
-            </button>
-          </div>
-        </section>
+      {error && (
+        <p role="alert" className="error">
+          {error}
+        </p>
       )}
+      <section className="panel">
+        <div
+          className="toolbar"
+          style={{ flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}
+        >
+          <label className="search-label">
+            Поиск заказов
+            <input
+              type="search"
+              value={searchQuery}
+              placeholder="Номер, имя или телефон"
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(1);
+              }}
+            />
+          </label>
+          <label>
+            Статус заказа
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">Все статусы</option>
+              {Object.entries(labels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {!data && !error && <p role="status">Загрузка…</p>}
+        {data && (
+          <>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Заказ</th>
+                    <th>Покупатель</th>
+                    <th>Статус</th>
+                    <th>Сумма</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.items.map((o) => (
+                    <tr key={o.id}>
+                      <td>
+                        {o.id.slice(0, 8)}
+                        <small>{formatDate(o.createdAt)}</small>
+                      </td>
+                      <td>
+                        {o.name}
+                        <small>+{o.phone}</small>
+                      </td>
+                      <td>
+                        {labels[o.status]}
+                        <OrderDeadline
+                          expiresAt={o.expiresAt}
+                          timeZone={o.timeZone}
+                        />
+                      </td>
+                      <td>{formatSom(o.totalMinor)}</td>
+                      <td>
+                        <Link
+                          className="button"
+                          role="button"
+                          to={`/seller/${shop.id}/orders/${o.id}`}
+                        >
+                          Открыть заказ {o.id.slice(0, 8)}
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {!data.items.length && <p>Заказов пока нет.</p>}
+            <div className="toolbar">
+              <button
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                Назад
+              </button>
+              <span>Страница {page}</span>
+              <button
+                disabled={page * data.pageSize >= data.total}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Далее
+              </button>
+            </div>
+          </>
+        )}
+      </section>
     </>
   );
 }

@@ -118,8 +118,16 @@ export class VariantsController {
     @Req() req: UserRequest,
     @Query() query: BarcodeQuery,
   ) {
-    await this.access.requireMembership(req.userId, shopId, 'read');
-    const variant = await this.variants.findByBarcode(shopId, query.code);
+    const member = await this.access.requireMembership(
+      req.userId,
+      shopId,
+      'read',
+    );
+    const variant = await this.variants.findByBarcode(
+      shopId,
+      query.code,
+      member.role !== 'cashier',
+    );
     if (!variant) throw new NotFoundException();
     return variant;
   }

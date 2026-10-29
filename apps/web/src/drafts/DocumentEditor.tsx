@@ -22,8 +22,8 @@ export default function DocumentEditor({
     comment: string;
   };
 }) {
-  const disabled =
-    doc.busy || doc.blocked || !!doc.draft.submission || !!doc.productCreation;
+  const lineDisabled = doc.busy || doc.blocked || !!doc.draft.submission;
+  const disabled = lineDisabled || !!doc.productCreation;
   return (
     <section className="panel">
       <ScanField onScan={doc.scan} disabled={disabled} />
@@ -61,6 +61,7 @@ export default function DocumentEditor({
           parentId={parentId}
           barcode={doc.productCreation}
           creationKey={doc.draft.primaryReceiving?.productKey}
+          draftLines={doc.draft.lines}
           disabled={doc.blocked || !doc.online || doc.busy}
           onCancel={doc.closeProductCreation}
           onCreated={(variant, quantity, unitCostText) =>
@@ -136,7 +137,7 @@ export default function DocumentEditor({
               min={1}
               max={1e9}
               value={l.quantity}
-              disabled={disabled}
+              disabled={lineDisabled}
               onChange={(e) => {
                 const n = Number(e.target.value);
                 if (Number.isInteger(n) && n >= 1 && n <= 1e9)
@@ -155,7 +156,7 @@ export default function DocumentEditor({
                 <input
                   inputMode="decimal"
                   value={l.unitCostText ?? ''}
-                  disabled={disabled}
+                  disabled={lineDisabled}
                   onChange={(e) => {
                     const value = e.currentTarget.value;
                     void doc.change((lines) =>
@@ -166,12 +167,27 @@ export default function DocumentEditor({
                   }}
                 />
               </label>
+              {l.lastPurchaseMinor !== undefined && (
+                <div className="line-card-full">
+                  <button
+                    type="button"
+                    className="button secondary"
+                    disabled={lineDisabled}
+                    onClick={() => {
+                      const text = (l.lastPurchaseMinor! / 100).toString();
+                      void doc.change((lines) =>
+                        lines.map((x) =>
+                          x.id === l.id ? { ...x, unitCostText: text } : x,
+                        ),
+                      );
+                    }}
+                  >
+                    Последняя закупка: {formatSom(l.lastPurchaseMinor)}
+                  </button>
+                </div>
+              )}
               {isPurchaseAboveSale(l.unitCostText ?? '', l.priceMinor) && (
-                <p
-                  role="status"
-                  className="notice"
-                  style={{ gridColumn: '1 / -1' }}
-                >
+                <p role="status" className="notice line-card-full">
                   Закупочная цена за штуку выше цены продажи. Проверьте цены:
                   продажа может быть убыточной.
                 </p>
@@ -254,7 +270,7 @@ export default function DocumentEditor({
             type="button"
             className="danger"
             aria-label={'Удалить ' + l.name}
-            disabled={disabled}
+            disabled={lineDisabled}
             onClick={() =>
               doc.change((lines) => lines.filter((x) => x.id !== l.id))
             }

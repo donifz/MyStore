@@ -212,7 +212,8 @@ function ShiftWorkspace({
                 <strong>{formatSom(shift.salesCashMinor)}</strong>
               </div>
               <div className="panel">
-                Продажи картой<strong>{formatSom(shift.salesCardMinor)}</strong>
+                Продажи картой
+                <strong>{formatSom(shift.salesCardMinor)}</strong>
               </div>
               <div className="panel">
                 Возвраты наличными
@@ -224,14 +225,7 @@ function ShiftWorkspace({
               </div>
             </div>
 
-            <div
-              style={{
-                display: 'flex',
-                gap: '0.75rem',
-                flexWrap: 'wrap',
-                margin: '1.25rem 0',
-              }}
-            >
+            <div className="actions" style={{ margin: '1.25rem 0' }}>
               <button
                 type="button"
                 className="button"
@@ -304,14 +298,7 @@ function ShiftWorkspace({
                     disabled={cashBusy}
                   />
                 </label>
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: '0.5rem',
-                    flexWrap: 'wrap',
-                    marginTop: '0.75rem',
-                  }}
-                >
+                <div className="actions" style={{ marginTop: '0.75rem' }}>
                   <button
                     type="button"
                     className="primary"
@@ -386,35 +373,21 @@ function ShiftWorkspace({
                 </p>
               )}
               {transactions.length > 0 && (
-                <div style={{ overflowX: 'auto', marginTop: '0.5rem' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <div className="table-wrap" style={{ marginTop: '0.5rem' }}>
+                  <table>
                     <thead>
-                      <tr
-                        style={{
-                          borderBottom: '1px solid var(--color-border, #ddd)',
-                          textAlign: 'left',
-                        }}
-                      >
-                        <th style={{ padding: '0.5rem' }}>Время</th>
-                        <th style={{ padding: '0.5rem' }}>Тип</th>
-                        <th style={{ padding: '0.5rem' }}>Сумма</th>
-                        <th style={{ padding: '0.5rem' }}>Причина</th>
+                      <tr>
+                        <th>Время</th>
+                        <th>Тип</th>
+                        <th>Сумма</th>
+                        <th>Причина</th>
                       </tr>
                     </thead>
                     <tbody>
                       {transactions.map((tx) => (
-                        <tr
-                          key={tx.id}
-                          style={{
-                            borderBottom: '1px solid var(--color-border, #eee)',
-                          }}
-                        >
-                          <td
-                            style={{ padding: '0.5rem', whiteSpace: 'nowrap' }}
-                          >
-                            {formatDate(tx.createdAt)}
-                          </td>
-                          <td style={{ padding: '0.5rem' }}>
+                        <tr key={tx.id}>
+                          <td>{formatDate(tx.createdAt)}</td>
+                          <td>
                             <span
                               style={{
                                 color: tx.type === 'in' ? '#007659' : '#b3261e',
@@ -424,12 +397,10 @@ function ShiftWorkspace({
                               {tx.type === 'in' ? '+ Внесение' : '− Изъятие'}
                             </span>
                           </td>
-                          <td
-                            style={{ padding: '0.5rem', whiteSpace: 'nowrap' }}
-                          >
+                          <td>
                             <strong>{formatSom(tx.amountMinor)}</strong>
                           </td>
-                          <td style={{ padding: '0.5rem' }}>{tx.reason}</td>
+                          <td>{tx.reason}</td>
                         </tr>
                       ))}
                     </tbody>

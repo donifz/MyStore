@@ -103,7 +103,14 @@ export function useDocument(scope: DraftScope) {
           barcode: v.barcode,
           quantity: 1,
           priceMinor: v.salePriceMinor,
-          ...(scope.kind === 'receiving' ? { unitCostText: '' } : {}),
+          ...(scope.kind === 'receiving'
+            ? {
+                unitCostText: '',
+                ...(v.lastPurchaseMinor !== undefined
+                  ? { lastPurchaseMinor: v.lastPurchaseMinor }
+                  : {}),
+              }
+            : {}),
         },
       ];
     });

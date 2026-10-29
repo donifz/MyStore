@@ -271,6 +271,38 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
                     onChange={(event) => setReceived(event.target.value)}
                   />
                 </label>
+                <div
+                  className="cashier-quick-cash"
+                  style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}
+                >
+                  <button
+                    type="button"
+                    className="button secondary"
+                    disabled={locked || !safe || sum === 0n}
+                    onClick={() => setReceived((Number(sum) / 100).toString())}
+                  >
+                    Без сдачи
+                  </button>
+                  {[100, 500, 1000, 5000].map((bill) => (
+                    <button
+                      type="button"
+                      key={bill}
+                      className="button secondary"
+                      disabled={locked}
+                      onClick={() => {
+                        const base =
+                          receivedMinor !== null && !receivedError
+                            ? receivedMinor
+                            : 0;
+                        const next = base + bill * 100;
+                        if (Number.isSafeInteger(next))
+                          setReceived((next / 100).toString());
+                      }}
+                    >
+                      +{bill}
+                    </button>
+                  ))}
+                </div>
                 {receivedError && (
                   <p role="alert" className="error">
                     {receivedError}

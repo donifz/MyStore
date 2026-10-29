@@ -214,15 +214,35 @@ export class OrdersService {
       saleId: o.sale_id,
     };
   }
-  async list(shop: string, page: number, pageSize: number) {
+  async list(
+    shop: string,
+    page: number,
+    pageSize: number,
+    status?: string,
+    q = '',
+  ) {
     await this.expiry.expire(shop);
+    const params: unknown[] = [shop];
+    const clauses = ['o.shop_id=$1'];
+    if (status) {
+      params.push(status);
+      clauses.push(`o.status=$${params.length}`);
+    }
+    const trimmed = q.trim();
+    if (trimmed) {
+      params.push('%' + trimmed.replace(/[\\%_]/g, '\\$&') + '%');
+      clauses.push(
+        `(o.id::text ILIKE $${params.length} OR o.name ILIKE $${params.length} OR o.phone ILIKE $${params.length})`,
+      );
+    }
+    const where = clauses.join(' AND ');
     const [count] = await this.db.query(
-      'SELECT count(*)::int total FROM online_orders WHERE shop_id=$1',
-      [shop],
+      `SELECT count(*)::int total FROM online_orders o WHERE ${where}`,
+      params,
     );
     const rows = await this.db.query(
-      'SELECT o.*,s.time_zone FROM online_orders o JOIN shops s ON s.id=o.shop_id WHERE o.shop_id=$1 ORDER BY o.created_at DESC,o.id LIMIT $2 OFFSET $3',
-      [shop, pageSize, (page - 1) * pageSize],
+      `SELECT o.*,s.time_zone FROM online_orders o JOIN shops s ON s.id=o.shop_id WHERE ${where} ORDER BY o.created_at DESC,o.id LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      [...params, pageSize, (page - 1) * pageSize],
     );
     return {
       items: rows.map((r: any) => this.detailDto(r)),

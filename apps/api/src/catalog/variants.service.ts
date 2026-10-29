@@ -297,12 +297,25 @@ export class VariantsService {
   async findByBarcode(
     shopId: string,
     barcode: string,
-  ): Promise<Variant | null> {
+    includeLastPurchase = false,
+  ): Promise<(Variant & { lastPurchaseMinor?: number }) | null> {
     const [row] = await this.db.query(
-      'SELECT id,shop_id,sku,name,barcode,sale_price_minor,description,category,subcategory,published,(photo_data IS NOT NULL) has_photo FROM variants WHERE shop_id=$1 AND barcode=$2',
+      `SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.sale_price_minor,v.description,v.category,v.subcategory,v.published,(v.photo_data IS NOT NULL) has_photo,
+              (SELECT ROUND(m.value_minor::numeric / NULLIF(m.quantity, 0))::bigint
+               FROM stock_movements m
+               JOIN stock_documents d ON d.shop_id=m.shop_id AND d.id=m.document_id
+               WHERE m.shop_id=v.shop_id AND m.variant_id=v.id AND d.kind='receiving' AND m.quantity > 0
+               ORDER BY d.created_at DESC, m.id DESC LIMIT 1) last_purchase_minor
+       FROM variants v WHERE v.shop_id=$1 AND v.barcode=$2`,
       [shopId, barcode],
     );
-    return row ? this.dto(row) : null;
+    if (!row) return null;
+    const dto = this.dto(row);
+    return includeLastPurchase &&
+      row.last_purchase_minor !== null &&
+      row.last_purchase_minor !== undefined
+      ? { ...dto, lastPurchaseMinor: Number(row.last_purchase_minor) }
+      : dto;
   }
   async updateVariant(
     shopId: string,

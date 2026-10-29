@@ -102,117 +102,143 @@ export default function StockOperationsPage() {
   if (role === 'cashier' || !role)
     return <p role="alert">Нет доступа к складским операциям.</p>;
   return (
-    <section className="panel form-panel">
-      <h1>Инвентаризация и списание</h1>
-      <form onSubmit={scan}>
-        <label>
-          Сканировать штрихкод
-          <input value={code} onChange={(e) => setCode(e.target.value)} />
-        </label>
-        <button>Найти</button>
-      </form>
-      <label>
-        Товар
-        <select
-          value={variantId}
-          onChange={(e) => {
-            setVariantId(e.target.value);
-            setKey(crypto.randomUUID());
-          }}
-        >
-          <option value="">Выберите товар</option>
-          {items.map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.name} · {v.barcode}
-            </option>
-          ))}
-        </select>
-      </label>
-      {balance && (
-        <>
-          <p>
-            В наличии: {balance.physical}; резерв: {balance.reserved}; доступно:{' '}
-            {balance.available}.
+    <div className="page-stack">
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">Складской учёт</p>
+          <h1>Инвентаризация и списание</h1>
+          <p className="muted">
+            Пересчёт фактических остатков, списание годного запаса и утилизация
+            возвращённого брака
           </p>
-          <p>Возвращённый брак отдельно: {defects?.quantity ?? 0}.</p>
+        </div>
+      </div>
+      <section className="panel form-panel" style={{ marginTop: 0 }}>
+        <form onSubmit={scan} style={{ marginBottom: '1.25rem' }}>
           <label>
-            Фактически посчитано
+            Сканировать штрихкод
             <input
-              type="number"
-              min={0}
-              max={1000000000}
-              value={count}
-              onChange={(e) => {
-                setCount(e.target.value);
-                setKey(crypto.randomUUID());
-              }}
+              value={code}
+              placeholder="Введите или отсканируйте штрихкод"
+              onChange={(e) => setCode(e.target.value)}
             />
           </label>
-          <label>
-            Стоимость добавленной единицы, сом
-            <input
-              inputMode="decimal"
-              value={unitCost}
-              onChange={(e) => {
-                setUnitCost(e.target.value);
-                setKey(crypto.randomUUID());
-              }}
-            />
-          </label>
-          <label>
-            Количество к списанию или утилизации
-            <input
-              type="number"
-              min={1}
-              max={1000000000}
-              value={quantity}
-              onChange={(e) => {
-                setQuantity(e.target.value);
-                setKey(crypto.randomUUID());
-              }}
-            />
-          </label>
-          <label>
-            Причина
-            <input
-              maxLength={500}
-              value={reason}
-              onChange={(e) => {
-                setReason(e.target.value);
-                setKey(crypto.randomUUID());
-              }}
-            />
-          </label>
-          <button
-            disabled={busy || !reason.trim()}
-            onClick={() => void post('counts')}
+          <div className="actions">
+            <button>Найти</button>
+          </div>
+        </form>
+        <label>
+          Товар
+          <select
+            value={variantId}
+            onChange={(e) => {
+              setVariantId(e.target.value);
+              setKey(crypto.randomUUID());
+            }}
           >
-            Провести пересчёт
-          </button>
-          <button
-            disabled={busy || !reason.trim() || !quantity}
-            onClick={() => void post('writeoffs')}
-          >
-            Списать годный запас
-          </button>
-          <button
-            disabled={busy || !reason.trim() || !quantity}
-            onClick={() => void post('defects/disposals')}
-          >
-            Утилизировать брак
-          </button>
-        </>
-      )}
-      {success && (
-        <p role="status" className="success">
-          {success}
-        </p>
-      )}
-      {error && (
-        <p role="alert" className="error">
-          {error}
-        </p>
-      )}
-    </section>
+            <option value="">Выберите товар</option>
+            {items.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.name} · {v.barcode}
+              </option>
+            ))}
+          </select>
+        </label>
+        {balance && (
+          <>
+            <div className="notice" style={{ marginBottom: '1.25rem' }}>
+              <p style={{ margin: '0 0 0.25rem' }}>
+                В наличии: {balance.physical}; резерв: {balance.reserved};
+                доступно: {balance.available}.
+              </p>
+              <p style={{ margin: 0 }}>
+                Возвращённый брак отдельно: {defects?.quantity ?? 0}.
+              </p>
+            </div>
+            <label>
+              Фактически посчитано
+              <input
+                type="number"
+                min={0}
+                max={1000000000}
+                value={count}
+                onChange={(e) => {
+                  setCount(e.target.value);
+                  setKey(crypto.randomUUID());
+                }}
+              />
+            </label>
+            <label>
+              Стоимость добавленной единицы, сом
+              <input
+                inputMode="decimal"
+                value={unitCost}
+                onChange={(e) => {
+                  setUnitCost(e.target.value);
+                  setKey(crypto.randomUUID());
+                }}
+              />
+            </label>
+            <label>
+              Количество к списанию или утилизации
+              <input
+                type="number"
+                min={1}
+                max={1000000000}
+                value={quantity}
+                onChange={(e) => {
+                  setQuantity(e.target.value);
+                  setKey(crypto.randomUUID());
+                }}
+              />
+            </label>
+            <label>
+              Причина
+              <input
+                maxLength={500}
+                value={reason}
+                placeholder="Обязательно укажите основание операции"
+                onChange={(e) => {
+                  setReason(e.target.value);
+                  setKey(crypto.randomUUID());
+                }}
+              />
+            </label>
+            <div className="actions">
+              <button
+                className="primary"
+                disabled={busy || !reason.trim()}
+                onClick={() => void post('counts')}
+              >
+                Провести пересчёт
+              </button>
+              <button
+                disabled={busy || !reason.trim() || !quantity}
+                onClick={() => void post('writeoffs')}
+              >
+                Списать годный запас
+              </button>
+              <button
+                className="danger"
+                disabled={busy || !reason.trim() || !quantity}
+                onClick={() => void post('defects/disposals')}
+              >
+                Утилизировать брак
+              </button>
+            </div>
+          </>
+        )}
+        {success && (
+          <p role="status" className="success" style={{ marginTop: '1rem' }}>
+            {success}
+          </p>
+        )}
+        {error && (
+          <p role="alert" className="error" style={{ marginTop: '1rem' }}>
+            {error}
+          </p>
+        )}
+      </section>
+    </div>
   );
 }

@@ -171,4 +171,11 @@ it('disables sale when entered cash is below total and calculates the correct ch
   expect(screen.getByText('Сдача')).toBeTruthy();
   expect(screen.getByText('500,00 сом')).toBeTruthy();
   expect(pay).toHaveProperty('disabled', false);
+
+  await user.click(screen.getByRole('button', { name: 'Без сдачи' }));
+  expect((cashInput as HTMLInputElement).value).toBe('1500');
+  expect(screen.getByText('0,00 сом')).toBeTruthy();
+
+  await user.click(screen.getByRole('button', { name: '+500' }));
+  expect((cashInput as HTMLInputElement).value).toBe('2000');
 });

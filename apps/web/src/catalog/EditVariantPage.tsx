@@ -229,7 +229,7 @@ export default function EditVariantPage() {
                     onChange={(e) => setDescription(e.target.value)}
                   />
                 </label>
-                <label className="checkbox">
+                <label className="checkbox checkbox-label">
                   <input
                     type="checkbox"
                     checked={published}
