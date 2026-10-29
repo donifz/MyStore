@@ -4,6 +4,7 @@ dist/
 .env.*
 !.env.example
 .superpowers/
+.worktrees/
 coverage/
 test-results/
 playwright-report/

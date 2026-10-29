@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { DataSource } from 'typeorm';
@@ -174,5 +175,35 @@ export class ReceivingService {
        FROM stock_documents d JOIN users u ON u.id=d.actor_id WHERE d.shop_id=$1 AND d.kind='receiving' ORDER BY d.created_at DESC LIMIT 100`,
       [shopId],
     );
+  }
+  async detail(shopId: string, id: string) {
+    const [doc] = await this.db.query(
+      `SELECT d.id,d.document_number "documentNumber",d.supplier,d.received_on "receivedOn",d.comment,d.total_minor "totalMinor",d.created_at "createdAt",u.email "createdBy"
+       FROM stock_documents d JOIN users u ON u.id=d.actor_id WHERE d.shop_id=$1 AND d.id=$2 AND d.kind='receiving'`,
+      [shopId, id],
+    );
+    if (!doc) throw new NotFoundException('Receiving document not found');
+    const lines = await this.db.query(
+      `SELECT m.variant_id "variantId",v.name,v.barcode,m.quantity,m.value_minor "valueMinor"
+       FROM stock_movements m JOIN variants v ON v.shop_id=m.shop_id AND v.id=m.variant_id
+       WHERE m.shop_id=$1 AND m.document_id=$2 ORDER BY v.name,v.id`,
+      [shopId, id],
+    );
+    return {
+      ...doc,
+      totalMinor: Number(doc.totalMinor),
+      lines: lines.map((l: any) => {
+        const qty = Number(l.quantity);
+        const val = Number(l.valueMinor);
+        return {
+          variantId: l.variantId,
+          name: l.name,
+          barcode: l.barcode,
+          quantity: qty,
+          valueMinor: val,
+          unitCostMinor: qty > 0 ? Math.round(val / qty) : 0,
+        };
+      }),
+    };
   }
 }

@@ -20,6 +20,7 @@ import {
   ValidateIf,
   IsIn,
   IsInt,
+  IsOptional,
   IsString,
   IsUUID,
   Max,
@@ -67,6 +68,10 @@ class CheckoutDto extends ReceiptDto implements CheckoutInput {
 class PageQuery {
   @Type(() => Number) @IsInt() @Min(1) @Max(1000000) page = 1;
   @Type(() => Number) @IsInt() @Min(1) @Max(100) pageSize = 25;
+  @IsOptional()
+  @IsIn(['new', 'confirmed', 'ready', 'issued', 'cancelled', 'expired'])
+  status?: string;
+  @IsOptional() @IsString() @MaxLength(120) q = '';
 }
 class StatusDto {
   @IsIn(['confirmed', 'ready', 'cancelled']) status!:
@@ -116,7 +121,7 @@ export class OrdersController {
     @Query() q: PageQuery,
   ) {
     await this.access.requireMembership(req.userId, shop, 'read');
-    return this.orders.list(shop, q.page, q.pageSize);
+    return this.orders.list(shop, q.page, q.pageSize, q.status, q.q);
   }
   @Get(':id') async detail(
     @Param('shopId', ParseUUIDPipe) shop: string,

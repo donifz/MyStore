@@ -17,6 +17,7 @@ export type DraftLine = {
   quantity: number;
   priceMinor: number;
   unitCostText?: string;
+  lastPurchaseMinor?: number;
   discountMinor?: number;
   discountReason?: string;
 };
@@ -66,6 +67,9 @@ function validate(d: any, scope: DraftScope): asserts d is Draft {
       line.quantity > 1e9 ||
       !Number.isSafeInteger(line.priceMinor) ||
       line.priceMinor < 0 ||
+      (line.lastPurchaseMinor !== undefined &&
+        (!Number.isSafeInteger(line.lastPurchaseMinor) ||
+          line.lastPurchaseMinor < 0)) ||
       (line.discountMinor !== undefined &&
         (!Number.isSafeInteger(line.discountMinor) ||
           line.discountMinor < 0)) ||
@@ -79,7 +83,9 @@ function validate(d: any, scope: DraftScope): asserts d is Draft {
             'barcode',
             'quantity',
             'priceMinor',
-            ...(scope.kind === 'receiving' ? ['unitCostText'] : []),
+            ...(scope.kind === 'receiving'
+              ? ['unitCostText', 'lastPurchaseMinor']
+              : []),
             ...(scope.kind === 'sale'
               ? ['discountMinor', 'discountReason']
               : []),

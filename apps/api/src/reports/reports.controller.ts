@@ -38,9 +38,11 @@ export class ReportsController {
     @Param('kind') kind: string,
     @Req() req: UserRequest,
     @Res() res: Response,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
   ) {
     await this.access.requireMembership(req.userId, shop, 'reports');
-    const csv = await this.reports.export(shop, kind);
+    const csv = await this.reports.export(shop, kind, from, to);
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader(
       'Content-Disposition',

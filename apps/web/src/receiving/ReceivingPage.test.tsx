@@ -200,6 +200,36 @@ it('warns on a new product and still posts receiving', async () => {
   );
   expect(receipt?.body.lines[1].unitCostMinor).toBe(250000);
 });
+it('validates existing line costs before creating the card and lets the user fill them in', async () => {
+  const calls = start();
+  const existingCost = await screen.findByLabelText(
+    'Закупочная цена Рюкзак, сом',
+  );
+  fireEvent.change(existingCost, { target: { value: '' } });
+  const { u, form } = await openCreation();
+  await u.type(form.getByLabelText('Название'), 'Принтер');
+  await u.type(form.getByLabelText('Цена продажи, сом'), '2000');
+  await u.type(form.getByLabelText('Закупочная цена, сом'), '1500');
+  await u.click(
+    form.getByRole('button', { name: 'Создать и провести приёмку' }),
+  );
+  await form.findByText('Укажите корректную закупочную цену для «Рюкзак».');
+  expect(
+    calls.some((c) => c.method === 'POST' && c.url.endsWith('/variants')),
+  ).toBe(false);
+  fireEvent.change(existingCost, { target: { value: '120' } });
+  await u.click(
+    form.getByRole('button', { name: 'Создать и провести приёмку' }),
+  );
+  await screen.findByText('Документ проведён: receipt');
+  const receipt = calls.find(
+    (c) => c.method === 'POST' && c.url.endsWith('/receivings'),
+  );
+  expect(receipt?.body.lines).toEqual([
+    { variantId: 'existing', quantity: 3, unitCostMinor: 12000 },
+    { variantId: 'new', quantity: 1, unitCostMinor: 150000 },
+  ]);
+});
 it('cancelling inline creation leaves the current receipt unchanged', async () => {
   const calls = start('manager');
   const { u, form } = await openCreation();
@@ -299,6 +329,87 @@ it('a barcode created concurrently is confirmed explicitly without creating a se
   expect(
     calls.some((c) => c.method === 'POST' && c.url.endsWith('/receivings')),
   ).toBe(true);
+});
+it('applies last purchase cost suggestion and opens receiving history details', async () => {
+  vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+    const method = init?.method ?? 'GET';
+    let body: unknown = {};
+    if (url.endsWith('/me'))
+      body = {
+        userId: scope.userId,
+        email: 'employee@example.test',
+        csrfToken: 'csrf',
+        shops: [{ id: shop, name: 'Магазин', role: 'owner' }],
+      };
+    else if (url.includes('by-barcode'))
+      body = {
+        id: 'known-1',
+        name: 'Кофе в зёрнах',
+        barcode: '460111',
+        salePriceMinor: 85000,
+        lastPurchaseMinor: 62000,
+      };
+    else if (url.endsWith('/receivings') && method === 'GET')
+      body = [
+        {
+          id: 'rec-1',
+          documentNumber: 'ТТН-101',
+          receivedOn: '2026-10-29',
+          supplier: 'ОсОО Восток',
+          totalMinor: 124000,
+          createdBy: 'owner@example.test',
+        },
+      ];
+    else if (url.endsWith('/receivings/rec-1'))
+      body = {
+        id: 'rec-1',
+        documentNumber: 'ТТН-101',
+        receivedOn: '2026-10-29',
+        supplier: 'ОсОО Восток',
+        comment: 'Утренняя поставка',
+        totalMinor: 124000,
+        createdBy: 'owner@example.test',
+        lines: [
+          {
+            variantId: 'known-1',
+            name: 'Кофе в зёрнах',
+            barcode: '460111',
+            quantity: 2,
+            unitCostMinor: 62000,
+            valueMinor: 124000,
+          },
+        ],
+      };
+    return new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  });
+  render(
+    <MemoryRouter initialEntries={['/seller/' + shop + '/receiving']}>
+      <App />
+    </MemoryRouter>,
+  );
+  const u = userEvent.setup();
+  await u.type(
+    await screen.findByLabelText('Сканировать штрихкод'),
+    '460111{Enter}',
+  );
+  const applyLast = await screen.findByRole('button', {
+    name: 'Последняя закупка: 620,00 сом',
+  });
+  await u.click(applyLast);
+  expect(
+    (
+      screen.getByLabelText(
+        'Закупочная цена Кофе в зёрнах, сом',
+      ) as HTMLInputElement
+    ).value,
+  ).toBe('620');
+  await u.click(await screen.findByRole('button', { name: 'Состав' }));
+  await screen.findByText('Накладная ТТН-101');
+  expect(screen.getByText(/Утренняя поставка/)).toBeTruthy();
+  expect(screen.getAllByText('1 240,00 сом')).toHaveLength(2);
 });
 it('a receiving document with an uncertain result cannot scan or create another product', async () => {
   start();

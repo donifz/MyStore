@@ -54,6 +54,29 @@ export default function ReportsPage() {
     void loadSummary('', '');
   }
 
+  function applyPreset(daysBack: number | 'month') {
+    const now = new Date();
+    const to = now.toISOString().slice(0, 10);
+    let from = to;
+    if (daysBack === 'month') {
+      from = `${to.slice(0, 8)}01`;
+    } else if (daysBack > 0) {
+      const start = new Date(now);
+      start.setDate(start.getDate() - daysBack);
+      from = start.toISOString().slice(0, 10);
+    }
+    setFromDate(from);
+    setToDate(to);
+    void loadSummary(from, to);
+  }
+
+  const exportParams = new URLSearchParams();
+  if (fromDate)
+    exportParams.set('from', new Date(fromDate + 'T00:00:00').toISOString());
+  if (toDate)
+    exportParams.set('to', new Date(toDate + 'T23:59:59.999').toISOString());
+  const exportQs = exportParams.toString();
+
   const cards: [string, string][] = data
     ? [
         ['Выручка за вычетом возвратов', money(data.revenueMinor)],
@@ -130,6 +153,27 @@ export default function ReportsPage() {
           <button type="submit" className="primary" disabled={loading}>
             Применить
           </button>
+          <button
+            type="button"
+            onClick={() => applyPreset(0)}
+            disabled={loading}
+          >
+            Сегодня
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPreset(6)}
+            disabled={loading}
+          >
+            7 дней
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPreset('month')}
+            disabled={loading}
+          >
+            Месяц
+          </button>
           {(fromDate || toDate) && (
             <button
               type="button"
@@ -168,7 +212,11 @@ export default function ReportsPage() {
             <a
               className="button secondary"
               key={kind}
-              href={`/api/shops/${shopId}/reports/export/${kind}.csv`}
+              href={`/api/shops/${shopId}/reports/export/${kind}.csv${
+                (kind === 'sales' || kind === 'orders') && exportQs
+                  ? '?' + exportQs
+                  : ''
+              }`}
             >
               {kind === 'products'
                 ? 'Товары'

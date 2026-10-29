@@ -111,7 +111,7 @@ export default function BarcodeLabelsPage() {
           </label>
           <span className="muted">{data?.total ?? 0} товаров</span>
         </div>
-        <label className="checkbox">
+        <label className="checkbox checkbox-label">
           <input type="checkbox" checked={allSelected} onChange={togglePage} />
           Выбрать все на странице
         </label>

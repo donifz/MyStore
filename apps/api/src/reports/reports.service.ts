@@ -105,7 +105,7 @@ export class ReportsService {
     };
   }
 
-  async export(shop: string, kind: string) {
+  async export(shop: string, kind: string, from?: string, to?: string) {
     let headers: string[];
     let rows: any[];
     if (kind === 'products') {
@@ -139,6 +139,7 @@ export class ReportsService {
         [shop],
       );
     } else if (kind === 'sales') {
+      const [start, end] = this.range(from, to);
       headers = [
         'id',
         'created_at',
@@ -153,10 +154,11 @@ export class ReportsService {
                 CASE WHEN EXISTS (SELECT 1 FROM online_orders o WHERE o.shop_id=d.shop_id AND o.sale_id=d.id) THEN 'online' ELSE 'pos' END channel,
                 d.total_minor,p.kind payment_kind,p.method payment_method,p.amount_minor payment_amount_minor
          FROM stock_documents d LEFT JOIN payment_records p ON p.shop_id=d.shop_id AND p.document_id=d.id
-         WHERE d.shop_id=$1 AND d.kind IN ('sale','return') ORDER BY d.created_at DESC,d.id`,
-        [shop],
+         WHERE d.shop_id=$1 AND d.kind IN ('sale','return') AND d.created_at >= $2 AND d.created_at < $3 ORDER BY d.created_at DESC,d.id`,
+        [shop, start, end],
       );
     } else if (kind === 'orders') {
+      const [start, end] = this.range(from, to);
       headers = [
         'id',
         'created_at',
@@ -170,8 +172,8 @@ export class ReportsService {
         'sale_id',
       ];
       rows = await this.db.query(
-        'SELECT id,created_at,issued_at,status,name,phone,fulfillment,address,total_minor,sale_id FROM online_orders WHERE shop_id=$1 ORDER BY created_at DESC,id',
-        [shop],
+        'SELECT id,created_at,issued_at,status,name,phone,fulfillment,address,total_minor,sale_id FROM online_orders WHERE shop_id=$1 AND created_at >= $2 AND created_at < $3 ORDER BY created_at DESC,id',
+        [shop, start, end],
       );
     } else {
       throw new BadRequestException('Unknown export');

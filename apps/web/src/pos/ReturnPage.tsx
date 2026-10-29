@@ -93,12 +93,17 @@ function ReturnWorkspace({
       <Link className="back-link" to={'/seller/' + shopId + '/sales'}>
         ← Продажи
       </Link>
-      <h1>Возврат по продаже</h1>
-      {sale && (
-        <p className="muted">
-          {formatDate(sale.createdAt)} · {sale.id}
-        </p>
-      )}
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">Касса магазина</p>
+          <h1>Возврат по продаже</h1>
+          {sale && (
+            <p className="muted">
+              {formatDate(sale.createdAt)} · {sale.id}
+            </p>
+          )}
+        </div>
+      </div>
       <section className="panel">
         {doc.error && (
           <p className="error" role="alert">
@@ -184,7 +189,7 @@ function ReturnWorkspace({
             />
           </label>
           {sale?.method ? (
-            <label className="checkbox">
+            <label className="checkbox checkbox-label">
               <input
                 type="checkbox"
                 checked={shownRefund}

@@ -37,12 +37,23 @@ function ReceivingWorkspace({
         new Date().toISOString().slice(0, 10),
     ),
     [comment, setComment] = useState(doc.draft.submission?.body?.comment ?? ''),
-    [history, setHistory] = useState<any[]>([]);
+    [history, setHistory] = useState<any[]>([]),
+    [selectedReceipt, setSelectedReceipt] = useState<any | null>(null),
+    [detailError, setDetailError] = useState('');
   useEffect(() => {
     void api<any[]>(`/shops/${shopId}/receivings`)
-      .then(setHistory)
+      .then((items) => setHistory(Array.isArray(items) ? items : []))
       .catch(() => undefined);
   }, [shopId, doc.success]);
+  async function openDetail(id: string) {
+    setDetailError('');
+    try {
+      const detail = await api<any>(`/shops/${shopId}/receivings/${id}`);
+      setSelectedReceipt(detail);
+    } catch (e) {
+      setDetailError(errorText(e));
+    }
+  }
   useEffect(() => {
     if (doc.success) {
       setDocumentNumber('');
@@ -193,6 +204,7 @@ function ReceivingWorkspace({
           </button>
           <button
             type="button"
+            className="secondary full-width"
             onClick={() => window.print()}
             disabled={!doc.draft.lines.length}
           >
@@ -207,6 +219,62 @@ function ReceivingWorkspace({
             <p className="muted">Последние 100 проведённых документов</p>
           </div>
         </div>
+        {detailError && (
+          <p role="alert" className="error">
+            {detailError}
+          </p>
+        )}
+        {selectedReceipt && (
+          <div
+            className="panel"
+            style={{ marginBottom: '1rem' }}
+            aria-label={`Детали приёмки ${selectedReceipt.documentNumber}`}
+          >
+            <div className="page-heading">
+              <div>
+                <h3>Накладная {selectedReceipt.documentNumber}</h3>
+                <p className="muted">
+                  Дата: {selectedReceipt.receivedOn} · Поставщик:{' '}
+                  {selectedReceipt.supplier || '—'} · Создал:{' '}
+                  {selectedReceipt.createdBy}
+                </p>
+                {selectedReceipt.comment && (
+                  <p className="muted">
+                    Комментарий: {selectedReceipt.comment}
+                  </p>
+                )}
+              </div>
+              <button type="button" onClick={() => setSelectedReceipt(null)}>
+                Закрыть детали
+              </button>
+            </div>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Товар</th>
+                    <th>Количество</th>
+                    <th>Закупочная цена</th>
+                    <th>Сумма</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedReceipt.lines?.map((line: any) => (
+                    <tr key={line.variantId}>
+                      <td>
+                        <strong>{line.name}</strong>
+                        <small className="code">{line.barcode}</small>
+                      </td>
+                      <td>{line.quantity} шт.</td>
+                      <td>{formatSom(Number(line.unitCostMinor))}</td>
+                      <td>{formatSom(Number(line.valueMinor))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
         {!history.length ? (
           <p className="muted">Приёмок пока нет.</p>
         ) : (
@@ -219,6 +287,7 @@ function ReceivingWorkspace({
                   <th>Поставщик</th>
                   <th>Сумма</th>
                   <th>Создал</th>
+                  <th className="no-print">Состав</th>
                 </tr>
               </thead>
               <tbody>
@@ -229,6 +298,14 @@ function ReceivingWorkspace({
                     <td>{item.supplier || '—'}</td>
                     <td>{formatSom(Number(item.totalMinor))}</td>
                     <td>{item.createdBy}</td>
+                    <td className="no-print">
+                      <button
+                        type="button"
+                        onClick={() => void openDetail(item.id)}
+                      >
+                        Состав
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

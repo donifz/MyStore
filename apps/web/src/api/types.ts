@@ -47,6 +47,7 @@ export type Variant = {
   reserved?: number;
   available?: number;
   stockValueMinor?: number;
+  lastPurchaseMinor?: number;
 };
 export type Page<T> = {
   items: T[];

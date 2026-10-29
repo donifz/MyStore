@@ -83,6 +83,14 @@ export class InventoryController {
     await this.access.requireMembership(req.userId, shopId, 'receive');
     return this.receiving.list(shopId);
   }
+  @Get('receivings/:id') async receivingDetail(
+    @Param('shopId', ParseUUIDPipe) shopId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: UserRequest,
+  ) {
+    await this.access.requireMembership(req.userId, shopId, 'receive');
+    return this.receiving.detail(shopId, id);
+  }
   @Post('inventory/counts') async count(
     @Param('shopId', ParseUUIDPipe) shop: string,
     @Req() req: UserRequest,

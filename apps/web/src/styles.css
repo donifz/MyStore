@@ -235,6 +235,10 @@ small {
   gap: 16px;
   margin-bottom: 20px;
 }
+.toolbar label {
+  margin: 0;
+  font-size: 12px;
+}
 .search-label {
   width: min(440px, 100%);
   margin: 0;
@@ -558,8 +562,12 @@ td:first-child {
 .summary-panel {
   align-self: start;
 }
+.summary-panel button + button {
+  margin-top: 10px;
+}
 .line-card {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 14px;
   padding: 18px 0;
@@ -569,8 +577,17 @@ td:first-child {
   flex: 1;
   min-width: 0;
 }
+.line-card-full,
+.line-card > .notice,
+.line-card > .line-discount-box {
+  flex: 1 1 100%;
+  min-width: 0;
+}
 .line-card input {
   width: 90px;
+}
+.line-card .line-discount-box input {
+  width: 100%;
 }
 .line-card label {
   margin: 0;
@@ -580,6 +597,17 @@ td:first-child {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+.order-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-block: 14px;
+}
+.order-actions label,
+.order-actions p {
+  margin: 0;
 }
 .notice {
   background: #edf3fa;
@@ -591,7 +619,7 @@ td:first-child {
 }
 .stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 15px;
   margin: 22px 0;
 }
@@ -606,6 +634,8 @@ td:first-child {
 .checkbox {
   flex-direction: row;
   align-items: center;
+  gap: 10px;
+  width: fit-content;
 }
 .checkbox input {
   width: auto;
@@ -3556,6 +3586,7 @@ fieldset {
 }
 .reports-filter-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 @media (max-width: 820px) {
