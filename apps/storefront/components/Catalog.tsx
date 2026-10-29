@@ -16,6 +16,7 @@ import Refresh from './Refresh';
 import { Alert, EmptyState, LinkButton } from './ui';
 import ProductCard from './storefront/ProductCard';
 import CatalogFilters from './storefront/CatalogFilters';
+import CollapsibleFilters from './storefront/CollapsibleFilters';
 import StorefrontBanner from './storefront/StorefrontBanner';
 export default async function Catalog({
   search,
@@ -55,6 +56,14 @@ export default async function Catalog({
     }
   }
   const phone = store?.phone?.replace(/[^\d+]/g, '');
+  const activeFilterCount = [
+    filter.q,
+    filter.category,
+    filter.sort !== 'name',
+    filter.minPrice,
+    filter.maxPrice,
+    filter.inStock,
+  ].filter(Boolean).length;
   return (
     <div className="sf-stack">
       <Refresh />
@@ -182,17 +191,13 @@ export default async function Catalog({
         )}
         <div className="sf-catalog-layout">
           <aside className="sf-catalog-sidebar">
-            <details open>
-              <summary>
-                <Icon name="menu" />
-                Фильтры
-              </summary>
+            <CollapsibleFilters activeCount={activeFilterCount}>
               <CatalogFilters
                 filter={filter}
                 categories={products.categories}
                 slug={slug}
               />
-            </details>
+            </CollapsibleFilters>
           </aside>
           <div className="sf-catalog-results">
             {products.items.length ? (

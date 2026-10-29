@@ -15,15 +15,41 @@ for (const width of [320, 390, 768, 1440]) {
       .evaluate(
         (el) => getComputedStyle(el).gridTemplateColumns.split(' ').length,
       );
-    expect(columns).toBe(width >= 1100 ? 4 : width >= 768 ? 3 : 2);
+    expect(columns).toBe(
+      width >= 1100 ? 4 : width >= 768 ? 3 : width > 600 ? 2 : 1,
+    );
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
+    const filters = page.locator('.sf-catalog-sidebar details');
+    await expect(filters).toHaveJSProperty('open', width > 600);
+    if (width <= 600) {
+      const card = page.locator('.sf-product-card').first();
+      expect((await card.boundingBox())!.width).toBeGreaterThan(width - 48);
+      await expect(page.getByLabel('Поиск', { exact: true })).toBeHidden();
+      await filters.locator('summary').click();
+    }
     await expect(page.getByLabel('Поиск', { exact: true })).toBeVisible();
   });
 }
+test('mobile filters open by keyboard and retain active criteria', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/?q=layout&inStock=true');
+  const filters = page.locator('.sf-catalog-sidebar details');
+  await expect(filters.locator('summary')).toContainText('Выбрано: 2');
+  await expect(filters).toHaveJSProperty('open', false);
+  await filters.locator('summary').focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByLabel('Поиск', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Поиск', { exact: true })).toHaveValue('layout');
+  await expect(page.getByLabel('В наличии')).toBeChecked();
+  await filters.locator('summary').click();
+  await expect(filters).toHaveJSProperty('open', false);
+});
 test('pagination preserves the selected filters', async ({ page }) => {
   await page.goto('/?q=чашка&category=Посуда&sort=price-asc&inStock=true');
   await page.getByRole('link', { name: 'Следующая страница' }).click();
