@@ -72,6 +72,50 @@ export class ReportsService {
        FROM cash_shifts WHERE shop_id=$1 AND closed_at >= $2 AND closed_at < $3`,
       [shop, start, end],
     );
+    const dailyRows = await db.query(
+      `SELECT
+        to_char(d.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS day,
+        COALESCE(sum(d.total_minor) FILTER (WHERE d.kind='sale'),0) AS sales_minor,
+        COALESCE(sum(d.total_minor) FILTER (WHERE d.kind='return'),0) AS returns_minor,
+        count(*) FILTER (WHERE d.kind='sale') AS sales_count
+       FROM stock_documents d
+       WHERE d.shop_id=$1 AND d.created_at >= $2 AND d.created_at < $3 AND d.kind IN ('sale','return')
+       GROUP BY 1
+       ORDER BY 1 ASC
+       LIMIT 31`,
+      [shop, start, end],
+    );
+    const topProductsRows = await db.query(
+      `SELECT
+        v.id,
+        v.name,
+        COALESCE(v.category,'') AS category,
+        COALESCE(sum(sl.quantity),0) AS quantity_sold,
+        COALESCE(sum(sl.quantity * sl.unit_price_minor),0) AS revenue_minor,
+        COALESCE(sum(sl.cost_minor),0) AS cost_minor
+       FROM sale_lines sl
+       JOIN stock_documents d ON d.shop_id=sl.shop_id AND d.id=sl.document_id
+       JOIN variants v ON v.shop_id=sl.shop_id AND v.id=sl.variant_id
+       WHERE sl.shop_id=$1 AND d.created_at >= $2 AND d.created_at < $3
+       GROUP BY v.id, v.name, v.category
+       ORDER BY revenue_minor DESC, quantity_sold DESC
+       LIMIT 6`,
+      [shop, start, end],
+    );
+    const categoryRows = await db.query(
+      `SELECT
+        CASE WHEN COALESCE(trim(v.category),'')='' THEN 'Без категории' ELSE v.category END AS category,
+        COALESCE(sum(sl.quantity * sl.unit_price_minor),0) AS revenue_minor,
+        COALESCE(sum(sl.quantity),0) AS quantity_sold
+       FROM sale_lines sl
+       JOIN stock_documents d ON d.shop_id=sl.shop_id AND d.id=sl.document_id
+       JOIN variants v ON v.shop_id=sl.shop_id AND v.id=sl.variant_id
+       WHERE sl.shop_id=$1 AND d.created_at >= $2 AND d.created_at < $3
+       GROUP BY 1
+       ORDER BY revenue_minor DESC
+       LIMIT 6`,
+      [shop, start, end],
+    );
     const sales = Number(trade.sales),
       returns = Number(trade.returns);
     const cost = Number(trade.sold_cost) - Number(trade.returned_cost);
@@ -102,6 +146,26 @@ export class ReportsService {
       issuedOrdersMinor: Number(orders.issued_total),
       closedShifts: Number(shifts.closed_shifts),
       cashDiscrepancyMinor: Number(shifts.discrepancy),
+      dailySeries: dailyRows.map((r: any) => ({
+        day: String(r.day),
+        salesMinor: Number(r.sales_minor),
+        returnsMinor: Number(r.returns_minor),
+        netMinor: Number(r.sales_minor) - Number(r.returns_minor),
+        salesCount: Number(r.sales_count),
+      })),
+      topProducts: topProductsRows.map((r: any) => ({
+        id: String(r.id),
+        name: String(r.name),
+        category: String(r.category),
+        quantitySold: Number(r.quantity_sold),
+        revenueMinor: Number(r.revenue_minor),
+        profitMinor: Number(r.revenue_minor) - Number(r.cost_minor),
+      })),
+      categoryShare: categoryRows.map((r: any) => ({
+        category: String(r.category),
+        revenueMinor: Number(r.revenue_minor),
+        quantitySold: Number(r.quantity_sold),
+      })),
     };
   }
 

@@ -127,7 +127,12 @@ export function useDocument(scope: DraftScope) {
       addVariant,
       (e, code) => {
         const missing = e instanceof ApiError && e.status === 404;
-        setUnknownBarcode(missing && scope.kind === 'receiving' ? code : null);
+        if (missing && scope.kind === 'receiving') {
+          setUnknownBarcode(code);
+          setError('');
+          return;
+        }
+        setUnknownBarcode(null);
         setError(
           missing
             ? 'Неизвестный штрихкод. Проверьте код товара.'

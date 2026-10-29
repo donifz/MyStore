@@ -114,39 +114,42 @@ export default function StockOperationsPage() {
         </div>
       </div>
       <section className="panel form-panel" style={{ marginTop: 0 }}>
-        <form onSubmit={scan} style={{ marginBottom: '1.25rem' }}>
-          <label>
-            Сканировать штрихкод
-            <input
-              value={code}
-              placeholder="Введите или отсканируйте штрихкод"
-              onChange={(e) => setCode(e.target.value)}
-            />
-          </label>
-          <div className="actions">
-            <button>Найти</button>
-          </div>
-        </form>
-        <label>
-          Товар
-          <select
-            value={variantId}
-            onChange={(e) => {
-              setVariantId(e.target.value);
-              setKey(crypto.randomUUID());
-            }}
+        <div className="form-grid" style={{ marginBottom: '1.25rem' }}>
+          <form
+            onSubmit={scan}
+            style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}
           >
-            <option value="">Выберите товар</option>
-            {items.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.name} · {v.barcode}
-              </option>
-            ))}
-          </select>
-        </label>
+            <label style={{ flex: 1, margin: 0 }}>
+              Сканировать штрихкод
+              <input
+                value={code}
+                placeholder="Введите или отсканируйте штрихкод"
+                onChange={(e) => setCode(e.target.value)}
+              />
+            </label>
+            <button className="secondary">Найти</button>
+          </form>
+          <label style={{ margin: 0 }}>
+            Товар
+            <select
+              value={variantId}
+              onChange={(e) => {
+                setVariantId(e.target.value);
+                setKey(crypto.randomUUID());
+              }}
+            >
+              <option value="">Выберите товар</option>
+              {items.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name} · {v.barcode}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         {balance && (
-          <>
-            <div className="notice" style={{ marginBottom: '1.25rem' }}>
+          <div className="form-grid">
+            <div className="notice form-grid-full">
               <p style={{ margin: '0 0 0.25rem' }}>
                 В наличии: {balance.physical}; резерв: {balance.reserved};
                 доступно: {balance.available}.
@@ -204,7 +207,7 @@ export default function StockOperationsPage() {
                 }}
               />
             </label>
-            <div className="actions">
+            <div className="actions form-grid-full">
               <button
                 className="primary"
                 disabled={busy || !reason.trim()}
@@ -213,6 +216,7 @@ export default function StockOperationsPage() {
                 Провести пересчёт
               </button>
               <button
+                className="secondary"
                 disabled={busy || !reason.trim() || !quantity}
                 onClick={() => void post('writeoffs')}
               >
@@ -226,7 +230,7 @@ export default function StockOperationsPage() {
                 Утилизировать брак
               </button>
             </div>
-          </>
+          </div>
         )}
         {success && (
           <p role="status" className="success" style={{ marginTop: '1rem' }}>

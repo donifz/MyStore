@@ -142,4 +142,24 @@ export type FinancialSummary = {
   issuedOrdersMinor?: number;
   closedShifts: number;
   cashDiscrepancyMinor: number;
+  dailySeries?: {
+    day: string;
+    salesMinor: number;
+    returnsMinor: number;
+    netMinor: number;
+    salesCount: number;
+  }[];
+  topProducts?: {
+    id: string;
+    name: string;
+    category: string;
+    quantitySold: number;
+    revenueMinor: number;
+    profitMinor: number;
+  }[];
+  categoryShare?: {
+    category: string;
+    revenueMinor: number;
+    quantitySold: number;
+  }[];
 };

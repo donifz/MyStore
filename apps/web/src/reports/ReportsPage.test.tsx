@@ -46,6 +46,32 @@ it('applies date presets and forwards period filter to sales and orders CSV link
           issuedOrdersMinor: 0,
           closedShifts: 1,
           cashDiscrepancyMinor: 0,
+          dailySeries: [
+            {
+              day: '2026-10-29',
+              salesMinor: 50000,
+              returnsMinor: 0,
+              netMinor: 50000,
+              salesCount: 2,
+            },
+          ],
+          topProducts: [
+            {
+              id: 'p1',
+              name: 'Кофе в зёрнах',
+              category: 'Продукты',
+              quantitySold: 2,
+              revenueMinor: 50000,
+              profitMinor: 20000,
+            },
+          ],
+          categoryShare: [
+            {
+              category: 'Продукты',
+              revenueMinor: 50000,
+              quantitySold: 2,
+            },
+          ],
         };
     return new Response(JSON.stringify(body), {
       status: 200,
@@ -59,6 +85,11 @@ it('applies date presets and forwards period filter to sales and orders CSV link
   );
   const u = userEvent.setup();
   await screen.findByText('Выручка за вычетом возвратов');
+  expect(screen.getByText('Продажи и возвраты по дням')).toBeTruthy();
+  expect(screen.getByText('Каналы продаж и оплата')).toBeTruthy();
+  expect(screen.getByText('Структура выручки и маржинальность')).toBeTruthy();
+  expect(screen.getByText('40%')).toBeTruthy();
+  expect(screen.getByText(/Кофе в зёрнах \(2 шт\.\)/)).toBeTruthy();
   await u.click(screen.getByRole('button', { name: '7 дней' }));
   await vi.waitFor(() =>
     expect(urls.some((x) => x.includes('/reports/summary?from='))).toBe(true),

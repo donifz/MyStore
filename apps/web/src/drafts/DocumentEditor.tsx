@@ -45,14 +45,23 @@ export default function DocumentEditor({
         </p>
       )}
       {receiving && doc.unknownBarcode && !doc.productCreation && (
-        <button
-          type="button"
-          className="button"
-          disabled={disabled || !doc.online}
-          onClick={() => void doc.beginProductCreation()}
-        >
-          Создать товар с этим штрихкодом
-        </button>
+        <div role="status" className="notice unknown-barcode-banner">
+          <div>
+            <strong>Новый штрихкод: {doc.unknownBarcode}</strong>
+            <p className="muted" style={{ margin: '4px 0 0', fontWeight: 400 }}>
+              Такого товара ещё нет в каталоге магазина. Вы можете сразу создать
+              карточку и оприходовать первую партию.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="button primary"
+            disabled={disabled || !doc.online}
+            onClick={() => void doc.beginProductCreation()}
+          >
+            Создать товар с этим штрихкодом
+          </button>
+        </div>
       )}
       {receiving && doc.productCreation && (
         <ReceivingProductForm
