@@ -39,6 +39,7 @@ export default function ReceivingProductForm({
       }}
       initialBarcode={barcode === '__new__' ? '' : barcode}
       creationKey={creationKey}
+      purchaseCostText={unitCostText}
       barcodeReadOnly={barcode !== '__new__'}
       disabled={disabled}
       formLabel="Новый товар в приёмке"

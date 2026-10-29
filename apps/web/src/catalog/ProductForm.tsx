@@ -11,6 +11,7 @@ import { parseSom, formatSom } from '../api/money';
 import type { Variant } from '../api/types';
 import PhotoAssistant, { type CategoryNode } from './PhotoAssistant';
 import { photoFrom } from './product-photo';
+import { isPurchaseAboveSale, somOrNull } from '../receiving/purchase-warning';
 export default function ProductForm({
   shopId,
   parentId,
@@ -23,6 +24,7 @@ export default function ProductForm({
   savedLabel = 'Продолжить',
   creationKey,
   footerFields,
+  purchaseCostText,
   secondarySubmitLabel,
   onCancel,
   onSaved,
@@ -40,6 +42,7 @@ export default function ProductForm({
   savedLabel?: string;
   creationKey?: string;
   footerFields?: ReactNode;
+  purchaseCostText?: string;
   secondarySubmitLabel?: string;
   validateBeforeSave?: () => void;
   onCancel?: () => void;
@@ -400,6 +403,16 @@ export default function ProductForm({
       )}
       <footer className="product-form-footer">
         {footerFields}
+        {purchaseCostText &&
+          isPurchaseAboveSale(
+            purchaseCostText,
+            saved?.salePriceMinor ?? somOrNull(price),
+          ) && (
+            <p role="status" className="notice">
+              Закупочная цена за штуку выше цены продажи. Проверьте цены:
+              продажа может быть убыточной.
+            </p>
+          )}
         <p className="muted">
           Сохранение создаёт карточку. Количество и закупочную цену укажите в
           приёмке.
