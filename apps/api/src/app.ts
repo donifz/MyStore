@@ -255,6 +255,11 @@ export async function createApp(
   );
   if (publicHandler) {
     app.use(
+      express.static(resolve(__dirname, '../../storefront/public'), {
+        maxAge: '1h',
+      }),
+    );
+    app.use(
       (
         req: express.Request,
         res: express.Response,
