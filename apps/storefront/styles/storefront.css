@@ -3593,14 +3593,14 @@ select.sf-input:focus,
 }
 .sf-home .sf-stores-strip {
   border: 0;
-  padding-inline: 0;
+  padding: var(--sf-space-4);
   background: transparent;
   box-shadow: none;
 }
 .sf-home-mobile-nav {
   display: none;
 }
-@media (max-width: 900px) {
+@media (max-width: 1099px) {
   .sf-home-hero {
     min-height: 180px;
     padding: var(--sf-space-6);

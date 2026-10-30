@@ -15,7 +15,7 @@ for (const width of [320, 390, 768, 980, 1024, 1200, 1440]) {
       .evaluate(
         (el) => getComputedStyle(el).gridTemplateColumns.split(' ').length,
       );
-    expect(columns).toBe(width <= 350 ? 1 : width <= 900 ? 2 : 3);
+    expect(columns).toBe(width <= 350 ? 1 : width < 1100 ? 2 : 3);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
