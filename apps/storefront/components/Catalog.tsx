@@ -246,7 +246,7 @@ export default async function Catalog({
                   ) : filter.q || filter.category || filter.inStock ? (
                     <LinkButton
                       variant="primary"
-                      href={slug ? '/shop/' + slug : '/'}
+                      href={slug ? '/shop/' + slug : '/?inStock=false#catalog'}
                     >
                       Сбросить фильтры
                     </LinkButton>

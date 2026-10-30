@@ -51,6 +51,10 @@ test('home shows available products first and stores after the catalogue', async
   ).toBeVisible();
   await expect(page.locator('.sf-home-hero')).toBeVisible();
   await expect(page.locator('.sf-product-card')).toHaveCount(1);
+  await page.locator('.sf-catalog-sidebar summary').click();
+  await expect(
+    page.getByRole('link', { name: 'Сбросить', exact: true }),
+  ).toHaveAttribute('href', '/?inStock=false#catalog');
   const catalog = await page.locator('#catalog').boundingBox();
   const stores = await page.locator('.sf-stores-strip').boundingBox();
   expect(stores!.y).toBeGreaterThan(catalog!.y);
