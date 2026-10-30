@@ -102,7 +102,16 @@ app
                         category: 'Электроника',
                       },
                     ]
-                  : [item],
+                  : url.searchParams.get('category') === 'Посуда'
+                    ? [
+                        item,
+                        {
+                          ...item,
+                          id: '55555555-5555-4555-8555-555555555555',
+                          name: 'Чайник для проверки похожих товаров',
+                        },
+                      ]
+                    : [item],
             total: url.searchParams.get('q') === 'empty' ? 0 : 30,
             page: Number(url.searchParams.get('page') || 1),
             pageSize: 24,

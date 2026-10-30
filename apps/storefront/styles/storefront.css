@@ -3417,3 +3417,50 @@ select.sf-input:focus,
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* A tablet-sized CSS viewport can also be a phone in desktop-site mode. */
+@media (max-width: 1099px) {
+  .sf-mobile-product-heading {
+    display: block;
+    max-width: 800px;
+    margin-inline: auto;
+  }
+  .sf-mobile-product-heading .sf-detail-title h1 {
+    font-size: clamp(24px, 3vw, 32px);
+    margin-bottom: 0;
+  }
+  .sf-detail-layout {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 800px;
+    margin-inline: auto;
+    gap: var(--sf-space-4);
+  }
+  .sf-gallery {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .sf-gallery-main {
+    aspect-ratio: 4 / 3;
+  }
+  .sf-purchase-panel {
+    grid-column: 1;
+    grid-row: 2;
+    position: static;
+  }
+  .sf-detail-copy {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .sf-detail-copy > .sf-eyebrow,
+  .sf-detail-copy > .sf-detail-title {
+    display: none;
+  }
+  .sf-related-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .sf-related-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
