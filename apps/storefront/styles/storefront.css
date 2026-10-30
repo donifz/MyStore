@@ -3362,3 +3362,58 @@ select.sf-input:focus,
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+/* The 980px desktop viewport used by some mobile browsers needs wide cards. */
+@media (min-width: 601px) and (max-width: 1099px) {
+  .sf-catalog-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sf-catalog-sidebar {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .sf-catalog-sidebar summary {
+    min-height: var(--sf-control);
+    padding: var(--sf-space-3) var(--sf-space-4);
+    border: 1px solid var(--sf-border);
+    border-radius: var(--sf-radius-card);
+    background: var(--sf-surface);
+  }
+  .sf-catalog-sidebar details[open] {
+    padding: 0 var(--sf-space-4) var(--sf-space-4);
+    border: 1px solid var(--sf-border);
+    border-radius: var(--sf-radius-card);
+    background: var(--sf-surface);
+  }
+  .sf-catalog-sidebar details[open] summary {
+    padding-inline: 0;
+    border: 0;
+    border-bottom: 1px solid var(--sf-border);
+    border-radius: 0;
+  }
+  .sf-catalog-sidebar .sf-filters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .sf-catalog-sidebar .sf-price-range {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .sf-catalog-sidebar .sf-filters .sf-filter-actions {
+    grid-column: 1 / -1;
+    flex-direction: row;
+  }
+  .sf-catalog-sidebar .sf-filters .sf-filter-actions .sf-button {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+  }
+  .sf-catalog-results .sf-product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

@@ -13,7 +13,7 @@ export default function CollapsibleFilters({
   const details = useRef<HTMLDetailsElement>(null);
 
   useEffect(() => {
-    const media = window.matchMedia('(max-width: 600px)');
+    const media = window.matchMedia('(max-width: 1099px)');
     const sync = () => {
       if (details.current) details.current.open = !media.matches;
     };
