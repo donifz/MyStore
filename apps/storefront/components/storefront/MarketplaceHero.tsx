@@ -4,10 +4,33 @@ import Icon from './Icon';
 export default function MarketplaceHero({
   products = [],
   shops = false,
+  compact = false,
 }: {
   products?: Product[];
   shops?: boolean;
+  compact?: boolean;
 }) {
+  if (compact) {
+    return (
+      <section className="sf-home-hero">
+        <div className="sf-home-hero__copy">
+          <h1>Товары рядом</h1>
+          <p>Смотрите наличие и забирайте в магазине</p>
+          <Link className="sf-button sf-button--primary" href="#catalog">
+            Смотреть товары <Icon name="arrow" width={18} height={18} />
+          </Link>
+        </div>
+        <div className="sf-home-hero__benefits">
+          <span>
+            <Icon name="shop" width={24} height={24} /> Наличие в магазинах
+          </span>
+          <span>
+            <Icon name="pin" width={24} height={24} /> Самовывоз из магазина
+          </span>
+        </div>
+      </section>
+    );
+  }
   const photos = products.filter((p) => p.photoUrl).slice(0, 3);
   return (
     <div className="sf-hero-layout">
