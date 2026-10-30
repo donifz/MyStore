@@ -107,6 +107,10 @@ const seen = [];
   try {
     const root = await get('/');
     assert.equal(root.response.status, 200);
+    const hero = await fetch(base + '/osh-hero.webp');
+    assert.equal(hero.status, 200, 'Storefront public assets must be served');
+    assert.equal(hero.headers.get('content-type'), 'image/webp');
+    assert((await hero.arrayBuffer()).byteLength > 0);
     const heading = root.doc.querySelector('h1')?.textContent || '';
     assert(heading.includes('Товары рядом'));
     assert(
