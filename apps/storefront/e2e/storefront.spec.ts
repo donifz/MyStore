@@ -28,6 +28,13 @@ for (const width of [320, 390, 768, 980, 1024, 1200, 1440]) {
       expect((await card.boundingBox())!.width).toBeGreaterThan(
         width <= 350 ? width - 48 : width * 0.4,
       );
+      const availability = await page
+        .locator('.sf-home-availability')
+        .boundingBox();
+      const filterButton = await filters.locator('summary').boundingBox();
+      expect(Math.abs(availability!.y - filterButton!.y)).toBeLessThanOrEqual(
+        4,
+      );
       await expect(page.getByLabel('Поиск', { exact: true })).toBeHidden();
       await filters.locator('summary').click();
     } else {
