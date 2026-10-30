@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 const id = '11111111-1111-4111-8111-111111111111';
 const secondId = '22222222-2222-4222-8222-222222222222';
-for (const width of [320, 390, 768, 1440]) {
+for (const width of [320, 390, 768, 1024, 1200, 1440]) {
   test(`catalog has a usable grid without overflow at ${width}px`, async ({
     page,
   }) => {
@@ -16,7 +16,17 @@ for (const width of [320, 390, 768, 1440]) {
         (el) => getComputedStyle(el).gridTemplateColumns.split(' ').length,
       );
     expect(columns).toBe(
-      width >= 1100 ? 4 : width >= 768 ? 3 : width > 600 ? 2 : 1,
+      width >= 1380
+        ? 4
+        : width >= 1100
+          ? 3
+          : width >= 901
+            ? 2
+            : width >= 768
+              ? 3
+              : width > 600
+                ? 2
+                : 1,
     );
     expect(
       await page.evaluate(
@@ -30,6 +40,13 @@ for (const width of [320, 390, 768, 1440]) {
       expect((await card.boundingBox())!.width).toBeGreaterThan(width - 48);
       await expect(page.getByLabel('Поиск', { exact: true })).toBeHidden();
       await filters.locator('summary').click();
+    } else if (width >= 901) {
+      const sidebar = page.locator('.sf-catalog-sidebar');
+      expect(
+        await sidebar.evaluate((el) => getComputedStyle(el).position),
+      ).toBe('sticky');
+      const card = page.locator('.sf-product-card').first();
+      expect((await card.boundingBox())!.width).toBeGreaterThan(220);
     }
     await expect(page.getByLabel('Поиск', { exact: true })).toBeVisible();
   });
