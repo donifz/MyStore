@@ -13,6 +13,7 @@ const paths: Record<string, string> = {
   truck:
     'M1 4h13v13H1Z M14 9h4l4 4v4h-8 M8 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0 M20 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0',
   menu: 'M4 6h16 M4 12h16 M4 18h16',
+  home: 'm3 10 9-7 9 7v11h-7v-7h-4v7H3Z',
   filter: 'M4 7h16 M7 12h10 M10 17h4',
   trash: 'M3 6h18 M9 6V3h6v3 M5 6l1 15h12l1-15 M10 10v7 M14 10v7',
   phone:

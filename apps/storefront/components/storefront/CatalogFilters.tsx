@@ -88,7 +88,7 @@ export default function CatalogFilters({
         {isFiltered && (
           <LinkButton
             variant="secondary"
-            href={slug ? '/shop/' + slug : '/'}
+            href={slug ? '/shop/' + slug : '/?inStock=false#catalog'}
             className="sf-button--reset"
           >
             Сбросить

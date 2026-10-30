@@ -18,6 +18,7 @@ import ProductCard from './storefront/ProductCard';
 import CatalogFilters from './storefront/CatalogFilters';
 import CollapsibleFilters from './storefront/CollapsibleFilters';
 import StorefrontBanner from './storefront/StorefrontBanner';
+import { CartLink } from './CartProvider';
 export default async function Catalog({
   search,
   slug,
@@ -25,7 +26,8 @@ export default async function Catalog({
   search: Search;
   slug?: string;
 }) {
-  const filter = query(search, slug);
+  const initialHome = !slug && Object.keys(search).length === 0;
+  const filter = query(initialHome ? { inStock: 'true' } : search, slug);
   let products: Products, store: Store | undefined;
   try {
     if (slug)
@@ -64,12 +66,23 @@ export default async function Catalog({
     filter.maxPrice,
     filter.inStock,
   ].filter(Boolean).length;
+  const filtersPanel = (
+    <aside className="sf-catalog-sidebar">
+      <CollapsibleFilters activeCount={activeFilterCount} compact={!store}>
+        <CatalogFilters
+          filter={filter}
+          categories={products.categories}
+          slug={slug}
+        />
+      </CollapsibleFilters>
+    </aside>
+  );
   return (
-    <div className="sf-stack">
+    <div className={store ? 'sf-stack' : 'sf-stack sf-home'}>
       <Refresh />
       {store && <StorefrontBanner banner={store.banner} />}
       {!store ? (
-        <MarketplaceHero products={products.items} />
+        <MarketplaceHero products={products.items} compact />
       ) : (
         <section className="sf-store-hero">
           <div className="sf-store-hero-main">
@@ -130,35 +143,17 @@ export default async function Catalog({
           </div>
         </section>
       )}
-      {!store && stores.length > 0 && (
-        <section className="sf-stores-strip sf-panel">
-          <div className="sf-section-heading">
-            <h2>Магазины рядом</h2>
-            <Link href="/shops">
-              Все магазины <span aria-hidden="true">→</span>
-            </Link>
-          </div>
-          <div className="sf-stores-strip-grid">
-            {stores.map((s) => (
-              <Link href={'/shop/' + s.slug} key={s.slug}>
-                <span className="sf-mini-logo">{s.name.slice(0, 1)}</span>
-                <span>
-                  <strong>{s.name}</strong>
-                  <small>
-                    {s.city} · {s.productCount ?? 0} товаров
-                  </small>
-                </span>
-                <Icon name="arrow" />
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
       <section id="catalog" className="sf-stack">
         <div className="sf-section-heading">
           <div>
-            <p className="sf-eyebrow">Выбирайте своё</p>
-            <h2>{store ? 'Товары магазина' : 'Все товары'}</h2>
+            {store && <p className="sf-eyebrow">Выбирайте своё</p>}
+            <h2>
+              {store
+                ? 'Товары магазина'
+                : filter.inStock
+                  ? 'Товары в наличии'
+                  : 'Все товары'}
+            </h2>
           </div>
           <span className="sf-count-pill">{products.total} товаров</span>
         </div>
@@ -189,16 +184,27 @@ export default async function Catalog({
             ))}
           </div>
         )}
+        {!store && (
+          <div className="sf-home-toolbar">
+            <nav aria-label="Наличие товаров" className="sf-home-availability">
+              <Link
+                href="/?inStock=true#catalog"
+                aria-current={filter.inStock ? 'page' : undefined}
+              >
+                В наличии
+              </Link>
+              <Link
+                href="/?inStock=false#catalog"
+                aria-current={!filter.inStock ? 'page' : undefined}
+              >
+                Все товары
+              </Link>
+            </nav>
+            {filtersPanel}
+          </div>
+        )}
         <div className="sf-catalog-layout">
-          <aside className="sf-catalog-sidebar">
-            <CollapsibleFilters activeCount={activeFilterCount}>
-              <CatalogFilters
-                filter={filter}
-                categories={products.categories}
-                slug={slug}
-              />
-            </CollapsibleFilters>
-          </aside>
+          {store && filtersPanel}
           <div className="sf-catalog-results">
             {products.items.length ? (
               <div className="sf-product-grid">
@@ -240,7 +246,7 @@ export default async function Catalog({
                   ) : filter.q || filter.category || filter.inStock ? (
                     <LinkButton
                       variant="primary"
-                      href={slug ? '/shop/' + slug : '/'}
+                      href={slug ? '/shop/' + slug : '/?inStock=false#catalog'}
                     >
                       Сбросить фильтры
                     </LinkButton>
@@ -272,6 +278,47 @@ export default async function Catalog({
           </div>
         </div>
       </section>
+      {!store && stores.length > 0 && (
+        <section className="sf-stores-strip sf-panel">
+          <div className="sf-section-heading">
+            <h2>Магазины рядом</h2>
+            <Link href="/shops">
+              Все магазины <span aria-hidden="true">→</span>
+            </Link>
+          </div>
+          <div className="sf-stores-strip-grid">
+            {stores.map((s) => (
+              <Link href={'/shop/' + s.slug} key={s.slug}>
+                <span className="sf-mini-logo">{s.name.slice(0, 1)}</span>
+                <span>
+                  <strong>{s.name}</strong>
+                  <small>
+                    {s.city} · {s.productCount ?? 0} товаров
+                  </small>
+                </span>
+                <Icon name="arrow" />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+      {!store && (
+        <nav className="sf-home-mobile-nav" aria-label="Навигация на телефоне">
+          <Link href="/" aria-current="page">
+            <Icon name="home" /> Главная
+          </Link>
+          <Link href="/#catalog">
+            <Icon name="menu" /> Каталог
+          </Link>
+          <Link href="/favorites">
+            <Icon name="heart" /> Избранное
+          </Link>
+          <CartLink />
+          <a href="/seller/login">
+            <Icon name="user" /> Войти
+          </a>
+        </nav>
+      )}
     </div>
   );
 }

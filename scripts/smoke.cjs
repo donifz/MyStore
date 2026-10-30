@@ -39,7 +39,7 @@ async function main() {
     .trim();
   assert.match(
     heading || '',
-    /^Товары рядом\s*от разных магазинов$/,
+    /^Товары рядом$/,
     'The storefront must render the marketplace heading in its initial HTML',
   );
   const shop = '/shops/11111111-1111-4111-8111-111111111111';

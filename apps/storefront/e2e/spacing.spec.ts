@@ -8,7 +8,7 @@ for (const width of [320, 390, 768, 1440]) {
     const cards = page.locator('.sf-product-card');
     await expect(cards).toHaveCount(4);
     await expect(page.locator('.sf-hero-benefits')).toHaveCount(0);
-    await expect(page.locator('.sf-market-art')).toBeVisible();
+    await expect(page.locator('.sf-home-hero')).toBeVisible();
     const stripPadding = await page
       .locator('.sf-stores-strip')
       .evaluate((el) => parseFloat(getComputedStyle(el).paddingLeft));

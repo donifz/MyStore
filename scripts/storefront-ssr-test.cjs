@@ -109,7 +109,19 @@ const seen = [];
     assert.equal(root.response.status, 200);
     const heading = root.doc.querySelector('h1')?.textContent || '';
     assert(heading.includes('Товары рядом'));
-    assert(heading.includes('от разных магазинов'));
+    assert(
+      root.doc.body.textContent.includes(
+        'Смотрите наличие и забирайте в магазине',
+      ),
+    );
+    assert(root.doc.body.textContent.includes('Товары в наличии'));
+    assert(
+      seen.some(
+        (url) =>
+          url.pathname === '/api/public/products' &&
+          url.searchParams.get('inStock') === 'true',
+      ),
+    );
     assert(root.doc.body.textContent.includes('Керамическая чашка'));
     assert(root.doc.body.textContent.includes('240'));
     assert(

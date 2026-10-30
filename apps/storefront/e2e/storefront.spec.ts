@@ -15,41 +15,62 @@ for (const width of [320, 390, 768, 980, 1024, 1200, 1440]) {
       .evaluate(
         (el) => getComputedStyle(el).gridTemplateColumns.split(' ').length,
       );
-    expect(columns).toBe(
-      width >= 1380 ? 4 : width >= 1100 ? 3 : width > 600 ? 2 : 1,
-    );
+    expect(columns).toBe(width <= 350 ? 1 : width < 1100 ? 2 : 3);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
     const filters = page.locator('.sf-catalog-sidebar details');
-    await expect(filters).toHaveJSProperty('open', width >= 1100);
+    await expect(filters).toHaveJSProperty('open', false);
     if (width <= 600) {
       const card = page.locator('.sf-product-card').first();
-      expect((await card.boundingBox())!.width).toBeGreaterThan(width - 48);
-      await expect(page.getByLabel('Поиск', { exact: true })).toBeHidden();
-      await filters.locator('summary').click();
-    } else if (width < 1100) {
-      const sidebar = page.locator('.sf-catalog-sidebar');
-      const card = page.locator('.sf-product-card').first();
-      const sidebarBox = (await sidebar.boundingBox())!;
-      const cardBox = (await card.boundingBox())!;
-      expect(cardBox.y).toBeGreaterThan(sidebarBox.y);
-      expect(cardBox.width).toBeGreaterThan(width * 0.4);
+      expect((await card.boundingBox())!.width).toBeGreaterThan(
+        width <= 350 ? width - 48 : width * 0.4,
+      );
+      const availability = await page
+        .locator('.sf-home-availability')
+        .boundingBox();
+      const filterButton = await filters.locator('summary').boundingBox();
+      expect(Math.abs(availability!.y - filterButton!.y)).toBeLessThanOrEqual(
+        4,
+      );
       await expect(page.getByLabel('Поиск', { exact: true })).toBeHidden();
       await filters.locator('summary').click();
     } else {
-      const sidebar = page.locator('.sf-catalog-sidebar');
-      expect(
-        await sidebar.evaluate((el) => getComputedStyle(el).position),
-      ).toBe('sticky');
       const card = page.locator('.sf-product-card').first();
-      expect((await card.boundingBox())!.width).toBeGreaterThan(220);
+      expect((await card.boundingBox())!.width).toBeGreaterThan(
+        width < 1100 ? width * 0.4 : 220,
+      );
+      await expect(page.getByLabel('Поиск', { exact: true })).toBeHidden();
+      await filters.locator('summary').click();
     }
     await expect(page.getByLabel('Поиск', { exact: true })).toBeVisible();
   });
 }
+test('home shows available products first and stores after the catalogue', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  await expect(
+    page.getByRole('heading', { name: 'Товары в наличии' }),
+  ).toBeVisible();
+  await expect(page.locator('.sf-home-hero')).toBeVisible();
+  await expect(page.locator('.sf-product-card')).toHaveCount(1);
+  await page.locator('.sf-catalog-sidebar summary').click();
+  await expect(
+    page.getByRole('link', { name: 'Сбросить', exact: true }),
+  ).toHaveAttribute('href', '/?inStock=false#catalog');
+  const catalog = await page.locator('#catalog').boundingBox();
+  const stores = await page.locator('.sf-stores-strip').boundingBox();
+  expect(stores!.y).toBeGreaterThan(catalog!.y);
+  await page
+    .getByRole('navigation', { name: 'Наличие товаров' })
+    .getByRole('link', { name: 'Все товары' })
+    .click();
+  await expect(page.getByRole('heading', { name: 'Все товары' })).toBeVisible();
+});
 test('mobile filters open by keyboard and retain active criteria', async ({
   page,
 }) => {
