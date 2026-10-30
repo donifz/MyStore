@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 const id = '11111111-1111-4111-8111-111111111111';
 const secondId = '22222222-2222-4222-8222-222222222222';
-for (const width of [320, 390, 768, 1024, 1200, 1440]) {
+for (const width of [320, 390, 768, 980, 1024, 1200, 1440]) {
   test(`catalog has a usable grid without overflow at ${width}px`, async ({
     page,
   }) => {
@@ -16,17 +16,7 @@ for (const width of [320, 390, 768, 1024, 1200, 1440]) {
         (el) => getComputedStyle(el).gridTemplateColumns.split(' ').length,
       );
     expect(columns).toBe(
-      width >= 1380
-        ? 4
-        : width >= 1100
-          ? 3
-          : width >= 901
-            ? 2
-            : width >= 768
-              ? 3
-              : width > 600
-                ? 2
-                : 1,
+      width >= 1380 ? 4 : width >= 1100 ? 3 : width > 600 ? 2 : 1,
     );
     expect(
       await page.evaluate(
@@ -34,13 +24,22 @@ for (const width of [320, 390, 768, 1024, 1200, 1440]) {
       ),
     ).toBe(true);
     const filters = page.locator('.sf-catalog-sidebar details');
-    await expect(filters).toHaveJSProperty('open', width > 600);
+    await expect(filters).toHaveJSProperty('open', width >= 1100);
     if (width <= 600) {
       const card = page.locator('.sf-product-card').first();
       expect((await card.boundingBox())!.width).toBeGreaterThan(width - 48);
       await expect(page.getByLabel('Поиск', { exact: true })).toBeHidden();
       await filters.locator('summary').click();
-    } else if (width >= 901) {
+    } else if (width < 1100) {
+      const sidebar = page.locator('.sf-catalog-sidebar');
+      const card = page.locator('.sf-product-card').first();
+      const sidebarBox = (await sidebar.boundingBox())!;
+      const cardBox = (await card.boundingBox())!;
+      expect(cardBox.y).toBeGreaterThan(sidebarBox.y);
+      expect(cardBox.width).toBeGreaterThan(width * 0.4);
+      await expect(page.getByLabel('Поиск', { exact: true })).toBeHidden();
+      await filters.locator('summary').click();
+    } else {
       const sidebar = page.locator('.sf-catalog-sidebar');
       expect(
         await sidebar.evaluate((el) => getComputedStyle(el).position),
@@ -66,6 +65,22 @@ test('mobile filters open by keyboard and retain active criteria', async ({
   await expect(page.getByLabel('В наличии')).toBeChecked();
   await filters.locator('summary').click();
   await expect(filters).toHaveJSProperty('open', false);
+});
+test('desktop-site viewport keeps tablet filters usable', async ({ page }) => {
+  await page.setViewportSize({ width: 980, height: 720 });
+  await page.goto('/?q=layout&inStock=true');
+  const filters = page.locator('.sf-catalog-sidebar details');
+  await expect(filters.locator('summary')).toContainText('Выбрано: 2');
+  await expect(filters).toHaveJSProperty('open', false);
+  await filters.locator('summary').focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByLabel('Поиск', { exact: true })).toHaveValue('layout');
+  await expect(page.getByLabel('В наличии')).toBeChecked();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
 });
 test('pagination preserves the selected filters', async ({ page }) => {
   await page.goto('/?q=чашка&category=Посуда&sort=price-asc&inStock=true');
