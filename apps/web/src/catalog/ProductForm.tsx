@@ -23,13 +23,17 @@ export default function ProductForm({
   formLabel = 'Добавить товар',
   savedLabel = 'Продолжить',
   creationKey,
+  headerActions,
   footerFields,
   purchaseCostText,
+  addToDraftLabel,
   secondarySubmitLabel,
   onCancel,
   onSaved,
+  onAddToDraft,
   onSecondarySaved,
   validateBeforeSave,
+  validateDraftSave,
 }: {
   shopId: string;
   parentId?: string;
@@ -41,12 +45,16 @@ export default function ProductForm({
   formLabel?: string;
   savedLabel?: string;
   creationKey?: string;
+  headerActions?: ReactNode;
   footerFields?: ReactNode;
   purchaseCostText?: string;
+  addToDraftLabel?: string;
   secondarySubmitLabel?: string;
   validateBeforeSave?: () => void;
+  validateDraftSave?: () => void;
   onCancel?: () => void;
   onSaved: (variant: Variant) => Promise<boolean | void> | boolean | void;
+  onAddToDraft?: (variant: Variant) => Promise<boolean | void> | boolean | void;
   onSecondarySaved?: (
     variant: Variant,
   ) => Promise<boolean | void> | boolean | void;
@@ -62,6 +70,7 @@ export default function ProductForm({
     [photo, setPhoto] = useState(''),
     [photos, setPhotos] = useState<string[]>([]),
     [categories, setCategories] = useState<CategoryNode[]>([]),
+    [extraOpen, setExtraOpen] = useState(false),
     [busy, setBusy] = useState(false),
     [loadingPhoto, setLoadingPhoto] = useState(false),
     [recognizing, setRecognizing] = useState(false),
@@ -73,7 +82,7 @@ export default function ProductForm({
     photoRevision = useRef(0),
     lookupRevision = useRef(0),
     productCreationKey = useRef(creationKey ?? crypto.randomUUID()),
-    submitIntent = useRef<'primary' | 'secondary'>('primary'),
+    submitIntent = useRef<'primary' | 'draft' | 'secondary'>('primary'),
     id = useId();
   const updateCategories = useCallback(
     (value: CategoryNode[]) => setCategories(Array.isArray(value) ? value : []),
@@ -147,13 +156,18 @@ export default function ProductForm({
     const submitter = (e.nativeEvent as SubmitEvent)
       .submitter as HTMLButtonElement | null;
     submitIntent.current =
-      submitter?.dataset.intent === 'secondary' ? 'secondary' : 'primary';
+      submitter?.dataset.intent === 'secondary'
+        ? 'secondary'
+        : submitter?.dataset.intent === 'draft'
+          ? 'draft'
+          : 'primary';
     if (locked || submitting.current) return;
     submitting.current = true;
     setBusy(true);
     setError('');
     try {
       if (submitIntent.current === 'primary') validateBeforeSave?.();
+      if (submitIntent.current === 'draft') validateDraftSave?.();
       let variant = saved;
       if (!variant) {
         if (!name.trim()) throw new Error('Укажите название товара.');
@@ -193,7 +207,9 @@ export default function ProductForm({
       const afterSave =
         submitIntent.current === 'secondary' && onSecondarySaved
           ? onSecondarySaved
-          : onSaved;
+          : submitIntent.current === 'draft' && onAddToDraft
+            ? onAddToDraft
+            : onSaved;
       if ((await afterSave(variant)) === false)
         setError(
           'Карточка сохранена, но черновик не изменён. Обновите черновик и добавьте товар.',
@@ -207,7 +223,7 @@ export default function ProductForm({
   }
   return (
     <form
-      className="product-form"
+      className="product-form product-form-compact"
       aria-label={formLabel}
       onSubmit={(e) => void submit(e)}
     >
@@ -221,38 +237,64 @@ export default function ProductForm({
         </section>
       ) : (
         <fieldset disabled={locked}>
-          <div className="product-form-grid">
-            <section className="product-form-block product-form-photo">
-              <p className="eyebrow">Фото товара</p>
-              <h2>Фото и распознавание</h2>
-              <p className="muted">
-                Добавьте снимок или заполните данные вручную.
-              </p>
-              <div className="product-photo-box">
-                {photo ? (
-                  <img src={photo} alt="Фото перед сохранением" />
-                ) : (
-                  <div className="product-photo-empty" aria-hidden="true">
-                    <span>▧</span>
-                    <p>Здесь появится фото товара</p>
-                  </div>
+          <section className="product-form-block product-form-card">
+            <div className="product-form-card-head">
+              <h2>{title}</h2>
+              {onCancel && (
+                <button
+                  type="button"
+                  className="product-form-close"
+                  aria-label="Закрыть карточку"
+                  disabled={busy}
+                  onClick={onCancel}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+            {headerActions}
+            <div className="product-form-media-row">
+              <div className="product-photo-column">
+                <div className="product-photo-box">
+                  {photo ? (
+                    <>
+                      <img src={photo} alt="Фото перед сохранением" />
+                      <button
+                        type="button"
+                        className="product-photo-clear"
+                        aria-label="Удалить фото"
+                        onClick={() => {
+                          photoRevision.current++;
+                          setPhoto('');
+                          setPhotos([]);
+                        }}
+                      >
+                        ×
+                      </button>
+                    </>
+                  ) : (
+                    <div className="product-photo-empty" aria-hidden="true">
+                      <span>📷</span>
+                      <p>Фото товара</p>
+                    </div>
+                  )}
+                </div>
+                <label className="product-photo-picker">
+                  <span>{photo ? 'Заменить фото' : 'Добавить фото'}</span>
+                  <input
+                    type="file"
+                    aria-label="Фото товара"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    capture="environment"
+                    onChange={(e) => void choose(e.target.files)}
+                  />
+                </label>
+                {loadingPhoto && <p role="status">Подготовка фото…</p>}
+                {photos.length > 1 && (
+                  <p className="muted">Выбрано фотографий: {photos.length}</p>
                 )}
               </div>
-              <label>
-                Фото товара (камера или файл)
-                <input
-                  type="file"
-                  aria-label="Фото товара"
-                  accept="image/jpeg,image/png,image/webp"
-                  multiple
-                  capture="environment"
-                  onChange={(e) => void choose(e.target.files)}
-                />
-              </label>
-              {loadingPhoto && <p role="status">Подготовка фото…</p>}
-              {photos.length > 1 && (
-                <p className="muted">Выбрано фотографий: {photos.length}</p>
-              )}
               <PhotoAssistant
                 shopId={shopId}
                 photo={photo}
@@ -265,135 +307,154 @@ export default function ProductForm({
                   setSubcategory(s.subcategory);
                 }}
               />
-            </section>
-            <section className="product-form-block">
-              <p className="eyebrow">Основные данные</p>
-              <h2>{title}</h2>
+            </div>
+            <label>
+              Название
+              <input
+                autoFocus
+                required
+                maxLength={200}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Например, принтер Xprinter XP-365B"
+              />
+            </label>
+            <div className="product-form-fields">
               <label>
-                Название
+                Цена продажи, сом
                 <input
-                  autoFocus
                   required
-                  maxLength={200}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Например, принтер Xprinter"
+                  inputMode="decimal"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="0,00"
                 />
               </label>
               <label>
-                Штрихкод
-                <input
-                  maxLength={64}
-                  readOnly={barcodeReadOnly}
-                  value={barcode}
-                  onChange={(e) => {
-                    lookupRevision.current++;
-                    setBarcodeBusy(false);
-                    setBarcode(e.target.value);
-                    setHint('');
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      if (/^\d{8,14}$/.test(barcode.trim())) void lookup();
-                    }
-                  }}
-                  placeholder="Сканируйте или оставьте пустым"
-                />
-              </label>
-              <div className="product-barcode-tools">
-                <p className="muted">
-                  Сканер вводит код как клавиатура. Пустое поле — создадим код.
-                </p>
-                <button
-                  type="button"
-                  disabled={!barcode.trim() || locked}
-                  onClick={() => void lookup()}
-                >
-                  Найти по штрихкоду
-                </button>
-              </div>
-              {hint && (
-                <p role="status" className="notice">
-                  {hint}
-                </p>
-              )}
-              <div className="product-form-fields">
-                <label>
-                  Цена продажи, сом
-                  <input
-                    required
-                    inputMode="decimal"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    placeholder="0,00"
-                  />
-                </label>
-                <label>
-                  Категория
-                  <select
-                    value={category}
-                    onChange={(e) => {
-                      setCategory(e.target.value);
-                      setSubcategory('');
-                    }}
-                  >
-                    <option value="">Без категории</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.name}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <label>
-                Подкатегория
+                Категория
                 <select
-                  value={subcategory}
-                  disabled={!category}
-                  onChange={(e) => setSubcategory(e.target.value)}
+                  value={category}
+                  onChange={(e) => {
+                    setCategory(e.target.value);
+                    setSubcategory('');
+                  }}
                 >
-                  <option value="">Без подкатегории</option>
-                  {categories
-                    .find((c) => c.name === category)
-                    ?.children.map((c) => (
-                      <option key={c.id} value={c.name}>
-                        {c.name}
-                      </option>
-                    ))}
+                  <option value="">Без категории</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
                 </select>
               </label>
-              <div className="product-form-fields">
+            </div>
+            {footerFields}
+            <div
+              className={`product-form-extra${extraOpen ? ' open' : ''}`}
+              onFocusCapture={() => setExtraOpen(true)}
+            >
+              <button
+                type="button"
+                className="product-form-extra-toggle"
+                aria-expanded={extraOpen}
+                onClick={() => setExtraOpen((open) => !open)}
+              >
+                <span className="product-form-extra-chevron" aria-hidden="true">
+                  {extraOpen ? '▴' : '▾'}
+                </span>
+                <span>
+                  <strong>Дополнительные поля</strong>
+                  <small>Штрихкод, артикул, вариант, цвет, описание</small>
+                </span>
+              </button>
+              <div className="product-form-extra-body">
                 <label>
-                  Размер / вариант
+                  Штрихкод
                   <input
-                    maxLength={80}
-                    value={size}
-                    onChange={(e) => setSize(e.target.value)}
-                    placeholder="Например, M или 42"
+                    maxLength={64}
+                    readOnly={barcodeReadOnly}
+                    value={barcode}
+                    onChange={(e) => {
+                      lookupRevision.current++;
+                      setBarcodeBusy(false);
+                      setBarcode(e.target.value);
+                      setHint('');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (/^\d{8,14}$/.test(barcode.trim())) void lookup();
+                      }
+                    }}
+                    placeholder="Сканируйте или оставьте пустым"
                   />
                 </label>
+                <div className="product-barcode-tools">
+                  <p className="muted">
+                    Сканер вводит код как клавиатура. Пустое поле — создадим
+                    код.
+                  </p>
+                  <button
+                    type="button"
+                    disabled={!barcode.trim() || locked}
+                    onClick={() => void lookup()}
+                  >
+                    Найти по штрихкоду
+                  </button>
+                </div>
+                {hint && (
+                  <p role="status" className="notice">
+                    {hint}
+                  </p>
+                )}
                 <label>
-                  Цвет
-                  <input
-                    maxLength={80}
-                    value={color}
-                    onChange={(e) => setColor(e.target.value)}
-                    placeholder="Например, чёрный"
-                  />
+                  Подкатегория
+                  <select
+                    value={subcategory}
+                    disabled={!category}
+                    onChange={(e) => setSubcategory(e.target.value)}
+                  >
+                    <option value="">Без подкатегории</option>
+                    {categories
+                      .find((c) => c.name === category)
+                      ?.children.map((c) => (
+                        <option key={c.id} value={c.name}>
+                          {c.name}
+                        </option>
+                      ))}
+                  </select>
                 </label>
+                <div className="product-form-fields">
+                  <label>
+                    Размер / вариант
+                    <input
+                      maxLength={80}
+                      value={size}
+                      onChange={(e) => setSize(e.target.value)}
+                      placeholder="Например, M или 42"
+                    />
+                  </label>
+                  <label>
+                    Цвет
+                    <input
+                      maxLength={80}
+                      value={color}
+                      onChange={(e) => setColor(e.target.value)}
+                      placeholder="Например, чёрный"
+                    />
+                  </label>
+                </div>
+                <label htmlFor={id + '-description'}>Описание</label>
+                <textarea
+                  id={id + '-description'}
+                  maxLength={2000}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Особенности товара, размер, материал…"
+                />
               </div>
-              <label htmlFor={id + '-description'}>Описание</label>
-              <textarea
-                id={id + '-description'}
-                maxLength={2000}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Особенности товара, размер, материал…"
-              />
-            </section>
-          </div>
+            </div>
+          </section>
         </fieldset>
       )}
       {error && (
@@ -402,7 +463,6 @@ export default function ProductForm({
         </p>
       )}
       <footer className="product-form-footer">
-        {footerFields}
         {purchaseCostText &&
           isPurchaseAboveSale(
             purchaseCostText,
@@ -413,29 +473,37 @@ export default function ProductForm({
               продажа может быть убыточной.
             </p>
           )}
-        <p className="muted">
-          Сохранение создаёт карточку. Количество и закупочную цену укажите в
-          приёмке.
-        </p>
         <div className="product-form-actions">
-          {onCancel && (
-            <button type="button" disabled={busy} onClick={onCancel}>
-              Отмена
+          {addToDraftLabel && !saved && (
+            <button
+              type="submit"
+              className="primary product-form-draft-btn"
+              data-intent="draft"
+              disabled={locked}
+            >
+              <span aria-hidden="true">+ </span>
+              {addToDraftLabel}
             </button>
           )}
+          <button type="submit" className="primary" disabled={locked}>
+            {busy ? 'Сохранение…' : saved ? savedLabel : submitLabel}
+          </button>
           {secondarySubmitLabel && !saved && (
             <button
               type="submit"
               formNoValidate
+              className="secondary"
               data-intent="secondary"
               disabled={locked}
             >
               {secondarySubmitLabel}
             </button>
           )}
-          <button type="submit" className="primary" disabled={locked}>
-            {busy ? 'Сохранение…' : saved ? savedLabel : submitLabel}
-          </button>
+          {onCancel && (
+            <button type="button" disabled={busy} onClick={onCancel}>
+              Отмена
+            </button>
+          )}
         </div>
       </footer>
     </form>

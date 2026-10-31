@@ -153,32 +153,38 @@ export default function PhotoAssistant({
   }
   return (
     <section className="photo-assistant" aria-label="Помощник по фото">
-      <button
-        type="button"
-        disabled={!photo || !info?.available || busy}
-        onClick={() => void recognize()}
-      >
-        {busy ? 'Определяем товар…' : 'Определить по фото'}
-      </button>
-      {busy && <p role="status">ИИ анализирует фото…</p>}
-      {!info ? (
-        <p className="muted">Проверяем доступность распознавания…</p>
-      ) : !info.available ? (
-        <p className="muted">
-          Распознавание пока недоступно. Заполните товар вручную.
-        </p>
-      ) : (
-        <p className="muted">
-          Фото отправляется в Gemini. Проверьте предложение перед применением.
-        </p>
-      )}
+      <div className="photo-assistant-card">
+        <span className="photo-assistant-sparkle" aria-hidden="true">
+          ✦
+        </span>
+        <button
+          type="button"
+          className="photo-assistant-btn"
+          disabled={!photo || !info?.available || busy}
+          onClick={() => void recognize()}
+        >
+          {busy ? 'Определяем товар…' : 'Определить по фото'}
+        </button>
+        {busy && <p role="status">ИИ анализирует фото…</p>}
+        {!info ? (
+          <p className="muted">Проверяем доступность распознавания…</p>
+        ) : !info.available ? (
+          <p className="muted">
+            Распознавание пока недоступно. Заполните товар вручную.
+          </p>
+        ) : (
+          <p className="muted">
+            Заполнить название, категорию и описание с помощью Gemini.
+          </p>
+        )}
+      </div>
       {error && (
         <p className="error" role="alert">
           {error}
         </p>
       )}
       {suggestion && (
-        <div className="panel">
+        <div className="panel photo-assistant-result">
           <h2>Предложение ИИ</h2>
           {suggestion.recognized && (
             <>
@@ -222,6 +228,7 @@ export default function PhotoAssistant({
           {suggestion.recognized && !suggestion.categoryMissing && (
             <button
               type="button"
+              className="primary"
               onClick={() => {
                 onApply(suggestion);
                 setApplied(true);

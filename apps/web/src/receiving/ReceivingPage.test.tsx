@@ -277,6 +277,37 @@ it('creates a product without receiving it', async () => {
   expect(load(scope)?.lines).toEqual([existing]);
   expect(load(scope)?.primaryReceiving).toBeUndefined();
 });
+it('creates a product, adds it to the receiving draft, closes the form, and lets scanning continue', async () => {
+  const calls = start();
+  const { u, form } = await openCreation();
+  await u.type(form.getByLabelText('Название'), 'Принтер');
+  await u.type(form.getByLabelText('Цена продажи, сом'), '2000');
+  fireEvent.change(form.getByLabelText('Количество первичной приёмки'), {
+    target: { value: '4' },
+  });
+  await u.type(form.getByLabelText('Закупочная цена, сом'), '1500');
+  await u.click(
+    form.getByRole('button', { name: 'Создать и добавить в приёмку' }),
+  );
+  await screen.findByText('Товар добавлен в список приёмки.');
+  expect(
+    screen.queryByRole('form', { name: 'Новый товар в приёмке' }),
+  ).toBeNull();
+  expect(calls.filter((c) => c.method === 'POST').map((c) => c.url)).toEqual([
+    '/api/shops/' + shop + '/variants',
+  ]);
+  expect(load(scope)?.lines).toEqual([
+    existing,
+    {
+      id: 'new',
+      name: 'Принтер',
+      barcode: code,
+      quantity: 4,
+      priceMinor: 200000,
+      unitCostText: '1500',
+    },
+  ]);
+});
 it('keeps the saved card and retries only the failed receiving phase', async () => {
   const calls = start('owner', 201, 500);
   const { u, form } = await openCreation();

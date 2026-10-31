@@ -258,6 +258,8 @@ export function useDocument(scope: DraftScope) {
     if (!workflow || !Number.isInteger(quantity) || quantity < 1)
       throw new Error('Укажите корректное количество первичной приёмки.');
     const unitCostMinor = parseSom(unitCostText);
+    const photo = variant.photoUrls?.find(Boolean) || variant.photoUrl;
+    if (photo) photos.current.set(variant.id, photo);
     const line: DraftLine = {
       id: variant.id,
       name: variant.name,
@@ -302,6 +304,57 @@ export function useDocument(scope: DraftScope) {
     }
     return !!result;
   }
+  async function addCreatedVariantToDraft(
+    variant: Variant,
+    quantity: number,
+    unitCostText: string,
+  ) {
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 1e9)
+      throw new Error('Укажите корректное количество (1–1 000 000 000).');
+    parseSom(unitCostText);
+    const photo = variant.photoUrls?.find(Boolean) || variant.photoUrl;
+    if (photo) photos.current.set(variant.id, photo);
+    const line: DraftLine = {
+      id: variant.id,
+      name: variant.name,
+      barcode: variant.barcode,
+      quantity,
+      priceMinor: variant.salePriceMinor,
+      unitCostText,
+    };
+    try {
+      await withDraftLock(scope, () => {
+        const current = ref.current;
+        const exists = current.lines.some((item) => item.id === variant.id);
+        const lines = exists
+          ? current.lines.map((item) =>
+              item.id === variant.id
+                ? { ...item, quantity: item.quantity + quantity, unitCostText }
+                : item,
+            )
+          : [...current.lines, line];
+        const updated: Draft = {
+          ...current,
+          revision: crypto.randomUUID(),
+          primaryReceiving: undefined,
+          lines,
+        };
+        save(updated, current.revision);
+        ref.current = updated;
+        setDraft(updated);
+        setProductCreation(null);
+        setUnknownBarcode(null);
+        setLastCreatedVariant(variant);
+        setError('');
+        setSuccess('Товар добавлен в список приёмки.');
+      });
+      return true;
+    } catch (e) {
+      setError(errorText(e));
+      setBlocked(true);
+      return false;
+    }
+  }
   return {
     draft,
     change,
@@ -314,6 +367,7 @@ export function useDocument(scope: DraftScope) {
     reload,
     send,
     receiveCreatedVariant,
+    addCreatedVariantToDraft,
     lastCreatedVariant,
     scan: (code: string) => {
       if (!ref.current.submission && !busy && !blocked && !productCreation)

@@ -101,9 +101,22 @@ export default function ScanField({
         </button>
       </div>
       <div className="scan-field-foot">
-        <p className="muted">
-          USB-сканер вводит код как клавиатура. Один скан — одна единица.
-        </p>
+        <div className="scan-field-hints">
+          <p className="muted">
+            USB-сканер вводит код как клавиатура. Один скан — одна единица.
+          </p>
+          <div className="scan-field-shortcuts" aria-hidden="true">
+            <span>
+              <kbd>Enter</kbd> — добавить товар
+            </span>
+            <span>
+              <kbd>+</kbd> — увеличить количество
+            </span>
+            <span>
+              <kbd>−</kbd> — уменьшить количество
+            </span>
+          </div>
+        </div>
         {onManualAdd && (
           <button
             type="button"

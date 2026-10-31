@@ -10,7 +10,9 @@ export default function ReceivingProductForm({
   draftLines,
   disabled,
   onCancel,
+  onSwitchToSearch,
   onCreated,
+  onAddedToDraft,
   onCreatedWithoutReceiving,
 }: {
   shopId: string;
@@ -20,7 +22,13 @@ export default function ReceivingProductForm({
   draftLines?: { name: string; quantity: number; unitCostText?: string }[];
   disabled: boolean;
   onCancel: () => void;
+  onSwitchToSearch?: () => void;
   onCreated: (
+    variant: Variant,
+    quantity: number,
+    unitCostText: string,
+  ) => Promise<boolean>;
+  onAddedToDraft?: (
     variant: Variant,
     quantity: number,
     unitCostText: string,
@@ -29,15 +37,18 @@ export default function ReceivingProductForm({
 }) {
   const [quantity, setQuantity] = useState('1');
   const [unitCostText, setUnitCostText] = useState('');
+  function validateQuantityAndCost() {
+    const count = Number(quantity);
+    if (!Number.isInteger(count) || count < 1 || count > 1e9)
+      throw new Error('Укажите корректное количество (1–1 000 000 000).');
+    return { count, unitCostMinor: parseSom(unitCostText) };
+  }
   return (
     <ProductForm
       shopId={shopId}
       parentId={parentId}
       validateBeforeSave={() => {
-        const count = Number(quantity);
-        if (!Number.isInteger(count) || count < 1 || count > 1e9)
-          throw new Error('Укажите корректное количество (1–1 000 000 000).');
-        const unitCostMinor = parseSom(unitCostText);
+        const { count, unitCostMinor } = validateQuantityAndCost();
         let total = BigInt(count) * BigInt(unitCostMinor);
         for (const line of draftLines ?? []) {
           let lineCost: number;
@@ -53,6 +64,9 @@ export default function ReceivingProductForm({
         if (total > BigInt(Number.MAX_SAFE_INTEGER))
           throw new Error('Сумма слишком велика.');
       }}
+      validateDraftSave={() => {
+        validateQuantityAndCost();
+      }}
       initialBarcode={barcode === '__new__' ? '' : barcode}
       creationKey={creationKey}
       purchaseCostText={unitCostText}
@@ -62,8 +76,34 @@ export default function ReceivingProductForm({
       title="Новый товар в приёмке"
       submitLabel="Создать и провести приёмку"
       savedLabel="Добавить в приёмку"
+      headerActions={
+        onSwitchToSearch ? (
+          <div className="product-form-mode-tabs">
+            <span className="product-form-mode-tab active">
+              + Создать товар
+            </span>
+            <button
+              type="button"
+              className="product-form-mode-tab"
+              disabled={disabled}
+              onClick={onSwitchToSearch}
+            >
+              Найти существующий
+            </button>
+          </div>
+        ) : undefined
+      }
       footerFields={
         <div className="product-form-fields">
+          <label>
+            Закупочная цена, сом
+            <input
+              inputMode="decimal"
+              value={unitCostText}
+              onChange={(e) => setUnitCostText(e.target.value)}
+              placeholder="0,00"
+            />
+          </label>
           <label>
             Количество первичной приёмки
             <input
@@ -74,22 +114,21 @@ export default function ReceivingProductForm({
               onChange={(e) => setQuantity(e.target.value)}
             />
           </label>
-          <label>
-            Закупочная цена, сом
-            <input
-              inputMode="decimal"
-              value={unitCostText}
-              onChange={(e) => setUnitCostText(e.target.value)}
-              placeholder="0,00"
-            />
-          </label>
         </div>
       }
+      {...(onAddedToDraft
+        ? { addToDraftLabel: 'Создать и добавить в приёмку' }
+        : {})}
       {...(onCreatedWithoutReceiving
         ? { secondarySubmitLabel: 'Создать без приёмки' }
         : {})}
       onCancel={onCancel}
       onSaved={(variant) => onCreated(variant, Number(quantity), unitCostText)}
+      onAddToDraft={
+        onAddedToDraft
+          ? (variant) => onAddedToDraft(variant, Number(quantity), unitCostText)
+          : undefined
+      }
       onSecondarySaved={onCreatedWithoutReceiving}
     />
   );

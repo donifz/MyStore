@@ -187,6 +187,7 @@ it('keeps everyday tasks prominent and advanced tools under More', () => {
   );
   expect(ownerMenu.map((group) => group.label)).toEqual(['Основное', 'Ещё']);
   expect(ownerMenu[0].items.map((item) => item.label)).toEqual([
+    'Главная',
     'Касса',
     'Приёмка',
     'Товары',
@@ -203,6 +204,7 @@ it('keeps everyday tasks prominent and advanced tools under More', () => {
     '',
   );
   expect(cashierMenu[0].items.map((item) => item.label)).toEqual([
+    'Главная',
     'Касса',
     'Товары',
   ]);

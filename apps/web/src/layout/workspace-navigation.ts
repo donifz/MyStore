@@ -143,10 +143,11 @@ export function workspaceMenu(
   const relative = pathname.slice(base.length + 1).replace(/\/$/, '');
   const item = (label: string, route: string, pattern: RegExp) => ({
     label,
-    href: `${base}/${route}`,
+    href: route ? `${base}/${route}` : base,
     active: pattern.test(relative),
   });
   const primary = [
+    item('Главная', '', /^$/),
     item('Касса', 'pos', /^pos$/),
     ...(shop.role !== 'cashier'
       ? [item('Приёмка', 'receiving', /^receiving$/)]

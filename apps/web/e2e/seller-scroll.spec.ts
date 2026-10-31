@@ -54,12 +54,12 @@ for (const width of [821, 1024, 1440]) {
     },
   );
 }
-test('mobile seller layout keeps normal document scroll and horizontal navigation', async ({
+test('mobile seller layout keeps normal document scroll and fixed bottom navigation', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openCapture(page);
-  await page.mouse.move(300, 750);
+  await page.mouse.move(300, 500);
   await page.mouse.wheel(0, 700);
   await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(0);
   expect(
@@ -70,8 +70,8 @@ test('mobile seller layout keeps normal document scroll and horizontal navigatio
   expect(
     await page
       .locator('.sidebar nav')
-      .evaluate((e) => e.scrollWidth > e.clientWidth),
-  ).toBe(true);
+      .evaluate((e) => getComputedStyle(e).position),
+  ).toBe('fixed');
   await page.getByLabel('Название', { exact: true }).scrollIntoViewIfNeeded();
   await expect(page.getByLabel('Название', { exact: true })).toBeVisible();
 });

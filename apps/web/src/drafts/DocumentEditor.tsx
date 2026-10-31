@@ -162,9 +162,7 @@ export default function DocumentEditor({
           const showDiscount = discountOpen[l.id] || !!l.discountMinor;
           return (
             <div className="pos-cart-line" key={l.id}>
-              <span className="pos-cart-thumb" aria-hidden="true">
-                {photo ? <img src={photo} alt="" loading="lazy" /> : '▦'}
-              </span>
+              <Thumb photo={photo} className="pos-cart-thumb" />
               <div className="pos-cart-name">
                 <strong>{l.name}</strong>
                 <small>
@@ -173,7 +171,9 @@ export default function DocumentEditor({
                       <s>{formatSom(l.priceMinor)}</s> {formatSom(unit)} / шт.
                     </>
                   ) : (
-                    <>Арт. {l.barcode}</>
+                    <>
+                      Арт. {l.barcode} · {formatSom(unit)}
+                    </>
                   )}
                 </small>
                 <button
@@ -405,6 +405,13 @@ export default function DocumentEditor({
           draftLines={doc.draft.lines}
           disabled={doc.blocked || !doc.online || doc.busy}
           onCancel={doc.closeProductCreation}
+          onSwitchToSearch={() => {
+            doc.closeProductCreation();
+            setManualOpen(true);
+          }}
+          onAddedToDraft={(variant, quantity, unitCostText) =>
+            doc.addCreatedVariantToDraft(variant, quantity, unitCostText)
+          }
           onCreated={(variant, quantity, unitCostText) =>
             doc.receiveCreatedVariant(
               variant,
@@ -444,142 +451,163 @@ export default function DocumentEditor({
         </p>
       )}
       {receiving && doc.draft.lines.length > 0 && (
-        <div className="receiving-lines-table">
-          <div className="receiving-lines-head" aria-hidden="true">
-            <span>Товар</span>
-            <span>Артикул</span>
-            <span>Количество</span>
-            <span>Закупочная цена</span>
-            <span>Цена продажи</span>
-            <span>Сумма</span>
-            <span />
+        <div className="receiving-lines-section">
+          <div className="receiving-lines-toolbar">
+            <div className="receiving-lines-title">
+              <h3>Товары в приёмке</h3>
+              <span className="receiving-lines-badge">
+                {doc.draft.lines.length}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="receiving-clear-btn"
+              disabled={lineDisabled}
+              onClick={() => void doc.change([])}
+            >
+              Очистить
+            </button>
           </div>
-          {doc.draft.lines.map((l) => (
-            <div className="receiving-line-row line-card" key={l.id}>
-              <div className="receiving-cell-product">
-                <Thumb photo={resolvePhoto(l.id)} className="receiving-thumb" />
-                <div className="receiving-product-meta">
-                  <strong>{l.name}</strong>
-                  <span className="receiving-status-pill existing">
-                    Существующий товар
-                  </span>
+          <div className="receiving-lines-table">
+            <div className="receiving-lines-head" aria-hidden="true">
+              <span>Товар</span>
+              <span>Артикул</span>
+              <span>Количество</span>
+              <span>Закупочная цена</span>
+              <span>Цена продажи</span>
+              <span>Сумма</span>
+              <span />
+            </div>
+            {doc.draft.lines.map((l) => (
+              <div className="receiving-line-row line-card" key={l.id}>
+                <div className="receiving-cell-product">
+                  <Thumb
+                    photo={resolvePhoto(l.id)}
+                    className="receiving-thumb"
+                  />
+                  <div className="receiving-product-meta">
+                    <strong>{l.name}</strong>
+                    <span className="receiving-status-pill existing">
+                      Существующий товар
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <div className="receiving-cell-sku">
-                <small className="code">{l.barcode}</small>
-              </div>
-              <div className="receiving-cell-qty">
-                <div className="pos-stepper receiving-stepper">
-                  <button
-                    type="button"
-                    aria-label={'Уменьшить ' + l.name}
-                    disabled={lineDisabled || l.quantity <= 1}
-                    onClick={() => setQuantity(l, l.quantity - 1)}
-                  >
-                    −
-                  </button>
+                <div className="receiving-cell-sku">
+                  <small className="code">{l.barcode}</small>
+                </div>
+                <div className="receiving-cell-qty">
+                  <div className="pos-stepper receiving-stepper">
+                    <button
+                      type="button"
+                      aria-label={'Уменьшить ' + l.name}
+                      disabled={lineDisabled || l.quantity <= 1}
+                      onClick={() => setQuantity(l, l.quantity - 1)}
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      aria-label={'Количество ' + l.name}
+                      min={1}
+                      max={1e9}
+                      value={l.quantity}
+                      disabled={lineDisabled}
+                      onChange={(e) => {
+                        const n = Number(e.target.value);
+                        if (Number.isInteger(n) && n >= 1 && n <= 1e9)
+                          setQuantity(l, n);
+                      }}
+                    />
+                    <button
+                      type="button"
+                      aria-label={'Увеличить ' + l.name}
+                      disabled={lineDisabled || l.quantity >= 1e9}
+                      onClick={() => setQuantity(l, l.quantity + 1)}
+                    >
+                      +
+                    </button>
+                  </div>
+                  <span className="receiving-unit">шт.</span>
+                </div>
+                <div className="receiving-cell-cost">
                   <input
-                    type="number"
-                    aria-label={'Количество ' + l.name}
-                    min={1}
-                    max={1e9}
-                    value={l.quantity}
+                    inputMode="decimal"
+                    aria-label={'Закупочная цена ' + l.name + ', сом'}
+                    placeholder="0,00"
+                    value={l.unitCostText ?? ''}
                     disabled={lineDisabled}
                     onChange={(e) => {
-                      const n = Number(e.target.value);
-                      if (Number.isInteger(n) && n >= 1 && n <= 1e9)
-                        setQuantity(l, n);
-                    }}
-                  />
-                  <button
-                    type="button"
-                    aria-label={'Увеличить ' + l.name}
-                    disabled={lineDisabled || l.quantity >= 1e9}
-                    onClick={() => setQuantity(l, l.quantity + 1)}
-                  >
-                    +
-                  </button>
-                </div>
-                <span className="receiving-unit">шт.</span>
-              </div>
-              <div className="receiving-cell-cost">
-                <input
-                  inputMode="decimal"
-                  aria-label={'Закупочная цена ' + l.name + ', сом'}
-                  placeholder="0,00"
-                  value={l.unitCostText ?? ''}
-                  disabled={lineDisabled}
-                  onChange={(e) => {
-                    const value = e.currentTarget.value;
-                    void doc.change((lines) =>
-                      lines.map((x) =>
-                        x.id === l.id ? { ...x, unitCostText: value } : x,
-                      ),
-                    );
-                  }}
-                />
-                <span className="receiving-unit">сом</span>
-              </div>
-              <div className="receiving-cell-sale">
-                <input
-                  readOnly
-                  tabIndex={-1}
-                  aria-label={'Цена продажи ' + l.name + ', сом'}
-                  value={formatPriceInput(l.priceMinor)}
-                />
-                <span className="receiving-unit">сом</span>
-              </div>
-              <div className="receiving-cell-sum">
-                <strong>{lineCostTotal(l.quantity, l.unitCostText)}</strong>
-              </div>
-              <button
-                type="button"
-                className="receiving-trash-btn"
-                aria-label={'Удалить ' + l.name}
-                disabled={lineDisabled}
-                onClick={() =>
-                  doc.change((lines) => lines.filter((x) => x.id !== l.id))
-                }
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
-                </svg>
-              </button>
-              {l.lastPurchaseMinor !== undefined && (
-                <div className="receiving-row-extra">
-                  <button
-                    type="button"
-                    className="button secondary receiving-last-purchase-btn"
-                    disabled={lineDisabled}
-                    onClick={() => {
-                      const text = (l.lastPurchaseMinor! / 100).toString();
+                      const value = e.currentTarget.value;
                       void doc.change((lines) =>
                         lines.map((x) =>
-                          x.id === l.id ? { ...x, unitCostText: text } : x,
+                          x.id === l.id ? { ...x, unitCostText: value } : x,
                         ),
                       );
                     }}
-                  >
-                    Последняя закупка: {formatSom(l.lastPurchaseMinor)}
-                  </button>
+                  />
+                  <span className="receiving-unit">сом</span>
                 </div>
-              )}
-              {isPurchaseAboveSale(l.unitCostText ?? '', l.priceMinor) && (
-                <p role="status" className="notice receiving-row-extra">
-                  Закупочная цена за штуку выше цены продажи. Проверьте цены:
-                  продажа может быть убыточной.
-                </p>
-              )}
-            </div>
-          ))}
+                <div className="receiving-cell-sale">
+                  <input
+                    readOnly
+                    tabIndex={-1}
+                    aria-label={'Цена продажи ' + l.name + ', сом'}
+                    value={formatPriceInput(l.priceMinor)}
+                  />
+                  <span className="receiving-unit">сом</span>
+                </div>
+                <div className="receiving-cell-sum">
+                  <strong>{lineCostTotal(l.quantity, l.unitCostText)}</strong>
+                </div>
+                <button
+                  type="button"
+                  className="receiving-trash-btn"
+                  aria-label={'Удалить ' + l.name}
+                  disabled={lineDisabled}
+                  onClick={() =>
+                    doc.change((lines) => lines.filter((x) => x.id !== l.id))
+                  }
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
+                  </svg>
+                </button>
+                {l.lastPurchaseMinor !== undefined && (
+                  <div className="receiving-row-extra">
+                    <button
+                      type="button"
+                      className="button secondary receiving-last-purchase-btn"
+                      disabled={lineDisabled}
+                      onClick={() => {
+                        const text = (l.lastPurchaseMinor! / 100).toString();
+                        void doc.change((lines) =>
+                          lines.map((x) =>
+                            x.id === l.id ? { ...x, unitCostText: text } : x,
+                          ),
+                        );
+                      }}
+                    >
+                      Последняя закупка: {formatSom(l.lastPurchaseMinor)}
+                    </button>
+                  </div>
+                )}
+                {isPurchaseAboveSale(l.unitCostText ?? '', l.priceMinor) && (
+                  <p role="status" className="notice receiving-row-extra">
+                    Закупочная цена за штуку выше цены продажи. Проверьте цены:
+                    продажа может быть убыточной.
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
       {!receiving &&
