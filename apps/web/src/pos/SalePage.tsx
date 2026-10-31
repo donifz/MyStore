@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
 import type { Page, Variant } from '../api/types';
 import { Link, useParams } from 'react-router-dom';
@@ -15,6 +15,10 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
     [products, setProducts] = useState<Variant[]>([]),
     [catalogError, setCatalogError] = useState(''),
     [received, setReceived] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    searchRef.current?.focus();
+  }, []);
   useEffect(() => {
     let alive = true;
     const timer = window.setTimeout(() => {
@@ -37,7 +41,11 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
     };
   }, [shopId, query, doc.success]);
   useEffect(() => {
-    if (doc.success) setReceived('');
+    if (doc.success) {
+      setReceived('');
+      setQuery('');
+      searchRef.current?.focus();
+    }
   }, [doc.success]);
   const active = shift.current && 'id' in shift.current ? shift.current : null;
   const sum = doc.draft.lines.reduce(
@@ -154,6 +162,8 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
             Найти товар
             <input
               type="search"
+              ref={searchRef}
+              autoComplete="off"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Название, артикул или штрихкод"
