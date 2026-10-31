@@ -7306,8 +7306,8 @@ fieldset {
 }
 .shop-home-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
 }
 .shop-home-action {
   display: flex;
@@ -7598,6 +7598,7 @@ fieldset {
   .shop-home-chart-wrap {
     grid-template-columns: minmax(0, 1fr);
   }
+  .shop-home-actions,
   .shop-home-kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
