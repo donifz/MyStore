@@ -1,17 +1,68 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import BarcodeLabel from '../catalog/BarcodeLabel';
 import ReceivingProductForm from '../receiving/ReceivingProductForm';
-import { formatSom } from '../api/money';
+import { api } from '../api/client';
+import { formatSom, parseSom } from '../api/money';
+import type { Page, Variant } from '../api/types';
 import { useDocument } from './use-document';
 import ScanField from '../scanner/ScanField';
 import { isPurchaseAboveSale } from '../receiving/purchase-warning';
 import type { DraftLine } from './draft-store';
+
 function lineTotal(quantity: number, unitMinor: number) {
   const total = BigInt(quantity) * BigInt(unitMinor);
   return total <= BigInt(Number.MAX_SAFE_INTEGER)
     ? formatSom(Number(total))
     : 'Сумма превышена';
 }
+
+function lineCostTotal(quantity: number, unitCostText?: string) {
+  if (!unitCostText?.trim()) return formatSom(0);
+  try {
+    return lineTotal(quantity, parseSom(unitCostText));
+  } catch {
+    return '—';
+  }
+}
+
+function formatPriceInput(minor: number) {
+  return new Intl.NumberFormat('ru-KG', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+    .format(minor / 100)
+    .replace(/\u00a0/g, ' ');
+}
+
+function Thumb({ photo, className }: { photo?: string; className: string }) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [photo]);
+  return (
+    <span className={className} aria-hidden="true">
+      {photo && !failed ? (
+        <img
+          src={photo}
+          alt=""
+          loading="lazy"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+          <path d="m3.3 7 8.7 5 8.7-5M12 22V12" />
+        </svg>
+      )}
+    </span>
+  );
+}
+
 export default function DocumentEditor({
   doc,
   receiving,
@@ -38,12 +89,34 @@ export default function DocumentEditor({
   const lineDisabled = doc.busy || doc.blocked || !!doc.draft.submission;
   const disabled = lineDisabled || !!doc.productCreation;
   const [discountOpen, setDiscountOpen] = useState<Record<string, boolean>>({});
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualQuery, setManualQuery] = useState('');
+  const [manualItems, setManualItems] = useState<Variant[]>([]);
+  useEffect(() => {
+    if (!manualOpen || !receiving) return;
+    let alive = true;
+    const timer = window.setTimeout(() => {
+      void api<Page<Variant>>(
+        `/shops/${shopId}/variants?q=${encodeURIComponent(manualQuery)}&page=1&pageSize=12`,
+      )
+        .then((page) => {
+          if (alive)
+            setManualItems(page.items.filter((item) => !item.archived));
+        })
+        .catch(() => undefined);
+    }, 200);
+    return () => {
+      alive = false;
+      window.clearTimeout(timer);
+    };
+  }, [manualOpen, manualQuery, receiving, shopId]);
   function setQuantity(line: DraftLine, n: number) {
     if (Number.isInteger(n) && n >= 1 && n <= 1e9)
       void doc.change((lines) =>
         lines.map((x) => (x.id === line.id ? { ...x, quantity: n } : x)),
       );
   }
+  const resolvePhoto = (id: string) => photoFor?.(id) ?? doc.photoFor?.(id);
   if (cart && !receiving)
     return (
       <div className="pos-cart-body">
@@ -85,7 +158,7 @@ export default function DocumentEditor({
         )}
         {doc.draft.lines.map((l) => {
           const unit = l.priceMinor - (l.discountMinor || 0);
-          const photo = photoFor?.(l.id);
+          const photo = resolvePhoto(l.id);
           const showDiscount = discountOpen[l.id] || !!l.discountMinor;
           return (
             <div className="pos-cart-line" key={l.id}>
@@ -234,8 +307,58 @@ export default function DocumentEditor({
       </div>
     );
   return (
-    <section className="panel">
-      <ScanField onScan={doc.scan} disabled={disabled} />
+    <section className={receiving ? 'panel receiving-editor-panel' : 'panel'}>
+      <ScanField
+        onScan={doc.scan}
+        disabled={disabled}
+        onManualAdd={
+          receiving ? () => setManualOpen((open) => !open) : undefined
+        }
+      />
+      {receiving && manualOpen && !disabled && (
+        <div className="receiving-manual-picker">
+          <div className="receiving-manual-picker-head">
+            <input
+              type="search"
+              value={manualQuery}
+              onChange={(e) => setManualQuery(e.target.value)}
+              placeholder="Найти существующий товар по названию или штрихкоду"
+              aria-label="Поиск товара для приёмки"
+            />
+            <button
+              type="button"
+              className="button secondary"
+              onClick={() => {
+                setManualOpen(false);
+                void doc.beginProductCreation('');
+              }}
+            >
+              Новый товар
+            </button>
+          </div>
+          {manualItems.length > 0 && (
+            <div className="receiving-manual-picker-list">
+              {manualItems.map((item) => (
+                <button
+                  type="button"
+                  key={item.id}
+                  className="receiving-manual-item"
+                  onClick={() => {
+                    void doc.addVariant(item);
+                    setManualOpen(false);
+                  }}
+                >
+                  <span>
+                    <strong>{item.name}</strong>
+                    <small>{item.barcode}</small>
+                  </span>
+                  <span>{formatSom(item.salePriceMinor)}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       {doc.blocked && <button onClick={doc.reload}>Обновить черновик</button>}
       {doc.draft.submission && (
         <p className="notice">
@@ -320,12 +443,151 @@ export default function DocumentEditor({
           Отсканируйте первый товар или введите его код
         </p>
       )}
-      {doc.draft.lines.map((l) => (
-        <div className="line-card" key={l.id}>
-          <div className="line-name">
-            <strong>{l.name}</strong>
-            <small className="code">{l.barcode}</small>
-            {!receiving && (
+      {receiving && doc.draft.lines.length > 0 && (
+        <div className="receiving-lines-table">
+          <div className="receiving-lines-head" aria-hidden="true">
+            <span>Товар</span>
+            <span>Артикул</span>
+            <span>Количество</span>
+            <span>Закупочная цена</span>
+            <span>Цена продажи</span>
+            <span>Сумма</span>
+            <span />
+          </div>
+          {doc.draft.lines.map((l) => (
+            <div className="receiving-line-row line-card" key={l.id}>
+              <div className="receiving-cell-product">
+                <Thumb photo={resolvePhoto(l.id)} className="receiving-thumb" />
+                <div className="receiving-product-meta">
+                  <strong>{l.name}</strong>
+                  <span className="receiving-status-pill existing">
+                    Существующий товар
+                  </span>
+                </div>
+              </div>
+              <div className="receiving-cell-sku">
+                <small className="code">{l.barcode}</small>
+              </div>
+              <div className="receiving-cell-qty">
+                <div className="pos-stepper receiving-stepper">
+                  <button
+                    type="button"
+                    aria-label={'Уменьшить ' + l.name}
+                    disabled={lineDisabled || l.quantity <= 1}
+                    onClick={() => setQuantity(l, l.quantity - 1)}
+                  >
+                    −
+                  </button>
+                  <input
+                    type="number"
+                    aria-label={'Количество ' + l.name}
+                    min={1}
+                    max={1e9}
+                    value={l.quantity}
+                    disabled={lineDisabled}
+                    onChange={(e) => {
+                      const n = Number(e.target.value);
+                      if (Number.isInteger(n) && n >= 1 && n <= 1e9)
+                        setQuantity(l, n);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    aria-label={'Увеличить ' + l.name}
+                    disabled={lineDisabled || l.quantity >= 1e9}
+                    onClick={() => setQuantity(l, l.quantity + 1)}
+                  >
+                    +
+                  </button>
+                </div>
+                <span className="receiving-unit">шт.</span>
+              </div>
+              <div className="receiving-cell-cost">
+                <input
+                  inputMode="decimal"
+                  aria-label={'Закупочная цена ' + l.name + ', сом'}
+                  placeholder="0,00"
+                  value={l.unitCostText ?? ''}
+                  disabled={lineDisabled}
+                  onChange={(e) => {
+                    const value = e.currentTarget.value;
+                    void doc.change((lines) =>
+                      lines.map((x) =>
+                        x.id === l.id ? { ...x, unitCostText: value } : x,
+                      ),
+                    );
+                  }}
+                />
+                <span className="receiving-unit">сом</span>
+              </div>
+              <div className="receiving-cell-sale">
+                <input
+                  readOnly
+                  tabIndex={-1}
+                  aria-label={'Цена продажи ' + l.name + ', сом'}
+                  value={formatPriceInput(l.priceMinor)}
+                />
+                <span className="receiving-unit">сом</span>
+              </div>
+              <div className="receiving-cell-sum">
+                <strong>{lineCostTotal(l.quantity, l.unitCostText)}</strong>
+              </div>
+              <button
+                type="button"
+                className="receiving-trash-btn"
+                aria-label={'Удалить ' + l.name}
+                disabled={lineDisabled}
+                onClick={() =>
+                  doc.change((lines) => lines.filter((x) => x.id !== l.id))
+                }
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
+                </svg>
+              </button>
+              {l.lastPurchaseMinor !== undefined && (
+                <div className="receiving-row-extra">
+                  <button
+                    type="button"
+                    className="button secondary receiving-last-purchase-btn"
+                    disabled={lineDisabled}
+                    onClick={() => {
+                      const text = (l.lastPurchaseMinor! / 100).toString();
+                      void doc.change((lines) =>
+                        lines.map((x) =>
+                          x.id === l.id ? { ...x, unitCostText: text } : x,
+                        ),
+                      );
+                    }}
+                  >
+                    Последняя закупка: {formatSom(l.lastPurchaseMinor)}
+                  </button>
+                </div>
+              )}
+              {isPurchaseAboveSale(l.unitCostText ?? '', l.priceMinor) && (
+                <p role="status" className="notice receiving-row-extra">
+                  Закупочная цена за штуку выше цены продажи. Проверьте цены:
+                  продажа может быть убыточной.
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      {!receiving &&
+        doc.draft.lines.map((l) => (
+          <div className="line-card" key={l.id}>
+            <div className="line-name">
+              <strong>{l.name}</strong>
+              <small className="code">{l.barcode}</small>
               <small>
                 {l.discountMinor ? (
                   <>
@@ -346,73 +608,22 @@ export default function DocumentEditor({
                   formatSom(l.priceMinor)
                 )}
               </small>
-            )}
-          </div>
-          <label>
-            Количество {l.name}
-            <input
-              type="number"
-              min={1}
-              max={1e9}
-              value={l.quantity}
-              disabled={lineDisabled}
-              onChange={(e) => {
-                const n = Number(e.target.value);
-                if (Number.isInteger(n) && n >= 1 && n <= 1e9)
-                  doc.change((lines) =>
-                    lines.map((x) =>
-                      x.id === l.id ? { ...x, quantity: n } : x,
-                    ),
-                  );
-              }}
-            />
-          </label>
-          {receiving && (
-            <>
-              <label>
-                Закупочная цена {l.name}, сом
-                <input
-                  inputMode="decimal"
-                  value={l.unitCostText ?? ''}
-                  disabled={lineDisabled}
-                  onChange={(e) => {
-                    const value = e.currentTarget.value;
-                    void doc.change((lines) =>
-                      lines.map((x) =>
-                        x.id === l.id ? { ...x, unitCostText: value } : x,
-                      ),
-                    );
-                  }}
-                />
-              </label>
-              {l.lastPurchaseMinor !== undefined && (
-                <div className="line-card-full">
-                  <button
-                    type="button"
-                    className="button secondary"
-                    disabled={lineDisabled}
-                    onClick={() => {
-                      const text = (l.lastPurchaseMinor! / 100).toString();
-                      void doc.change((lines) =>
-                        lines.map((x) =>
-                          x.id === l.id ? { ...x, unitCostText: text } : x,
-                        ),
-                      );
-                    }}
-                  >
-                    Последняя закупка: {formatSom(l.lastPurchaseMinor)}
-                  </button>
-                </div>
-              )}
-              {isPurchaseAboveSale(l.unitCostText ?? '', l.priceMinor) && (
-                <p role="status" className="notice line-card-full">
-                  Закупочная цена за штуку выше цены продажи. Проверьте цены:
-                  продажа может быть убыточной.
-                </p>
-              )}
-            </>
-          )}
-          {!receiving && (
+            </div>
+            <label>
+              Количество {l.name}
+              <input
+                type="number"
+                min={1}
+                max={1e9}
+                value={l.quantity}
+                disabled={lineDisabled}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  if (Number.isInteger(n) && n >= 1 && n <= 1e9)
+                    setQuantity(l, n);
+                }}
+              />
+            </label>
             <div
               className="line-discount-box"
               style={{
@@ -483,20 +694,19 @@ export default function DocumentEditor({
                 </label>
               )}
             </div>
-          )}
-          <button
-            type="button"
-            className="danger"
-            aria-label={'Удалить ' + l.name}
-            disabled={lineDisabled}
-            onClick={() =>
-              doc.change((lines) => lines.filter((x) => x.id !== l.id))
-            }
-          >
-            ×
-          </button>
-        </div>
-      ))}
+            <button
+              type="button"
+              className="danger"
+              aria-label={'Удалить ' + l.name}
+              disabled={lineDisabled}
+              onClick={() =>
+                doc.change((lines) => lines.filter((x) => x.id !== l.id))
+              }
+            >
+              ×
+            </button>
+          </div>
+        ))}
     </section>
   );
 }
