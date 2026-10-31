@@ -4455,6 +4455,7 @@ fieldset {
   width: 100%;
 }
 .pos-method {
+  position: relative;
   flex-direction: row;
   align-items: center;
   justify-content: center;
@@ -4469,10 +4470,12 @@ fieldset {
 }
 .pos-method input {
   position: absolute;
-  width: 1px;
-  height: 1px;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
   opacity: 0;
-  pointer-events: none;
+  cursor: pointer;
 }
 .pos-method.selected {
   border-color: var(--pos-green);
