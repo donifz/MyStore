@@ -4979,25 +4979,26 @@ fieldset {
   color: var(--rec-ink);
 }
 .scan-field-bar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  display: flex;
   gap: 10px;
   align-items: stretch;
 }
 .scan-field-input {
+  flex: 1;
   display: flex;
   align-items: center;
   gap: 10px;
   min-width: 0;
-  min-height: 48px;
+  min-height: 52px;
   padding: 0 14px;
-  border: 1.5px solid #4a8f73;
+  border: 1px solid #cfd9df;
   border-radius: 10px;
   background: #fff;
+  color: var(--pos-muted, #556272);
 }
 .scan-field-input:focus-within {
-  border-color: var(--rec-green);
-  box-shadow: 0 0 0 3px rgb(23 115 79 / 14%);
+  border-color: var(--pos-green, #17734f);
+  box-shadow: 0 0 0 3px rgb(23 115 79 / 15%);
 }
 .scan-field-icon {
   width: 22px;
@@ -5008,7 +5009,7 @@ fieldset {
 .scan-field-input input {
   flex: 1;
   border: 0;
-  padding: 10px 0;
+  padding: 12px 0;
   background: transparent;
   font-size: 15px;
   outline: none;
@@ -5017,25 +5018,40 @@ fieldset {
   outline: none;
 }
 .scan-field-btn {
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  min-height: 48px;
-  padding: 8px 14px;
-  border: 1px solid #d5dee3;
+  justify-content: center;
+  gap: 2px;
+  min-width: 64px;
+  min-height: 52px;
+  padding: 6px 10px;
+  border: 1px solid #cfd9df;
   border-radius: 10px;
   background: #fff;
-  color: #24333b;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.2;
-  text-align: left;
+  color: #33434c;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
+.scan-field-btn:hover:not(:disabled) {
+  border-color: #b8c5cc;
+  background: #f7faf9;
+}
+.scan-field-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.scan-field-btn .pos-icon,
 .scan-field-btn-icon {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   flex: 0 0 auto;
-  color: #394b54;
+  color: #33434c;
 }
 .scan-field-foot {
   display: flex;
@@ -5217,8 +5233,58 @@ fieldset {
   min-width: 0;
 }
 .receiving-stepper {
-  grid-template-columns: 28px 42px 28px;
+  display: grid;
+  grid-template-columns: 28px minmax(38px, 1fr) 28px;
+  align-items: stretch;
   height: 34px;
+  border: 1px solid #cfd8e3;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+}
+.receiving-stepper button {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: #f4f8f6;
+  color: #17734f;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.receiving-stepper button:hover:not(:disabled) {
+  background: #e2f0e8;
+}
+.receiving-stepper button:disabled {
+  background: #f7faf9;
+  color: #a4b3ac;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.receiving-line-row .receiving-stepper input,
+.receiving-stepper input {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 100%;
+  padding: 0 2px;
+  margin: 0;
+  border: 0;
+  border-inline: 1px solid #dce4e8;
+  border-radius: 0;
+  background: #fff;
+  color: #18232b;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  box-sizing: border-box;
+  -moz-appearance: textfield;
+  appearance: textfield;
 }
 .receiving-cell-cost input,
 .receiving-cell-sale input {
@@ -5424,10 +5490,7 @@ fieldset {
 }
 @media (max-width: 900px) {
   .scan-field-bar {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .scan-field-input {
-    grid-column: 1 / -1;
+    gap: 8px;
   }
   .receiving-lines-head {
     display: none;
@@ -5930,7 +5993,11 @@ fieldset {
 }
 @media (max-width: 380px) {
   .scan-field-bar {
-    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+  .scan-field-btn {
+    min-width: 56px;
+    padding: 6px 6px;
   }
 }
 

@@ -60,32 +60,34 @@ export default function ScanField({
         </div>
         <button
           type="button"
-          className="scan-field-btn"
+          className="scan-field-btn pos-tool"
+          aria-label="Фокус для сканера"
+          title="USB-сканер вводит код как клавиатура"
           disabled={disabled}
           onClick={() => input.current?.focus()}
         >
           <svg
-            className="scan-field-btn-icon"
+            className="pos-icon scan-field-btn-icon"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
             strokeWidth="1.8"
             strokeLinecap="round"
-            strokeLinejoin="round"
             aria-hidden="true"
           >
-            <path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3" />
+            <path d="M4 5v14M7 5v14M11 5v14M14 5v14M17 5v14M20 5v14" />
           </svg>
-          <span>Фокус для сканера</span>
+          <span>Сканер</span>
         </button>
         <button
           type="button"
-          className="scan-field-btn"
+          className="scan-field-btn pos-tool"
+          aria-label="Сканировать камерой"
           disabled={disabled}
           onClick={() => setCamera(true)}
         >
           <svg
-            className="scan-field-btn-icon"
+            className="pos-icon scan-field-btn-icon"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -97,7 +99,7 @@ export default function ScanField({
             <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
             <circle cx="12" cy="13" r="3.5" />
           </svg>
-          <span>Сканировать камерой</span>
+          <span>Камера</span>
         </button>
       </div>
       <div className="scan-field-foot">
