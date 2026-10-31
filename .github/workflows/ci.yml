@@ -38,6 +38,11 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - name: Show precise Prettier changes
+        run: |
+          npx prettier --write apps/web/src/pos/SalePage.tsx
+          git diff -- apps/web/src/pos/SalePage.tsx
+          git diff --exit-code -- apps/web/src/pos/SalePage.tsx
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm run build
