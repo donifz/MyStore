@@ -119,11 +119,8 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
     <>
       <div className="page-heading cashier-heading">
         <div>
-          <p className="eyebrow">Продажи в торговой точке</p>
           <h1>Касса</h1>
-          <p className="muted">
-            Сканируйте штрихкод или выбирайте товары из каталога.
-          </p>
+          <p className="muted">Продажи в торговой точке</p>
         </div>
         <Link className="button" to={'/seller/' + shopId + '/shift'}>
           {active
@@ -152,14 +149,11 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
         >
           <div className="cashier-catalog-heading">
             <div>
-              <h2>Выбрать товар</h2>
-              <p className="muted">
-                Найдите товар и нажмите, чтобы добавить его в чек.
-              </p>
+              <h2>Поиск товара</h2>
             </div>
           </div>
           <label className="cashier-product-search">
-            Найти товар
+            <span className="visually-hidden">Найти товар</span>
             <input
               type="search"
               ref={searchRef}
@@ -208,17 +202,8 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
           </div>
         </section>
         <div className="cashier-checkout">
-          <div className="cashier-cart-title">
-            <h2>Корзина</h2>
-            <span className="badge">
-              {doc.draft.lines.reduce((n, l) => n + l.quantity, 0)} шт.
-            </span>
-          </div>
-          <div className="cashier-lines">
-            <DocumentEditor doc={doc} receiving={false} shopId={shopId} />
-          </div>
           <aside className="panel cashier-payment summary-panel">
-            <div className="cashier-summary-row">
+            <div className="cashier-summary-row cashier-subtotal">
               <span>Сумма товаров</span>
               <strong>
                 {safe ? formatSom(Number(sum)) : 'Сумма превышена'}
@@ -356,6 +341,17 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
                   : 'Провести продажу'}
             </button>
           </aside>
+          <section className="panel cashier-cart-panel" aria-label="Корзина">
+          <div className="cashier-cart-title">
+            <h2>Корзина</h2>
+            <span className="badge">
+              {doc.draft.lines.reduce((n, l) => n + l.quantity, 0)} шт.
+            </span>
+          </div>
+          <div className="cashier-lines">
+            <DocumentEditor doc={doc} receiving={false} shopId={shopId} />
+          </div>
+          </section>
         </div>
       </div>
     </>
