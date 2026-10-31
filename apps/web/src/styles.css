@@ -5768,7 +5768,7 @@ fieldset {
   white-space: nowrap;
 }
 .receiving-status-pill {
-   justify-self: start;
+  justify-self: start;
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 11px;
