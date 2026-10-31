@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { api } from '../api/client';
 import type { Page, Variant } from '../api/types';
 import { Link, useParams } from 'react-router-dom';
@@ -8,15 +8,16 @@ import { useDocument } from '../drafts/use-document';
 import DocumentEditor from '../drafts/DocumentEditor';
 import CameraScanner from '../scanner/CameraScanner';
 import { useCurrentShift } from './use-current-shift';
+import PaymentBottomSheet from './PaymentBottomSheet';
 
 const POPULAR = '__popular__';
 const wholeSom = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
 
-/** Round-up cash suggestions above the total, e.g. 420 → 500, 1 000, 5 000. */
+/** Round-up cash suggestions above the total, e.g. 420 → 500, 1 000, 2 000, 5 000. */
 export function quickCashAmounts(sumMinor: bigint): number[] {
   if (sumMinor <= 0n) return [];
   const result = new Set<number>();
-  for (const step of [10000n, 50000n, 100000n, 500000n]) {
+  for (const step of [10000n, 50000n, 100000n, 200000n, 500000n]) {
     const rounded = ((sumMinor + step - 1n) / step) * step;
     if (rounded > sumMinor && rounded <= BigInt(Number.MAX_SAFE_INTEGER))
       result.add(Number(rounded));
@@ -36,7 +37,8 @@ function Icon({
     | 'card'
     | 'grid'
     | 'trash'
-    | 'receipt';
+    | 'receipt'
+    | 'close';
 }) {
   const paths: Record<typeof name, ReactNode> = {
     search: (
@@ -78,6 +80,7 @@ function Icon({
         <path d="M3 10h18M7 15h4" />
       </>
     ),
+    close: <path d="M18 6 6 18M6 6l12 12" />,
   };
   return (
     <svg
@@ -138,10 +141,11 @@ function SaleWorkspace({
     [catalogError, setCatalogError] = useState(''),
     [received, setReceived] = useState(''),
     [camera, setCamera] = useState(false),
-    [mode, setMode] = useState<'scanner' | 'search'>('scanner'),
+    [mode, setMode] = useState<'scanner' | 'catalog'>('scanner'),
     [paymentSheetOpen, setPaymentSheetOpen] = useState(false),
     scanInput = useRef<HTMLInputElement>(null),
     photos = useRef(new Map<string, string>());
+
   useEffect(() => {
     let alive = true;
     const timer = window.setTimeout(() => {
@@ -178,14 +182,15 @@ function SaleWorkspace({
       window.clearTimeout(timer);
     };
   }, [shopId, query, category, doc.success]);
+
   useEffect(() => {
     if (doc.success) {
       setReceived('');
       setQuery('');
-      setPaymentSheetOpen(false);
       scanInput.current?.focus();
     }
   }, [doc.success]);
+
   const active = shift.current && 'id' in shift.current ? shift.current : null;
   const sum = doc.draft.lines.reduce(
       (n, l) =>
@@ -193,8 +198,11 @@ function SaleWorkspace({
       0n,
     ),
     safe = sum <= BigInt(Number.MAX_SAFE_INTEGER);
+  const totalMinor = safe ? Number(sum) : 0;
+  const totalText = safe ? formatSom(totalMinor) : 'Сумма превышена';
   const itemCount = doc.draft.lines.reduce((n, l) => n + l.quantity, 0);
   const inCart = new Map(doc.draft.lines.map((l) => [l.id, l.quantity]));
+
   function startNewReceipt() {
     void doc.change([]);
     doc.setError('');
@@ -203,6 +211,7 @@ function SaleWorkspace({
     setPaymentSheetOpen(false);
     scanInput.current?.focus();
   }
+
   async function submit() {
     if (doc.draft.submission) {
       await doc.send(`/shops/${shopId}/pos/sales`, doc.draft.submission.body);
@@ -249,10 +258,10 @@ function SaleWorkspace({
       })),
     });
   }
+
   function scanOrSearch(raw: string) {
     const value = raw.trim();
     if (!value) return;
-    // Names (Cyrillic or several words) stay a search; codes go to the scanner queue.
     if (/[\sа-яё]/i.test(value)) {
       if (loadedQuery === raw && products.length === 1) {
         void doc.addVariant(products[0]);
@@ -263,6 +272,7 @@ function SaleWorkspace({
     doc.scan(value);
     setQuery('');
   }
+
   const paymentMethod = doc.draft.submission?.body.method ?? method;
   let receivedMinor: number | null = null;
   let receivedError = '';
@@ -273,13 +283,14 @@ function SaleWorkspace({
       receivedError = e instanceof Error ? e.message : 'Проверьте сумму.';
     }
   }
+
   const changeMinor =
     safe && paymentMethod === 'cash' && receivedMinor !== null
       ? BigInt(receivedMinor) - sum
       : null;
+
   const locked = doc.busy || doc.blocked || !!doc.draft.submission;
   const scanDisabled = locked || !!doc.productCreation;
-  const totalText = safe ? formatSom(Number(sum)) : 'Сумма превышена';
   const canSubmit = !(
     doc.busy ||
     doc.blocked ||
@@ -292,41 +303,41 @@ function SaleWorkspace({
           !!received.trim() &&
           (!!receivedError || changeMinor === null || changeMinor < 0n))))
   );
+
+  const quickAmounts = useMemo(
+    () => quickCashAmounts(safe ? sum : 0n),
+    [safe, sum],
+  );
+  const isCatalogOpen = mode === 'catalog' || query.trim().length > 0;
+
   return (
     <div className="pos-page">
-      <div className="pos-header">
+      <header className="pos-header">
         <div className="pos-title">
           {shopName && <span className="pos-shop-badge">{shopName}</span>}
           <div className="pos-title-row">
             <h1>Касса</h1>
-            <p className="muted">Продажи в торговой точке</p>
+            <p className="muted">Продажа товаров</p>
           </div>
         </div>
         <div className="pos-header-actions">
           {!shift.loading && !active && (
-            <div className="pos-shift-banner warning">
+            <Link
+              to={'/seller/' + shopId + '/shift'}
+              className="pos-shift-pill warning"
+            >
               <Icon name="clock" />
-              <span>
-                {shift.current
-                  ? 'Касса занята другим сотрудником.'
-                  : 'Смена не открыта. Откройте её перед продажей.'}
-              </span>
-              <Link
-                className="button primary"
-                to={'/seller/' + shopId + '/shift'}
-              >
-                {shift.current ? 'Посмотреть смену' : 'Открыть смену'}
-              </Link>
-            </div>
+              <span>{shift.current ? 'Касса занята' : 'Смена закрыта'}</span>
+            </Link>
           )}
           {active && (
-            <div className="pos-shift-banner ok">
+            <Link
+              to={'/seller/' + shopId + '/shift'}
+              className="pos-shift-pill ok"
+            >
               <span className="pos-dot" aria-hidden="true" />
-              <span>Смена открыта, можно продавать</span>
-              <Link className="button" to={'/seller/' + shopId + '/shift'}>
-                Моя смена
-              </Link>
-            </div>
+              <span>Смена открыта</span>
+            </Link>
           )}
           <button
             type="button"
@@ -338,15 +349,17 @@ function SaleWorkspace({
             <span>Новый чек</span>
           </button>
         </div>
-      </div>
+      </header>
+
       {shift.error && (
         <p role="alert" className="error">
           {shift.error}
         </p>
       )}
+
       <div className="pos-layout">
         <section
-          className="pos-panel pos-catalog"
+          className={`pos-panel pos-catalog${isCatalogOpen ? ' catalog-open' : ''}`}
           aria-label="Каталог для кассы"
         >
           <div className="pos-catalog-head">
@@ -387,23 +400,23 @@ function SaleWorkspace({
               <button
                 type="button"
                 className={
-                  mode === 'search' && !camera
+                  mode === 'catalog' && !camera
                     ? 'pos-mode-tab active'
                     : 'pos-mode-tab'
                 }
-                aria-pressed={mode === 'search' && !camera}
+                aria-pressed={mode === 'catalog' && !camera}
                 disabled={scanDisabled}
                 onClick={() => {
-                  setMode('search');
+                  setMode(mode === 'catalog' ? 'scanner' : 'catalog');
                   setCamera(false);
-                  scanInput.current?.focus();
                 }}
               >
-                <Icon name="search" />
-                <span>Поиск</span>
+                <Icon name="grid" />
+                <span>Каталог</span>
               </button>
             </div>
           </div>
+
           <div className="pos-search-row">
             <label className="pos-search">
               <Icon name="search" />
@@ -422,14 +435,14 @@ function SaleWorkspace({
                     scanOrSearch(event.currentTarget.value);
                   }
                 }}
-                placeholder="Название, артикул или штрихкод"
+                placeholder="Штрихкод, артикул или название"
               />
             </label>
             <button
               type="button"
               className="pos-tool"
               aria-label="Фокус для сканера"
-              title="USB-сканер вводит код как клавиатура: один скан — одна единица"
+              title="USB-сканер вводит код как клавиатура"
               disabled={scanDisabled}
               onClick={() => scanInput.current?.focus()}
             >
@@ -441,12 +454,13 @@ function SaleWorkspace({
               className="pos-tool"
               aria-label="Сканировать камерой"
               disabled={scanDisabled}
-              onClick={() => setCamera(true)}
+              onClick={() => setCamera((open) => !open)}
             >
               <Icon name="camera" />
               <span>Камера</span>
             </button>
           </div>
+
           {camera && (
             <CameraScanner
               onScan={(code) => {
@@ -456,6 +470,7 @@ function SaleWorkspace({
               onClose={() => setCamera(false)}
             />
           )}
+
           <div className="pos-chips" role="group" aria-label="Категории">
             {[
               { value: '', label: 'Все товары' },
@@ -475,11 +490,13 @@ function SaleWorkspace({
               </button>
             ))}
           </div>
+
           {catalogError && (
             <p role="alert" className="error">
               {catalogError}
             </p>
           )}
+
           {!catalogError && products.length === 0 && (
             <p className="empty-state">
               {category === POPULAR
@@ -487,6 +504,7 @@ function SaleWorkspace({
                 : 'Товары не найдены. Отсканируйте штрихкод или измените поиск.'}
             </p>
           )}
+
           <div className="pos-product-grid">
             {products.map((product) => {
               const out = (product.available ?? 1) <= 0;
@@ -499,7 +517,10 @@ function SaleWorkspace({
                   }
                   key={product.id}
                   disabled={locked || !doc.online || out}
-                  onClick={() => void doc.addVariant(product)}
+                  onClick={() => {
+                    void doc.addVariant(product);
+                    if (query) setQuery('');
+                  }}
                 >
                   <ProductPhoto product={product} qty={qty} />
                   <span className="pos-product-info">
@@ -534,34 +555,13 @@ function SaleWorkspace({
             })}
           </div>
         </section>
+
         <div className="pos-side">
-          {paymentSheetOpen && (
-            <div
-              className="pos-sheet-backdrop"
-              aria-hidden="true"
-              onClick={() => setPaymentSheetOpen(false)}
-            />
-          )}
+          {/* DESKTOP PAYMENT FORM (hidden on mobile via CSS) */}
           <aside
-            className={
-              paymentSheetOpen
-                ? 'pos-panel pos-payment sheet-open'
-                : 'pos-panel pos-payment'
-            }
+            className="pos-panel pos-payment pos-desktop-payment"
+            aria-label="Оплата"
           >
-            {paymentSheetOpen && (
-              <div className="pos-payment-head">
-                <strong className="pos-panel-title">Оплата чека</strong>
-                <button
-                  type="button"
-                  className="pos-sheet-close"
-                  aria-label="Закрыть оплату"
-                  onClick={() => setPaymentSheetOpen(false)}
-                >
-                  ×
-                </button>
-              </div>
-            )}
             <fieldset className="pos-methods" disabled={locked}>
               <legend className="pos-panel-title">Способ оплаты</legend>
               {(
@@ -590,6 +590,7 @@ function SaleWorkspace({
                 </label>
               ))}
             </fieldset>
+
             {paymentMethod === 'cash' && (
               <div className="pos-cash-row">
                 <label className="pos-received">
@@ -619,7 +620,7 @@ function SaleWorkspace({
                     >
                       Без сдачи
                     </button>
-                    {quickCashAmounts(safe ? sum : 0n).map((amount) => (
+                    {quickAmounts.map((amount) => (
                       <button
                         type="button"
                         key={amount}
@@ -638,11 +639,13 @@ function SaleWorkspace({
                 </div>
               </div>
             )}
+
             {receivedError && (
               <p role="alert" className="error">
                 {receivedError}
               </p>
             )}
+
             <div className="pos-totals">
               <div className="pos-total-tile">
                 <span>Итого</span>
@@ -674,6 +677,7 @@ function SaleWorkspace({
                 </div>
               )}
             </div>
+
             <button
               className="pos-submit"
               onClick={() => void submit()}
@@ -698,20 +702,24 @@ function SaleWorkspace({
               отмечается вручную.
             </p>
           </aside>
+
+          {/* CART / RECEIPT WORKSPACE (on mobile, takes full height and scrolls internally) */}
           <section className="pos-panel pos-cart" aria-label="Корзина">
             <div className="pos-cart-head">
               <h2 className="pos-panel-title">
-                Корзина <span className="pos-count">{itemCount}</span>
+                Чек <span className="pos-count">{itemCount}</span>
               </h2>
-              <button
-                type="button"
-                className="pos-clear"
-                disabled={locked || !doc.draft.lines.length}
-                onClick={() => void doc.change([])}
-              >
-                <Icon name="trash" />
-                Очистить
-              </button>
+              {doc.draft.lines.length > 0 && (
+                <button
+                  type="button"
+                  className="pos-clear"
+                  disabled={locked}
+                  onClick={() => void doc.change([])}
+                >
+                  <Icon name="trash" />
+                  <span>Очистить</span>
+                </button>
+              )}
             </div>
             <DocumentEditor
               doc={doc}
@@ -720,39 +728,55 @@ function SaleWorkspace({
               cart
               photoFor={(id) => photos.current.get(id)}
             />
-            {doc.draft.lines.length > 0 && (
-              <div className="pos-receipt-summary">
-                <div>
-                  <strong>Итого по чеку</strong>
-                  <small>
-                    {doc.draft.lines.length} поз. · {itemCount} ед.
-                  </small>
-                </div>
-                <strong className="pos-receipt-total">{`К оплате: ${totalText}`}</strong>
-              </div>
-            )}
           </section>
         </div>
       </div>
 
+      {/* MOBILE STICKY BOTTOM PAYBAR */}
       <div className="pos-mobile-paybar">
         <div className="pos-mobile-paybar-meta">
-          <span>Чек ({itemCount} ед.)</span>
-          <strong>{`Сумма: ${totalText}`}</strong>
+          <span className="pos-mobile-paybar-count">
+            {doc.draft.lines.length} поз. · {itemCount} ед.
+          </span>
+          <strong className="pos-mobile-paybar-total">{totalText}</strong>
         </div>
         <button
           type="button"
           className="button primary pos-mobile-pay-btn"
-          disabled={locked || !doc.draft.lines.length}
+          disabled={locked || !doc.draft.lines.length || !safe}
           onClick={() => setPaymentSheetOpen(true)}
         >
           <Icon name="card" />
-          <span>{`Оплатить — ${totalText}`}</span>
+          <span>Оплатить — {totalText}</span>
         </button>
       </div>
+
+      {/* MOBILE BOTTOM SHEET MODAL */}
+      <PaymentBottomSheet
+        open={paymentSheetOpen}
+        onClose={() => setPaymentSheetOpen(false)}
+        method={method}
+        setMethod={setMethod}
+        received={received}
+        setReceived={setReceived}
+        totalText={totalText}
+        totalMinor={totalMinor}
+        changeMinor={changeMinor}
+        receivedMinor={receivedMinor}
+        receivedError={receivedError}
+        quickAmounts={quickAmounts}
+        canSubmit={canSubmit}
+        isSubmitting={doc.busy}
+        isSubmissionPending={!!doc.draft.submission}
+        onSubmit={() => void submit()}
+        error={doc.error}
+        success={doc.success}
+        onNewReceipt={startNewReceipt}
+      />
     </div>
   );
 }
+
 export default function SalePage() {
   const { shopId } = useParams(),
     session = useSession();

@@ -315,6 +315,42 @@ export default function DocumentEditor({
           receiving ? () => setManualOpen((open) => !open) : undefined
         }
       />
+      {receiving && (
+        <div className="receiving-quick-actions">
+          <button
+            type="button"
+            className="button primary receiving-quick-new-btn"
+            disabled={disabled}
+            onClick={() => void doc.beginProductCreation('')}
+          >
+            <span aria-hidden="true">✨</span>
+            <span>Новый товар</span>
+          </button>
+          <button
+            type="button"
+            className="button secondary receiving-quick-scan-btn"
+            disabled={disabled}
+            onClick={() => {
+              const el = document.querySelector<HTMLInputElement>(
+                '.scan-field-input input',
+              );
+              el?.focus();
+            }}
+          >
+            <svg
+              className="pos-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              aria-hidden="true"
+            >
+              <path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3" />
+            </svg>
+            <span>Сканировать</span>
+          </button>
+        </div>
+      )}
       {receiving && manualOpen && !disabled && (
         <div className="receiving-manual-picker">
           <div className="receiving-manual-picker-head">
@@ -396,38 +432,42 @@ export default function DocumentEditor({
         </div>
       )}
       {receiving && doc.productCreation && (
-        <ReceivingProductForm
-          key={doc.productCreation}
-          shopId={shopId}
-          parentId={parentId}
-          barcode={doc.productCreation}
-          creationKey={doc.draft.primaryReceiving?.productKey}
-          draftLines={doc.draft.lines}
-          disabled={doc.blocked || !doc.online || doc.busy}
-          onCancel={doc.closeProductCreation}
-          onSwitchToSearch={() => {
-            doc.closeProductCreation();
-            setManualOpen(true);
-          }}
-          onAddedToDraft={(variant, quantity, unitCostText) =>
-            doc.addCreatedVariantToDraft(variant, quantity, unitCostText)
-          }
-          onCreated={(variant, quantity, unitCostText) =>
-            doc.receiveCreatedVariant(
-              variant,
-              quantity,
-              unitCostText,
-              receivingMetadata ?? {
-                supplier: '',
-                receivedOn: new Date().toISOString().slice(0, 10),
-                comment: '',
-              },
-            )
-          }
-          onCreatedWithoutReceiving={async () =>
-            doc.finishProductCreationWithoutReceiving()
-          }
-        />
+        <div className="receiving-product-sheet-root">
+          <div className="receiving-product-sheet-drawer">
+            <ReceivingProductForm
+              key={doc.productCreation}
+              shopId={shopId}
+              parentId={parentId}
+              barcode={doc.productCreation}
+              creationKey={doc.draft.primaryReceiving?.productKey}
+              draftLines={doc.draft.lines}
+              disabled={doc.blocked || !doc.online || doc.busy}
+              onCancel={doc.closeProductCreation}
+              onSwitchToSearch={() => {
+                doc.closeProductCreation();
+                setManualOpen(true);
+              }}
+              onAddedToDraft={(variant, quantity, unitCostText) =>
+                doc.addCreatedVariantToDraft(variant, quantity, unitCostText)
+              }
+              onCreated={(variant, quantity, unitCostText) =>
+                doc.receiveCreatedVariant(
+                  variant,
+                  quantity,
+                  unitCostText,
+                  receivingMetadata ?? {
+                    supplier: '',
+                    receivedOn: new Date().toISOString().slice(0, 10),
+                    comment: '',
+                  },
+                )
+              }
+              onCreatedWithoutReceiving={async () =>
+                doc.finishProductCreationWithoutReceiving()
+              }
+            />
+          </div>
+        </div>
       )}
       {doc.priceChange && (
         <button type="button" onClick={doc.acceptPrice}>

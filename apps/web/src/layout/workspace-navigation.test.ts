@@ -191,8 +191,8 @@ it('keeps everyday tasks prominent and advanced tools under More', () => {
     'Касса',
     'Приёмка',
     'Товары',
-    'Отчёты',
   ]);
+  expect(ownerMenu[1].items.some((item) => item.label === 'Отчёты')).toBe(true);
   expect(ownerMenu[1].items.some((item) => item.label === 'Смена')).toBe(true);
   expect(
     ownerMenu[0].items.filter((item) => item.active).map((item) => item.label),

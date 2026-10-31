@@ -94,8 +94,8 @@ export default function ReceivingProductForm({
         ) : undefined
       }
       footerFields={
-        <div className="product-form-fields">
-          <label>
+        <div className="product-form-fields receiving-form-fields">
+          <label className="product-field-cost">
             Закупочная цена, сом
             <input
               inputMode="decimal"
@@ -104,16 +104,42 @@ export default function ReceivingProductForm({
               placeholder="0,00"
             />
           </label>
-          <label>
-            Количество первичной приёмки
-            <input
-              type="number"
-              min={1}
-              max={1e9}
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-            />
-          </label>
+          <div className="product-field-quantity">
+            <label htmlFor="receiving-form-quantity">
+              Количество первичной приёмки
+            </label>
+            <div className="pos-stepper product-form-stepper">
+              <button
+                type="button"
+                aria-label="Уменьшить количество нового товара"
+                disabled={Number(quantity) <= 1}
+                onClick={() =>
+                  setQuantity((q) =>
+                    Math.max(1, (Number(q) || 1) - 1).toString(),
+                  )
+                }
+              >
+                −
+              </button>
+              <input
+                id="receiving-form-quantity"
+                type="number"
+                min={1}
+                max={1e9}
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+              />
+              <button
+                type="button"
+                aria-label="Увеличить количество нового товара"
+                onClick={() =>
+                  setQuantity((q) => ((Number(q) || 0) + 1).toString())
+                }
+              >
+                +
+              </button>
+            </div>
+          </div>
         </div>
       }
       {...(onAddedToDraft

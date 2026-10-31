@@ -1,10 +1,30 @@
-import { useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useSession } from '../auth/SessionProvider';
 import { parseSom, formatSom } from '../api/money';
 import { api, errorText } from '../api/client';
 import { useEffect, useRef, useState } from 'react';
 import { useDocument } from '../drafts/use-document';
 import DocumentEditor from '../drafts/DocumentEditor';
+import { useCurrentShift } from '../pos/use-current-shift';
+import ReceivingConfirmationSheet from './ReceivingConfirmationSheet';
+
+function declinedPositions(n: number) {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 19) return 'позиций';
+  if (mod10 === 1) return 'позиция';
+  if (mod10 >= 2 && mod10 <= 4) return 'позиции';
+  return 'позиций';
+}
+
+function declinedUnits(n: number) {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 19) return 'единиц';
+  if (mod10 === 1) return 'единица';
+  if (mod10 >= 2 && mod10 <= 4) return 'единицы';
+  return 'единиц';
+}
 
 function ReceivingWorkspace({
   shopId,
@@ -14,6 +34,9 @@ function ReceivingWorkspace({
   userId: string;
 }) {
   const doc = useDocument({ userId, shopId, kind: 'receiving' });
+  const shift = useCurrentShift(shopId);
+  const activeShift =
+    shift.current && 'id' in shift.current ? shift.current : null;
   const [searchParams, setSearchParams] = useSearchParams();
   const createAtEntry = searchParams.get('create') === '1';
   const parentId = searchParams.get('parentId') || undefined;
@@ -38,6 +61,7 @@ function ReceivingWorkspace({
         new Date().toISOString().slice(0, 10),
     ),
     [comment, setComment] = useState(doc.draft.submission?.body?.comment ?? ''),
+    [confirmOpen, setConfirmOpen] = useState(false),
     [history, setHistory] = useState<any[]>([]),
     [selectedReceipt, setSelectedReceipt] = useState<any | null>(null),
     [detailError, setDetailError] = useState('');
@@ -60,6 +84,7 @@ function ReceivingWorkspace({
       setDocumentNumber('');
       setSupplier('');
       setComment('');
+      setConfirmOpen(false);
     }
   }, [doc.success]);
   let sum = 0n;
@@ -95,6 +120,7 @@ function ReceivingWorkspace({
         body,
         doc.draft.primaryReceiving?.receivingKey,
       );
+      setConfirmOpen(false);
     } catch (e) {
       doc.setError(errorText(e));
     }
@@ -102,30 +128,68 @@ function ReceivingWorkspace({
   return (
     <div className="receiving-page">
       <div className="page-heading receiving-page-header">
-        <div>
+        <div className="receiving-header-main">
           <div className="receiving-title-row">
+            <Link
+              to={`/seller/${shopId}`}
+              className="receiving-back-link"
+              aria-label="Назад к магазину"
+            >
+              ‹
+            </Link>
             <h1>Приёмка</h1>
             <span className="receiving-subtitle">Поступление товара</span>
           </div>
-          <p className="muted">
+          <p className="muted receiving-header-desc">
             Сканируйте товар, укажите количество и закупочную цену
           </p>
         </div>
-        <button
-          type="button"
-          className="button primary receiving-create-btn"
-          disabled={
-            doc.busy ||
-            doc.blocked ||
-            !doc.online ||
-            !!doc.draft.submission ||
-            !!doc.productCreation
-          }
-          onClick={() => void doc.beginProductCreation('')}
-        >
-          <span aria-hidden="true">+</span> Создать товар
-        </button>
+        <div className="receiving-header-meta">
+          <span
+            className={`receiving-shift-pill ${activeShift ? 'open' : 'closed'}`}
+          >
+            <span className="pos-dot" aria-hidden="true" />
+            <span>{activeShift ? 'Смена открыта' : 'Смена не открыта'}</span>
+          </span>
+          <button
+            type="button"
+            className="button primary receiving-create-btn"
+            disabled={
+              doc.busy ||
+              doc.blocked ||
+              !doc.online ||
+              !!doc.draft.submission ||
+              !!doc.productCreation
+            }
+            onClick={() => void doc.beginProductCreation('')}
+          >
+            <span aria-hidden="true">+</span> Создать товар
+          </button>
+        </div>
       </div>
+
+      <button
+        type="button"
+        className="receiving-doc-chip"
+        onClick={() => setConfirmOpen(true)}
+        aria-label="Реквизиты накладной"
+      >
+        <span className="receiving-doc-chip-left">
+          <span className="receiving-doc-chip-icon" aria-hidden="true">
+            📄
+          </span>
+          <span className="receiving-doc-chip-text">
+            {documentNumber.trim()
+              ? `Накладная № ${documentNumber}`
+              : 'Накладная (черновик)'}
+            {supplier.trim() ? ` · ${supplier}` : ''}
+          </span>
+        </span>
+        <span className="receiving-doc-chip-arrow" aria-hidden="true">
+          ›
+        </span>
+      </button>
+
       <div className="pos-grid receiving-workspace-grid">
         <DocumentEditor
           doc={doc}
@@ -280,6 +344,91 @@ function ReceivingWorkspace({
           </button>
         </aside>
       </div>
+
+      {/* MOBILE STICKY BOTTOM BAR */}
+      <div className="receiving-mobile-bar">
+        <div className="receiving-mobile-kpi-card">
+          <div className="receiving-mobile-kpi-info">
+            <span className="receiving-mobile-kpi-icon" aria-hidden="true">
+              📦
+            </span>
+            <div className="receiving-mobile-kpi-copy">
+              <span className="receiving-mobile-kpi-label">
+                Итого к приёмке
+              </span>
+              <strong className="receiving-mobile-kpi-meta">
+                {doc.draft.lines.length}{' '}
+                {declinedPositions(doc.draft.lines.length)} · {totalUnits}{' '}
+                {declinedUnits(totalUnits)}
+              </strong>
+            </div>
+          </div>
+          <div className="receiving-mobile-kpi-sum">
+            <span className="receiving-mobile-sum-label">Сумма закупки</span>
+            <strong className="receiving-mobile-sum-amount">
+              {sum <= BigInt(Number.MAX_SAFE_INTEGER)
+                ? formatSom(Number(sum))
+                : 'Сумма превышена'}
+            </strong>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="button primary receiving-mobile-submit-btn"
+          disabled={
+            !doc.online ||
+            doc.busy ||
+            doc.blocked ||
+            !!doc.productCreation ||
+            !doc.draft.lines.length
+          }
+          onClick={() => setConfirmOpen(true)}
+        >
+          <svg
+            className="receiving-btn-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path d="m9 12 2 2 4-4" />
+          </svg>
+          <span>
+            {doc.busy
+              ? 'Проведение…'
+              : doc.draft.submission
+                ? 'Повторить исходный запрос'
+                : 'Провести приёмку'}
+          </span>
+        </button>
+      </div>
+
+      {/* CONFIRMATION BOTTOM SHEET MODAL */}
+      <ReceivingConfirmationSheet
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        supplier={supplier}
+        setSupplier={setSupplier}
+        documentNumber={documentNumber}
+        setDocumentNumber={setDocumentNumber}
+        receivedOn={receivedOn}
+        setReceivedOn={setReceivedOn}
+        comment={comment}
+        setComment={setComment}
+        lineCount={doc.draft.lines.length}
+        totalUnits={totalUnits}
+        totalSum={sum}
+        onSubmit={submit}
+        isSubmitting={doc.busy}
+        isSubmissionPending={!!doc.draft.submission}
+        error={doc.error}
+        disabled={!doc.online || doc.blocked}
+      />
+
       <details className="panel receiving-history" open>
         <summary>История приёмок</summary>
         <div className="page-heading">

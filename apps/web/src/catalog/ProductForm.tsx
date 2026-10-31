@@ -308,7 +308,7 @@ export default function ProductForm({
                 }}
               />
             </div>
-            <label>
+            <label className="product-field-name">
               Название
               <input
                 autoFocus
@@ -319,8 +319,8 @@ export default function ProductForm({
                 placeholder="Например, принтер Xprinter XP-365B"
               />
             </label>
-            <div className="product-form-fields">
-              <label>
+            <div className="product-form-fields product-form-pricing-fields">
+              <label className="product-field-sale-price">
                 Цена продажи, сом
                 <input
                   required
@@ -330,7 +330,7 @@ export default function ProductForm({
                   placeholder="0,00"
                 />
               </label>
-              <label>
+              <label className="product-field-category">
                 Категория
                 <select
                   value={category}
