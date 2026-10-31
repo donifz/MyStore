@@ -354,15 +354,15 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
             </button>
           </aside>
           <section className="panel cashier-cart-panel" aria-label="Корзина">
-          <div className="cashier-cart-title">
-            <h2>Корзина</h2>
-            <span className="badge">
-              {doc.draft.lines.reduce((n, l) => n + l.quantity, 0)} шт.
-            </span>
-          </div>
-          <div className="cashier-lines">
-            <DocumentEditor doc={doc} receiving={false} shopId={shopId} />
-          </div>
+            <div className="cashier-cart-title">
+              <h2>Корзина</h2>
+              <span className="badge">
+                {doc.draft.lines.reduce((n, l) => n + l.quantity, 0)} шт.
+              </span>
+            </div>
+            <div className="cashier-lines">
+              <DocumentEditor doc={doc} receiving={false} shopId={shopId} />
+            </div>
           </section>
         </div>
       </div>
