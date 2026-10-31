@@ -51,6 +51,7 @@ export function useDocument(scope: DraftScope) {
   ref.current = draft;
   const sending = useRef(false);
   const mounted = useRef(true);
+  const photos = useRef(new Map<string, string>());
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -84,6 +85,8 @@ export function useDocument(scope: DraftScope) {
     }
   }
   async function addVariant(v: Variant) {
+    const photo = v.photoUrls?.find(Boolean) || v.photoUrl;
+    if (photo) photos.current.set(v.id, photo);
     const added = await change((lines) => {
       const existing = lines.find((x) => x.id === v.id);
       if (existing) {
@@ -319,6 +322,7 @@ export function useDocument(scope: DraftScope) {
     unknownBarcode,
     productCreation,
     addVariant,
+    photoFor: (id: string) => photos.current.get(id),
     beginProductCreation: async (requestedBarcode?: string) => {
       const code = requestedBarcode ?? unknownBarcode;
       if (
