@@ -4144,3 +4144,137 @@ fieldset {
     display: none;
   }
 }
+
+/* Compact point-of-sale workspace: payment and completion are always above the cart. */
+.cashier-heading {
+  align-items: center;
+  margin-bottom: 12px;
+}
+.cashier-heading h1 {
+  margin: 0 0 3px;
+  font-size: 27px;
+}
+.cashier-heading .muted {
+  margin: 0;
+  font-size: 13px;
+}
+.cashier-workspace {
+  grid-template-columns: minmax(0, 1.55fr) minmax(360px, 0.98fr);
+  gap: 14px;
+}
+.cashier-workspace .panel {
+  padding: 18px;
+}
+.cashier-catalog-heading h2,
+.cashier-cart-title h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.cashier-product-search {
+  margin: 12px 0 14px;
+}
+.cashier-product-search input {
+  min-height: 44px;
+}
+.cashier-product-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.cashier-product-card {
+  min-height: 134px;
+  padding: 11px;
+  gap: 5px;
+}
+.cashier-product-glyph {
+  width: 38px;
+  height: 38px;
+  font-size: 20px;
+}
+.cashier-product-card strong {
+  line-height: 1.3;
+}
+.cashier-checkout {
+  align-content: start;
+  gap: 12px;
+}
+.cashier-payment {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cashier-payment-methods {
+  order: 0;
+}
+.cashier-received {
+  order: 1;
+}
+.cashier-quick-cash {
+  order: 2;
+}
+.cashier-payment > .error {
+  order: 3;
+}
+.cashier-subtotal {
+  display: none;
+}
+.cashier-summary-total {
+  order: 4;
+  border: 1px solid #e2e9eb;
+  border-radius: 10px;
+  padding: 12px;
+  background: #f4f7f8;
+  font-size: 18px;
+}
+.cashier-payment > .cashier-summary-row[role='status'] {
+  order: 5;
+  border: 1px solid #e2e9eb;
+  border-radius: 10px;
+  padding: 12px;
+  background: #f4f7f8;
+}
+.cashier-payment-hint {
+  order: 7;
+}
+.cashier-submit {
+  order: 6;
+  min-height: 52px;
+  font-size: 16px;
+}
+.cashier-cart-panel {
+  min-width: 0;
+}
+.cashier-cart-title {
+  margin-bottom: 12px;
+}
+.cashier-lines > .panel {
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+}
+@media (max-width: 1180px) {
+  .cashier-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cashier-product-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .cashier-product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cashier-product-card {
+    min-height: 120px;
+  }
+}
+
+.cashier-product-glyph {
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+.cashier-product-glyph img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
