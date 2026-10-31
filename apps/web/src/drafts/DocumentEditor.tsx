@@ -110,6 +110,17 @@ export default function DocumentEditor({
       window.clearTimeout(timer);
     };
   }, [manualOpen, manualQuery, receiving, shopId]);
+  const creationOpen = receiving && !!doc.productCreation;
+  const closeCreation = doc.closeProductCreation;
+  const creationBusy = doc.busy;
+  useEffect(() => {
+    if (!creationOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !creationBusy) closeCreation();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [creationOpen, creationBusy, closeCreation]);
   function setQuantity(line: DraftLine, n: number) {
     if (Number.isInteger(n) && n >= 1 && n <= 1e9)
       void doc.change((lines) =>
@@ -433,7 +444,19 @@ export default function DocumentEditor({
       )}
       {receiving && doc.productCreation && (
         <div className="receiving-product-sheet-root">
-          <div className="receiving-product-sheet-drawer">
+          <div
+            className="receiving-product-sheet-backdrop"
+            aria-hidden="true"
+            onClick={() => {
+              if (!doc.busy) doc.closeProductCreation();
+            }}
+          />
+          <div
+            className="receiving-product-sheet-drawer"
+            role="dialog"
+            aria-label="Создание товара"
+          >
+            <div className="pos-sheet-handle" aria-hidden="true" />
             <ReceivingProductForm
               key={doc.productCreation}
               shopId={shopId}
