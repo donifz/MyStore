@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useSession } from '../auth/SessionProvider';
 import { errorText } from '../api/client';
 import { AdminBrand, AdminIdentity } from '../platform/AdminKit';
+import { InstallApp } from '../pwa/InstallApp';
 import {
   shopStart,
   workspaceContext,
@@ -121,6 +122,7 @@ export default function WorkspaceShell({
             </div>
           ))}
         </nav>
+        <InstallApp className="workspace-install" />
         <div className="sidebar-bottom admin-kit-sidebar-bottom">
           <button
             onClick={() =>

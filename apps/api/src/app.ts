@@ -316,6 +316,8 @@ export async function createApp(
           res.setHeader('Cache-Control', 'no-store');
           return res.sendFile(resolve(webDir, 'index.html'));
         }
+        if (req.path.startsWith('/pwa/'))
+          return express.static(webDir, { maxAge: '1h' })(req, res, next);
         if (req.path.startsWith('/assets/'))
           return express.static(webDir, { maxAge: '1y', immutable: true })(
             req,
