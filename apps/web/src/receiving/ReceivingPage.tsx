@@ -205,61 +205,6 @@ function ReceivingWorkspace({
         />
         <aside className="panel summary-panel receiving-summary-panel">
           <h2>Итого к приёмке</h2>
-          <details className="receiving-metadata" open>
-            <summary>Дополнительные данные документа</summary>
-            <div className="receiving-metadata-fields">
-              <label>
-                Поставщик
-                <div className="receiving-supplier-box">
-                  <input
-                    value={supplier}
-                    onChange={(e) => setSupplier(e.target.value)}
-                    disabled={metaDisabled}
-                    placeholder="Например, ОсОО «ФудТрейд»"
-                  />
-                  {supplier && !metaDisabled && (
-                    <button
-                      type="button"
-                      className="receiving-supplier-clear"
-                      aria-label="Очистить поставщика"
-                      onClick={() => setSupplier('')}
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-              </label>
-              <div className="receiving-meta-row">
-                <label>
-                  Номер документа
-                  <input
-                    value={documentNumber}
-                    onChange={(e) => setDocumentNumber(e.target.value)}
-                    disabled={metaDisabled}
-                    placeholder="ПН-000123"
-                  />
-                </label>
-                <label>
-                  Дата поставки
-                  <input
-                    type="date"
-                    value={receivedOn}
-                    onChange={(e) => setReceivedOn(e.target.value)}
-                    disabled={metaDisabled}
-                  />
-                </label>
-              </div>
-              <label>
-                Комментарий
-                <input
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  disabled={metaDisabled}
-                  placeholder="Например, накладная №123"
-                />
-              </label>
-            </div>
-          </details>
           <div className="receiving-kpi-grid">
             <div className="receiving-kpi-tile">
               <span>Позиций</span>
@@ -340,6 +285,61 @@ function ReceivingWorkspace({
             </svg>
             <span>Печать документа</span>
           </button>
+          <details className="receiving-metadata">
+            <summary>Дополнительные данные документа</summary>
+            <div className="receiving-metadata-fields">
+              <label>
+                Поставщик
+                <div className="receiving-supplier-box">
+                  <input
+                    value={supplier}
+                    onChange={(e) => setSupplier(e.target.value)}
+                    disabled={metaDisabled}
+                    placeholder="Например, ОсОО «ФудТрейд»"
+                  />
+                  {supplier && !metaDisabled && (
+                    <button
+                      type="button"
+                      className="receiving-supplier-clear"
+                      aria-label="Очистить поставщика"
+                      onClick={() => setSupplier('')}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </label>
+              <div className="receiving-meta-row">
+                <label>
+                  Номер документа
+                  <input
+                    value={documentNumber}
+                    onChange={(e) => setDocumentNumber(e.target.value)}
+                    disabled={metaDisabled}
+                    placeholder="ПН-000123"
+                  />
+                </label>
+                <label>
+                  Дата поставки
+                  <input
+                    type="date"
+                    value={receivedOn}
+                    onChange={(e) => setReceivedOn(e.target.value)}
+                    disabled={metaDisabled}
+                  />
+                </label>
+              </div>
+              <label>
+                Комментарий
+                <input
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  disabled={metaDisabled}
+                  placeholder="Например, накладная №123"
+                />
+              </label>
+            </div>
+          </details>
         </aside>
       </div>
 
