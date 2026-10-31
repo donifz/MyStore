@@ -7,6 +7,25 @@ import { formatSom, parseSom } from '../api/money';
 import { useDocument } from '../drafts/use-document';
 import DocumentEditor from '../drafts/DocumentEditor';
 import { useCurrentShift } from './use-current-shift';
+function ProductThumbnail({ product }: { product: Variant }) {
+  const photo = product.photoUrls?.find(Boolean) || product.photoUrl;
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [photo]);
+  return (
+    <span className="cashier-product-glyph">
+      {photo && !failed ? (
+        <img
+          src={photo}
+          alt=""
+          loading="lazy"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <span aria-hidden="true">▦</span>
+      )}
+    </span>
+  );
+}
 function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
   const doc = useDocument({ userId, shopId, kind: 'sale' }),
     [method, setMethod] = useState<'cash' | 'card'>('cash'),
@@ -185,9 +204,7 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
                 }
                 onClick={() => void doc.addVariant(product)}
               >
-                <span className="cashier-product-glyph" aria-hidden="true">
-                  ▦
-                </span>
+                <ProductThumbnail product={product} />
                 <strong>{product.name}</strong>
                 <span className="cashier-product-price">
                   {formatSom(product.salePriceMinor)}
