@@ -14,7 +14,12 @@ function ProductThumbnail({ product }: { product: Variant }) {
   return (
     <span className="cashier-product-glyph">
       {photo && !failed ? (
-        <img src={photo} alt="" loading="lazy" onError={() => setFailed(true)} />
+        <img
+          src={photo}
+          alt=""
+          loading="lazy"
+          onError={() => setFailed(true)}
+        />
       ) : (
         <span aria-hidden="true">▦</span>
       )}
