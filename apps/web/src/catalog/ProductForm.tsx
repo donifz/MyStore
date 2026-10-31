@@ -254,33 +254,20 @@ export default function ProductForm({
             </div>
             {headerActions}
             <div className="product-form-media-row">
-              <div className="product-photo-column">
-                <div className="product-photo-box">
+              <div className="product-photo-compact">
+                <label className="product-photo-upload-card">
                   {photo ? (
-                    <>
-                      <img src={photo} alt="Фото перед сохранением" />
-                      <button
-                        type="button"
-                        className="product-photo-clear"
-                        aria-label="Удалить фото"
-                        onClick={() => {
-                          photoRevision.current++;
-                          setPhoto('');
-                          setPhotos([]);
-                        }}
-                      >
-                        ×
-                      </button>
-                    </>
+                    <img src={photo} alt="Фото перед сохранением" />
                   ) : (
-                    <div className="product-photo-empty" aria-hidden="true">
-                      <span>📷</span>
-                      <p>Фото товара</p>
+                    <div
+                      className="product-photo-compact-empty"
+                      aria-hidden="true"
+                    >
+                      <span className="product-photo-compact-icon">📷</span>
+                      <strong>Фото товара</strong>
+                      <small>Камера или файл</small>
                     </div>
                   )}
-                </div>
-                <label className="product-photo-picker">
-                  <span>{photo ? 'Заменить фото' : 'Добавить фото'}</span>
                   <input
                     type="file"
                     aria-label="Фото товара"
@@ -290,6 +277,20 @@ export default function ProductForm({
                     onChange={(e) => void choose(e.target.files)}
                   />
                 </label>
+                {photo && (
+                  <button
+                    type="button"
+                    className="product-photo-remove"
+                    aria-label="Удалить фото"
+                    onClick={() => {
+                      photoRevision.current++;
+                      setPhoto('');
+                      setPhotos([]);
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
                 {loadingPhoto && <p role="status">Подготовка фото…</p>}
                 {photos.length > 1 && (
                   <p className="muted">Выбрано фотографий: {photos.length}</p>

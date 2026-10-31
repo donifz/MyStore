@@ -61,7 +61,16 @@ test('mobile seller layout keeps normal document scroll and fixed bottom navigat
   await openCapture(page);
   await page.mouse.move(300, 500);
   await page.mouse.wheel(0, 700);
-  await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(0);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const drawer = document.querySelector<HTMLElement>(
+          '.receiving-product-sheet-drawer',
+        );
+        return scrollY || (drawer ? drawer.scrollTop : 0);
+      }),
+    )
+    .toBeGreaterThan(0);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

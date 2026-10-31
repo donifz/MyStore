@@ -433,7 +433,13 @@ export default function DocumentEditor({
       )}
       {receiving && doc.productCreation && (
         <div className="receiving-product-sheet-root">
+          <div
+            className="receiving-product-sheet-backdrop"
+            aria-hidden="true"
+            onClick={doc.closeProductCreation}
+          />
           <div className="receiving-product-sheet-drawer">
+            <div className="pos-sheet-handle" aria-hidden="true" />
             <ReceivingProductForm
               key={doc.productCreation}
               shopId={shopId}

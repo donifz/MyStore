@@ -159,7 +159,7 @@ export default function PhotoAssistant({
         </span>
         <button
           type="button"
-          className="photo-assistant-btn"
+          className="photo-assistant-btn photo-assistant-trigger"
           disabled={!photo || !info?.available || busy}
           onClick={() => void recognize()}
         >
