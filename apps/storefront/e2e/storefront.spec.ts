@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 const id = '11111111-1111-4111-8111-111111111111';
 const secondId = '22222222-2222-4222-8222-222222222222';
-for (const width of [320, 390, 768, 1440]) {
+for (const width of [320, 390, 768, 980, 1024, 1200, 1440]) {
   test(`catalog has a usable grid without overflow at ${width}px`, async ({
     page,
   }) => {
@@ -15,15 +15,94 @@ for (const width of [320, 390, 768, 1440]) {
       .evaluate(
         (el) => getComputedStyle(el).gridTemplateColumns.split(' ').length,
       );
-    expect(columns).toBe(width >= 1100 ? 4 : width >= 768 ? 3 : 2);
+    expect(columns).toBe(width <= 350 ? 1 : width < 1100 ? 2 : 3);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
+    const filters = page.locator('.sf-catalog-sidebar details');
+    await expect(filters).toHaveJSProperty('open', false);
+    if (width <= 600) {
+      const card = page.locator('.sf-product-card').first();
+      expect((await card.boundingBox())!.width).toBeGreaterThan(
+        width <= 350 ? width - 48 : width * 0.4,
+      );
+      const availability = await page
+        .locator('.sf-home-availability')
+        .boundingBox();
+      const filterButton = await filters.locator('summary').boundingBox();
+      expect(Math.abs(availability!.y - filterButton!.y)).toBeLessThanOrEqual(
+        4,
+      );
+      await expect(page.getByLabel('Поиск', { exact: true })).toBeHidden();
+      await filters.locator('summary').click();
+    } else {
+      const card = page.locator('.sf-product-card').first();
+      expect((await card.boundingBox())!.width).toBeGreaterThan(
+        width < 1100 ? width * 0.4 : 220,
+      );
+      await expect(page.getByLabel('Поиск', { exact: true })).toBeHidden();
+      await filters.locator('summary').click();
+    }
     await expect(page.getByLabel('Поиск', { exact: true })).toBeVisible();
   });
 }
+test('home shows available products first and stores after the catalogue', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  await expect(
+    page.getByRole('heading', { name: 'Товары в наличии' }),
+  ).toBeVisible();
+  await expect(page.locator('.sf-home-hero')).toBeVisible();
+  await expect(page.locator('.sf-product-card')).toHaveCount(1);
+  await page.locator('.sf-catalog-sidebar summary').click();
+  await expect(
+    page.getByRole('link', { name: 'Сбросить', exact: true }),
+  ).toHaveAttribute('href', '/?inStock=false#catalog');
+  const catalog = await page.locator('#catalog').boundingBox();
+  const stores = await page.locator('.sf-stores-strip').boundingBox();
+  expect(stores!.y).toBeGreaterThan(catalog!.y);
+  await page
+    .getByRole('navigation', { name: 'Наличие товаров' })
+    .getByRole('link', { name: 'Все товары' })
+    .click();
+  await expect(page.getByRole('heading', { name: 'Все товары' })).toBeVisible();
+});
+test('mobile filters open by keyboard and retain active criteria', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/?q=layout&inStock=true');
+  const filters = page.locator('.sf-catalog-sidebar details');
+  await expect(filters.locator('summary')).toContainText('Выбрано: 2');
+  await expect(filters).toHaveJSProperty('open', false);
+  await filters.locator('summary').focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByLabel('Поиск', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Поиск', { exact: true })).toHaveValue('layout');
+  await expect(page.getByLabel('В наличии')).toBeChecked();
+  await filters.locator('summary').click();
+  await expect(filters).toHaveJSProperty('open', false);
+});
+test('desktop-site viewport keeps tablet filters usable', async ({ page }) => {
+  await page.setViewportSize({ width: 980, height: 720 });
+  await page.goto('/?q=layout&inStock=true');
+  const filters = page.locator('.sf-catalog-sidebar details');
+  await expect(filters.locator('summary')).toContainText('Выбрано: 2');
+  await expect(filters).toHaveJSProperty('open', false);
+  await filters.locator('summary').focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByLabel('Поиск', { exact: true })).toHaveValue('layout');
+  await expect(page.getByLabel('В наличии')).toBeChecked();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
 test('pagination preserves the selected filters', async ({ page }) => {
   await page.goto('/?q=чашка&category=Посуда&sort=price-asc&inStock=true');
   await page.getByRole('link', { name: 'Следующая страница' }).click();
@@ -360,6 +439,42 @@ test('page templates stay within the viewport and provide QA screenshots', async
       path: testInfo.outputPath('cart-' + width + '.png'),
       fullPage: true,
     });
+  }
+});
+
+test('product layout stays readable in phone, desktop-site and desktop viewports', async ({
+  page,
+}) => {
+  for (const width of [390, 980, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/shops/shop-a/products/' + id);
+    await expect(
+      page.getByRole('heading', { name: 'Керамическая чашка' }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'В избранное: Керамическая чашка' }),
+    ).toBeVisible();
+    const gallery = (await page.locator('.sf-gallery').boundingBox())!;
+    const purchase = (await page.locator('.sf-purchase-panel').boundingBox())!;
+    const description = (await page.locator('.sf-detail-copy').boundingBox())!;
+    if (width < 1100) {
+      expect(gallery.width).toBeGreaterThan(width * 0.75);
+      expect(purchase.y).toBeGreaterThan(gallery.y + gallery.height);
+      expect(description.y).toBeGreaterThan(purchase.y + purchase.height);
+    } else {
+      expect(purchase.x).toBeGreaterThan(gallery.x + gallery.width);
+    }
+    const related = page.locator('.sf-related-grid');
+    await expect(related.locator('.sf-product-card')).toHaveCount(1);
+    const columns = await related.evaluate(
+      (el) => getComputedStyle(el).gridTemplateColumns.split(' ').length,
+    );
+    expect(columns).toBe(width <= 600 ? 1 : width < 1100 ? 2 : 4);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
   }
 });
 

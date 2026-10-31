@@ -95,6 +95,27 @@ function Icon({
   );
 }
 
+function ProductPhoto({ product, qty }: { product: Variant; qty?: number }) {
+  const photo = product.photoUrls?.find(Boolean) || product.photoUrl;
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [photo]);
+  return (
+    <span className="pos-product-photo" aria-hidden="true">
+      {photo && !failed ? (
+        <img
+          src={photo}
+          alt=""
+          loading="lazy"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <Icon name="grid" />
+      )}
+      {qty ? <span className="pos-product-qty">{qty}</span> : null}
+    </span>
+  );
+}
+
 function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
   const doc = useDocument({ userId, shopId, kind: 'sale' }),
     [method, setMethod] = useState<'cash' | 'card'>('cash'),
@@ -128,8 +149,10 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
         .then((result) => {
           if (alive) {
             const items = result.items.filter((item) => !item.archived);
-            for (const item of items)
-              if (item.photoUrl) photos.current.set(item.id, item.photoUrl);
+            for (const item of items) {
+              const photo = item.photoUrls?.find(Boolean) || item.photoUrl;
+              if (photo) photos.current.set(item.id, photo);
+            }
             setProducts(items);
             if (result.categories) setCategories(result.categories);
             setLoadedQuery(query);
@@ -146,7 +169,11 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
     };
   }, [shopId, query, category, doc.success]);
   useEffect(() => {
-    if (doc.success) setReceived('');
+    if (doc.success) {
+      setReceived('');
+      setQuery('');
+      scanInput.current?.focus();
+    }
   }, [doc.success]);
   const active = shift.current && 'id' in shift.current ? shift.current : null;
   const sum = doc.draft.lines.reduce(
@@ -387,16 +414,7 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
                   disabled={locked || !doc.online || out}
                   onClick={() => void doc.addVariant(product)}
                 >
-                  <span className="pos-product-photo" aria-hidden="true">
-                    {product.photoUrl ? (
-                      <img src={product.photoUrl} alt="" loading="lazy" />
-                    ) : (
-                      <Icon name="grid" />
-                    )}
-                    {qty ? (
-                      <span className="pos-product-qty">{qty}</span>
-                    ) : null}
-                  </span>
+                  <ProductPhoto product={product} qty={qty} />
                   <span className="pos-product-info">
                     <strong>{product.name}</strong>
                     <small>Арт. {product.sku || product.barcode}</small>

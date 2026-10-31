@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useSession } from '../auth/SessionProvider';
 import { errorText } from '../api/client';
 import { AdminBrand, AdminIdentity } from '../platform/AdminKit';
+import { InstallApp } from '../pwa/InstallApp';
 import {
   shopStart,
   workspaceContext,
@@ -107,20 +108,42 @@ export default function WorkspaceShell({
         <nav aria-label="Разделы кабинета">
           {groups.map((group) => (
             <div className="workspace-nav-group" key={group.label}>
-              <p className="workspace-nav-label">{group.label}</p>
-              {group.items.map((item) => (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={item.active ? 'active' : undefined}
-                  aria-current={item.active ? 'page' : undefined}
+              {group.label === 'Ещё' ? (
+                <details
+                  className="workspace-more"
+                  open={group.items.some((item) => item.active)}
                 >
-                  {item.label}
-                </Link>
-              ))}
+                  <summary>Ещё</summary>
+                  {group.items.map((item) => (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      className={item.active ? 'active' : undefined}
+                      aria-current={item.active ? 'page' : undefined}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </details>
+              ) : (
+                <>
+                  <p className="workspace-nav-label">{group.label}</p>
+                  {group.items.map((item) => (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      className={item.active ? 'active' : undefined}
+                      aria-current={item.active ? 'page' : undefined}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </>
+              )}
             </div>
           ))}
         </nav>
+        <InstallApp className="workspace-install" />
         <div className="sidebar-bottom admin-kit-sidebar-bottom">
           <button
             onClick={() =>

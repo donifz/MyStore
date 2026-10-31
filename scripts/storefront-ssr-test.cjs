@@ -107,9 +107,25 @@ const seen = [];
   try {
     const root = await get('/');
     assert.equal(root.response.status, 200);
+    const hero = await fetch(base + '/osh-hero.webp');
+    assert.equal(hero.status, 200, 'Storefront public assets must be served');
+    assert.equal(hero.headers.get('content-type'), 'image/webp');
+    assert((await hero.arrayBuffer()).byteLength > 0);
     const heading = root.doc.querySelector('h1')?.textContent || '';
     assert(heading.includes('Товары рядом'));
-    assert(heading.includes('от разных магазинов'));
+    assert(
+      root.doc.body.textContent.includes(
+        'Смотрите наличие и забирайте в магазине',
+      ),
+    );
+    assert(root.doc.body.textContent.includes('Товары в наличии'));
+    assert(
+      seen.some(
+        (url) =>
+          url.pathname === '/api/public/products' &&
+          url.searchParams.get('inStock') === 'true',
+      ),
+    );
     assert(root.doc.body.textContent.includes('Керамическая чашка'));
     assert(root.doc.body.textContent.includes('240'));
     assert(

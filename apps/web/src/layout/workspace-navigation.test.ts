@@ -178,3 +178,42 @@ it('uses independent report and return permissions without granting staff manage
     workspaceReturn(returnsOnly, '/seller/own/sales/s/return'),
   ).not.toBeNull();
 });
+
+it('keeps everyday tasks prominent and advanced tools under More', () => {
+  const ownerMenu = workspaceMenu(
+    { kind: 'shop', shop: owner },
+    '/seller/own/receiving',
+    '',
+  );
+  expect(ownerMenu.map((group) => group.label)).toEqual(['Основное', 'Ещё']);
+  expect(ownerMenu[0].items.map((item) => item.label)).toEqual([
+    'Касса',
+    'Приёмка',
+    'Товары',
+    'Отчёты',
+  ]);
+  expect(ownerMenu[1].items.some((item) => item.label === 'Смена')).toBe(true);
+  expect(
+    ownerMenu[0].items.filter((item) => item.active).map((item) => item.label),
+  ).toEqual(['Приёмка']);
+
+  const cashierMenu = workspaceMenu(
+    { kind: 'shop', shop: { ...owner, role: 'cashier' } },
+    '/seller/own/pos',
+    '',
+  );
+  expect(cashierMenu[0].items.map((item) => item.label)).toEqual([
+    'Касса',
+    'Товары',
+  ]);
+  expect(
+    cashierMenu
+      .flatMap((group) => group.items)
+      .some((item) => item.label === 'Приёмка'),
+  ).toBe(false);
+  expect(
+    cashierMenu
+      .flatMap((group) => group.items)
+      .some((item) => item.label === 'Сотрудники'),
+  ).toBe(false);
+});

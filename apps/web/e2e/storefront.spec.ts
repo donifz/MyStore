@@ -6,7 +6,7 @@ test('buyer submits a partner application without creating a login', async ({
 }) => {
   await page.goto('/');
   await expect(
-    page.getByRole('heading', { name: /Товары рядом.*от разных магазинов/ }),
+    page.getByRole('heading', { name: 'Товары рядом', exact: true }),
   ).toBeVisible();
   await page
     .getByRole('link', { name: 'Стать партнёром', exact: true })
