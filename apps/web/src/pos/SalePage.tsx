@@ -512,31 +512,33 @@ function SaleWorkspace({
           >
             <fieldset className="pos-methods" disabled={locked}>
               <legend className="pos-panel-title">Способ оплаты</legend>
-              {(
-                [
-                  ['cash', 'Наличные', 'cash'],
-                  ['card', 'Банковская карта', 'card'],
-                ] as const
-              ).map(([value, label, icon]) => (
-                <label
-                  key={value}
-                  className={
-                    paymentMethod === value
-                      ? 'pos-method selected'
-                      : 'pos-method'
-                  }
-                >
-                  <input
-                    type="radio"
-                    name="cashier-method"
-                    value={value}
-                    checked={paymentMethod === value}
-                    onChange={() => setMethod(value)}
-                  />
-                  <Icon name={icon} />
-                  {label}
-                </label>
-              ))}
+              <div className="pos-methods-grid">
+                {(
+                  [
+                    ['cash', 'Наличные', 'cash'],
+                    ['card', 'Безналичные', 'card'],
+                  ] as const
+                ).map(([value, label, icon]) => (
+                  <label
+                    key={value}
+                    className={
+                      paymentMethod === value
+                        ? 'pos-method selected'
+                        : 'pos-method'
+                    }
+                  >
+                    <input
+                      type="radio"
+                      name="cashier-method"
+                      value={value}
+                      checked={paymentMethod === value}
+                      onChange={() => setMethod(value)}
+                    />
+                    <Icon name={icon} />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
             </fieldset>
 
             {paymentMethod === 'cash' && (

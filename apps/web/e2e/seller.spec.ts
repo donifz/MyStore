@@ -217,7 +217,9 @@ test('two windows post one ordinary draft exactly once before storage events arr
   await expect(other.getByLabel('Количество Рюкзак Concurrent')).toHaveValue(
     '1',
   );
-  await other.getByRole('radio', { name: 'Банковская карта' }).check();
+  await other
+    .getByRole('radio', { name: /Безналичные|Банковская карта/ })
+    .check();
   const requests: { key: string | undefined; body: unknown }[] = [];
   let release!: () => void;
   const bothCaptured = new Promise<void>((resolve) => {
