@@ -96,7 +96,7 @@ export default function ReceivingProductForm({
       footerFields={
         <div className="product-form-fields receiving-form-fields">
           <label className="product-field-cost">
-            Закупочная цена, сом
+            <span>Закупочная цена, сом</span>
             <input
               inputMode="decimal"
               value={unitCostText}
