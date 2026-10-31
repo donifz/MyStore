@@ -108,17 +108,38 @@ export default function WorkspaceShell({
         <nav aria-label="Разделы кабинета">
           {groups.map((group) => (
             <div className="workspace-nav-group" key={group.label}>
-              <p className="workspace-nav-label">{group.label}</p>
-              {group.items.map((item) => (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={item.active ? 'active' : undefined}
-                  aria-current={item.active ? 'page' : undefined}
+              {group.label === 'Ещё' ? (
+                <details
+                  className="workspace-more"
+                  open={group.items.some((item) => item.active)}
                 >
-                  {item.label}
-                </Link>
-              ))}
+                  <summary>Ещё</summary>
+                  {group.items.map((item) => (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      className={item.active ? 'active' : undefined}
+                      aria-current={item.active ? 'page' : undefined}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </details>
+              ) : (
+                <>
+                  <p className="workspace-nav-label">{group.label}</p>
+                  {group.items.map((item) => (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      className={item.active ? 'active' : undefined}
+                      aria-current={item.active ? 'page' : undefined}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </>
+              )}
             </div>
           ))}
         </nav>

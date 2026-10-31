@@ -121,6 +121,10 @@ function ReceivingWorkspace({
           Создать товар
         </button>
       </div>
+      <p className="muted">
+        Сканируйте существующий товар или создайте новый прямо здесь. Затем
+        укажите количество и закупочную цену.
+      </p>
       <div className="pos-grid">
         <DocumentEditor
           doc={doc}
@@ -137,44 +141,47 @@ function ReceivingWorkspace({
           }}
         />
         <aside className="panel summary-panel">
-          <h2>Документ прихода</h2>
-          <label>
-            Номер документа
-            <input
-              value={documentNumber}
-              onChange={(e) => setDocumentNumber(e.target.value)}
-              disabled={doc.busy || !!doc.draft.submission}
-              placeholder="Например, ТТН-001 (или оставьте пустым)"
-            />
-          </label>
-          <label>
-            Поставщик
-            <input
-              value={supplier}
-              onChange={(e) => setSupplier(e.target.value)}
-              disabled={doc.busy || !!doc.draft.submission}
-              placeholder="Название или ИНН"
-            />
-          </label>
-          <label>
-            Дата поставки
-            <input
-              type="date"
-              value={receivedOn}
-              onChange={(e) => setReceivedOn(e.target.value)}
-              disabled={doc.busy || !!doc.draft.submission}
-            />
-          </label>
-          <label>
-            Комментарий
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              disabled={doc.busy || !!doc.draft.submission}
-              rows={3}
-              placeholder="Примечание к поставке"
-            />
-          </label>
+          <h2>Итого к приёмке</h2>
+          <details className="receiving-metadata">
+            <summary>Дополнительные данные документа</summary>
+            <label>
+              Номер документа
+              <input
+                value={documentNumber}
+                onChange={(e) => setDocumentNumber(e.target.value)}
+                disabled={doc.busy || !!doc.draft.submission}
+                placeholder="Например, ТТН-001 (или оставьте пустым)"
+              />
+            </label>
+            <label>
+              Поставщик
+              <input
+                value={supplier}
+                onChange={(e) => setSupplier(e.target.value)}
+                disabled={doc.busy || !!doc.draft.submission}
+                placeholder="Название или ИНН"
+              />
+            </label>
+            <label>
+              Дата поставки
+              <input
+                type="date"
+                value={receivedOn}
+                onChange={(e) => setReceivedOn(e.target.value)}
+                disabled={doc.busy || !!doc.draft.submission}
+              />
+            </label>
+            <label>
+              Комментарий
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                disabled={doc.busy || !!doc.draft.submission}
+                rows={3}
+                placeholder="Примечание к поставке"
+              />
+            </label>
+          </details>
           <p>{doc.draft.lines.reduce((n, l) => n + l.quantity, 0)} шт.</p>
           <p className="total">
             {sum <= BigInt(Number.MAX_SAFE_INTEGER)
@@ -212,7 +219,8 @@ function ReceivingWorkspace({
           </button>
         </aside>
       </div>
-      <section className="panel receiving-history">
+      <details className="panel receiving-history">
+        <summary>История приёмок</summary>
         <div className="page-heading">
           <div>
             <h2>История приёмок</h2>
@@ -312,7 +320,7 @@ function ReceivingWorkspace({
             </table>
           </div>
         )}
-      </section>
+      </details>
     </>
   );
 }
