@@ -28,7 +28,7 @@ test('seller login links to an installable manifest and real icons', async ({
   }
 });
 
-for (const width of [320, 390, 768, 1440]) {
+for (const width of [320, 360, 390, 768, 1440]) {
   for (const workspace of ['shop', 'platform']) {
     test(`workspace installation help fits ${workspace} at ${width}px`, async ({
       page,
@@ -60,6 +60,13 @@ for (const width of [320, 390, 768, 1440]) {
         workspace === 'shop' ? '/seller/pwa-shop/products' : '/platform/admin',
       );
       const help = page.locator('.pwa-install');
+      await expect(help).toBeVisible();
+      if (workspace === 'shop' && width <= 768) {
+        const sidebar = await page
+          .locator('.workspace-shop > .sidebar')
+          .boundingBox();
+        expect(sidebar!.height).toBeLessThan(230);
+      }
       await help.getByText('Установить MyStore', { exact: true }).click();
       await expect(help.getByText(/iPhone или iPad/)).toBeVisible();
       const header = await page
