@@ -4513,12 +4513,13 @@ fieldset {
   outline-offset: 2px;
 }
 .pos-cash-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  display: flex;
+  flex-direction: column;
   gap: 12px;
-  align-items: end;
 }
 .pos-received {
+  display: flex;
+  flex-direction: column;
   gap: 6px;
   margin: 0;
   font-size: 13px;
@@ -4542,15 +4543,20 @@ fieldset {
 }
 .pos-quick-buttons {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(68px, 1fr));
   gap: 6px;
 }
 .pos-quick-button {
-  min-height: 44px;
+  min-height: 40px;
   padding: 6px 8px;
-  border-color: #d5dee3;
+  border: 1px solid #d5dee3;
+  border-radius: 8px;
+  background: #fff;
   font-size: 13px;
+  font-weight: 500;
   white-space: nowrap;
+  cursor: pointer;
+  text-align: center;
 }
 .pos-quick-button.selected {
   border-color: var(--pos-green);
@@ -4560,25 +4566,31 @@ fieldset {
 }
 .pos-totals {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 10px;
 }
 .pos-total-tile {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  min-height: 60px;
-  padding: 12px 16px;
-  border-radius: 10px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-height: 62px;
+  padding: 10px 14px;
+  border-radius: 12px;
   background: #f2f5f6;
 }
 .pos-total-tile span {
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
+  color: #5a6872;
 }
 .pos-total-tile strong {
-  font-size: 20px;
+  font-size: 18px;
+  font-weight: 700;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--pos-ink);
 }
 .pos-total-tile.change strong {
   color: var(--pos-green);
@@ -4674,22 +4686,28 @@ fieldset {
 }
 .pos-cart-line {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto auto 28px;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
+  column-gap: 10px;
+  row-gap: 8px;
+  padding: 10px 12px;
   border: 1px solid var(--pos-line);
-  border-radius: 10px;
+  border-radius: 12px;
+  background: #fff;
 }
 .pos-cart-thumb {
+  grid-column: 1;
+  grid-row: 1;
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   overflow: hidden;
   border-radius: 8px;
   background: #f4f7f6;
   color: #9db3aa;
+  align-self: start;
 }
 .pos-cart-thumb img {
   width: 100%;
@@ -4697,19 +4715,30 @@ fieldset {
   object-fit: contain;
 }
 .pos-cart-name {
+  grid-column: 2;
+  grid-row: 1;
   display: grid;
   min-width: 0;
-  line-height: 1.3;
+  gap: 2px;
+  line-height: 1.35;
 }
 .pos-cart-name strong {
   overflow: hidden;
-  font-size: 13px;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pos-ink);
+}
+.pos-cart-name small {
+  overflow: hidden;
+  font-size: 11.5px;
+  color: var(--pos-muted);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.pos-cart-name small {
-  color: var(--pos-muted);
-  font-size: 11px;
+.pos-cart-name small s {
+  opacity: 0.7;
 }
 .pos-link-button {
   justify-self: start;
@@ -4719,16 +4748,43 @@ fieldset {
   color: var(--pos-green);
   font-size: 11px;
   font-weight: 600;
+  cursor: pointer;
 }
 .pos-link-button:hover:not(:disabled) {
   background: none;
   text-decoration: underline;
 }
-.pos-stepper {
+.pos-cart-remove {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+  align-self: start;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #8c9ba5;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
   display: grid;
-  grid-template-columns: 30px 44px 30px;
+  place-items: center;
+}
+.pos-cart-remove:hover:not(:disabled) {
+  background: #fff1f0;
+  color: #c62828;
+}
+.pos-stepper {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: start;
+  align-self: center;
+  display: grid;
+  grid-template-columns: 28px 40px 28px;
   align-items: stretch;
-  height: 32px;
+  height: 30px;
   overflow: hidden;
   border: 1px solid #d5dee3;
   border-radius: 8px;
@@ -4740,6 +4796,10 @@ fieldset {
   background: #f6f8f9;
   font-size: 16px;
   line-height: 1;
+  cursor: pointer;
+}
+.pos-stepper button:hover:not(:disabled) {
+  background: #eef2f3;
 }
 .pos-stepper input {
   padding: 0 2px;
@@ -4748,6 +4808,7 @@ fieldset {
   border-radius: 0;
   text-align: center;
   font-weight: 600;
+  font-size: 13.5px;
   -moz-appearance: textfield;
   appearance: textfield;
 }
@@ -4757,30 +4818,25 @@ fieldset {
   margin: 0;
 }
 .pos-cart-sum {
-  min-width: 84px;
-  font-size: 14px;
+  grid-column: 3;
+  grid-row: 2;
+  justify-self: end;
+  align-self: center;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 700;
   text-align: right;
   white-space: nowrap;
-}
-.pos-cart-remove {
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: #6c7a83;
-  font-size: 18px;
-}
-.pos-cart-remove:hover:not(:disabled) {
-  background: #fff1f0;
-  color: #b3261e;
+  color: var(--pos-ink);
 }
 .pos-cart-discount {
-  grid-column: 2 / -1;
+  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: minmax(110px, 1fr) minmax(160px, 2fr);
   gap: 8px;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px dashed #e2e8e6;
 }
 .pos-cart-discount label {
   gap: 4px;
@@ -4834,34 +4890,8 @@ fieldset {
   .pos-product-foot {
     grid-column: 1;
   }
-  .pos-cash-row,
   .pos-cart-discount {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .pos-cart-line {
-    grid-template-columns: 40px minmax(0, 1fr) auto;
-  }
-  .pos-cart-thumb {
-    width: 40px;
-    height: 40px;
-  }
-  .pos-stepper {
-    grid-column: 2;
-    grid-row: 2;
-    justify-self: start;
-  }
-  .pos-cart-sum {
-    grid-column: 3;
-    grid-row: 2;
-    min-width: 0;
-  }
-  .pos-cart-remove {
-    grid-column: 3;
-    grid-row: 1;
-    justify-self: end;
-  }
-  .pos-cart-discount {
-    grid-column: 1 / -1;
   }
 }
 
