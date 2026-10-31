@@ -4267,3 +4267,14 @@ fieldset {
     min-height: 120px;
   }
 }
+
+.cashier-product-glyph {
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+.cashier-product-glyph img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
