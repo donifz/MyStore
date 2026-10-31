@@ -40,14 +40,12 @@ function ReceivingWorkspace({
   const [searchParams, setSearchParams] = useSearchParams();
   const createAtEntry = searchParams.get('create') === '1';
   const parentId = searchParams.get('parentId') || undefined;
-  const beganEntry = useRef(false);
   useEffect(() => {
-    if (createAtEntry && !beganEntry.current) {
-      beganEntry.current = true;
+    if (createAtEntry) {
       const next = new URLSearchParams(searchParams);
       next.delete('create');
       setSearchParams(next, { replace: true });
-      if (!doc.draft.primaryReceiving) void doc.beginProductCreation('');
+      void doc.beginProductCreation('');
     }
   }, [createAtEntry]);
   const [documentNumber, setDocumentNumber] = useState(

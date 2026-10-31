@@ -120,6 +120,43 @@ export function useDocument(scope: DraftScope) {
     if (added) setUnknownBarcode(null);
     return added;
   }
+  const beginProductCreation = async (requestedBarcode?: string) => {
+    const code = requestedBarcode ?? unknownBarcode;
+    if (
+      code !== null &&
+      code !== undefined &&
+      online &&
+      !busy &&
+      !blocked &&
+      !ref.current.submission
+    ) {
+      try {
+        await withDraftLock(scope, () => {
+          const current = ref.current;
+          const workflowId = crypto.randomUUID();
+          const next: Draft = {
+            ...current,
+            revision: crypto.randomUUID(),
+            primaryReceiving: {
+              workflowId,
+              barcode: code || '__new__',
+              productKey: `product:${workflowId}`,
+              receivingKey: `receiving:${workflowId}`,
+            },
+          };
+          save(next, current.revision);
+          ref.current = next;
+          setDraft(next);
+          setProductCreation(code || '__new__');
+          setLastCreatedVariant(null);
+          setError('');
+        });
+      } catch (e) {
+        setError(errorText(e));
+        setBlocked(true);
+      }
+    }
+  };
   const queue = useRef<ReturnType<typeof createScanQueue> | null>(null);
   useEffect(() => {
     queue.current = createScanQueue(
@@ -133,6 +170,7 @@ export function useDocument(scope: DraftScope) {
         if (missing && scope.kind === 'receiving') {
           setUnknownBarcode(code);
           setError('');
+          void beginProductCreation(code);
           return;
         }
         setUnknownBarcode(null);
@@ -144,7 +182,15 @@ export function useDocument(scope: DraftScope) {
       },
     );
     return () => queue.current?.dispose();
-  }, [scope.shopId, scope.userId, scope.kind, blocked, busy]);
+  }, [
+    scope.shopId,
+    scope.userId,
+    scope.kind,
+    blocked,
+    busy,
+    online,
+    unknownBarcode,
+  ]);
   useEffect(() => {
     const network = () => setOnline(navigator.onLine);
     const storage = (e: StorageEvent) => {
@@ -377,44 +423,25 @@ export function useDocument(scope: DraftScope) {
     productCreation,
     addVariant,
     photoFor: (id: string) => photos.current.get(id),
-    beginProductCreation: async (requestedBarcode?: string) => {
-      const code = requestedBarcode ?? unknownBarcode;
-      if (
-        code !== null &&
-        code !== undefined &&
-        online &&
-        !busy &&
-        !blocked &&
-        !ref.current.submission
-      ) {
-        try {
-          await withDraftLock(scope, () => {
-            const current = ref.current;
-            const workflowId = crypto.randomUUID();
-            const next: Draft = {
-              ...current,
-              revision: crypto.randomUUID(),
-              primaryReceiving: {
-                workflowId,
-                barcode: code || '__new__',
-                productKey: `product:${workflowId}`,
-                receivingKey: `receiving:${workflowId}`,
-              },
-            };
-            save(next, current.revision);
-            ref.current = next;
-            setDraft(next);
-            setProductCreation(code || '__new__');
-            setLastCreatedVariant(null);
-            setError('');
-          });
-        } catch (e) {
-          setError(errorText(e));
-          setBlocked(true);
-        }
+    beginProductCreation,
+    closeProductCreation: async () => {
+      try {
+        await withDraftLock(scope, () => {
+          const current = ref.current;
+          const next: Draft = {
+            ...current,
+            revision: crypto.randomUUID(),
+            primaryReceiving: undefined,
+          };
+          save(next, current.revision);
+          ref.current = next;
+          setDraft(next);
+          setProductCreation(null);
+        });
+      } catch {
+        setProductCreation(null);
       }
     },
-    closeProductCreation: () => setProductCreation(null),
     finishProductCreationWithoutReceiving: async () => {
       try {
         await withDraftLock(scope, () => {

@@ -45,9 +45,12 @@ for (const width of [390, 1440]) {
     await page.getByLabel('Закупочная цена Известный товар, сом').fill('50');
     await scanner.fill(barcode);
     await scanner.press('Enter');
-    await page
-      .getByRole('button', { name: 'Создать товар с этим штрихкодом' })
-      .click();
+    const bannerBtn = page.getByRole('button', {
+      name: 'Создать товар с этим штрихкодом',
+    });
+    if (await bannerBtn.isVisible().catch(() => false)) {
+      await bannerBtn.click();
+    }
     const form = page.getByRole('form', { name: 'Новый товар в приёмке' });
     await expect(form.getByLabel('Штрихкод')).toHaveValue(barcode);
     expect(

@@ -102,14 +102,15 @@ async function openCreation() {
     await screen.findByLabelText('Сканировать штрихкод'),
     code + '{Enter}',
   );
-  await u.click(
-    await screen.findByRole('button', {
-      name: 'Создать товар с этим штрихкодом',
-    }),
-  );
+  const btn = screen.queryByRole('button', {
+    name: 'Создать товар с этим штрихкодом',
+  });
+  if (btn) await u.click(btn);
   return {
     u,
-    form: within(screen.getByRole('form', { name: 'Новый товар в приёмке' })),
+    form: within(
+      await screen.findByRole('form', { name: 'Новый товар в приёмке' }),
+    ),
   };
 }
 it('creates an unknown barcode, preserves prior lines, and posts its first receiving', async () => {
