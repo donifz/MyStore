@@ -85,6 +85,8 @@ export default function ProductForm({
     lookupRevision = useRef(0),
     productCreationKey = useRef(creationKey ?? crypto.randomUUID()),
     submitIntent = useRef<'primary' | 'draft' | 'secondary'>('primary'),
+    cameraInputRef = useRef<HTMLInputElement>(null),
+    galleryInputRef = useRef<HTMLInputElement>(null),
     id = useId();
   const updateCategories = useCallback(
     (value: CategoryNode[]) => setCategories(Array.isArray(value) ? value : []),
@@ -260,28 +262,172 @@ export default function ProductForm({
             <div className="product-form-body">
               <div className="product-form-media-row">
                 <div className="product-photo-compact">
-                  <label className="product-photo-upload-card">
+                  <input
+                    ref={cameraInputRef}
+                    type="file"
+                    aria-label="Снять на камеру"
+                    accept="image/jpeg,image/png,image/webp"
+                    capture="environment"
+                    style={{ display: 'none' }}
+                    onChange={(e) => void choose(e.target.files)}
+                  />
+                  <input
+                    ref={galleryInputRef}
+                    type="file"
+                    aria-label="Фото товара"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    style={{ display: 'none' }}
+                    onChange={(e) => void choose(e.target.files)}
+                  />
+                  <div
+                    className="product-photo-upload-card"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => galleryInputRef.current?.click()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        galleryInputRef.current?.click();
+                      }
+                    }}
+                  >
                     {photo ? (
-                      <img src={photo} alt="Фото перед сохранением" />
+                      <div className="product-photo-preview-wrap">
+                        <img src={photo} alt="Фото перед сохранением" />
+                        <div className="product-photo-change-bar">
+                          <button
+                            type="button"
+                            className="product-photo-btn"
+                            title="Снять другое фото на камеру"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              cameraInputRef.current?.click();
+                            }}
+                          >
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              width="12"
+                              height="12"
+                              aria-hidden="true"
+                            >
+                              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                              <circle cx="12" cy="13" r="4" />
+                            </svg>
+                            <span>Камера</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="product-photo-btn primary"
+                            title="Выбрать другое фото из галереи"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              galleryInputRef.current?.click();
+                            }}
+                          >
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              width="12"
+                              height="12"
+                              aria-hidden="true"
+                            >
+                              <rect
+                                x="3"
+                                y="3"
+                                width="18"
+                                height="18"
+                                rx="2"
+                                ry="2"
+                              />
+                              <circle cx="8.5" cy="8.5" r="1.5" />
+                              <polyline points="21 15 16 10 5 21" />
+                            </svg>
+                            <span>Галерея</span>
+                          </button>
+                        </div>
+                      </div>
                     ) : (
-                      <div
-                        className="product-photo-compact-empty"
-                        aria-hidden="true"
-                      >
-                        <span className="product-photo-compact-icon">📷</span>
+                      <div className="product-photo-compact-empty">
+                        <span
+                          className="product-photo-compact-icon"
+                          aria-hidden="true"
+                        >
+                          📷
+                        </span>
                         <strong>Фото товара</strong>
-                        <small>Камера или файл</small>
+                        <div className="product-photo-actions">
+                          <button
+                            type="button"
+                            className="product-photo-btn"
+                            title="Снять на камеру"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              cameraInputRef.current?.click();
+                            }}
+                          >
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              width="13"
+                              height="13"
+                              aria-hidden="true"
+                            >
+                              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                              <circle cx="12" cy="13" r="4" />
+                            </svg>
+                            <span>Камера</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="product-photo-btn primary"
+                            title="Выбрать из галереи"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              galleryInputRef.current?.click();
+                            }}
+                          >
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              width="13"
+                              height="13"
+                              aria-hidden="true"
+                            >
+                              <rect
+                                x="3"
+                                y="3"
+                                width="18"
+                                height="18"
+                                rx="2"
+                                ry="2"
+                              />
+                              <circle cx="8.5" cy="8.5" r="1.5" />
+                              <polyline points="21 15 16 10 5 21" />
+                            </svg>
+                            <span>Галерея</span>
+                          </button>
+                        </div>
                       </div>
                     )}
-                    <input
-                      type="file"
-                      aria-label="Фото товара"
-                      accept="image/jpeg,image/png,image/webp"
-                      multiple
-                      capture="environment"
-                      onChange={(e) => void choose(e.target.files)}
-                    />
-                  </label>
+                  </div>
                   {photo && (
                     <button
                       type="button"
