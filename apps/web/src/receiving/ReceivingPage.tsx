@@ -121,6 +121,7 @@ function ReceivingWorkspace({
           Создать товар
         </button>
       </div>
+      <p className="muted">Сканируйте существующий товар или создайте новый прямо здесь. Затем укажите количество и закупочную цену.</p>
       <div className="pos-grid">
         <DocumentEditor
           doc={doc}
@@ -137,7 +138,9 @@ function ReceivingWorkspace({
           }}
         />
         <aside className="panel summary-panel">
-          <h2>Документ прихода</h2>
+          <h2>Итого к приёмке</h2>
+          <details className="receiving-metadata">
+            <summary>Дополнительные данные документа</summary>
           <label>
             Номер документа
             <input
@@ -175,6 +178,7 @@ function ReceivingWorkspace({
               placeholder="Примечание к поставке"
             />
           </label>
+          </details>
           <p>{doc.draft.lines.reduce((n, l) => n + l.quantity, 0)} шт.</p>
           <p className="total">
             {sum <= BigInt(Number.MAX_SAFE_INTEGER)
@@ -212,7 +216,8 @@ function ReceivingWorkspace({
           </button>
         </aside>
       </div>
-      <section className="panel receiving-history">
+      <details className="panel receiving-history">
+        <summary>История приёмок</summary>
         <div className="page-heading">
           <div>
             <h2>История приёмок</h2>
@@ -312,7 +317,7 @@ function ReceivingWorkspace({
             </table>
           </div>
         )}
-      </section>
+      </details>
     </>
   );
 }
