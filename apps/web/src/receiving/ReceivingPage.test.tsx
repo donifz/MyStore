@@ -473,3 +473,86 @@ it('a receiving document with an uncertain result cannot scan or create another 
     screen.queryByRole('button', { name: 'Создать товар с этим штрихкодом' }),
   ).toBeNull();
 });
+
+it('supports mobile receiving bottom sheet, product creation stepper, and confirmation sheet', async () => {
+  const calls = start();
+  const u = userEvent.setup();
+
+  // Screen shows shift status and document draft chip
+  await screen.findByText('Поступление товара');
+  expect(screen.getByText('Накладная (черновик)')).toBeTruthy();
+
+  // Open "Новый товар" via mobile quick action button
+  const newProductBtn = screen.getByRole('button', { name: 'Новый товар' });
+  await u.click(newProductBtn);
+
+  const form = within(
+    await screen.findByRole('form', { name: 'Новый товар в приёмке' }),
+  );
+  expect(screen.getByRole('dialog', { name: 'Новый товар' })).toBeTruthy();
+
+  await u.type(form.getByLabelText('Название'), 'Наушники Bluetooth');
+  await u.type(form.getByLabelText('Цена продажи, сом'), '1990');
+  await u.type(form.getByLabelText('Закупочная цена, сом'), '1200');
+
+  // Quantity stepper
+  const qtyInput = form.getByLabelText(
+    'Количество первичной приёмки',
+  ) as HTMLInputElement;
+  expect(qtyInput.value).toBe('1');
+  await u.click(
+    form.getByRole('button', { name: 'Увеличить количество нового товара' }),
+  );
+  expect(qtyInput.value).toBe('2');
+
+  // Create and add to draft
+  await u.click(
+    form.getByRole('button', { name: 'Создать и добавить в приёмку' }),
+  );
+
+  // Dialog closes and item is added to draft lines
+  await screen.findByText('Товар добавлен в список приёмки.');
+  expect(screen.queryByRole('dialog', { name: 'Новый товар' })).toBeNull();
+  expect(screen.getAllByText('Принтер').length).toBeGreaterThan(0);
+
+  // Open confirmation sheet via mobile bar
+  const mobileSubmit = screen.getByRole('button', {
+    name: 'Провести приёмку (мобильная)',
+  });
+  await u.click(mobileSubmit);
+
+  const confirmDialog = await screen.findByRole('dialog', {
+    name: 'Подтверждение приёмки',
+  });
+  expect(confirmDialog).toBeTruthy();
+
+  const confirmWithin = within(confirmDialog);
+  await u.type(confirmWithin.getByPlaceholderText('ПН-000123'), 'ПН-777');
+  await u.type(
+    confirmWithin.getByPlaceholderText('Например, ОсОО «ФудТрейд»'),
+    'ОсОО «Гаджеты»',
+  );
+  await u.type(
+    confirmWithin.getByPlaceholderText('Например, поставка по договору'),
+    'Срочная поставка',
+  );
+
+  // Submit confirmation
+  await u.click(
+    confirmWithin.getByRole('button', { name: 'Подтвердить и провести' }),
+  );
+
+  await screen.findByText('Документ проведён: receipt');
+  expect(calls.filter((c) => c.method === 'POST').map((c) => c.url)).toEqual([
+    '/api/shops/' + shop + '/variants',
+    '/api/shops/' + shop + '/receivings',
+  ]);
+  expect(
+    calls.find((c) => c.method === 'POST' && c.url.endsWith('/receivings'))
+      ?.body,
+  ).toMatchObject({
+    documentNumber: 'ПН-777',
+    supplier: 'ОсОО «Гаджеты»',
+    comment: 'Срочная поставка',
+  });
+});
