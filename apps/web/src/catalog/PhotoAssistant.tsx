@@ -151,33 +151,40 @@ export default function PhotoAssistant({
       }
     }
   }
+  const hint = !info
+    ? 'Проверяем доступность распознавания…'
+    : !info.available
+      ? 'Распознавание пока недоступно. Заполните товар вручную.'
+      : !photo
+        ? 'Сначала добавьте фото — ИИ заполнит название, категорию и описание.'
+        : 'Заполнить название, категорию и описание по фото.';
   return (
     <section className="photo-assistant" aria-label="Помощник по фото">
-      <div className="photo-assistant-card">
+      <button
+        type="button"
+        className="photo-assistant-card"
+        aria-label={busy ? 'Определяем товар…' : 'Определить по фото'}
+        disabled={!photo || !info?.available || busy}
+        onClick={() => void recognize()}
+      >
         <span className="photo-assistant-sparkle" aria-hidden="true">
           ✦
         </span>
-        <button
-          type="button"
-          className="photo-assistant-btn photo-assistant-trigger"
-          disabled={!photo || !info?.available || busy}
-          onClick={() => void recognize()}
-        >
-          {busy ? 'Определяем товар…' : 'Определить по фото'}
-        </button>
-        {busy && <p role="status">ИИ анализирует фото…</p>}
-        {!info ? (
-          <p className="muted">Проверяем доступность распознавания…</p>
-        ) : !info.available ? (
-          <p className="muted">
-            Распознавание пока недоступно. Заполните товар вручную.
-          </p>
-        ) : (
-          <p className="muted">
-            Заполнить название, категорию и описание с помощью Gemini.
-          </p>
-        )}
-      </div>
+        <span className="photo-assistant-copy">
+          <strong>
+            {busy ? 'Определяем товар…' : 'Определить с ИИ (Gemini)'}
+          </strong>
+          <small>{busy ? 'ИИ анализирует фото…' : hint}</small>
+        </span>
+        <span className="photo-assistant-chevron" aria-hidden="true">
+          ›
+        </span>
+      </button>
+      {busy && (
+        <p role="status" className="photo-assistant-status">
+          ИИ анализирует фото…
+        </p>
+      )}
       {error && (
         <p className="error" role="alert">
           {error}

@@ -16,6 +16,16 @@ for (const width of [821, 1024, 1440]) {
     async ({ page }) => {
       await page.setViewportSize({ width, height: 600 });
       await openCapture(page);
+      // Product creation is a modal dialog on desktop too.
+      const dialog = page.getByRole('dialog', { name: 'Создание товара' });
+      await expect(dialog).toBeVisible();
+      expect(
+        await page
+          .locator('.receiving-product-sheet-root')
+          .evaluate((e) => getComputedStyle(e).position),
+      ).toBe('fixed');
+      await dialog.getByRole('button', { name: 'Закрыть карточку' }).click();
+      await expect(dialog).toHaveCount(0);
       const sidebar = page.locator('.sidebar');
       const content = page.locator('.content');
       expect(
@@ -49,7 +59,9 @@ for (const width of [821, 1024, 1440]) {
       // Scrolling beyond either region's boundary must not move the document.
       await page.mouse.wheel(0, 10000);
       expect(await page.evaluate(() => scrollY)).toBe(0);
-      await page.getByLabel('Название', { exact: true }).focus();
+      await page
+        .getByRole('button', { name: 'Создать товар', exact: true })
+        .click();
       await expect(page.getByLabel('Название', { exact: true })).toBeFocused();
     },
   );
