@@ -241,7 +241,7 @@ it('stepper changes quantity, clears the cart and shows round cash suggestions',
   expect(JSON.parse(raw).lines).toEqual([]);
 });
 
-it('supports New Receipt action, mobile payment bottom sheet and mode tabs', async () => {
+it('supports New Receipt action and mobile payment bottom sheet', async () => {
   vi.stubGlobal('fetch', async (url: string) => {
     const body = url.endsWith('/me')
       ? {
