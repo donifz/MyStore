@@ -207,9 +207,13 @@ it('keeps everyday tasks prominent and advanced tools under More', () => {
     'Товары',
   ]);
   expect(
-    cashierMenu.flatMap((group) => group.items).some((item) => item.label === 'Приёмка'),
+    cashierMenu
+      .flatMap((group) => group.items)
+      .some((item) => item.label === 'Приёмка'),
   ).toBe(false);
   expect(
-    cashierMenu.flatMap((group) => group.items).some((item) => item.label === 'Сотрудники'),
+    cashierMenu
+      .flatMap((group) => group.items)
+      .some((item) => item.label === 'Сотрудники'),
   ).toBe(false);
 });

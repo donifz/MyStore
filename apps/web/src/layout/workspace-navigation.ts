@@ -151,11 +151,7 @@ export function workspaceMenu(
     ...(shop.role !== 'cashier'
       ? [item('Приёмка', 'receiving', /^receiving$/)]
       : []),
-    item(
-      'Товары',
-      'products',
-      /^products(?:\/(?:new|capture|[^/]+\/edit))?$/,
-    ),
+    item('Товары', 'products', /^products(?:\/(?:new|capture|[^/]+\/edit))?$/),
     ...(hasShopPermission(shop, 'reports')
       ? [item('Отчёты', 'reports', /^reports$/)]
       : []),
