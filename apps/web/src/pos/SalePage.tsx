@@ -116,7 +116,15 @@ function ProductPhoto({ product, qty }: { product: Variant; qty?: number }) {
   );
 }
 
-function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
+function SaleWorkspace({
+  shopId,
+  shopName,
+  userId,
+}: {
+  shopId: string;
+  shopName?: string;
+  userId: string;
+}) {
   const doc = useDocument({ userId, shopId, kind: 'sale' }),
     [method, setMethod] = useState<'cash' | 'card'>('cash'),
     shift = useCurrentShift(shopId, doc.success),
@@ -130,6 +138,8 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
     [catalogError, setCatalogError] = useState(''),
     [received, setReceived] = useState(''),
     [camera, setCamera] = useState(false),
+    [mode, setMode] = useState<'scanner' | 'search'>('scanner'),
+    [paymentSheetOpen, setPaymentSheetOpen] = useState(false),
     scanInput = useRef<HTMLInputElement>(null),
     photos = useRef(new Map<string, string>());
   useEffect(() => {
@@ -172,6 +182,7 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
     if (doc.success) {
       setReceived('');
       setQuery('');
+      setPaymentSheetOpen(false);
       scanInput.current?.focus();
     }
   }, [doc.success]);
@@ -184,6 +195,14 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
     safe = sum <= BigInt(Number.MAX_SAFE_INTEGER);
   const itemCount = doc.draft.lines.reduce((n, l) => n + l.quantity, 0);
   const inCart = new Map(doc.draft.lines.map((l) => [l.id, l.quantity]));
+  function startNewReceipt() {
+    void doc.change([]);
+    doc.setError('');
+    setReceived('');
+    setQuery('');
+    setPaymentSheetOpen(false);
+    scanInput.current?.focus();
+  }
   async function submit() {
     if (doc.draft.submission) {
       await doc.send(`/shops/${shopId}/pos/sales`, doc.draft.submission.body);
@@ -277,34 +296,48 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
     <div className="pos-page">
       <div className="pos-header">
         <div className="pos-title">
-          <h1>Касса</h1>
-          <p className="muted">Продажи в торговой точке</p>
+          {shopName && <span className="pos-shop-badge">{shopName}</span>}
+          <div className="pos-title-row">
+            <h1>Касса</h1>
+            <p className="muted">Продажи в торговой точке</p>
+          </div>
         </div>
-        {!shift.loading && !active && (
-          <div className="pos-shift-banner warning">
-            <Icon name="clock" />
-            <span>
-              {shift.current
-                ? 'Касса занята другим сотрудником.'
-                : 'Смена не открыта. Откройте её перед продажей.'}
-            </span>
-            <Link
-              className="button primary"
-              to={'/seller/' + shopId + '/shift'}
-            >
-              {shift.current ? 'Посмотреть смену' : 'Открыть смену'}
-            </Link>
-          </div>
-        )}
-        {active && (
-          <div className="pos-shift-banner ok">
-            <span className="pos-dot" aria-hidden="true" />
-            <span>Смена открыта, можно продавать</span>
-            <Link className="button" to={'/seller/' + shopId + '/shift'}>
-              Моя смена
-            </Link>
-          </div>
-        )}
+        <div className="pos-header-actions">
+          {!shift.loading && !active && (
+            <div className="pos-shift-banner warning">
+              <Icon name="clock" />
+              <span>
+                {shift.current
+                  ? 'Касса занята другим сотрудником.'
+                  : 'Смена не открыта. Откройте её перед продажей.'}
+              </span>
+              <Link
+                className="button primary"
+                to={'/seller/' + shopId + '/shift'}
+              >
+                {shift.current ? 'Посмотреть смену' : 'Открыть смену'}
+              </Link>
+            </div>
+          )}
+          {active && (
+            <div className="pos-shift-banner ok">
+              <span className="pos-dot" aria-hidden="true" />
+              <span>Смена открыта, можно продавать</span>
+              <Link className="button" to={'/seller/' + shopId + '/shift'}>
+                Моя смена
+              </Link>
+            </div>
+          )}
+          <button
+            type="button"
+            className="button secondary pos-new-receipt-btn"
+            disabled={scanDisabled}
+            onClick={startNewReceipt}
+          >
+            <Icon name="receipt" />
+            <span>Новый чек</span>
+          </button>
+        </div>
       </div>
       {shift.error && (
         <p role="alert" className="error">
@@ -316,7 +349,61 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
           className="pos-panel pos-catalog"
           aria-label="Каталог для кассы"
         >
-          <h2 className="pos-panel-title">Поиск товара</h2>
+          <div className="pos-catalog-head">
+            <h2 className="pos-panel-title">Поиск товара</h2>
+            <div
+              className="pos-mode-tabs"
+              role="group"
+              aria-label="Режим добавления товара"
+            >
+              <button
+                type="button"
+                className={
+                  mode === 'scanner' && !camera
+                    ? 'pos-mode-tab active'
+                    : 'pos-mode-tab'
+                }
+                aria-pressed={mode === 'scanner' && !camera}
+                disabled={scanDisabled}
+                onClick={() => {
+                  setMode('scanner');
+                  setCamera(false);
+                  scanInput.current?.focus();
+                }}
+              >
+                <Icon name="barcode" />
+                <span>Сканер</span>
+              </button>
+              <button
+                type="button"
+                className={camera ? 'pos-mode-tab active' : 'pos-mode-tab'}
+                aria-pressed={camera}
+                disabled={scanDisabled}
+                onClick={() => setCamera((open) => !open)}
+              >
+                <Icon name="camera" />
+                <span>Камера</span>
+              </button>
+              <button
+                type="button"
+                className={
+                  mode === 'search' && !camera
+                    ? 'pos-mode-tab active'
+                    : 'pos-mode-tab'
+                }
+                aria-pressed={mode === 'search' && !camera}
+                disabled={scanDisabled}
+                onClick={() => {
+                  setMode('search');
+                  setCamera(false);
+                  scanInput.current?.focus();
+                }}
+              >
+                <Icon name="search" />
+                <span>Поиск</span>
+              </button>
+            </div>
+          </div>
           <div className="pos-search-row">
             <label className="pos-search">
               <Icon name="search" />
@@ -448,7 +535,33 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
           </div>
         </section>
         <div className="pos-side">
-          <aside className="pos-panel pos-payment">
+          {paymentSheetOpen && (
+            <div
+              className="pos-sheet-backdrop"
+              aria-hidden="true"
+              onClick={() => setPaymentSheetOpen(false)}
+            />
+          )}
+          <aside
+            className={
+              paymentSheetOpen
+                ? 'pos-panel pos-payment sheet-open'
+                : 'pos-panel pos-payment'
+            }
+          >
+            {paymentSheetOpen && (
+              <div className="pos-payment-head">
+                <strong className="pos-panel-title">Оплата чека</strong>
+                <button
+                  type="button"
+                  className="pos-sheet-close"
+                  aria-label="Закрыть оплату"
+                  onClick={() => setPaymentSheetOpen(false)}
+                >
+                  ×
+                </button>
+              </div>
+            )}
             <fieldset className="pos-methods" disabled={locked}>
               <legend className="pos-panel-title">Способ оплаты</legend>
               {(
@@ -607,8 +720,35 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
               cart
               photoFor={(id) => photos.current.get(id)}
             />
+            {doc.draft.lines.length > 0 && (
+              <div className="pos-receipt-summary">
+                <div>
+                  <strong>Итого по чеку</strong>
+                  <small>
+                    {doc.draft.lines.length} поз. · {itemCount} ед.
+                  </small>
+                </div>
+                <strong className="pos-receipt-total">{`К оплате: ${totalText}`}</strong>
+              </div>
+            )}
           </section>
         </div>
+      </div>
+
+      <div className="pos-mobile-paybar">
+        <div className="pos-mobile-paybar-meta">
+          <span>Чек ({itemCount} ед.)</span>
+          <strong>{`Сумма: ${totalText}`}</strong>
+        </div>
+        <button
+          type="button"
+          className="button primary pos-mobile-pay-btn"
+          disabled={locked || !doc.draft.lines.length}
+          onClick={() => setPaymentSheetOpen(true)}
+        >
+          <Icon name="card" />
+          <span>{`Оплатить — ${totalText}`}</span>
+        </button>
       </div>
     </div>
   );
@@ -616,10 +756,12 @@ function SaleWorkspace({ shopId, userId }: { shopId: string; userId: string }) {
 export default function SalePage() {
   const { shopId } = useParams(),
     session = useSession();
+  const shop = session.user?.shops?.find((s) => s.id === shopId);
   return (
     <SaleWorkspace
       key={shopId + session.user!.userId}
       shopId={shopId!}
+      shopName={shop?.name}
       userId={session.user!.userId}
     />
   );

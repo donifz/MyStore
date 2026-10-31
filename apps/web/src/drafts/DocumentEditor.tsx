@@ -162,9 +162,7 @@ export default function DocumentEditor({
           const showDiscount = discountOpen[l.id] || !!l.discountMinor;
           return (
             <div className="pos-cart-line" key={l.id}>
-              <span className="pos-cart-thumb" aria-hidden="true">
-                {photo ? <img src={photo} alt="" loading="lazy" /> : '▦'}
-              </span>
+              <Thumb photo={photo} className="pos-cart-thumb" />
               <div className="pos-cart-name">
                 <strong>{l.name}</strong>
                 <small>
@@ -173,7 +171,9 @@ export default function DocumentEditor({
                       <s>{formatSom(l.priceMinor)}</s> {formatSom(unit)} / шт.
                     </>
                   ) : (
-                    <>Арт. {l.barcode}</>
+                    <>
+                      Арт. {l.barcode} · {formatSom(unit)}
+                    </>
                   )}
                 </small>
                 <button

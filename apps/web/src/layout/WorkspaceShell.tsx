@@ -13,6 +13,22 @@ import {
 
 function NavIcon({ label }: { label: string }) {
   switch (label) {
+    case 'Главная':
+      return (
+        <svg
+          className="workspace-nav-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="m3 10.5 9-7.5 9 7.5" />
+          <path d="M5 9.5V20a1 1 0 0 0 1 1h4.5v-6h3v6H18a1 1 0 0 0 1-1V9.5" />
+        </svg>
+      );
     case 'Касса':
       return (
         <svg

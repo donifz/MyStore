@@ -240,3 +240,48 @@ it('stepper changes quantity, clears the cart and shows round cash suggestions',
   const raw = localStorage.getItem('mystore:draft:cashier:' + shop + ':sale')!;
   expect(JSON.parse(raw).lines).toEqual([]);
 });
+
+it('supports New Receipt action, mobile payment bottom sheet and mode tabs', async () => {
+  vi.stubGlobal('fetch', async (url: string) => {
+    const body = url.endsWith('/me')
+      ? {
+          userId: 'cashier',
+          email: 'cashier@test.tld',
+          csrfToken: 'csrf',
+          shops: [{ id: shop, name: 'Юный инженер', role: 'cashier' }],
+        }
+      : url.endsWith('/current')
+        ? { id: 'shift', actorId: 'cashier', status: 'open' }
+        : url.includes('/by-barcode')
+          ? {
+              id: 'v1',
+              name: 'Конструктор',
+              barcode: '555',
+              salePriceMinor: 63000,
+            }
+          : { items: [], total: 0, page: 1, pageSize: 24 };
+    return new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  });
+  render(
+    <MemoryRouter initialEntries={['/seller/' + shop + '/pos']}>
+      <App />
+    </MemoryRouter>,
+  );
+  const user = userEvent.setup();
+  const scanner = await screen.findByLabelText('Сканировать штрихкод');
+  await user.type(scanner, '555{Enter}');
+  await screen.findByText('Конструктор');
+
+  const payBarBtn = screen.getByRole('button', {
+    name: /Оплатить — 630,00 сом/,
+  });
+  await user.click(payBarBtn);
+  expect(screen.getByText('Оплата чека')).toBeTruthy();
+  await user.click(screen.getByRole('button', { name: 'Закрыть оплату' }));
+
+  await user.click(screen.getByRole('button', { name: /Новый чек/ }));
+  await screen.findByText(/Корзина пуста/);
+});
