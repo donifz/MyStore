@@ -79,6 +79,9 @@ class ListQuery {
   @IsOptional() @IsIn(['true', 'false']) archived?: string;
   @IsOptional() @IsIn(['all', 'in_stock', 'low', 'out']) stock?:
     'all' | 'in_stock' | 'low' | 'out';
+  @IsOptional() @IsString() @MaxLength(80) category?: string;
+  @IsOptional() @IsIn(['name', 'popular']) sort?: 'name' | 'popular';
+  @IsOptional() @IsIn(['true', 'false']) facets?: string;
 }
 @Controller('shops/:shopId/variants')
 @UseGuards(AuthGuard)
@@ -105,6 +108,11 @@ export class VariantsController {
       member.role !== 'cashier' || member.canViewReports,
       query.archived === 'true',
       query.stock,
+      {
+        category: query.category?.trim() || undefined,
+        sort: query.sort,
+        facets: query.facets === 'true',
+      },
     );
   }
   @Post() async create(
