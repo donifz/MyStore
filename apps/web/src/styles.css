@@ -5779,17 +5779,22 @@ fieldset {
     padding: 14px 16px;
     box-shadow: 0 4px 16px rgb(10 30 22 / 8%);
   }
-  .receiving-product-sheet-root
-    .product-form-actions
-    button:not(.product-form-draft-btn) {
-    display: none !important;
+  .receiving-product-sheet-root .product-form-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+  .receiving-product-sheet-root .product-form-actions button {
+    width: 100%;
+    min-height: 44px;
+    border-radius: 11px;
+    font-weight: 600;
   }
   .receiving-product-sheet-root .product-form-draft-btn {
-    width: 100%;
     min-height: 48px;
     font-size: 15px;
     font-weight: 700;
-    border-radius: 11px;
     background: var(--rec-green);
     border-color: var(--rec-green);
   }
