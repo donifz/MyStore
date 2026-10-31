@@ -78,7 +78,7 @@ function ReceivingWorkspace({
     }
   }
   useEffect(() => {
-    if (doc.success) {
+    if (doc.success && doc.success.includes('Документ проведён')) {
       setDocumentNumber('');
       setSupplier('');
       setComment('');

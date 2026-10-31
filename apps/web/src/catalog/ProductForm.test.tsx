@@ -77,7 +77,7 @@ it('product creation starts in the shared receiving form with automatic barcode'
   expect(screen.getByLabelText('Количество первичной приёмки')).toBeTruthy();
   expect(screen.getByLabelText('Закупочная цена, сом')).toBeTruthy();
   expect(
-    screen.getByRole('button', { name: 'Создать и провести приёмку' }),
+    screen.getByRole('button', { name: 'Добавить в приёмку' }),
   ).toBeTruthy();
 });
 
@@ -106,9 +106,7 @@ it('invalid first receiving cannot create an orphan product', async () => {
   const u = userEvent.setup();
   await u.type(screen.getByLabelText('Название', { exact: true }), 'Кружка');
   await u.type(screen.getByLabelText('Цена продажи, сом'), '150');
-  await u.click(
-    screen.getByRole('button', { name: 'Создать и провести приёмку' }),
-  );
+  await u.click(screen.getByRole('button', { name: 'Добавить в приёмку' }));
   expect(posts).toHaveLength(0);
   expect(await screen.findByRole('alert')).toBeTruthy();
 });
