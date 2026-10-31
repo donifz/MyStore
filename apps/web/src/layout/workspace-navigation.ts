@@ -153,9 +153,6 @@ export function workspaceMenu(
       ? [item('Приёмка', 'receiving', /^receiving$/)]
       : []),
     item('Товары', 'products', /^products(?:\/(?:new|capture|[^/]+\/edit))?$/),
-    ...(hasShopPermission(shop, 'reports')
-      ? [item('Отчёты', 'reports', /^reports$/)]
-      : []),
   ];
   const more = [
     item('Смена', 'shift', /^shift$/),
@@ -166,6 +163,9 @@ export function workspaceMenu(
     ),
     item('Заказы', 'orders', /^orders(?:\/.*)?$/),
     item('Печать этикеток', 'labels', /^labels$/),
+    ...(hasShopPermission(shop, 'reports')
+      ? [item('Отчёты', 'reports', /^reports$/)]
+      : []),
     ...(shop.role !== 'cashier'
       ? [
           item('Категории', 'categories', /^categories$/),

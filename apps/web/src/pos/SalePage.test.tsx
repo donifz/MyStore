@@ -108,8 +108,8 @@ it('allows entering discount and reason on sale line and updates total', async (
   );
   await u.type(reasonInput, 'Сезонная акция');
 
-  // Verify line discounted price and total both show 900 Som (1000 - 100)
-  expect(screen.getAllByText('900,00 сом').length).toBe(3);
+  // Verify line discounted price, line sum, total tile and mobile paybar show 900 Som (1000 - 100)
+  expect(screen.getAllByText('900,00 сом').length).toBe(4);
 
   const raw = localStorage.getItem('mystore:draft:cashier:' + shop + ':sale')!;
   expect(raw).toContain('"discountMinor":10000');
