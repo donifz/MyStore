@@ -148,24 +148,40 @@ export function workspaceMenu(
   });
   const primary = [
     item('Касса', 'pos', /^pos$/),
-    ...(shop.role !== 'cashier' ? [item('Приёмка', 'receiving', /^receiving$/)] : []),
-    item('Товары', 'products', /^products(?:\\/(?:new|capture|[^/]+\\/edit))?$/),
-    ...(hasShopPermission(shop, 'reports') ? [item('Отчёты', 'reports', /^reports$/)] : []),
+    ...(shop.role !== 'cashier'
+      ? [item('Приёмка', 'receiving', /^receiving$/)]
+      : []),
+    item(
+      'Товары',
+      'products',
+      /^products(?:\/(?:new|capture|[^/]+\/edit))?$/,
+    ),
+    ...(hasShopPermission(shop, 'reports')
+      ? [item('Отчёты', 'reports', /^reports$/)]
+      : []),
   ];
   const more = [
     item('Смена', 'shift', /^shift$/),
-    item(hasShopPermission(shop, 'return') ? 'Продажи и возвраты' : 'Продажи', 'sales', /^sales(?:\\/.*)?$/),
-    item('Заказы', 'orders', /^orders(?:\\/.*)?$/),
+    item(
+      hasShopPermission(shop, 'return') ? 'Продажи и возвраты' : 'Продажи',
+      'sales',
+      /^sales(?:\/.*)?$/,
+    ),
+    item('Заказы', 'orders', /^orders(?:\/.*)?$/),
     item('Печать этикеток', 'labels', /^labels$/),
-    ...(shop.role !== 'cashier' ? [
-      item('Категории', 'categories', /^categories$/),
-      item('Инвентаризация', 'inventory', /^inventory$/),
-    ] : []),
-    ...(shop.role === 'owner' ? [
-      item('Витрина', 'storefront', /^storefront$/),
-      item('Сотрудники', 'staff', /^staff$/),
-      item('Доступ платформы', 'platform-access', /^platform-access$/),
-    ] : []),
+    ...(shop.role !== 'cashier'
+      ? [
+          item('Категории', 'categories', /^categories$/),
+          item('Инвентаризация', 'inventory', /^inventory$/),
+        ]
+      : []),
+    ...(shop.role === 'owner'
+      ? [
+          item('Витрина', 'storefront', /^storefront$/),
+          item('Сотрудники', 'staff', /^staff$/),
+          item('Доступ платформы', 'platform-access', /^platform-access$/),
+        ]
+      : []),
     item('Уведомления', 'operations', /^operations$/),
   ];
   return [
