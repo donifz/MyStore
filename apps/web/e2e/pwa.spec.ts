@@ -60,13 +60,19 @@ for (const width of [320, 360, 390, 768, 1440]) {
         workspace === 'shop' ? '/seller/pwa-shop/products' : '/platform/admin',
       );
       const help = page.locator('.pwa-install');
-      await expect(help).toBeVisible();
-      if (workspace === 'shop' && width <= 768) {
-        const sidebar = await page
-          .locator('.workspace-shop > .sidebar')
-          .boundingBox();
-        expect(sidebar!.height).toBeLessThan(230);
+      if (workspace === 'shop') {
+        if (width <= 768) {
+          const sidebar = await page
+            .locator('.workspace-shop > .sidebar')
+            .boundingBox();
+          expect(sidebar!.height).toBeLessThan(230);
+        }
+        await page
+          .getByRole('navigation', { name: 'Разделы кабинета' })
+          .getByText('Ещё', { exact: true })
+          .click();
       }
+      await expect(help).toBeVisible();
       await help.getByText('Установить MyStore', { exact: true }).click();
       await expect(help.getByText(/iPhone или iPad/)).toBeVisible();
       const header = await page
