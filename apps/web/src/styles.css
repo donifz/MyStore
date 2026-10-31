@@ -5636,28 +5636,10 @@ fieldset {
   width: 100%;
 }
 @media (max-width: 820px) {
-  html:has(.receiving-page),
-  body:has(.receiving-page) {
-    overflow: hidden;
-    height: 100dvh;
-    max-height: 100dvh;
-  }
-  .workspace-shop:has(.receiving-page) .content.admin-kit-content {
-    height: calc(100dvh - 54px);
-    max-height: calc(100dvh - 54px);
-    padding: 8px 10px calc(58px + env(safe-area-inset-bottom, 0px));
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
   .receiving-page {
-    height: 100%;
-    max-height: 100%;
-    min-height: 0;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    overflow: hidden;
+    gap: 12px;
   }
   .receiving-page-header {
     flex-wrap: nowrap;
@@ -5675,19 +5657,13 @@ fieldset {
   .receiving-workspace-grid {
     display: flex;
     flex-direction: column;
-    flex: 1 1 0;
-    min-height: 0;
-    overflow: hidden;
-    gap: 8px;
+    gap: 12px;
   }
   .receiving-editor-panel {
-    flex: 1 1 0;
-    min-height: 0;
     display: flex;
     flex-direction: column;
-    padding: 10px 12px;
-    border-radius: 12px;
-    overflow: hidden;
+    padding: 12px 14px;
+    border-radius: 14px;
   }
   .receiving-summary-panel {
     display: none !important;
@@ -5696,23 +5672,20 @@ fieldset {
     display: none !important;
   }
   .receiving-lines-section {
-    flex: 1 1 0;
-    min-height: 0;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    gap: 8px;
   }
   .receiving-lines-table {
-    flex: 1 1 0;
-    min-height: 0;
+    max-height: 52dvh;
     overflow-y: auto;
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
   }
   .receiving-mobile-bar {
-    position: static;
-    flex: 0 0 auto;
-    margin-top: auto;
+    position: sticky;
+    bottom: 58px;
+    z-index: 25;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -5793,34 +5766,18 @@ fieldset {
     white-space: nowrap;
   }
   .receiving-product-sheet-root {
-    position: fixed;
-    inset: 0;
-    z-index: 95;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-  }
-  .receiving-product-sheet-root .pos-sheet-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 96;
-    background: rgb(15 28 24 / 52%);
-    backdrop-filter: blur(2px);
+    width: 100%;
+    margin-top: 8px;
   }
   .receiving-product-sheet-drawer {
-    position: relative;
-    z-index: 97;
     width: 100%;
-    max-width: 580px;
-    max-height: 88dvh;
     display: flex;
     flex-direction: column;
     background: #fff;
-    border-radius: 20px 20px 0 0;
-    box-shadow: 0 -12px 40px rgb(10 30 22 / 24%);
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 14px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+    border-radius: 16px;
+    border: 1px solid var(--rec-line);
+    padding: 14px 16px;
+    box-shadow: 0 4px 16px rgb(10 30 22 / 8%);
   }
   .receiving-product-sheet-root
     .product-form-actions
@@ -5839,25 +5796,13 @@ fieldset {
 }
 @media (min-width: 821px) {
   .receiving-product-sheet-root {
-    position: static;
-    inset: auto;
-    z-index: auto;
     display: block;
-  }
-  .receiving-product-sheet-root .pos-sheet-backdrop,
-  .receiving-product-sheet-root .pos-sheet-handle {
-    display: none;
+    width: 100%;
   }
   .receiving-product-sheet-drawer {
-    position: static;
-    width: auto;
-    max-width: none;
-    max-height: none;
-    border-radius: 0;
-    box-shadow: none;
-    background: transparent;
-    padding: 0;
-    overflow: visible;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
   }
 }
 @media (max-width: 600px) {

@@ -375,13 +375,6 @@ function ReceivingWorkspace({
         <button
           type="button"
           className="button primary receiving-mobile-submit-btn"
-          aria-label={
-            doc.busy
-              ? 'Проведение приёмки (мобильная)'
-              : doc.draft.submission
-                ? 'Повторить исходный запрос (мобильная)'
-                : 'Провести приёмку (мобильная)'
-          }
           disabled={
             !doc.online ||
             doc.busy ||

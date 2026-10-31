@@ -181,7 +181,7 @@ it('warns on expensive stock and still posts receiving', async () => {
   const input = await screen.findByLabelText('Закупочная цена Рюкзак, сом');
   fireEvent.change(input, { target: { value: '200' } });
   await screen.findByText(/Закупочная цена за штуку выше цены продажи/);
-  await u.click(screen.getByRole('button', { name: 'Провести приёмку' }));
+  await u.click(screen.getAllByRole('button', { name: 'Провести приёмку' })[0]);
   await screen.findByText('Документ проведён: receipt');
   const receipt = calls.find(
     (c) => c.method === 'POST' && c.url.endsWith('/receivings'),
@@ -464,7 +464,7 @@ it('a receiving document with an uncertain result cannot scan or create another 
       <App />
     </MemoryRouter>,
   );
-  await screen.findByRole('button', { name: 'Повторить исходный запрос' });
+  await screen.findAllByRole('button', { name: 'Повторить исходный запрос' });
   expect(
     (screen.getByLabelText('Сканировать штрихкод') as HTMLInputElement)
       .disabled,
@@ -489,7 +489,6 @@ it('supports mobile receiving bottom sheet, product creation stepper, and confir
   const form = within(
     await screen.findByRole('form', { name: 'Новый товар в приёмке' }),
   );
-  expect(screen.getByRole('dialog', { name: 'Новый товар' })).toBeTruthy();
 
   await u.type(form.getByLabelText('Название'), 'Наушники Bluetooth');
   await u.type(form.getByLabelText('Цена продажи, сом'), '1990');
@@ -510,15 +509,17 @@ it('supports mobile receiving bottom sheet, product creation stepper, and confir
     form.getByRole('button', { name: 'Создать и добавить в приёмку' }),
   );
 
-  // Dialog closes and item is added to draft lines
+  // Form closes and item is added to draft lines
   await screen.findByText('Товар добавлен в список приёмки.');
-  expect(screen.queryByRole('dialog', { name: 'Новый товар' })).toBeNull();
+  expect(
+    screen.queryByRole('form', { name: 'Новый товар в приёмке' }),
+  ).toBeNull();
   expect(screen.getAllByText('Принтер').length).toBeGreaterThan(0);
 
   // Open confirmation sheet via mobile bar
-  const mobileSubmit = screen.getByRole('button', {
-    name: 'Провести приёмку (мобильная)',
-  });
+  const mobileSubmit = screen.getAllByRole('button', {
+    name: 'Провести приёмку',
+  })[1];
   await u.click(mobileSubmit);
 
   const confirmDialog = await screen.findByRole('dialog', {
