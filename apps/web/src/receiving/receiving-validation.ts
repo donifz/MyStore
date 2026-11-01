@@ -45,9 +45,7 @@ export function validateReceivingDraft(lines: ReceivingDraftItem[]) {
     try {
       unitCostMinor = parseSom(line.unitCostText ?? '');
     } catch {
-      throw new Error(
-        `Укажите корректную закупочную цену для «${line.name}».`,
-      );
+      throw new Error(`Укажите корректную закупочную цену для «${line.name}».`);
     }
     total += BigInt(line.quantity) * BigInt(unitCostMinor);
     if (total > MAX_TOTAL) throw new Error('Сумма слишком велика.');
