@@ -38,6 +38,11 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - name: Diagnose barcode form CSS Prettier output
+        run: |
+          npx prettier --write apps/web/src/styles.css
+          git diff --unified=0 -- apps/web/src/styles.css
+          git diff --exit-code -- apps/web/src/styles.css
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm run build
