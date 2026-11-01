@@ -38,6 +38,11 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - name: Diagnose product photo Prettier changes
+        run: |
+          npx prettier --write apps/web/src/catalog/product-photo.test.ts apps/web/src/catalog/product-photo.ts apps/web/src/catalog/ProductForm.tsx apps/web/src/catalog/SquareCameraCapture.tsx apps/web/src/catalog/SquarePhotoCropper.tsx apps/web/src/catalog/use-photo-crop-queue.tsx
+          git diff --unified=0 -- apps/web/src/catalog/
+          git diff --exit-code -- apps/web/src/catalog/
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm run build
