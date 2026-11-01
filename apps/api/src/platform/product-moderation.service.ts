@@ -34,7 +34,7 @@ export class ProductModerationService {
        LEFT JOIN product_publications p ON p.variant_id=r.variant_id
        ${where}
        ORDER BY r.created_at,r.id
-       LIMIT ${params.length + 1} OFFSET ${params.length + 2}`,
+       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
       [...params, pageSize, (page - 1) * pageSize],
     );
     return { items, total: count.total, page, pageSize };
