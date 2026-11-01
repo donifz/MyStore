@@ -39,14 +39,12 @@ test('seller flow: receive, shift, lost response retry, return and close', async
   await page.getByLabel('Название', { exact: true }).fill('Рюкзак City');
   await page.getByLabel('Штрихкод', { exact: true }).fill('0012345678905');
   await page.getByLabel('Цена продажи, сом').fill('150');
-  await page.getByRole('button', { name: 'Создать без приёмки' }).click();
+  await page.getByLabel('Закупочная цена, сом').fill('100');
+  await page.getByLabel('Количество первичной приёмки').fill('10');
+  await page.getByRole('button', { name: 'Добавить в приёмку' }).click();
   await expect(
-    page.getByText('Карточка создана без приёмки. Остаток не изменён.'),
+    page.getByText('Товар добавлен в список приёмки.'),
   ).toBeVisible();
-  await scan(page, 3);
-  await expect(page.getByLabel('Количество Рюкзак City')).toHaveValue('3');
-  await page.getByLabel('Количество Рюкзак City').fill('10');
-  await page.getByLabel('Закупочная цена Рюкзак City, сом').fill('100');
   await page.reload();
   await expect(page.getByLabel('Количество Рюкзак City')).toHaveValue('10');
   await page.getByRole('button', { name: 'Провести приёмку' }).click();
@@ -138,10 +136,14 @@ test('cashier isolation, keyboard entry and responsive layout', async ({
   await page.getByLabel('Название', { exact: true }).fill('Рюкзак Cashier');
   await page.getByLabel('Штрихкод', { exact: true }).fill('0012345678912');
   await page.getByLabel('Цена продажи, сом').fill('150');
-  await page.getByRole('button', { name: 'Создать без приёмки' }).click();
+  await page.getByLabel('Закупочная цена, сом').fill('100');
+  await page.getByLabel('Количество первичной приёмки').fill('10');
+  await page.getByRole('button', { name: 'Добавить в приёмку' }).click();
   await expect(
-    page.getByText('Карточка создана без приёмки. Остаток не изменён.'),
+    page.getByText('Товар добавлен в список приёмки.'),
   ).toBeVisible();
+  await page.getByRole('button', { name: 'Провести приёмку' }).click();
+  await expect(page.getByRole('status')).toContainText('Документ проведён');
   await page.getByRole('button', { name: 'Выйти', exact: true }).click();
   await login(page, 'cashier@example.test');
   await expect(page.getByRole('link', { name: 'Добавить товар' })).toHaveCount(
@@ -198,10 +200,9 @@ test('two windows post one ordinary draft exactly once before storage events arr
   await page.getByLabel('Название', { exact: true }).fill('Рюкзак Concurrent');
   await page.getByLabel('Штрихкод', { exact: true }).fill('0012345678929');
   await page.getByLabel('Цена продажи, сом').fill('150');
-  await page.getByRole('button', { name: 'Создать без приёмки' }).click();
-  await scan(page, 1, '0012345678929');
-  await page.getByLabel('Количество Рюкзак Concurrent').fill('5');
-  await page.getByLabel('Закупочная цена Рюкзак Concurrent, сом').fill('100');
+  await page.getByLabel('Закупочная цена, сом').fill('100');
+  await page.getByLabel('Количество первичной приёмки').fill('5');
+  await page.getByRole('button', { name: 'Добавить в приёмку' }).click();
   await page.getByRole('button', { name: 'Провести приёмку' }).click();
   await expect(page.getByRole('status')).toContainText('Документ проведён');
   await page.goto(root + '/shift');

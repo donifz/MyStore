@@ -91,11 +91,12 @@ for (const width of [390, 1440]) {
       );
     }
     expect((await balance(knownBarcode)).physical).toBe(0);
-    await form
-      .getByRole('button', { name: 'Создать и провести приёмку' })
-      .click();
+    await form.getByRole('button', { name: 'Добавить в приёмку' }).click();
     await expect(form).toHaveCount(0);
     await expect(page).toHaveURL(new RegExp(`/seller/${shop}/receiving$`));
+    await page
+      .getByRole('button', { name: 'Провести приёмку', exact: true })
+      .click();
     await expect(page.getByRole('status')).toContainText('Документ проведён');
     expect(
       await page.evaluate(

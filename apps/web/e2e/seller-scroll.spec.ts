@@ -76,10 +76,12 @@ test('mobile seller layout keeps normal document scroll and fixed bottom navigat
   await expect
     .poll(() =>
       page.evaluate(() => {
-        const drawer = document.querySelector<HTMLElement>(
-          '.receiving-product-sheet-drawer',
-        );
-        return scrollY || (drawer ? drawer.scrollTop : 0);
+        const body =
+          document.querySelector<HTMLElement>('.product-form-body') ||
+          document.querySelector<HTMLElement>(
+            '.receiving-product-sheet-drawer',
+          );
+        return scrollY || (body ? body.scrollTop : 0);
       }),
     )
     .toBeGreaterThan(0);
