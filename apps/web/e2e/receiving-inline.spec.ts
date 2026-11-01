@@ -46,14 +46,9 @@ for (const width of [390, 1440]) {
     await scanner.fill(barcode);
     await scanner.press('Enter');
     const form = page.getByRole('form', { name: 'Новый товар в приёмке' });
-    const bannerBtn = page.getByRole('button', {
-      name: 'Создать товар с этим штрихкодом',
-    });
-    if (!(await form.isVisible().catch(() => false))) {
-      if (await bannerBtn.isVisible().catch(() => false)) {
-        await bannerBtn.click();
-      }
-    }
+    // Unknown barcode opens the creation form automatically. The fallback
+    // banner can disappear between isVisible() and click() as the form opens,
+    // so clicking it introduces a race on slower desktop CI runs.
     await expect(form).toBeVisible();
     await expect(form.getByLabel('Штрихкод')).toHaveValue(barcode);
     expect(

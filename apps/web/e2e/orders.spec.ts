@@ -122,6 +122,11 @@ test('shopper checkout recovers receipt and seller issues reserved stock once', 
   await page
     .getByRole('button', { name: 'Открыть смену', exact: true })
     .click();
+  // Opening a shift is async. Navigating away immediately may race the POST
+  // and leave the order detail with a stale "no current shift" response.
+  await expect(
+    page.getByRole('heading', { name: 'Смена открыта' }),
+  ).toBeVisible();
   await page.getByRole('link', { name: 'Заказы', exact: true }).click();
   await page
     .getByRole('button', { name: /Открыть заказ/ })
