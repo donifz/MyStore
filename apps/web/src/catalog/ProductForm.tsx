@@ -30,6 +30,7 @@ export default function ProductForm({
   addToDraftLabel,
   secondarySubmitLabel,
   showCancelInFooter = true,
+  receivingLayout = false,
   onCancel,
   onSaved,
   onAddToDraft,
@@ -53,6 +54,7 @@ export default function ProductForm({
   addToDraftLabel?: string;
   secondarySubmitLabel?: string;
   showCancelInFooter?: boolean;
+  receivingLayout?: boolean;
   validateBeforeSave?: () => void;
   validateDraftSave?: () => void;
   onCancel?: () => void;
@@ -224,9 +226,51 @@ export default function ProductForm({
       setBusy(false);
     }
   }
+  const barcodeFields = (
+    <>
+              <label className="product-field-barcode">
+                Штрихкод
+                <input
+                  maxLength={64}
+                  readOnly={barcodeReadOnly}
+                  value={barcode}
+                  onChange={(e) => {
+                    lookupRevision.current++;
+                    setBarcodeBusy(false);
+                    setBarcode(e.target.value);
+                    setHint('');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (/^\d{8,14}$/.test(barcode.trim())) void lookup();
+                    }
+                  }}
+                  placeholder="Сканируйте или оставьте пустым"
+                />
+              </label>
+              <div className="product-barcode-tools">
+                <p className="muted">
+                  Сканер вводит код как клавиатура. Пустое поле — создадим код.
+                </p>
+                <button
+                  type="button"
+                  disabled={!barcode.trim() || locked}
+                  onClick={() => void lookup()}
+                >
+                  Найти по штрихкоду
+                </button>
+              </div>
+              {hint && (
+                <p role="status" className="notice">
+                  {hint}
+                </p>
+              )}
+    </>
+  );
   return (
     <form
-      className="product-form product-form-compact"
+      className={`product-form product-form-compact${receivingLayout ? ' product-form-receiving' : ''}`}
       aria-label={formLabel}
       onSubmit={(e) => void submit(e)}
     >
@@ -499,44 +543,7 @@ export default function ProductForm({
                 </label>
               </div>
               {footerFields}
-              <label className="product-field-barcode">
-                Штрихкод
-                <input
-                  maxLength={64}
-                  readOnly={barcodeReadOnly}
-                  value={barcode}
-                  onChange={(e) => {
-                    lookupRevision.current++;
-                    setBarcodeBusy(false);
-                    setBarcode(e.target.value);
-                    setHint('');
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      if (/^\d{8,14}$/.test(barcode.trim())) void lookup();
-                    }
-                  }}
-                  placeholder="Сканируйте или оставьте пустым"
-                />
-              </label>
-              <div className="product-barcode-tools">
-                <p className="muted">
-                  Сканер вводит код как клавиатура. Пустое поле — создадим код.
-                </p>
-                <button
-                  type="button"
-                  disabled={!barcode.trim() || locked}
-                  onClick={() => void lookup()}
-                >
-                  Найти по штрихкоду
-                </button>
-              </div>
-              {hint && (
-                <p role="status" className="notice">
-                  {hint}
-                </p>
-              )}
+              {!receivingLayout && barcodeFields}
               <div
                 className={`product-form-extra${extraOpen ? ' open' : ''}`}
                 onFocusCapture={() => setExtraOpen(true)}
@@ -555,10 +562,11 @@ export default function ProductForm({
                   </span>
                   <span>
                     <strong>Дополнительные поля</strong>
-                    <small>Артикул, вариант, цвет, описание</small>
+                    <small>Штрихкод, артикул, вариант, цвет, описание</small>
                   </span>
                 </button>
                 <div className="product-form-extra-body">
+                  {receivingLayout && barcodeFields}
                   <label>
                     Подкатегория
                     <select
