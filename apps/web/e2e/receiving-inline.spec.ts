@@ -68,7 +68,9 @@ for (const width of [390, 1440]) {
       ['.product-field-barcode', 'Штрихкод'],
     ]) {
       const wrapperBox = await form.locator(wrapperClass).boundingBox();
-      const fieldBox = await form.getByLabel(label, { exact: true }).boundingBox();
+      const fieldBox = await form
+        .getByLabel(label, { exact: true })
+        .boundingBox();
       expect(wrapperBox, label).not.toBeNull();
       expect(fieldBox, label).not.toBeNull();
       expect(fieldBox!.y, label).toBeGreaterThan(wrapperBox!.y + 12);
