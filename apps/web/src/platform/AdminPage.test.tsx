@@ -345,9 +345,9 @@ it('keeps the product table and opens its details in a modal', async () => {
   );
   expect(screen.getByRole('columnheader', { name: 'Дата' })).not.toBeNull();
   expect(screen.queryByRole('dialog')).toBeNull();
-  await userEvent.setup().click(
-    within(row).getByRole('button', { name: 'Посмотреть' }),
-  );
+  await userEvent
+    .setup()
+    .click(within(row).getByRole('button', { name: 'Посмотреть' }));
   const dialog = await screen.findByRole('dialog', {
     name: 'Предложено: Робот-конструктор',
   });
@@ -357,9 +357,9 @@ it('keeps the product table and opens its details in a modal', async () => {
     within(dialog).getByRole('img', { name: 'Фото товара Робот-конструктор' }),
   ).not.toBeNull();
   expect(within(dialog).getByText(/31\.10\.2026/)).not.toBeNull();
-  await userEvent.setup().click(
-    within(dialog).getByRole('button', { name: 'Закрыть карточку' }),
-  );
+  await userEvent
+    .setup()
+    .click(within(dialog).getByRole('button', { name: 'Закрыть карточку' }));
   expect(screen.queryByRole('dialog')).toBeNull();
   expect(screen.getByRole('row', { name: /Робот-конструктор/ })).not.toBeNull();
 });
