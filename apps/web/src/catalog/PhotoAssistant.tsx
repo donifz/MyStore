@@ -204,7 +204,9 @@ export default function PhotoAssistant({
                 {!suggestion.categoryMissing && (
                   <p className="photo-assistant-result-category">
                     Категория: <strong>{suggestion.category}</strong>
-                    {suggestion.subcategory ? ` → ${suggestion.subcategory}` : ''}
+                    {suggestion.subcategory
+                      ? ` → ${suggestion.subcategory}`
+                      : ''}
                   </p>
                 )}
                 <p className="muted">
