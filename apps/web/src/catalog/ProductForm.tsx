@@ -494,6 +494,7 @@ export default function ProductForm({
                   photo={photo}
                   onBusyChange={setRecognizing}
                   onCategories={updateCategories}
+                  inlineForReceiving={receivingLayout}
                   onApply={(s) => {
                     setName(s.name);
                     setDescription(s.description);
