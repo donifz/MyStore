@@ -58,6 +58,23 @@ for (const width of [390, 1440]) {
     await expect(
       form.locator('.product-form-extra-body .product-field-barcode'),
     ).toHaveCount(0);
+    // Keep the pre-redesign field layout: labels above their inputs and
+    // sale/category plus cost/quantity aligned on the same rows.
+    const nameLabel = await form.getByText('Название', { exact: true }).boundingBox();
+    const nameInput = await form.getByLabel('Название').boundingBox();
+    const saleInput = await form.getByLabel('Цена продажи, сом').boundingBox();
+    const categoryInput = await form.getByLabel('Категория', { exact: true }).boundingBox();
+    const costInput = await form.getByLabel('Закупочная цена, сом').boundingBox();
+    const quantityInput = await form.getByLabel('Количество первичной приёмки').boundingBox();
+    expect(nameLabel).not.toBeNull();
+    expect(nameInput).not.toBeNull();
+    expect(saleInput).not.toBeNull();
+    expect(categoryInput).not.toBeNull();
+    expect(costInput).not.toBeNull();
+    expect(quantityInput).not.toBeNull();
+    expect(nameLabel!.y).toBeLessThan(nameInput!.y);
+    expect(Math.abs(saleInput!.y - categoryInput!.y)).toBeLessThan(12);
+    expect(Math.abs(costInput!.y - quantityInput!.y)).toBeLessThan(12);
     // Photo and Gemini controls should be side-by-side at both widths.
     // A lengthy AI suggestion must not stretch the photo upload area.
     const photoBox = await form
