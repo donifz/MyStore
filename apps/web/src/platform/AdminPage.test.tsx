@@ -356,7 +356,7 @@ it('keeps the product table and opens its details in a modal', async () => {
   expect(
     within(dialog).getByRole('img', { name: 'Фото товара Робот-конструктор' }),
   ).not.toBeNull();
-  expect(within(dialog).getByText('31.10.2026')).not.toBeNull();
+  expect(within(dialog).getByText(/31\.10\.2026/)).not.toBeNull();
   await userEvent.setup().click(
     within(dialog).getByRole('button', { name: 'Закрыть карточку' }),
   );
