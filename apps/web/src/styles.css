@@ -5931,14 +5931,10 @@ fieldset {
     margin: 0;
   }
   .receiving-product-sheet-drawer .product-form-fieldset {
-    display: flex;
-    flex-direction: column;
-    flex: 1 1 auto;
-    min-height: 0;
+    display: contents;
     margin: 0;
     padding: 0;
     border: 0;
-    overflow: hidden;
   }
   .receiving-product-sheet-drawer .product-form-card,
   .receiving-product-sheet-drawer .product-form-block {
@@ -5965,22 +5961,29 @@ fieldset {
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
     padding-right: 4px;
+    padding-bottom: 24px;
     display: grid;
     gap: 12px;
     align-content: start;
   }
+  .receiving-product-sheet-drawer .product-form .product-form-footer,
   .receiving-product-sheet-drawer .product-form-footer {
     flex-shrink: 0;
-    margin-top: auto;
+    margin: 0;
     padding: 12px 0 0;
+    border: 0;
     border-top: 1px solid #e7eee9;
+    border-radius: 0;
     background: #fff;
     box-shadow: none;
+    width: 100%;
   }
+  .receiving-product-sheet-drawer .product-form-actions,
   .receiving-product-sheet-root .product-form-actions {
     display: flex;
     width: 100%;
   }
+  .receiving-product-sheet-drawer .product-form-actions button,
   .receiving-product-sheet-root .product-form-actions button {
     width: 100%;
     min-height: 48px;
@@ -5995,6 +5998,9 @@ fieldset {
       background 0.15s ease,
       opacity 0.15s ease;
   }
+  .receiving-product-sheet-drawer
+    .product-form-actions
+    button:hover:not(:disabled),
   .receiving-product-sheet-root
     .product-form-actions
     button:hover:not(:disabled) {
@@ -6048,14 +6054,10 @@ fieldset {
     margin: 0;
   }
   .receiving-product-sheet-drawer .product-form-fieldset {
-    display: flex;
-    flex-direction: column;
-    flex: 1 1 auto;
-    min-height: 0;
+    display: contents;
     margin: 0;
     padding: 0;
     border: 0;
-    overflow: hidden;
   }
   .receiving-product-sheet-drawer .product-form-card,
   .receiving-product-sheet-drawer .product-form-block {
@@ -6082,17 +6084,46 @@ fieldset {
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
     padding-right: 6px;
+    padding-bottom: 28px;
     display: grid;
     gap: 14px;
     align-content: start;
   }
+  .receiving-product-sheet-drawer .product-form .product-form-footer,
   .receiving-product-sheet-drawer .product-form-footer {
     flex-shrink: 0;
-    margin-top: auto;
+    margin: 0;
     padding: 14px 0 0;
+    border: 0;
     border-top: 1px solid #e7eee9;
+    border-radius: 0;
     background: #fff;
     box-shadow: none;
+    width: 100%;
+  }
+  .receiving-product-sheet-drawer .product-form-actions {
+    display: flex;
+    width: 100%;
+  }
+  .receiving-product-sheet-drawer .product-form-actions button {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    background: var(--rec-green, #176b4a);
+    border: 1px solid var(--rec-green, #176b4a);
+    color: #fff;
+    cursor: pointer;
+    transition:
+      background 0.15s ease,
+      opacity 0.15s ease;
+  }
+  .receiving-product-sheet-drawer
+    .product-form-actions
+    button:hover:not(:disabled) {
+    background: #13553a;
+    border-color: #13553a;
   }
 }
 @keyframes receivingModalIn {
