@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { photoFrom, squareCropRect } from './product-photo';
 
@@ -119,7 +120,7 @@ export default function SquarePhotoCropper({
     }
   }
 
-  return (
+  const overlay = (
     <div
       className="product-crop-root"
       role="dialog"
@@ -218,4 +219,5 @@ export default function SquarePhotoCropper({
       </section>
     </div>
   );
+  return createPortal(overlay, document.body);
 }
