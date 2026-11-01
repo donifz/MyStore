@@ -12,9 +12,19 @@ import { DATABASE } from '../database';
 export class ProductModerationService {
   constructor(@Inject(DATABASE) private readonly db: DataSource) {}
 
-  async list(page: number, pageSize: number) {
+  async list(page: number, pageSize: number, query = '') {
+    const filter = query.trim();
+    const where = filter
+      ? `WHERE r.status='pending'
+         AND (r.name ILIKE $1 OR s.name ILIKE $1 OR COALESCE(r.category, '') ILIKE $1)`
+      : "WHERE r.status='pending'";
+    const params = filter ? [`%${filter}%`] : [];
     const [count] = await this.db.query(
-      "SELECT count(*)::int total FROM product_publication_revisions WHERE status='pending'",
+      `SELECT count(*)::int total
+       FROM product_publication_revisions r
+       JOIN shops s ON s.id=r.shop_id
+       ${where}`,
+      params,
     );
     const items = await this.db.query(
       `SELECT r.id revision_id,r.variant_id,r.shop_id,r.name,r.description,r.category,r.subcategory,
@@ -22,8 +32,10 @@ export class ProductModerationService {
               (p.variant_id IS NOT NULL) has_publication
        FROM product_publication_revisions r JOIN shops s ON s.id=r.shop_id
        LEFT JOIN product_publications p ON p.variant_id=r.variant_id
-       WHERE r.status='pending' ORDER BY r.created_at,r.id LIMIT $1 OFFSET $2`,
-      [pageSize, (page - 1) * pageSize],
+       ${where}
+       ORDER BY r.created_at,r.id
+       LIMIT ${params.length + 1} OFFSET ${params.length + 2}`,
+      [...params, pageSize, (page - 1) * pageSize],
     );
     return { items, total: count.total, page, pageSize };
   }
