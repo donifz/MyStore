@@ -8333,59 +8333,6 @@ fieldset {
 }
 .receiving-product-sheet-drawer
   .product-form-receiving
-  .product-form-pricing-fields,
-.receiving-product-sheet-drawer .product-form-receiving .receiving-form-fields {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 11px;
-}
-.receiving-product-sheet-drawer
-  .product-form-receiving
-  :is(
-    .product-field-name,
-    .product-form-pricing-fields > label,
-    .receiving-form-fields > label,
-    .receiving-form-fields > .product-field-quantity
-  ) {
-  display: grid;
-  grid-template-columns: minmax(0, 0.42fr) minmax(0, 0.58fr);
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  margin: 0;
-  font-size: 13px;
-}
-.receiving-product-sheet-drawer
-  .product-form-receiving
-  :is(
-    .product-field-name,
-    .product-form-pricing-fields > label,
-    .receiving-form-fields > label
-  )
-  :is(input, select) {
-  width: 100%;
-  min-width: 0;
-  min-height: 42px;
-  box-sizing: border-box;
-  margin: 0;
-}
-.receiving-product-sheet-drawer
-  .product-form-receiving
-  .receiving-form-fields
-  .product-field-cost
-  > span,
-.receiving-product-sheet-drawer
-  .product-form-receiving
-  .receiving-form-fields
-  .product-field-quantity
-  > label {
-  min-height: 0;
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.3;
-}
-.receiving-product-sheet-drawer
-  .product-form-receiving
   .receiving-form-fields
   .product-field-quantity
   .product-form-stepper {
@@ -8437,10 +8384,9 @@ fieldset {
 .receiving-product-sheet-drawer
   .product-form-receiving
   .product-field-barcode {
-  display: grid;
-  grid-template-columns: minmax(0, 0.42fr) minmax(0, 0.58fr);
-  align-items: center;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
   min-width: 0;
   font-size: 13px;
 }
