@@ -225,7 +225,6 @@ it('explains a conflicting email when creating a shop owner', async () => {
   ).not.toBeNull();
 });
 
-
 it('paginates pending product moderation without hiding results beyond the first page', async () => {
   const requests: string[] = [];
   const products = Array.from({ length: 13 }, (_, index) => ({
