@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import WorkspaceShell from '../layout/WorkspaceShell';
 import {
@@ -29,6 +30,8 @@ type Product = {
   name: string;
   description: string;
   category: string;
+  subcategory?: string | null;
+  created_at?: string;
   has_photo: boolean;
   has_publication: boolean;
 };
@@ -48,6 +51,12 @@ type Audit = {
 };
 type Page<T> = { items: T[]; total: number };
 const PRODUCTS_PAGE_SIZE = 10;
+const productDate = (value?: string, withTime = false) => {
+  if (!value || Number.isNaN(Date.parse(value))) return '—';
+  return withTime
+    ? new Date(value).toLocaleString('ru-RU')
+    : new Date(value).toLocaleDateString('ru-RU');
+};
 
 type AdminOverview = {
   shopCount: number;
@@ -214,6 +223,7 @@ export default function AdminPage() {
     }
   }
   async function showProduct(id: string) {
+    setSelected(null);
     setError('');
     setReason('');
     try {
@@ -224,6 +234,22 @@ export default function AdminPage() {
       setError(errorText(e));
     }
   }
+  useEffect(() => {
+    if (!selected) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !busy) {
+        setSelected(null);
+        setReason('');
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [selected, busy]);
   async function decideProduct(decision: 'approved' | 'rejected') {
     if (!selected) return;
     setBusy(true);
@@ -506,6 +532,7 @@ export default function AdminPage() {
                 <th>Товар</th>
                 <th>Магазин</th>
                 <th>Категория</th>
+                <th>Дата</th>
                 <th>Статус</th>
                 <th>Действие</th>
               </tr>
@@ -515,10 +542,10 @@ export default function AdminPage() {
                 <tr key={p.revision_id}>
                   <td data-label="Товар">
                     <strong>{p.name}</strong>
-                    <small>{p.description}</small>
                   </td>
                   <td data-label="Магазин">{p.shop_name}</td>
                   <td data-label="Категория">{p.category || 'Не указана'}</td>
+                  <td data-label="Дата">{productDate(p.created_at)}</td>
                   <td data-label="Статус">
                     <AdminStatus>На проверке</AdminStatus>
                   </td>
@@ -568,7 +595,8 @@ export default function AdminPage() {
   );
 
   return (
-    <WorkspaceShell
+    <>
+      <WorkspaceShell
       headerTools={
         <label className="admin-kit-search">
           <span aria-hidden="true">⌕</span>
@@ -1044,62 +1072,6 @@ export default function AdminPage() {
           ) : tab === 'products' ? (
             <>
               {productsTable}
-              {selected && (
-                <AdminCard
-                  title={`Предложено: ${selected.name}`}
-                  subtitle={selected.shop_name}
-                >
-                  {selected.has_photo && (
-                    <img
-                      className="product-photo"
-                      src={`/api/platform/admin/products/revisions/${selected.revision_id}/photo`}
-                      alt="Фото для проверки"
-                    />
-                  )}
-                  <p>
-                    {selected.category} · {selected.description}
-                  </p>
-                  <h3>
-                    Сейчас на витрине:{' '}
-                    {selected.approved_name ?? 'Ещё не опубликовано'}
-                  </h3>
-                  {selected.approved_has_photo && (
-                    <img
-                      className="product-photo"
-                      src={`/api/platform/admin/products/revisions/${selected.revision_id}/photo?approved=true`}
-                      alt="Одобренное фото"
-                    />
-                  )}
-                  <p>
-                    {selected.approved_category} ·{' '}
-                    {selected.approved_description}
-                  </p>
-                  <label className="admin-kit-reason">
-                    Причина отказа
-                    <input
-                      value={reason}
-                      maxLength={500}
-                      onChange={(e) => setReason(e.target.value)}
-                    />
-                  </label>
-                  <div className="admin-kit-actions">
-                    <button
-                      className="admin-kit-approve"
-                      disabled={busy}
-                      onClick={() => void decideProduct('approved')}
-                    >
-                      Одобрить карточку
-                    </button>
-                    <button
-                      className="admin-kit-reject"
-                      disabled={busy || !reason.trim()}
-                      onClick={() => void decideProduct('rejected')}
-                    >
-                      Отклонить карточку
-                    </button>
-                  </div>
-                </AdminCard>
-              )}
             </>
           ) : tab === 'financial-access' ? (
             <div className="admin-kit-grid">
