@@ -8336,7 +8336,7 @@ fieldset {
   .product-form-pricing-fields,
 .receiving-product-sheet-drawer .product-form-receiving .receiving-form-fields {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 11px;
 }
 .receiving-product-sheet-drawer
@@ -8347,10 +8347,10 @@ fieldset {
     .receiving-form-fields > label,
     .receiving-form-fields > .product-field-quantity
   ) {
-  display: grid;
-  grid-template-columns: minmax(0, 0.42fr) minmax(0, 0.58fr);
-  align-items: center;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 7px;
   min-width: 0;
   margin: 0;
   font-size: 13px;
@@ -8379,7 +8379,7 @@ fieldset {
   .receiving-form-fields
   .product-field-quantity
   > label {
-  min-height: 0;
+  min-height: 32px;
   margin: 0;
   font-size: 13px;
   line-height: 1.3;
