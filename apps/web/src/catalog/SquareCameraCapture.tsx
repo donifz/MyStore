@@ -26,7 +26,10 @@ export default function SquareCameraCapture({
       setError('Камера недоступна. Попробуйте системную камеру.');
     } else {
       void navigator.mediaDevices
-        .getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' } } })
+        .getUserMedia({
+          audio: false,
+          video: { facingMode: { ideal: 'environment' } },
+        })
         .then(async (media) => {
           if (stopped) {
             media.getTracks().forEach((track) => track.stop());
@@ -41,7 +44,9 @@ export default function SquareCameraCapture({
         })
         .catch(() => {
           if (!stopped)
-            setError('Не удалось включить камеру. Проверьте разрешение или откройте системную камеру.');
+            setError(
+              'Не удалось включить камеру. Проверьте разрешение или откройте системную камеру.',
+            );
         });
     }
     return () => {
@@ -77,7 +82,9 @@ export default function SquareCameraCapture({
       const blob = await new Promise<Blob>((resolve, reject) =>
         canvas.toBlob(
           (value) =>
-            value ? resolve(value) : reject(new Error('Не удалось сделать снимок.')),
+            value
+              ? resolve(value)
+              : reject(new Error('Не удалось сделать снимок.')),
           'image/jpeg',
           0.85,
         ),
@@ -95,7 +102,12 @@ export default function SquareCameraCapture({
   }
 
   return (
-    <div className="product-crop-root" role="dialog" aria-modal="true" aria-label="Камера товара">
+    <div
+      className="product-crop-root"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Камера товара"
+    >
       <div className="product-crop-backdrop" />
       <section className="product-crop-dialog">
         <header className="product-crop-header">
@@ -103,14 +115,21 @@ export default function SquareCameraCapture({
             <h2>Сфотографировать товар</h2>
             <p className="muted">Поместите товар целиком в квадрат</p>
           </div>
-          <button type="button" className="product-crop-close" aria-label="Закрыть камеру" onClick={onClose}>
+          <button
+            type="button"
+            className="product-crop-close"
+            aria-label="Закрыть камеру"
+            onClick={onClose}
+          >
             ×
           </button>
         </header>
         <div className="product-camera-frame">
           <video ref={video} muted playsInline autoPlay />
           <div className="product-camera-guide" aria-hidden="true" />
-          {!ready && !error && <span className="product-camera-loading">Включаем камеру…</span>}
+          {!ready && !error && (
+            <span className="product-camera-loading">Включаем камеру…</span>
+          )}
         </div>
         {error && (
           <p role="alert" className="error">
@@ -128,7 +147,12 @@ export default function SquareCameraCapture({
           >
             Системная камера
           </button>
-          <button type="button" className="primary" disabled={!ready || busy} onClick={() => void capture()}>
+          <button
+            type="button"
+            className="primary"
+            disabled={!ready || busy}
+            onClick={() => void capture()}
+          >
             {busy ? 'Сжимаем…' : 'Сфотографировать'}
           </button>
         </div>
