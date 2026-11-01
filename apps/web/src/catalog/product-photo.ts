@@ -47,7 +47,9 @@ export async function photoFrom(file: File, crop: SquareCrop = {}) {
         if (data.length <= 699074) return data;
       }
     }
-    throw Error('Фото слишком большое даже после сжатия. Выберите другой снимок.');
+    throw Error(
+      'Фото слишком большое даже после сжатия. Выберите другой снимок.',
+    );
   } finally {
     image.close();
   }
