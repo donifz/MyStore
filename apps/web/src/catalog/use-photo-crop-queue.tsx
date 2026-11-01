@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import SquarePhotoCropper from './SquarePhotoCropper';
 
-export function usePhotoCropQueue(
-  onComplete: (photos: string[]) => void,
-) {
+export function usePhotoCropQueue(onComplete: (photos: string[]) => void) {
   const [pending, setPending] = useState<File[]>([]);
   const [prepared, setPrepared] = useState<string[]>([]);
 
