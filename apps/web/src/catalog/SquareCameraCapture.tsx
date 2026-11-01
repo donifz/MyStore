@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { photoFrom } from './product-photo';
 
 type Props = {
@@ -101,7 +102,7 @@ export default function SquareCameraCapture({
     }
   }
 
-  return (
+  const overlay = (
     <div
       className="product-crop-root"
       role="dialog"
@@ -159,4 +160,5 @@ export default function SquareCameraCapture({
       </section>
     </div>
   );
+  return createPortal(overlay, document.body);
 }
