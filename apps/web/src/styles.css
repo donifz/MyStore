@@ -8087,3 +8087,36 @@ fieldset {
     padding-bottom: calc(18px + env(safe-area-inset-bottom));
   }
 }
+
+.product-camera-frame {
+  position: relative;
+  width: min(100%, 320px, 42dvh);
+  aspect-ratio: 1;
+  margin: 0 auto 16px;
+  border: 2px solid #16805e;
+  border-radius: 14px;
+  background: #192a26;
+  overflow: hidden;
+}
+.product-camera-frame video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.product-camera-guide {
+  position: absolute;
+  inset: 10%;
+  border: 2px dashed rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  pointer-events: none;
+  box-shadow: 0 0 0 1px rgba(0, 65, 44, 0.25);
+}
+.product-camera-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.4);
+}
