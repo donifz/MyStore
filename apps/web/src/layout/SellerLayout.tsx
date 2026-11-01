@@ -192,39 +192,27 @@ export function ShopHome() {
         </p>
       )}
 
-      <section className="shop-home-top">
-        <div className="shop-home-banner">
-          <div className="shop-home-banner-copy">
-            <h2>Управляйте продажами, товарами и складом в одном месте</h2>
-            <ul className="shop-home-banner-pills">
-              <li>Касса и продажи</li>
-              <li>Учёт склада</li>
-              <li>Отчёты и аналитика</li>
-            </ul>
-          </div>
-        </div>
-        <div className="shop-home-actions" aria-label="Быстрые действия">
-          <Link to={`${base}/pos`} className="shop-home-action primary">
-            <strong>Открыть кассу</strong>
-            <small>Продажа товаров</small>
+      <section className="shop-home-actions" aria-label="Быстрые действия">
+        <Link to={`${base}/pos`} className="shop-home-action primary">
+          <strong>Открыть кассу</strong>
+          <small>Продажа товаров</small>
+        </Link>
+        {canCatalog && (
+          <Link to={`${base}/receiving`} className="shop-home-action">
+            <strong>Новая приёмка</strong>
+            <small>Поступление товара</small>
           </Link>
-          {canCatalog && (
-            <Link to={`${base}/receiving`} className="shop-home-action">
-              <strong>Новая приёмка</strong>
-              <small>Поступление товара</small>
-            </Link>
-          )}
-          {canCatalog && (
-            <Link to={`${base}/products/new`} className="shop-home-action">
-              <strong>Создать товар</strong>
-              <small>Новая карточка</small>
-            </Link>
-          )}
-          <Link to={`${base}/labels`} className="shop-home-action">
-            <strong>Печать этикеток</strong>
-            <small>Ценники и штрихкоды</small>
+        )}
+        {canCatalog && (
+          <Link to={`${base}/products/new`} className="shop-home-action">
+            <strong>Создать товар</strong>
+            <small>Новая карточка</small>
           </Link>
-        </div>
+        )}
+        <Link to={`${base}/labels`} className="shop-home-action">
+          <strong>Печать этикеток</strong>
+          <small>Ценники и штрихкоды</small>
+        </Link>
       </section>
 
       <section className="shop-home-kpis" aria-label="Ключевые показатели">

@@ -128,7 +128,7 @@ it('restores the card method of a frozen sale after reload', async () => {
   );
   start('/pos');
   const field = (await screen.findByRole('radio', {
-    name: 'Банковская карта',
+    name: /Безналичные|Банковская карта/,
   })) as HTMLInputElement;
   expect(field.checked).toBe(true);
   expect((field.closest('fieldset') as HTMLFieldSetElement).disabled).toBe(

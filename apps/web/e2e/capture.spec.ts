@@ -78,11 +78,12 @@ test('applies AI suggestions only after review and keeps price and barcode manua
   await page
     .getByLabel('Название', { exact: true })
     .fill('Чашка: проверено продавцом');
+  await page.getByLabel('Закупочная цена, сом').fill('100');
   await page
-    .getByRole('button', { name: 'Создать без приёмки', exact: true })
+    .getByRole('button', { name: 'Добавить в приёмку', exact: true })
     .click();
   await expect(page.getByRole('status')).toContainText(
-    'Карточка создана без приёмки. Остаток не изменён.',
+    'Товар добавлен в список приёмки.',
   );
 });
 test('AI failure leaves manual product entry usable', async ({ page }) => {
@@ -136,11 +137,12 @@ test('AI failure leaves manual product entry usable', async ({ page }) => {
   );
   await expect(page.getByLabel('Название', { exact: true })).toBeEnabled();
   await page.getByLabel('Цена продажи, сом').fill('150');
+  await page.getByLabel('Закупочная цена, сом').fill('100');
   await page
-    .getByRole('button', { name: 'Создать без приёмки', exact: true })
+    .getByRole('button', { name: 'Добавить в приёмку', exact: true })
     .click();
   await expect(page.getByRole('status')).toContainText(
-    'Карточка создана без приёмки. Остаток не изменён.',
+    'Товар добавлен в список приёмки.',
   );
 });
 test('photo creation produces zero stock, then explicit receiving posts quantity and cost', async ({
@@ -159,11 +161,13 @@ test('photo creation produces zero stock, then explicit receiving posts quantity
   await expect(page.getByAltText('Фото перед сохранением')).toBeVisible();
   await page.getByLabel('Название', { exact: true }).fill('Чашка с фото');
   await page.getByLabel('Цена продажи, сом').fill('150');
+  await page.getByLabel('Количество первичной приёмки').fill('3');
+  await page.getByLabel('Закупочная цена, сом').fill('80');
   await page
-    .getByRole('button', { name: 'Создать без приёмки', exact: true })
+    .getByRole('button', { name: 'Добавить в приёмку', exact: true })
     .click();
   await expect(page.getByRole('status')).toContainText(
-    'Карточка создана без приёмки. Остаток не изменён.',
+    'Товар добавлен в список приёмки.',
   );
   const created = await page.evaluate(
     async ({ shop }) => {
@@ -180,10 +184,6 @@ test('photo creation produces zero stock, then explicit receiving posts quantity
   );
   expect(created.physical).toBe(0);
   expect(created.barcode).toMatch(/^MS[0-9A-F]{24}$/);
-  await page.getByLabel('Сканировать штрихкод').fill(created.barcode);
-  await page.getByLabel('Сканировать штрихкод').press('Enter');
-  await page.getByLabel('Количество Чашка с фото').fill('3');
-  await page.getByLabel('Закупочная цена Чашка с фото, сом').fill('80');
   await page.getByRole('button', { name: 'Провести приёмку' }).click();
   await expect(page.getByRole('status')).toContainText('Документ проведён');
   const after = await page.evaluate(

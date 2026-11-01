@@ -141,7 +141,6 @@ function SaleWorkspace({
     [catalogError, setCatalogError] = useState(''),
     [received, setReceived] = useState(''),
     [camera, setCamera] = useState(false),
-    [mode, setMode] = useState<'scanner' | 'catalog'>('scanner'),
     [paymentSheetOpen, setPaymentSheetOpen] = useState(false),
     scanInput = useRef<HTMLInputElement>(null),
     photos = useRef(new Map<string, string>());
@@ -308,7 +307,7 @@ function SaleWorkspace({
     () => quickCashAmounts(safe ? sum : 0n),
     [safe, sum],
   );
-  const isCatalogOpen = mode === 'catalog' || query.trim().length > 0;
+  const isCatalogOpen = query.trim().length > 0 || Boolean(category);
 
   return (
     <div className="pos-page">
@@ -364,57 +363,6 @@ function SaleWorkspace({
         >
           <div className="pos-catalog-head">
             <h2 className="pos-panel-title">Поиск товара</h2>
-            <div
-              className="pos-mode-tabs"
-              role="group"
-              aria-label="Режим добавления товара"
-            >
-              <button
-                type="button"
-                className={
-                  mode === 'scanner' && !camera
-                    ? 'pos-mode-tab active'
-                    : 'pos-mode-tab'
-                }
-                aria-pressed={mode === 'scanner' && !camera}
-                disabled={scanDisabled}
-                onClick={() => {
-                  setMode('scanner');
-                  setCamera(false);
-                  scanInput.current?.focus();
-                }}
-              >
-                <Icon name="barcode" />
-                <span>Сканер</span>
-              </button>
-              <button
-                type="button"
-                className={camera ? 'pos-mode-tab active' : 'pos-mode-tab'}
-                aria-pressed={camera}
-                disabled={scanDisabled}
-                onClick={() => setCamera((open) => !open)}
-              >
-                <Icon name="camera" />
-                <span>Камера</span>
-              </button>
-              <button
-                type="button"
-                className={
-                  mode === 'catalog' && !camera
-                    ? 'pos-mode-tab active'
-                    : 'pos-mode-tab'
-                }
-                aria-pressed={mode === 'catalog' && !camera}
-                disabled={scanDisabled}
-                onClick={() => {
-                  setMode(mode === 'catalog' ? 'scanner' : 'catalog');
-                  setCamera(false);
-                }}
-              >
-                <Icon name="grid" />
-                <span>Каталог</span>
-              </button>
-            </div>
           </div>
 
           <div className="pos-search-row">
@@ -564,31 +512,33 @@ function SaleWorkspace({
           >
             <fieldset className="pos-methods" disabled={locked}>
               <legend className="pos-panel-title">Способ оплаты</legend>
-              {(
-                [
-                  ['cash', 'Наличные', 'cash'],
-                  ['card', 'Банковская карта', 'card'],
-                ] as const
-              ).map(([value, label, icon]) => (
-                <label
-                  key={value}
-                  className={
-                    paymentMethod === value
-                      ? 'pos-method selected'
-                      : 'pos-method'
-                  }
-                >
-                  <input
-                    type="radio"
-                    name="cashier-method"
-                    value={value}
-                    checked={paymentMethod === value}
-                    onChange={() => setMethod(value)}
-                  />
-                  <Icon name={icon} />
-                  {label}
-                </label>
-              ))}
+              <div className="pos-methods-grid">
+                {(
+                  [
+                    ['cash', 'Наличные', 'cash'],
+                    ['card', 'Безналичные', 'card'],
+                  ] as const
+                ).map(([value, label, icon]) => (
+                  <label
+                    key={value}
+                    className={
+                      paymentMethod === value
+                        ? 'pos-method selected'
+                        : 'pos-method'
+                    }
+                  >
+                    <input
+                      type="radio"
+                      name="cashier-method"
+                      value={value}
+                      checked={paymentMethod === value}
+                      onChange={() => setMethod(value)}
+                    />
+                    <Icon name={icon} />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
             </fieldset>
 
             {paymentMethod === 'cash' && (

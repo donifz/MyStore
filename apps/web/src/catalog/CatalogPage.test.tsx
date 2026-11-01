@@ -113,8 +113,9 @@ it('creation does not silently receive stock', async () => {
   const u = userEvent.setup();
   await u.type(await screen.findByLabelText('Название'), 'Сумка');
   await u.type(screen.getByLabelText('Цена продажи, сом'), '150,25');
-  await u.click(screen.getByRole('button', { name: 'Создать без приёмки' }));
-  await screen.findByText('Карточка создана без приёмки. Остаток не изменён.');
+  await u.type(screen.getByLabelText('Закупочная цена, сом'), '100');
+  await u.click(screen.getByRole('button', { name: 'Добавить в приёмку' }));
+  await screen.findByText('Товар добавлен в список приёмки.');
   const postedVariant = calls.some(
     (x) => x.startsWith('POST ') && x.endsWith('/variants'),
   );

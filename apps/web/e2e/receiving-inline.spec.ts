@@ -45,10 +45,16 @@ for (const width of [390, 1440]) {
     await page.getByLabel('Закупочная цена Известный товар, сом').fill('50');
     await scanner.fill(barcode);
     await scanner.press('Enter');
-    await page
-      .getByRole('button', { name: 'Создать товар с этим штрихкодом' })
-      .click();
     const form = page.getByRole('form', { name: 'Новый товар в приёмке' });
+    const bannerBtn = page.getByRole('button', {
+      name: 'Создать товар с этим штрихкодом',
+    });
+    if (!(await form.isVisible().catch(() => false))) {
+      if (await bannerBtn.isVisible().catch(() => false)) {
+        await bannerBtn.click();
+      }
+    }
+    await expect(form).toBeVisible();
     await expect(form.getByLabel('Штрихкод')).toHaveValue(barcode);
     expect(
       await page.evaluate(
@@ -88,11 +94,19 @@ for (const width of [390, 1440]) {
       );
     }
     expect((await balance(knownBarcode)).physical).toBe(0);
-    await form
-      .getByRole('button', { name: 'Создать и провести приёмку' })
-      .click();
+    await form.getByRole('button', { name: 'Добавить в приёмку' }).click();
     await expect(form).toHaveCount(0);
     await expect(page).toHaveURL(new RegExp(`/seller/${shop}/receiving$`));
+    await page
+      .getByRole('button', { name: 'Провести приёмку', exact: true })
+      .click();
+    const confirmBtn = page.getByRole('button', {
+      name: 'Подтвердить и провести',
+      exact: true,
+    });
+    if (await confirmBtn.isVisible().catch(() => false)) {
+      await confirmBtn.click();
+    }
     await expect(page.getByRole('status')).toContainText('Документ проведён');
     expect(
       await page.evaluate(

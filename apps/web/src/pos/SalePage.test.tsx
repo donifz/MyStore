@@ -1,5 +1,11 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, fireEvent } from '@testing-library/react';
+import {
+  cleanup,
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import App from '../App';
@@ -106,14 +112,16 @@ it('allows entering discount and reason on sale line and updates total', async (
   const reasonInput = await screen.findByPlaceholderText(
     'Причина (обязательно при скидке)',
   );
-  await u.type(reasonInput, 'Сезонная акция');
+  fireEvent.change(reasonInput, { target: { value: 'Сезонная акция' } });
 
   // Verify line discounted price, line sum, total tile and mobile paybar show 900 Som (1000 - 100)
   expect(screen.getAllByText('900,00 сом').length).toBe(4);
 
-  const raw = localStorage.getItem('mystore:draft:cashier:' + shop + ':sale')!;
-  expect(raw).toContain('"discountMinor":10000');
-  expect(raw).toContain('Сезонная акция');
+  await waitFor(() => {
+    const raw = localStorage.getItem('mystore:draft:cashier:' + shop + ':sale');
+    expect(raw).toContain('"discountMinor":10000');
+    expect(raw).toContain('Сезонная акция');
+  });
 });
 
 it('disables sale when entered cash is below total and calculates the correct change', async () => {
@@ -241,7 +249,7 @@ it('stepper changes quantity, clears the cart and shows round cash suggestions',
   expect(JSON.parse(raw).lines).toEqual([]);
 });
 
-it('supports New Receipt action, mobile payment bottom sheet and mode tabs', async () => {
+it('supports New Receipt action and mobile payment bottom sheet', async () => {
   vi.stubGlobal('fetch', async (url: string) => {
     const body = url.endsWith('/me')
       ? {

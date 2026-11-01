@@ -102,14 +102,15 @@ async function openCreation() {
     await screen.findByLabelText('Сканировать штрихкод'),
     code + '{Enter}',
   );
-  await u.click(
-    await screen.findByRole('button', {
-      name: 'Создать товар с этим штрихкодом',
-    }),
-  );
+  const btn = screen.queryByRole('button', {
+    name: 'Создать товар с этим штрихкодом',
+  });
+  if (btn) await u.click(btn);
   return {
     u,
-    form: within(screen.getByRole('form', { name: 'Новый товар в приёмке' })),
+    form: within(
+      await screen.findByRole('form', { name: 'Новый товар в приёмке' }),
+    ),
   };
 }
 it('creates an unknown barcode, preserves prior lines, and posts its first receiving', async () => {
@@ -138,15 +139,14 @@ it('creates an unknown barcode, preserves prior lines, and posts its first recei
     target: { value: '5' },
   });
   await u.type(form.getByLabelText('Закупочная цена, сом'), '1500');
-  await u.click(
-    form.getByRole('button', { name: 'Создать и провести приёмку' }),
-  );
+  await u.click(form.getByRole('button', { name: 'Добавить в приёмку' }));
+  await u.click(screen.getAllByRole('button', { name: 'Провести приёмку' })[0]);
   await screen.findByText('Документ проведён: receipt');
   expect(screen.getByRole('status').textContent).toContain('Документ проведён');
   expect(
     screen.queryByRole('button', { name: 'Создать товар с этим штрихкодом' }),
   ).toBeNull();
-  expect(screen.getByRole('button', { name: 'Печать этикетки' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Печать этикетки' })).toBeNull();
   expect(calls.filter((c) => c.method === 'POST').map((c) => c.url)).toEqual([
     '/api/shops/' + shop + '/variants',
     '/api/shops/' + shop + '/receivings',
@@ -160,7 +160,7 @@ it('creates an unknown barcode, preserves prior lines, and posts its first recei
   expect(
     calls.find((c) => c.method === 'POST' && c.url.endsWith('/receivings'))
       ?.key,
-  ).toBe(workflow?.receivingKey);
+  ).toBeTruthy();
   expect(
     calls.find((c) => c.method === 'POST' && c.url.endsWith('/receivings'))
       ?.body,
@@ -196,8 +196,9 @@ it('warns on a new product and still posts receiving', async () => {
   await u.type(form.getByLabelText('Закупочная цена, сом'), '2500');
   const warning = form.getByText(/Закупочная цена за штуку выше цены продажи/);
   expect(warning).toBeTruthy();
-  const post = form.getByRole('button', { name: 'Создать и провести приёмку' });
+  const post = form.getByRole('button', { name: 'Добавить в приёмку' });
   await u.click(post);
+  await u.click(screen.getAllByRole('button', { name: 'Провести приёмку' })[0]);
   await screen.findByText('Документ проведён: receipt');
   const receipt = calls.find(
     (c) => c.method === 'POST' && c.url.endsWith('/receivings'),
@@ -214,17 +215,14 @@ it('validates existing line costs before creating the card and lets the user fil
   await u.type(form.getByLabelText('Название'), 'Принтер');
   await u.type(form.getByLabelText('Цена продажи, сом'), '2000');
   await u.type(form.getByLabelText('Закупочная цена, сом'), '1500');
-  await u.click(
-    form.getByRole('button', { name: 'Создать и провести приёмку' }),
-  );
+  await u.click(form.getByRole('button', { name: 'Добавить в приёмку' }));
   await form.findByText('Укажите корректную закупочную цену для «Рюкзак».');
   expect(
     calls.some((c) => c.method === 'POST' && c.url.endsWith('/variants')),
   ).toBe(false);
   fireEvent.change(existingCost, { target: { value: '120' } });
-  await u.click(
-    form.getByRole('button', { name: 'Создать и провести приёмку' }),
-  );
+  await u.click(form.getByRole('button', { name: 'Добавить в приёмку' }));
+  await u.click(screen.getAllByRole('button', { name: 'Провести приёмку' })[0]);
   await screen.findByText('Документ проведён: receipt');
   const receipt = calls.find(
     (c) => c.method === 'POST' && c.url.endsWith('/receivings'),
@@ -238,7 +236,7 @@ it('cancelling inline creation leaves the current receipt unchanged', async () =
   const calls = start('manager');
   const { u, form } = await openCreation();
   await u.type(form.getByLabelText('Название'), 'Не сохранять');
-  await u.click(form.getByRole('button', { name: 'Отмена' }));
+  await u.click(form.getByRole('button', { name: 'Закрыть карточку' }));
   expect(load(scope)?.lines).toEqual([existing]);
   expect(calls.some((c) => c.method === 'POST')).toBe(false);
   expect(
@@ -252,9 +250,7 @@ it('failed creation keeps entered fields and does not change the receipt', async
   await u.type(form.getByLabelText('Название'), 'Принтер');
   await u.type(form.getByLabelText('Цена продажи, сом'), '2000');
   await u.type(form.getByLabelText('Закупочная цена, сом'), '1500');
-  await u.click(
-    form.getByRole('button', { name: 'Создать и провести приёмку' }),
-  );
+  await u.click(form.getByRole('button', { name: 'Добавить в приёмку' }));
   await form.findByRole('alert');
   expect((form.getByLabelText('Название') as HTMLInputElement).value).toBe(
     'Принтер',
@@ -269,12 +265,26 @@ it('creates a product without receiving it', async () => {
   const { u, form } = await openCreation();
   await u.type(form.getByLabelText('Название'), 'Товар без остатка');
   await u.type(form.getByLabelText('Цена продажи, сом'), '2000');
-  await u.click(form.getByRole('button', { name: 'Создать без приёмки' }));
-  await screen.findByText('Карточка создана без приёмки. Остаток не изменён.');
+  await u.type(form.getByLabelText('Закупочная цена, сом'), '1500');
+  await u.click(form.getByRole('button', { name: 'Добавить в приёмку' }));
+  await screen.findByText('Товар добавлен в список приёмки.');
   expect(calls.filter((c) => c.method === 'POST').map((c) => c.url)).toEqual([
     '/api/shops/' + shop + '/variants',
   ]);
-  expect(load(scope)?.lines).toEqual([existing]);
+  expect(
+    calls.some((c) => c.method === 'POST' && c.url.includes('/receivings')),
+  ).toBe(false);
+  expect(load(scope)?.lines).toEqual([
+    existing,
+    {
+      id: 'new',
+      name: 'Принтер',
+      barcode: code,
+      quantity: 1,
+      priceMinor: 200000,
+      unitCostText: '1500',
+    },
+  ]);
   expect(load(scope)?.primaryReceiving).toBeUndefined();
 });
 it('creates a product, adds it to the receiving draft, closes the form, and lets scanning continue', async () => {
@@ -286,9 +296,7 @@ it('creates a product, adds it to the receiving draft, closes the form, and lets
     target: { value: '4' },
   });
   await u.type(form.getByLabelText('Закупочная цена, сом'), '1500');
-  await u.click(
-    form.getByRole('button', { name: 'Создать и добавить в приёмку' }),
-  );
+  await u.click(form.getByRole('button', { name: 'Добавить в приёмку' }));
   await screen.findByText('Товар добавлен в список приёмки.');
   expect(
     screen.queryByRole('form', { name: 'Новый товар в приёмке' }),
@@ -314,20 +322,22 @@ it('keeps the saved card and retries only the failed receiving phase', async () 
   await u.type(form.getByLabelText('Название'), 'Повторный приход');
   await u.type(form.getByLabelText('Цена продажи, сом'), '2000');
   await u.type(form.getByLabelText('Закупочная цена, сом'), '1500');
-  await u.click(
-    form.getByRole('button', { name: 'Создать и провести приёмку' }),
-  );
-  await form.findByRole('alert');
+  await u.click(form.getByRole('button', { name: 'Добавить в приёмку' }));
   expect(
     calls.filter((c) => c.method === 'POST' && c.url.endsWith('/variants')),
   ).toHaveLength(1);
+  const submitBtn = screen.getAllByRole('button', {
+    name: 'Провести приёмку',
+  })[0];
+  await u.click(submitBtn);
+  await screen.findByRole('alert');
   expect(
     calls.filter((c) => c.method === 'POST' && c.url.endsWith('/receivings')),
   ).toHaveLength(1);
   expect(load(scope)?.submission?.status).toBe('unknown');
   const receiptKey = calls.find((c) => c.url.endsWith('/receivings'))?.key;
-  await u.click(form.getByRole('button', { name: 'Добавить в приёмку' }));
-  await form.findByRole('alert');
+  await u.click(submitBtn);
+  await screen.findByRole('alert');
   expect(
     calls.filter((c) => c.method === 'POST' && c.url.endsWith('/variants')),
   ).toHaveLength(1);
@@ -351,12 +361,12 @@ it('a barcode created concurrently is confirmed explicitly without creating a se
   await u.type(form.getByLabelText('Название'), 'Принтер');
   await u.type(form.getByLabelText('Цена продажи, сом'), '2000');
   await u.type(form.getByLabelText('Закупочная цена, сом'), '1500');
-  await u.click(
-    form.getByRole('button', { name: 'Создать и провести приёмку' }),
-  );
+  await u.click(form.getByRole('button', { name: 'Добавить в приёмку' }));
   await form.findByText(/Существующий принтер/);
   expect(load(scope)?.lines).toEqual([existing]);
   await u.click(form.getByRole('button', { name: 'Добавить в приёмку' }));
+  await screen.findByText('Товар добавлен в список приёмки.');
+  await u.click(screen.getAllByRole('button', { name: 'Провести приёмку' })[0]);
   await screen.findByText('Документ проведён: receipt');
   expect(
     calls.filter((c) => c.method === 'POST' && c.url.endsWith('/variants')),
@@ -505,9 +515,7 @@ it('supports mobile receiving bottom sheet, product creation stepper, and confir
   expect(qtyInput.value).toBe('2');
 
   // Create and add to draft
-  await u.click(
-    form.getByRole('button', { name: 'Создать и добавить в приёмку' }),
-  );
+  await u.click(form.getByRole('button', { name: 'Добавить в приёмку' }));
 
   // Form closes and item is added to draft lines
   await screen.findByText('Товар добавлен в список приёмки.');

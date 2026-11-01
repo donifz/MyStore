@@ -74,8 +74,9 @@ export default function ReceivingProductForm({
       disabled={disabled}
       formLabel="Новый товар в приёмке"
       title="Новый товар в приёмке"
-      submitLabel="Создать и провести приёмку"
+      submitLabel="Добавить в приёмку"
       savedLabel="Добавить в приёмку"
+      showCancelInFooter={false}
       headerActions={
         onSwitchToSearch ? (
           <div className="product-form-mode-tabs">
@@ -96,7 +97,7 @@ export default function ReceivingProductForm({
       footerFields={
         <div className="product-form-fields receiving-form-fields">
           <label className="product-field-cost">
-            Закупочная цена, сом
+            <span>Закупочная цена, сом</span>
             <input
               inputMode="decimal"
               value={unitCostText}
@@ -142,20 +143,13 @@ export default function ReceivingProductForm({
           </div>
         </div>
       }
-      {...(onAddedToDraft
-        ? { addToDraftLabel: 'Создать и добавить в приёмку' }
-        : {})}
-      {...(onCreatedWithoutReceiving
-        ? { secondarySubmitLabel: 'Создать без приёмки' }
-        : {})}
       onCancel={onCancel}
-      onSaved={(variant) => onCreated(variant, Number(quantity), unitCostText)}
-      onAddToDraft={
-        onAddedToDraft
-          ? (variant) => onAddedToDraft(variant, Number(quantity), unitCostText)
-          : undefined
-      }
-      onSecondarySaved={onCreatedWithoutReceiving}
+      onSaved={(variant) => {
+        if (onAddedToDraft) {
+          return onAddedToDraft(variant, Number(quantity), unitCostText);
+        }
+        return onCreated(variant, Number(quantity), unitCostText);
+      }}
     />
   );
 }

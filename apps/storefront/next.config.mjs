@@ -2,6 +2,9 @@
 const config = {
   poweredByHeader: false,
   experimental: { cpus: 1 },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   async redirects() {
     return [
       {

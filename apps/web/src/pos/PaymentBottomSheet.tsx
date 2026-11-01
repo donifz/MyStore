@@ -118,57 +118,59 @@ export default function PaymentBottomSheet({
           <div className="pos-sheet-body">
             <fieldset className="pos-methods">
               <legend className="pos-sheet-section-title">Способ оплаты</legend>
-              <label
-                className={
-                  method === 'cash' ? 'pos-method selected' : 'pos-method'
-                }
-              >
-                <input
-                  type="radio"
-                  name="bottom-sheet-method"
-                  value="cash"
-                  checked={method === 'cash'}
-                  onChange={() => setMethod('cash')}
-                />
-                <svg
-                  className="pos-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.9"
-                  aria-hidden="true"
+              <div className="pos-methods-grid">
+                <label
+                  className={
+                    method === 'cash' ? 'pos-method selected' : 'pos-method'
+                  }
                 >
-                  <rect x="2.5" y="6" width="19" height="12" rx="2" />
-                  <circle cx="12" cy="12" r="2.7" />
-                  <path d="M6 9.5h.01M18 14.5h.01" />
-                </svg>
-                <span>Наличные</span>
-              </label>
-              <label
-                className={
-                  method === 'card' ? 'pos-method selected' : 'pos-method'
-                }
-              >
-                <input
-                  type="radio"
-                  name="bottom-sheet-method"
-                  value="card"
-                  checked={method === 'card'}
-                  onChange={() => setMethod('card')}
-                />
-                <svg
-                  className="pos-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.9"
-                  aria-hidden="true"
+                  <input
+                    type="radio"
+                    name="bottom-sheet-method"
+                    value="cash"
+                    checked={method === 'cash'}
+                    onChange={() => setMethod('cash')}
+                  />
+                  <svg
+                    className="pos-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.9"
+                    aria-hidden="true"
+                  >
+                    <rect x="2.5" y="6" width="19" height="12" rx="2" />
+                    <circle cx="12" cy="12" r="2.7" />
+                    <path d="M6 9.5h.01M18 14.5h.01" />
+                  </svg>
+                  <span>Наличные</span>
+                </label>
+                <label
+                  className={
+                    method === 'card' ? 'pos-method selected' : 'pos-method'
+                  }
                 >
-                  <rect x="2.5" y="5.5" width="19" height="13" rx="2" />
-                  <path d="M2.5 10h19M6.5 14.5h4" />
-                </svg>
-                <span>Банковская карта</span>
-              </label>
+                  <input
+                    type="radio"
+                    name="bottom-sheet-method"
+                    value="card"
+                    checked={method === 'card'}
+                    onChange={() => setMethod('card')}
+                  />
+                  <svg
+                    className="pos-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.9"
+                    aria-hidden="true"
+                  >
+                    <rect x="2.5" y="5.5" width="19" height="13" rx="2" />
+                    <path d="M2.5 10h19M6.5 14.5h4" />
+                  </svg>
+                  <span>Безналичные</span>
+                </label>
+              </div>
             </fieldset>
 
             {method === 'cash' && (
