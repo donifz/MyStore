@@ -109,4 +109,50 @@ describe('product publication review', () => {
       2,
     );
   });
+  it('paginates all pending products and searches beyond the first page', async () => {
+    await c.db.query('INSERT INTO platform_admins(user_id) VALUES($1)', [
+      fixture.owner,
+    ]);
+    for (let index = 1; index <= 12; index++) {
+      await request(http())
+        .post(`/shops/${fixture.shop}/variants`)
+        .auth(c.owner, { type: 'bearer' })
+        .set('Idempotency-Key', randomUUID())
+        .send({
+          name: index === 12 ? 'Особенная игрушка' : `Игрушка ${index}`,
+          salePriceMinor: 10000,
+        })
+        .expect(201);
+    }
+    const first = (
+      await request(http())
+        .get('/platform/admin/products?page=1&pageSize=10')
+        .auth(c.owner, { type: 'bearer' })
+        .expect(200)
+    ).body;
+    const second = (
+      await request(http())
+        .get('/platform/admin/products?page=2&pageSize=10')
+        .auth(c.owner, { type: 'bearer' })
+        .expect(200)
+    ).body;
+    expect(first.total).toBe(12);
+    expect(first.items).toHaveLength(10);
+    expect(second.total).toBe(12);
+    expect(second.items).toHaveLength(2);
+    expect(
+      new Set([...first.items, ...second.items].map((item: any) => item.revision_id))
+        .size,
+    ).toBe(12);
+
+    const found = (
+      await request(http())
+        .get('/platform/admin/products?page=1&pageSize=10&q=%D0%9E%D1%81%D0%BE%D0%B1%D0%B5%D0%BD%D0%BD%D0%B0%D1%8F')
+        .auth(c.owner, { type: 'bearer' })
+        .expect(200)
+    ).body;
+    expect(found.total).toBe(1);
+    expect(found.items[0].name).toBe('Особенная игрушка');
+  });
+
 });
