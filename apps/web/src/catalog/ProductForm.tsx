@@ -99,7 +99,12 @@ export default function ProductForm({
     setPhoto(data[0] ?? '');
   });
   const locked =
-    disabled || busy || photoCrop.cropping || cameraOpen || recognizing || barcodeBusy;
+    disabled ||
+    busy ||
+    photoCrop.cropping ||
+    cameraOpen ||
+    recognizing ||
+    barcodeBusy;
 
   function choose(files?: FileList | null) {
     if (!files?.length) return;
