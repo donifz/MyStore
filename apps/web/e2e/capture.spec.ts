@@ -47,6 +47,7 @@ test('applies AI suggestions only after review and keeps price and barcode manua
   await page
     .getByLabel('Фото товара')
     .setInputFiles({ name: 'product.png', mimeType: 'image/png', buffer: png });
+  await page.getByRole('button', { name: 'Использовать фото' }).click();
   await page.getByLabel('Название', { exact: true }).fill('Моё название');
   await page.getByLabel('Цена продажи, сом').fill('150');
   await page.getByLabel('Штрихкод', { exact: true }).fill('AI-MANUAL-001');
@@ -123,6 +124,7 @@ test('AI failure leaves manual product entry usable', async ({ page }) => {
   await page
     .getByLabel('Фото товара')
     .setInputFiles({ name: 'product.png', mimeType: 'image/png', buffer: png });
+  await page.getByRole('button', { name: 'Использовать фото' }).click();
   await page.getByLabel('Название', { exact: true }).fill('Ручное название');
   await page
     .getByRole('button', { name: 'Определить по фото', exact: true })
@@ -158,6 +160,7 @@ test('photo creation produces zero stock, then explicit receiving posts quantity
   await page
     .getByLabel('Фото товара')
     .setInputFiles({ name: 'product.png', mimeType: 'image/png', buffer: png });
+  await page.getByRole('button', { name: 'Использовать фото' }).click();
   await expect(page.getByAltText('Фото перед сохранением')).toBeVisible();
   await page.getByLabel('Название', { exact: true }).fill('Чашка с фото');
   await page.getByLabel('Цена продажи, сом').fill('150');
