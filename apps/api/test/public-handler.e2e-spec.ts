@@ -23,6 +23,40 @@ describe('public Next handler boundary', () => {
   afterAll(async () => {
     await app.close();
   });
+  it('serves install metadata and PNG icons without routing through Next', async () => {
+    const login = await request(app.getHttpServer())
+      .get('/seller/login')
+      .expect(200);
+    expect(login.headers['cache-control']).toBe('no-store');
+    expect(login.text).toContain('rel="manifest"');
+    const manifest = await request(app.getHttpServer())
+      .get('/pwa/manifest.webmanifest')
+      .expect(200);
+    expect(manifest.headers['content-type']).toContain(
+      'application/manifest+json',
+    );
+    const metadata = JSON.parse(manifest.text);
+    expect(metadata).toMatchObject({
+      id: '/seller',
+      start_url: '/seller',
+      scope: '/',
+      display: 'standalone',
+    });
+    for (const icon of metadata.icons) {
+      const response = await request(app.getHttpServer())
+        .get(icon.src)
+        .expect(200);
+      expect(response.headers['content-type']).toContain('image/png');
+      expect(response.body.subarray(1, 4).toString()).toBe('PNG');
+    }
+    await request(app.getHttpServer())
+      .get('/pwa/apple-touch-icon.png')
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/pwa/manifest.webmanifest')
+      .expect(404);
+    await request(app.getHttpServer()).get('/pwa/missing.png').expect(404);
+  });
   it.each([
     '/',
     '/shops',

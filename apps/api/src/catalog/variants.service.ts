@@ -93,6 +93,11 @@ export class VariantsService {
     showCost: boolean,
     archived = false,
     stock?: 'all' | 'in_stock' | 'low' | 'out',
+    options: {
+      category?: string;
+      sort?: 'name' | 'popular';
+      facets?: boolean;
+    } = {},
   ) {
     const pattern = '%' + q.replace(/[\\%_]/g, '\\$&') + '%';
     const stockClause =
@@ -103,22 +108,47 @@ export class VariantsService {
           : stock === 'out'
             ? ' AND (COALESCE(b.physical,0) - COALESCE(b.reserved,0)) <= 0'
             : '';
+    const params: unknown[] = [shopId, archived, pattern];
+    let categoryClause = '';
+    if (options.category) {
+      params.push(options.category);
+      categoryClause = ` AND v.category=$${params.length}`;
+    }
+    const popular = options.sort === 'popular';
+    // "Часто продаются": quantities sold through completed sales in the last 30 days.
+    const popularJoin = popular
+      ? " JOIN LATERAL (SELECT SUM(sl.quantity) sold FROM sale_lines sl JOIN stock_documents d ON d.shop_id=sl.shop_id AND d.id=sl.document_id WHERE sl.shop_id=v.shop_id AND sl.variant_id=v.id AND d.kind='sale' AND d.created_at > now() - interval '30 days') s ON s.sold > 0"
+      : '';
     const filter =
       'v.shop_id=$1 AND v.archived=$2 AND (v.name ILIKE $3 OR v.barcode ILIKE $3 OR v.sku ILIKE $3)' +
-      stockClause;
-    const countFrom = stockClause
-      ? 'FROM variants v LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id WHERE '
-      : 'FROM variants v WHERE ';
+      stockClause +
+      categoryClause;
+    const from =
+      'FROM variants v LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id' +
+      popularJoin +
+      ' WHERE ';
     const [count] = await this.db.query(
-      'SELECT count(*) ' + countFrom + filter,
-      [shopId, archived, pattern],
+      'SELECT count(*) ' + from + filter,
+      params,
     );
     const rows = await this.db.query(
-      'SELECT v.id,v.sku,v.name,v.barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.stock_value_minor,0) stock_value_minor FROM variants v LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id WHERE ' +
+      'SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.category,(v.photo_data IS NOT NULL) has_photo,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.stock_value_minor,0) stock_value_minor ' +
+        from +
         filter +
-        ' ORDER BY v.name,v.id LIMIT $4 OFFSET $5',
-      [shopId, archived, pattern, pageSize, (page - 1) * pageSize],
+        (popular
+          ? ' ORDER BY s.sold DESC,v.name,v.id'
+          : ' ORDER BY v.name,v.id') +
+        ` LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      [...params, pageSize, (page - 1) * pageSize],
     );
+    const facets = options.facets
+      ? (
+          await this.db.query(
+            "SELECT v.category name,count(*) count FROM variants v WHERE v.shop_id=$1 AND v.archived=false AND COALESCE(v.category,'')<>'' GROUP BY v.category ORDER BY count(*) DESC,v.category LIMIT 12",
+            [shopId],
+          )
+        ).map((r: any) => ({ name: r.name, count: Number(r.count) }))
+      : undefined;
     return {
       items: rows.map((r: any) => ({
         id: r.id,
@@ -130,6 +160,10 @@ export class VariantsService {
         name: r.name,
         barcode: r.barcode,
         salePriceMinor: Number(r.sale_price_minor),
+        category: r.category ?? '',
+        ...(r.has_photo
+          ? { photoUrl: `/api/shops/${r.shop_id}/variants/${r.id}/photo` }
+          : {}),
         physical: Number(r.physical),
         reserved: Number(r.reserved),
         available: Number(r.physical) - Number(r.reserved),
@@ -138,6 +172,7 @@ export class VariantsService {
       total: Number(count.count),
       page,
       pageSize,
+      ...(facets ? { categories: facets } : {}),
     };
   }
   async createVariant(

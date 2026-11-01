@@ -10,7 +10,9 @@ export default function ReceivingProductForm({
   draftLines,
   disabled,
   onCancel,
+  onSwitchToSearch,
   onCreated,
+  onAddedToDraft,
   onCreatedWithoutReceiving,
 }: {
   shopId: string;
@@ -20,7 +22,13 @@ export default function ReceivingProductForm({
   draftLines?: { name: string; quantity: number; unitCostText?: string }[];
   disabled: boolean;
   onCancel: () => void;
+  onSwitchToSearch?: () => void;
   onCreated: (
+    variant: Variant,
+    quantity: number,
+    unitCostText: string,
+  ) => Promise<boolean>;
+  onAddedToDraft?: (
     variant: Variant,
     quantity: number,
     unitCostText: string,
@@ -29,15 +37,18 @@ export default function ReceivingProductForm({
 }) {
   const [quantity, setQuantity] = useState('1');
   const [unitCostText, setUnitCostText] = useState('');
+  function validateQuantityAndCost() {
+    const count = Number(quantity);
+    if (!Number.isInteger(count) || count < 1 || count > 1e9)
+      throw new Error('Укажите корректное количество (1–1 000 000 000).');
+    return { count, unitCostMinor: parseSom(unitCostText) };
+  }
   return (
     <ProductForm
       shopId={shopId}
       parentId={parentId}
       validateBeforeSave={() => {
-        const count = Number(quantity);
-        if (!Number.isInteger(count) || count < 1 || count > 1e9)
-          throw new Error('Укажите корректное количество (1–1 000 000 000).');
-        const unitCostMinor = parseSom(unitCostText);
+        const { count, unitCostMinor } = validateQuantityAndCost();
         let total = BigInt(count) * BigInt(unitCostMinor);
         for (const line of draftLines ?? []) {
           let lineCost: number;
@@ -53,6 +64,9 @@ export default function ReceivingProductForm({
         if (total > BigInt(Number.MAX_SAFE_INTEGER))
           throw new Error('Сумма слишком велика.');
       }}
+      validateDraftSave={() => {
+        validateQuantityAndCost();
+      }}
       initialBarcode={barcode === '__new__' ? '' : barcode}
       creationKey={creationKey}
       purchaseCostText={unitCostText}
@@ -60,22 +74,30 @@ export default function ReceivingProductForm({
       disabled={disabled}
       formLabel="Новый товар в приёмке"
       title="Новый товар в приёмке"
-      submitLabel="Создать и провести приёмку"
+      submitLabel="Добавить в приёмку"
       savedLabel="Добавить в приёмку"
+      showCancelInFooter={false}
+      headerActions={
+        onSwitchToSearch ? (
+          <div className="product-form-mode-tabs">
+            <span className="product-form-mode-tab active">
+              + Создать товар
+            </span>
+            <button
+              type="button"
+              className="product-form-mode-tab"
+              disabled={disabled}
+              onClick={onSwitchToSearch}
+            >
+              Найти существующий
+            </button>
+          </div>
+        ) : undefined
+      }
       footerFields={
-        <div className="product-form-fields">
-          <label>
-            Количество первичной приёмки
-            <input
-              type="number"
-              min={1}
-              max={1e9}
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-            />
-          </label>
-          <label>
-            Закупочная цена, сом
+        <div className="product-form-fields receiving-form-fields">
+          <label className="product-field-cost">
+            <span>Закупочная цена, сом</span>
             <input
               inputMode="decimal"
               value={unitCostText}
@@ -83,14 +105,51 @@ export default function ReceivingProductForm({
               placeholder="0,00"
             />
           </label>
+          <div className="product-field-quantity">
+            <label htmlFor="receiving-form-quantity">
+              Количество первичной приёмки
+            </label>
+            <div className="pos-stepper product-form-stepper">
+              <button
+                type="button"
+                aria-label="Уменьшить количество нового товара"
+                disabled={Number(quantity) <= 1}
+                onClick={() =>
+                  setQuantity((q) =>
+                    Math.max(1, (Number(q) || 1) - 1).toString(),
+                  )
+                }
+              >
+                −
+              </button>
+              <input
+                id="receiving-form-quantity"
+                type="number"
+                min={1}
+                max={1e9}
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+              />
+              <button
+                type="button"
+                aria-label="Увеличить количество нового товара"
+                onClick={() =>
+                  setQuantity((q) => ((Number(q) || 0) + 1).toString())
+                }
+              >
+                +
+              </button>
+            </div>
+          </div>
         </div>
       }
-      {...(onCreatedWithoutReceiving
-        ? { secondarySubmitLabel: 'Создать без приёмки' }
-        : {})}
       onCancel={onCancel}
-      onSaved={(variant) => onCreated(variant, Number(quantity), unitCostText)}
-      onSecondarySaved={onCreatedWithoutReceiving}
+      onSaved={(variant) => {
+        if (onAddedToDraft) {
+          return onAddedToDraft(variant, Number(quantity), unitCostText);
+        }
+        return onCreated(variant, Number(quantity), unitCostText);
+      }}
     />
   );
 }

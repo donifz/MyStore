@@ -1,0 +1,28 @@
+name: Autoformat PR 85
+on:
+  push:
+    branches: [feat/simplify-store-workflows-20261031]
+permissions:
+  contents: write
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci
+      - name: Apply Prettier and commit changes
+        run: |
+          npx prettier --write apps/web/src/layout/workspace-navigation.test.ts apps/web/src/layout/workspace-navigation.ts apps/web/src/receiving/ReceivingPage.tsx
+          npm run format:check
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add apps/web/src/layout/workspace-navigation.test.ts apps/web/src/layout/workspace-navigation.ts apps/web/src/receiving/ReceivingPage.tsx
+            git commit -m "style: apply Prettier to simplified workflow UI"
+            git push
+          fi

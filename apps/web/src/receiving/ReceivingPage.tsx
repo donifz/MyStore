@@ -1,10 +1,31 @@
-import { useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useSession } from '../auth/SessionProvider';
 import { parseSom, formatSom } from '../api/money';
 import { api, errorText } from '../api/client';
 import { useEffect, useRef, useState } from 'react';
 import { useDocument } from '../drafts/use-document';
 import DocumentEditor from '../drafts/DocumentEditor';
+import { useCurrentShift } from '../pos/use-current-shift';
+import ReceivingConfirmationSheet from './ReceivingConfirmationSheet';
+
+function declinedPositions(n: number) {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 19) return 'позиций';
+  if (mod10 === 1) return 'позиция';
+  if (mod10 >= 2 && mod10 <= 4) return 'позиции';
+  return 'позиций';
+}
+
+function declinedUnits(n: number) {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 19) return 'единиц';
+  if (mod10 === 1) return 'единица';
+  if (mod10 >= 2 && mod10 <= 4) return 'единицы';
+  return 'единиц';
+}
+
 function ReceivingWorkspace({
   shopId,
   userId,
@@ -13,17 +34,18 @@ function ReceivingWorkspace({
   userId: string;
 }) {
   const doc = useDocument({ userId, shopId, kind: 'receiving' });
+  const shift = useCurrentShift(shopId);
+  const activeShift =
+    shift.current && 'id' in shift.current ? shift.current : null;
   const [searchParams, setSearchParams] = useSearchParams();
   const createAtEntry = searchParams.get('create') === '1';
   const parentId = searchParams.get('parentId') || undefined;
-  const beganEntry = useRef(false);
   useEffect(() => {
-    if (createAtEntry && !beganEntry.current) {
-      beganEntry.current = true;
+    if (createAtEntry) {
       const next = new URLSearchParams(searchParams);
       next.delete('create');
       setSearchParams(next, { replace: true });
-      if (!doc.draft.primaryReceiving) void doc.beginProductCreation('');
+      void doc.beginProductCreation('');
     }
   }, [createAtEntry]);
   const [documentNumber, setDocumentNumber] = useState(
@@ -37,6 +59,7 @@ function ReceivingWorkspace({
         new Date().toISOString().slice(0, 10),
     ),
     [comment, setComment] = useState(doc.draft.submission?.body?.comment ?? ''),
+    [confirmOpen, setConfirmOpen] = useState(false),
     [history, setHistory] = useState<any[]>([]),
     [selectedReceipt, setSelectedReceipt] = useState<any | null>(null),
     [detailError, setDetailError] = useState('');
@@ -55,10 +78,11 @@ function ReceivingWorkspace({
     }
   }
   useEffect(() => {
-    if (doc.success) {
+    if (doc.success && doc.success.includes('Документ проведён')) {
       setDocumentNumber('');
       setSupplier('');
       setComment('');
+      setConfirmOpen(false);
     }
   }, [doc.success]);
   let sum = 0n;
@@ -67,6 +91,8 @@ function ReceivingWorkspace({
       sum += BigInt(parseSom(l.unitCostText ?? '')) * BigInt(l.quantity);
     } catch {}
   }
+  const totalUnits = doc.draft.lines.reduce((n, l) => n + l.quantity, 0);
+  const metaDisabled = doc.busy || !!doc.draft.submission;
   async function submit() {
     try {
       const body = doc.draft.submission?.body ?? {
@@ -92,36 +118,77 @@ function ReceivingWorkspace({
         body,
         doc.draft.primaryReceiving?.receivingKey,
       );
+      setConfirmOpen(false);
     } catch (e) {
       doc.setError(errorText(e));
     }
   }
   return (
-    <>
-      <div className="page-heading">
-        <div>
-          <p className="eyebrow">Поступление товара</p>
-          <h1>Приёмка</h1>
-          <p className="muted">
-            Отсканируйте товары, укажите количество и закупочную цену
+    <div className="receiving-page">
+      <div className="page-heading receiving-page-header">
+        <div className="receiving-header-main">
+          <div className="receiving-title-row">
+            <Link
+              to={`/seller/${shopId}`}
+              className="receiving-back-link"
+              aria-label="Назад к магазину"
+            >
+              ‹
+            </Link>
+            <h1>Приёмка</h1>
+            <span className="receiving-subtitle">Поступление товара</span>
+          </div>
+          <p className="muted receiving-header-desc">
+            Сканируйте товар, укажите количество и закупочную цену
           </p>
         </div>
-        <button
-          type="button"
-          className="button"
-          disabled={
-            doc.busy ||
-            doc.blocked ||
-            !doc.online ||
-            !!doc.draft.submission ||
-            !!doc.productCreation
-          }
-          onClick={() => void doc.beginProductCreation('')}
-        >
-          Создать товар
-        </button>
+        <div className="receiving-header-meta">
+          <span
+            className={`receiving-shift-pill ${activeShift ? 'open' : 'closed'}`}
+          >
+            <span className="pos-dot" aria-hidden="true" />
+            <span>{activeShift ? 'Смена открыта' : 'Смена не открыта'}</span>
+          </span>
+          <button
+            type="button"
+            className="button primary receiving-create-btn"
+            disabled={
+              doc.busy ||
+              doc.blocked ||
+              !doc.online ||
+              !!doc.draft.submission ||
+              !!doc.productCreation
+            }
+            onClick={() => void doc.beginProductCreation('')}
+          >
+            <span aria-hidden="true">+</span> Создать товар
+          </button>
+        </div>
       </div>
-      <div className="pos-grid">
+
+      <button
+        type="button"
+        className="receiving-doc-chip"
+        onClick={() => setConfirmOpen(true)}
+        aria-label="Реквизиты накладной"
+      >
+        <span className="receiving-doc-chip-left">
+          <span className="receiving-doc-chip-icon" aria-hidden="true">
+            📄
+          </span>
+          <span className="receiving-doc-chip-text">
+            {documentNumber.trim()
+              ? `Накладная № ${documentNumber}`
+              : 'Накладная (черновик)'}
+            {supplier.trim() ? ` · ${supplier}` : ''}
+          </span>
+        </span>
+        <span className="receiving-doc-chip-arrow" aria-hidden="true">
+          ›
+        </span>
+      </button>
+
+      <div className="pos-grid receiving-workspace-grid">
         <DocumentEditor
           doc={doc}
           receiving
@@ -136,57 +203,37 @@ function ReceivingWorkspace({
             comment: comment.trim(),
           }}
         />
-        <aside className="panel summary-panel">
-          <h2>Документ прихода</h2>
-          <label>
-            Номер документа
-            <input
-              value={documentNumber}
-              onChange={(e) => setDocumentNumber(e.target.value)}
-              disabled={doc.busy || !!doc.draft.submission}
-              placeholder="Например, ТТН-001 (или оставьте пустым)"
-            />
-          </label>
-          <label>
-            Поставщик
-            <input
-              value={supplier}
-              onChange={(e) => setSupplier(e.target.value)}
-              disabled={doc.busy || !!doc.draft.submission}
-              placeholder="Название или ИНН"
-            />
-          </label>
-          <label>
-            Дата поставки
-            <input
-              type="date"
-              value={receivedOn}
-              onChange={(e) => setReceivedOn(e.target.value)}
-              disabled={doc.busy || !!doc.draft.submission}
-            />
-          </label>
-          <label>
-            Комментарий
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              disabled={doc.busy || !!doc.draft.submission}
-              rows={3}
-              placeholder="Примечание к поставке"
-            />
-          </label>
-          <p>{doc.draft.lines.reduce((n, l) => n + l.quantity, 0)} шт.</p>
-          <p className="total">
-            {sum <= BigInt(Number.MAX_SAFE_INTEGER)
-              ? formatSom(Number(sum))
-              : 'Сумма превышена'}
-          </p>
-          <p className="muted">
-            После проведения товар появится в остатках. Карточка сама не создаёт
-            приход.
-          </p>
+        <aside className="panel summary-panel receiving-summary-panel">
+          <h2>Итого к приёмке</h2>
+          <div className="receiving-kpi-grid">
+            <div className="receiving-kpi-tile">
+              <span>Позиций</span>
+              <strong>{doc.draft.lines.length}</strong>
+            </div>
+            <div className="receiving-kpi-tile">
+              <span>Всего единиц</span>
+              <strong>{totalUnits}</strong>
+            </div>
+            <div className="receiving-kpi-tile receiving-kpi-total">
+              <span>Сумма к приёмке</span>
+              <p className="total">
+                {sum <= BigInt(Number.MAX_SAFE_INTEGER)
+                  ? formatSom(Number(sum))
+                  : 'Сумма превышена'}
+              </p>
+            </div>
+          </div>
+          <div className="receiving-info-box">
+            <span className="receiving-info-icon" aria-hidden="true">
+              i
+            </span>
+            <p className="muted">
+              После проведения товар появится в остатках. Карточка сама не
+              создаёт приход.
+            </p>
+          </div>
           <button
-            className="primary full-width"
+            className="primary full-width receiving-submit-btn"
             disabled={
               !doc.online ||
               doc.busy ||
@@ -196,23 +243,192 @@ function ReceivingWorkspace({
             }
             onClick={() => void submit()}
           >
+            <svg
+              className="receiving-btn-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path d="m9 12 2 2 4-4" />
+            </svg>
+            <span>
+              {doc.busy
+                ? 'Проведение…'
+                : doc.draft.submission
+                  ? 'Повторить исходный запрос'
+                  : 'Провести приёмку'}
+            </span>
+          </button>
+          <button
+            type="button"
+            className="secondary full-width receiving-print-btn"
+            onClick={() => window.print()}
+            disabled={!doc.draft.lines.length}
+          >
+            <svg
+              className="receiving-btn-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M6 9V4h12v5M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+              <rect x="6" y="14" width="12" height="6" />
+            </svg>
+            <span>Печать документа</span>
+          </button>
+          <details className="receiving-metadata">
+            <summary>Дополнительные данные документа</summary>
+            <div className="receiving-metadata-fields">
+              <label>
+                Поставщик
+                <div className="receiving-supplier-box">
+                  <input
+                    value={supplier}
+                    onChange={(e) => setSupplier(e.target.value)}
+                    disabled={metaDisabled}
+                    placeholder="Например, ОсОО «ФудТрейд»"
+                  />
+                  {supplier && !metaDisabled && (
+                    <button
+                      type="button"
+                      className="receiving-supplier-clear"
+                      aria-label="Очистить поставщика"
+                      onClick={() => setSupplier('')}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </label>
+              <div className="receiving-meta-row">
+                <label>
+                  Номер документа
+                  <input
+                    value={documentNumber}
+                    onChange={(e) => setDocumentNumber(e.target.value)}
+                    disabled={metaDisabled}
+                    placeholder="ПН-000123"
+                  />
+                </label>
+                <label>
+                  Дата поставки
+                  <input
+                    type="date"
+                    value={receivedOn}
+                    onChange={(e) => setReceivedOn(e.target.value)}
+                    disabled={metaDisabled}
+                  />
+                </label>
+              </div>
+              <label>
+                Комментарий
+                <input
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  disabled={metaDisabled}
+                  placeholder="Например, накладная №123"
+                />
+              </label>
+            </div>
+          </details>
+        </aside>
+      </div>
+
+      {/* MOBILE STICKY BOTTOM BAR */}
+      <div className="receiving-mobile-bar">
+        <div className="receiving-mobile-kpi-card">
+          <div className="receiving-mobile-kpi-info">
+            <span className="receiving-mobile-kpi-icon" aria-hidden="true">
+              📦
+            </span>
+            <div className="receiving-mobile-kpi-copy">
+              <span className="receiving-mobile-kpi-label">
+                Итого к приёмке
+              </span>
+              <strong className="receiving-mobile-kpi-meta">
+                {doc.draft.lines.length}{' '}
+                {declinedPositions(doc.draft.lines.length)} · {totalUnits}{' '}
+                {declinedUnits(totalUnits)}
+              </strong>
+            </div>
+          </div>
+          <div className="receiving-mobile-kpi-sum">
+            <span className="receiving-mobile-sum-label">Сумма закупки</span>
+            <strong className="receiving-mobile-sum-amount">
+              {sum <= BigInt(Number.MAX_SAFE_INTEGER)
+                ? formatSom(Number(sum))
+                : 'Сумма превышена'}
+            </strong>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="button primary receiving-mobile-submit-btn"
+          disabled={
+            !doc.online ||
+            doc.busy ||
+            doc.blocked ||
+            !!doc.productCreation ||
+            !doc.draft.lines.length
+          }
+          onClick={() => setConfirmOpen(true)}
+        >
+          <svg
+            className="receiving-btn-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path d="m9 12 2 2 4-4" />
+          </svg>
+          <span>
             {doc.busy
               ? 'Проведение…'
               : doc.draft.submission
                 ? 'Повторить исходный запрос'
                 : 'Провести приёмку'}
-          </button>
-          <button
-            type="button"
-            className="secondary full-width"
-            onClick={() => window.print()}
-            disabled={!doc.draft.lines.length}
-          >
-            Печать документа
-          </button>
-        </aside>
+          </span>
+        </button>
       </div>
-      <section className="panel receiving-history">
+
+      {/* CONFIRMATION BOTTOM SHEET MODAL */}
+      <ReceivingConfirmationSheet
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        supplier={supplier}
+        setSupplier={setSupplier}
+        documentNumber={documentNumber}
+        setDocumentNumber={setDocumentNumber}
+        receivedOn={receivedOn}
+        setReceivedOn={setReceivedOn}
+        comment={comment}
+        setComment={setComment}
+        lineCount={doc.draft.lines.length}
+        totalUnits={totalUnits}
+        totalSum={sum}
+        onSubmit={submit}
+        isSubmitting={doc.busy}
+        isSubmissionPending={!!doc.draft.submission}
+        error={doc.error}
+        disabled={!doc.online || doc.blocked}
+      />
+
+      <details className="panel receiving-history" open>
+        <summary>История приёмок</summary>
         <div className="page-heading">
           <div>
             <h2>История приёмок</h2>
@@ -312,8 +528,8 @@ function ReceivingWorkspace({
             </table>
           </div>
         )}
-      </section>
-    </>
+      </details>
+    </div>
   );
 }
 export default function ReceivingPage() {

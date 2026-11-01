@@ -50,6 +50,10 @@ test('context navigation opens owned products and sales inside the common cabine
   await expect(page).toHaveURL(new RegExp(`/seller/${shop}/products$`));
   await page
     .getByRole('navigation', { name: 'Разделы кабинета' })
+    .getByText('Ещё', { exact: true })
+    .click();
+  await page
+    .getByRole('navigation', { name: 'Разделы кабинета' })
     .getByRole('link', { name: 'Продажи и возвраты', exact: true })
     .click();
   await expect(page).toHaveURL(new RegExp(`/seller/${shop}/sales$`));

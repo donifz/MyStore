@@ -102,6 +102,10 @@ test('shopper checkout recovers receipt and seller issues reserved stock once', 
   await page.getByLabel('Пароль').fill(password);
   await page.getByRole('button', { name: 'Войти', exact: true }).click();
   await page.waitForURL((url) => !url.pathname.endsWith('/seller/login'));
+  await page
+    .getByRole('navigation', { name: 'Разделы кабинета' })
+    .getByText('Ещё', { exact: true })
+    .click();
   await page.getByRole('link', { name: 'Заказы', exact: true }).click();
   await page
     .getByRole('button', { name: /Открыть заказ/ })

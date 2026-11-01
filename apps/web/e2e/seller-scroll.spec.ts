@@ -16,6 +16,16 @@ for (const width of [821, 1024, 1440]) {
     async ({ page }) => {
       await page.setViewportSize({ width, height: 600 });
       await openCapture(page);
+      // Product creation is a modal dialog on desktop too.
+      const dialog = page.getByRole('dialog', { name: 'Создание товара' });
+      await expect(dialog).toBeVisible();
+      expect(
+        await page
+          .locator('.receiving-product-sheet-root')
+          .evaluate((e) => getComputedStyle(e).position),
+      ).toBe('fixed');
+      await dialog.getByRole('button', { name: 'Закрыть карточку' }).click();
+      await expect(dialog).toHaveCount(0);
       const sidebar = page.locator('.sidebar');
       const content = page.locator('.content');
       expect(
@@ -49,19 +59,30 @@ for (const width of [821, 1024, 1440]) {
       // Scrolling beyond either region's boundary must not move the document.
       await page.mouse.wheel(0, 10000);
       expect(await page.evaluate(() => scrollY)).toBe(0);
-      await page.getByLabel('Название', { exact: true }).focus();
+      await page
+        .getByRole('button', { name: 'Создать товар', exact: true })
+        .click();
       await expect(page.getByLabel('Название', { exact: true })).toBeFocused();
     },
   );
 }
-test('mobile seller layout keeps normal document scroll and horizontal navigation', async ({
+test('mobile seller layout keeps normal document scroll and fixed bottom navigation', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openCapture(page);
-  await page.mouse.move(300, 750);
+  await page.mouse.move(300, 500);
   await page.mouse.wheel(0, 700);
-  await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(0);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const drawer = document.querySelector<HTMLElement>(
+          '.receiving-product-sheet-drawer',
+        );
+        return scrollY || (drawer ? drawer.scrollTop : 0);
+      }),
+    )
+    .toBeGreaterThan(0);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -70,8 +91,8 @@ test('mobile seller layout keeps normal document scroll and horizontal navigatio
   expect(
     await page
       .locator('.sidebar nav')
-      .evaluate((e) => e.scrollWidth > e.clientWidth),
-  ).toBe(true);
+      .evaluate((e) => getComputedStyle(e).position),
+  ).toBe('fixed');
   await page.getByLabel('Название', { exact: true }).scrollIntoViewIfNeeded();
   await expect(page.getByLabel('Название', { exact: true })).toBeVisible();
 });

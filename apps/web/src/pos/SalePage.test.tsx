@@ -97,7 +97,8 @@ it('allows entering discount and reason on sale line and updates total', async (
   await u.type(scanner, '99001{Enter}');
   await screen.findByText('Куртка');
 
-  // Find discount input
+  // Discount fields open from the compact cart line
+  await u.click(screen.getByRole('button', { name: 'Скидка Куртка' }));
   const discountInput = screen.getByPlaceholderText('0');
   fireEvent.change(discountInput, { target: { value: '100' } }); // 100 Som discount
 
@@ -107,8 +108,8 @@ it('allows entering discount and reason on sale line and updates total', async (
   );
   await u.type(reasonInput, 'Сезонная акция');
 
-  // Verify line discounted price and total both show 900 Som (1000 - 100)
-  expect(screen.getAllByText('900,00 сом').length).toBe(3);
+  // Verify line discounted price, line sum, total tile and mobile paybar show 900 Som (1000 - 100)
+  expect(screen.getAllByText('900,00 сом').length).toBe(4);
 
   const raw = localStorage.getItem('mystore:draft:cashier:' + shop + ':sale')!;
   expect(raw).toContain('"discountMinor":10000');
@@ -176,6 +177,111 @@ it('disables sale when entered cash is below total and calculates the correct ch
   expect((cashInput as HTMLInputElement).value).toBe('1500');
   expect(screen.getByText('0,00 сом')).toBeTruthy();
 
-  await user.click(screen.getByRole('button', { name: '+500' }));
+  await user.click(screen.getByRole('button', { name: '2 000' }));
   expect((cashInput as HTMLInputElement).value).toBe('2000');
+  expect(screen.getByRole('button', { name: '5 000' })).toBeTruthy();
+});
+
+it('stepper changes quantity, clears the cart and shows round cash suggestions', async () => {
+  vi.stubGlobal('fetch', async (url: string) => {
+    const body = url.endsWith('/me')
+      ? {
+          userId: 'cashier',
+          email: 'cashier@test.tld',
+          csrfToken: 'csrf',
+          shops: [{ id: shop, name: 'Магазин', role: 'cashier' }],
+        }
+      : url.endsWith('/current')
+        ? { id: 'shift', actorId: 'cashier', status: 'open' }
+        : url.includes('/by-barcode')
+          ? { id: 'v1', name: 'Молоко', barcode: '222', salePriceMinor: 4200 }
+          : {
+              items: [
+                {
+                  id: 'v1',
+                  name: 'Молоко',
+                  barcode: '222',
+                  salePriceMinor: 4200,
+                  available: 7,
+                  category: 'Продукты',
+                },
+              ],
+              total: 1,
+              page: 1,
+              pageSize: 24,
+              categories: [{ name: 'Продукты', count: 1 }],
+            };
+    return new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  });
+  render(
+    <MemoryRouter initialEntries={['/seller/' + shop + '/pos']}>
+      <App />
+    </MemoryRouter>,
+  );
+  const user = userEvent.setup();
+  await screen.findByRole('button', { name: 'Продукты' });
+  await user.click(await screen.findByRole('button', { name: /Молоко/ }));
+  const quantity = (await screen.findByLabelText(
+    'Количество Молоко',
+  )) as HTMLInputElement;
+  expect(quantity.value).toBe('1');
+  await user.click(screen.getByRole('button', { name: 'Увеличить Молоко' }));
+  await vi.waitFor(() => expect(quantity.value).toBe('2'));
+  // 84 сом → 100, 500, 1 000
+  expect(screen.getByRole('button', { name: '100' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: '1 000' })).toBeTruthy();
+  await user.click(screen.getByRole('button', { name: 'Уменьшить Молоко' }));
+  await vi.waitFor(() => expect(quantity.value).toBe('1'));
+  await user.click(screen.getByRole('button', { name: /Очистить/ }));
+  await screen.findByText(/Корзина пуста/);
+  const raw = localStorage.getItem('mystore:draft:cashier:' + shop + ':sale')!;
+  expect(JSON.parse(raw).lines).toEqual([]);
+});
+
+it('supports New Receipt action and mobile payment bottom sheet', async () => {
+  vi.stubGlobal('fetch', async (url: string) => {
+    const body = url.endsWith('/me')
+      ? {
+          userId: 'cashier',
+          email: 'cashier@test.tld',
+          csrfToken: 'csrf',
+          shops: [{ id: shop, name: 'Юный инженер', role: 'cashier' }],
+        }
+      : url.endsWith('/current')
+        ? { id: 'shift', actorId: 'cashier', status: 'open' }
+        : url.includes('/by-barcode')
+          ? {
+              id: 'v1',
+              name: 'Конструктор',
+              barcode: '555',
+              salePriceMinor: 63000,
+            }
+          : { items: [], total: 0, page: 1, pageSize: 24 };
+    return new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  });
+  render(
+    <MemoryRouter initialEntries={['/seller/' + shop + '/pos']}>
+      <App />
+    </MemoryRouter>,
+  );
+  const user = userEvent.setup();
+  const scanner = await screen.findByLabelText('Сканировать штрихкод');
+  await user.type(scanner, '555{Enter}');
+  await screen.findByText('Конструктор');
+
+  const payBarBtn = screen.getByRole('button', {
+    name: /Оплатить — 630,00 сом/,
+  });
+  await user.click(payBarBtn);
+  expect(screen.getByText('Оплата чека')).toBeTruthy();
+  await user.click(screen.getByRole('button', { name: 'Закрыть оплату' }));
+
+  await user.click(screen.getByRole('button', { name: /Новый чек/ }));
+  await screen.findByText(/Корзина пуста/);
 });

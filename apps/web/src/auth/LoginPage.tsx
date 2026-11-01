@@ -6,6 +6,7 @@ import { FormEvent, useState } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { api, ApiError, errorText, setCsrf } from '../api/client';
 import { useSession } from './SessionProvider';
+import { InstallApp } from '../pwa/InstallApp';
 export default function LoginPage() {
   const s = useSession(),
     location = useLocation(),
@@ -87,6 +88,7 @@ export default function LoginPage() {
         <button className="primary" disabled={busy}>
           {busy ? 'Вход…' : 'Войти'}
         </button>
+        <InstallApp />
       </form>
     </div>
   );

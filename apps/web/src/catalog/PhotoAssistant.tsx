@@ -151,25 +151,38 @@ export default function PhotoAssistant({
       }
     }
   }
+  const hint = !info
+    ? 'Проверяем доступность распознавания…'
+    : !info.available
+      ? 'Распознавание пока недоступно. Заполните товар вручную.'
+      : !photo
+        ? 'Сначала добавьте фото — ИИ заполнит название, категорию и описание.'
+        : 'Заполнить название, категорию и описание по фото.';
   return (
     <section className="photo-assistant" aria-label="Помощник по фото">
       <button
         type="button"
+        className="photo-assistant-card"
+        aria-label={busy ? 'Определяем товар…' : 'Определить по фото'}
         disabled={!photo || !info?.available || busy}
         onClick={() => void recognize()}
       >
-        {busy ? 'Определяем товар…' : 'Определить по фото'}
+        <span className="photo-assistant-sparkle" aria-hidden="true">
+          ✦
+        </span>
+        <span className="photo-assistant-copy">
+          <strong>
+            {busy ? 'Определяем товар…' : 'Определить с ИИ (Gemini)'}
+          </strong>
+          <small>{busy ? 'ИИ анализирует фото…' : hint}</small>
+        </span>
+        <span className="photo-assistant-chevron" aria-hidden="true">
+          ›
+        </span>
       </button>
-      {busy && <p role="status">ИИ анализирует фото…</p>}
-      {!info ? (
-        <p className="muted">Проверяем доступность распознавания…</p>
-      ) : !info.available ? (
-        <p className="muted">
-          Распознавание пока недоступно. Заполните товар вручную.
-        </p>
-      ) : (
-        <p className="muted">
-          Фото отправляется в Gemini. Проверьте предложение перед применением.
+      {busy && (
+        <p role="status" className="photo-assistant-status">
+          ИИ анализирует фото…
         </p>
       )}
       {error && (
@@ -178,7 +191,7 @@ export default function PhotoAssistant({
         </p>
       )}
       {suggestion && (
-        <div className="panel">
+        <div className="panel photo-assistant-result">
           <h2>Предложение ИИ</h2>
           {suggestion.recognized && (
             <>
@@ -222,6 +235,7 @@ export default function PhotoAssistant({
           {suggestion.recognized && !suggestion.categoryMissing && (
             <button
               type="button"
+              className="primary"
               onClick={() => {
                 onApply(suggestion);
                 setApplied(true);

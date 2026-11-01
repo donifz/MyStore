@@ -51,6 +51,7 @@ export function useDocument(scope: DraftScope) {
   ref.current = draft;
   const sending = useRef(false);
   const mounted = useRef(true);
+  const photos = useRef(new Map<string, string>());
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -84,6 +85,8 @@ export function useDocument(scope: DraftScope) {
     }
   }
   async function addVariant(v: Variant) {
+    const photo = v.photoUrls?.find(Boolean) || v.photoUrl;
+    if (photo) photos.current.set(v.id, photo);
     const added = await change((lines) => {
       const existing = lines.find((x) => x.id === v.id);
       if (existing) {
@@ -117,6 +120,43 @@ export function useDocument(scope: DraftScope) {
     if (added) setUnknownBarcode(null);
     return added;
   }
+  const beginProductCreation = async (requestedBarcode?: string) => {
+    const code = requestedBarcode ?? unknownBarcode;
+    if (
+      code !== null &&
+      code !== undefined &&
+      online &&
+      !busy &&
+      !blocked &&
+      !ref.current.submission
+    ) {
+      try {
+        await withDraftLock(scope, () => {
+          const current = ref.current;
+          const workflowId = crypto.randomUUID();
+          const next: Draft = {
+            ...current,
+            revision: crypto.randomUUID(),
+            primaryReceiving: {
+              workflowId,
+              barcode: code || '__new__',
+              productKey: `product:${workflowId}`,
+              receivingKey: `receiving:${workflowId}`,
+            },
+          };
+          save(next, current.revision);
+          ref.current = next;
+          setDraft(next);
+          setProductCreation(code || '__new__');
+          setLastCreatedVariant(null);
+          setError('');
+        });
+      } catch (e) {
+        setError(errorText(e));
+        setBlocked(true);
+      }
+    }
+  };
   const queue = useRef<ReturnType<typeof createScanQueue> | null>(null);
   useEffect(() => {
     queue.current = createScanQueue(
@@ -130,6 +170,7 @@ export function useDocument(scope: DraftScope) {
         if (missing && scope.kind === 'receiving') {
           setUnknownBarcode(code);
           setError('');
+          void beginProductCreation(code);
           return;
         }
         setUnknownBarcode(null);
@@ -141,7 +182,15 @@ export function useDocument(scope: DraftScope) {
       },
     );
     return () => queue.current?.dispose();
-  }, [scope.shopId, scope.userId, scope.kind, blocked, busy]);
+  }, [
+    scope.shopId,
+    scope.userId,
+    scope.kind,
+    blocked,
+    busy,
+    online,
+    unknownBarcode,
+  ]);
   useEffect(() => {
     const network = () => setOnline(navigator.onLine);
     const storage = (e: StorageEvent) => {
@@ -255,6 +304,8 @@ export function useDocument(scope: DraftScope) {
     if (!workflow || !Number.isInteger(quantity) || quantity < 1)
       throw new Error('Укажите корректное количество первичной приёмки.');
     const unitCostMinor = parseSom(unitCostText);
+    const photo = variant.photoUrls?.find(Boolean) || variant.photoUrl;
+    if (photo) photos.current.set(variant.id, photo);
     const line: DraftLine = {
       id: variant.id,
       name: variant.name,
@@ -299,6 +350,57 @@ export function useDocument(scope: DraftScope) {
     }
     return !!result;
   }
+  async function addCreatedVariantToDraft(
+    variant: Variant,
+    quantity: number,
+    unitCostText: string,
+  ) {
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 1e9)
+      throw new Error('Укажите корректное количество (1–1 000 000 000).');
+    parseSom(unitCostText);
+    const photo = variant.photoUrls?.find(Boolean) || variant.photoUrl;
+    if (photo) photos.current.set(variant.id, photo);
+    const line: DraftLine = {
+      id: variant.id,
+      name: variant.name,
+      barcode: variant.barcode,
+      quantity,
+      priceMinor: variant.salePriceMinor,
+      unitCostText,
+    };
+    try {
+      await withDraftLock(scope, () => {
+        const current = ref.current;
+        const exists = current.lines.some((item) => item.id === variant.id);
+        const lines = exists
+          ? current.lines.map((item) =>
+              item.id === variant.id
+                ? { ...item, quantity: item.quantity + quantity, unitCostText }
+                : item,
+            )
+          : [...current.lines, line];
+        const updated: Draft = {
+          ...current,
+          revision: crypto.randomUUID(),
+          primaryReceiving: undefined,
+          lines,
+        };
+        save(updated, current.revision);
+        ref.current = updated;
+        setDraft(updated);
+        setProductCreation(null);
+        setUnknownBarcode(null);
+        setLastCreatedVariant(variant);
+        setError('');
+        setSuccess('Товар добавлен в список приёмки.');
+      });
+      return true;
+    } catch (e) {
+      setError(errorText(e));
+      setBlocked(true);
+      return false;
+    }
+  }
   return {
     draft,
     change,
@@ -311,6 +413,7 @@ export function useDocument(scope: DraftScope) {
     reload,
     send,
     receiveCreatedVariant,
+    addCreatedVariantToDraft,
     lastCreatedVariant,
     scan: (code: string) => {
       if (!ref.current.submission && !busy && !blocked && !productCreation)
@@ -319,44 +422,26 @@ export function useDocument(scope: DraftScope) {
     unknownBarcode,
     productCreation,
     addVariant,
-    beginProductCreation: async (requestedBarcode?: string) => {
-      const code = requestedBarcode ?? unknownBarcode;
-      if (
-        code !== null &&
-        code !== undefined &&
-        online &&
-        !busy &&
-        !blocked &&
-        !ref.current.submission
-      ) {
-        try {
-          await withDraftLock(scope, () => {
-            const current = ref.current;
-            const workflowId = crypto.randomUUID();
-            const next: Draft = {
-              ...current,
-              revision: crypto.randomUUID(),
-              primaryReceiving: {
-                workflowId,
-                barcode: code || '__new__',
-                productKey: `product:${workflowId}`,
-                receivingKey: `receiving:${workflowId}`,
-              },
-            };
-            save(next, current.revision);
-            ref.current = next;
-            setDraft(next);
-            setProductCreation(code || '__new__');
-            setLastCreatedVariant(null);
-            setError('');
-          });
-        } catch (e) {
-          setError(errorText(e));
-          setBlocked(true);
-        }
+    photoFor: (id: string) => photos.current.get(id),
+    beginProductCreation,
+    closeProductCreation: async () => {
+      try {
+        await withDraftLock(scope, () => {
+          const current = ref.current;
+          const next: Draft = {
+            ...current,
+            revision: crypto.randomUUID(),
+            primaryReceiving: undefined,
+          };
+          save(next, current.revision);
+          ref.current = next;
+          setDraft(next);
+          setProductCreation(null);
+        });
+      } catch {
+        setProductCreation(null);
       }
     },
-    closeProductCreation: () => setProductCreation(null),
     finishProductCreationWithoutReceiving: async () => {
       try {
         await withDraftLock(scope, () => {

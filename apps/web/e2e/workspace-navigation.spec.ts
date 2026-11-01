@@ -185,6 +185,10 @@ test('mixed-role shops switch safely on phone, tablet and desktop without reques
       .selectOption('shop:' + shop);
     await expect(page).toHaveURL(new RegExp(`/seller/${shop}/products$`));
     if (width <= 768) {
+      await page
+        .getByRole('navigation', { name: 'Разделы кабинета' })
+        .getByText('Ещё', { exact: true })
+        .click();
       await page.getByRole('link', { name: 'Категории', exact: true }).click();
       await expect(
         page.getByRole('heading', { name: 'Категории магазина', exact: true }),
