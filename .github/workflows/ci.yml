@@ -38,11 +38,6 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - name: Show receiving test Prettier changes
-        run: |
-          npx prettier --write apps/web/e2e/receiving-inline.spec.ts
-          git diff --unified=0 -- apps/web/e2e/receiving-inline.spec.ts
-          git diff --exit-code -- apps/web/e2e/receiving-inline.spec.ts
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm run build
