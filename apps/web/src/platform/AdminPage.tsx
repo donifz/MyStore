@@ -1069,9 +1069,7 @@ export default function AdminPage() {
               {applicationsTable}
             </>
           ) : tab === 'products' ? (
-            <>
-              {productsTable}
-            </>
+            <>{productsTable}</>
           ) : tab === 'financial-access' ? (
             <div className="admin-kit-grid">
               <div className="admin-kit-primary">
