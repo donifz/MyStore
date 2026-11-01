@@ -8192,9 +8192,6 @@ fieldset {
   padding: 5px 7px;
   font-size: 11.5px;
 }
-.receiving-product-sheet-drawer .product-form-receiving .photo-assistant {
-  display: contents;
-}
 .receiving-product-sheet-drawer .product-form-receiving .photo-assistant-card {
   grid-column: 2;
   grid-row: 1;
@@ -8231,7 +8228,7 @@ fieldset {
 .receiving-product-sheet-drawer .product-form-receiving .photo-assistant-result,
 .receiving-product-sheet-drawer
   .product-form-receiving
-  .photo-assistant
+  .product-form-media-row
   > .error {
   grid-column: 1 / -1;
   min-width: 0;
