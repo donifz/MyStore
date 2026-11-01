@@ -1293,6 +1293,146 @@ export default function AdminPage() {
           )}
         </>
       )}
-    </WorkspaceShell>
+      </WorkspaceShell>
+
+      {selected &&
+        createPortal(
+          <div className="admin-kit-product-modal-backdrop">
+            <section
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="product-moderation-title"
+              className="admin-kit-product-modal"
+            >
+              <header className="admin-kit-product-modal-header">
+                <div>
+                  <h2 id="product-moderation-title">
+                    Предложено: {selected.name}
+                  </h2>
+                  <p>{selected.shop_name}</p>
+                </div>
+                <button
+                  type="button"
+                  className="admin-kit-product-modal-close"
+                  aria-label="Закрыть карточку"
+                  disabled={busy}
+                  autoFocus
+                  onClick={() => {
+                    setSelected(null);
+                    setReason('');
+                  }}
+                >
+                  ×
+                </button>
+              </header>
+              <div className="admin-kit-product-modal-body">
+                <div className="admin-kit-product-modal-photo">
+                  {selected.has_photo ? (
+                    <img
+                      src={
+                        '/api/platform/admin/products/revisions/' +
+                        selected.revision_id +
+                        '/photo'
+                      }
+                      alt={'Фото товара ' + selected.name}
+                    />
+                  ) : (
+                    <span>Фото товара не добавлено</span>
+                  )}
+                </div>
+                <div className="admin-kit-product-modal-info">
+                  <dl>
+                    <div>
+                      <dt>Магазин</dt>
+                      <dd>{selected.shop_name}</dd>
+                    </div>
+                    <div>
+                      <dt>Категория</dt>
+                      <dd>{selected.category || 'Не указана'}</dd>
+                    </div>
+                    <div>
+                      <dt>Подкатегория</dt>
+                      <dd>{selected.subcategory || 'Не указана'}</dd>
+                    </div>
+                    <div>
+                      <dt>Дата заявки</dt>
+                      <dd>{productDate(selected.created_at, true)}</dd>
+                    </div>
+                    <div>
+                      <dt>Статус</dt>
+                      <dd>
+                        <AdminStatus>На проверке</AdminStatus>
+                      </dd>
+                    </div>
+                  </dl>
+                  <h3>Описание</h3>
+                  <p className="admin-kit-product-modal-description">
+                    {selected.description || 'Описание не добавлено'}
+                  </p>
+                </div>
+              </div>
+              {selected.has_publication && (
+                <div className="admin-kit-product-modal-approved">
+                  <h3>Сейчас опубликовано</h3>
+                  <div>
+                    {selected.approved_has_photo && (
+                      <img
+                        src={
+                          '/api/platform/admin/products/revisions/' +
+                          selected.revision_id +
+                          '/photo?approved=true'
+                        }
+                        alt="Текущее фото на витрине"
+                      />
+                    )}
+                    <p>
+                      <strong>{selected.approved_name}</strong>
+                      <span>
+                        {selected.approved_category || 'Без категории'}
+                      </span>
+                      <span>
+                        {selected.approved_description || 'Без описания'}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              )}
+              <footer className="admin-kit-product-modal-footer">
+                <label className="admin-kit-reason">
+                  Причина отклонения
+                  <input
+                    value={reason}
+                    maxLength={500}
+                    onChange={(e) => setReason(e.target.value)}
+                    placeholder="Обязательна при отклонении"
+                  />
+                </label>
+                {error && (
+                  <p role="alert" className="error">
+                    {error}
+                  </p>
+                )}
+                <div className="admin-kit-actions">
+                  <button
+                    className="admin-kit-approve"
+                    disabled={busy}
+                    onClick={() => void decideProduct('approved')}
+                  >
+                    Одобрить карточку
+                  </button>
+                  <button
+                    className="admin-kit-reject"
+                    disabled={busy || !reason.trim()}
+                    onClick={() => void decideProduct('rejected')}
+                  >
+                    Отклонить карточку
+                  </button>
+                </div>
+              </footer>
+            </section>
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }
