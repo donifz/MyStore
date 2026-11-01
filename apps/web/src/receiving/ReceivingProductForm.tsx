@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { parseSom } from '../api/money';
+import { validateNewReceivingItem } from './receiving-validation';
 import type { Variant } from '../api/types';
 import ProductForm from '../catalog/ProductForm';
 export default function ReceivingProductForm({
@@ -7,7 +7,6 @@ export default function ReceivingProductForm({
   barcode,
   parentId,
   creationKey,
-  draftLines,
   disabled,
   onCancel,
   onSwitchToSearch,
@@ -19,7 +18,6 @@ export default function ReceivingProductForm({
   barcode: string;
   parentId?: string;
   creationKey?: string;
-  draftLines?: { name: string; quantity: number; unitCostText?: string }[];
   disabled: boolean;
   onCancel: () => void;
   onSwitchToSearch?: () => void;
@@ -37,36 +35,15 @@ export default function ReceivingProductForm({
 }) {
   const [quantity, setQuantity] = useState('1');
   const [unitCostText, setUnitCostText] = useState('');
-  function validateQuantityAndCost() {
-    const count = Number(quantity);
-    if (!Number.isInteger(count) || count < 1 || count > 1e9)
-      throw new Error('Укажите корректное количество (1–1 000 000 000).');
-    return { count, unitCostMinor: parseSom(unitCostText) };
+  function validateCurrentItem() {
+    validateNewReceivingItem(quantity, unitCostText);
   }
   return (
     <ProductForm
       shopId={shopId}
       parentId={parentId}
-      validateBeforeSave={() => {
-        const { count, unitCostMinor } = validateQuantityAndCost();
-        let total = BigInt(count) * BigInt(unitCostMinor);
-        for (const line of draftLines ?? []) {
-          let lineCost: number;
-          try {
-            lineCost = parseSom(line.unitCostText ?? '');
-          } catch {
-            throw new Error(
-              `Укажите корректную закупочную цену для «${line.name}».`,
-            );
-          }
-          total += BigInt(line.quantity) * BigInt(lineCost);
-        }
-        if (total > BigInt(Number.MAX_SAFE_INTEGER))
-          throw new Error('Сумма слишком велика.');
-      }}
-      validateDraftSave={() => {
-        validateQuantityAndCost();
-      }}
+      validateBeforeSave={validateCurrentItem}
+      validateDraftSave={validateCurrentItem}
       initialBarcode={barcode === '__new__' ? '' : barcode}
       creationKey={creationKey}
       purchaseCostText={unitCostText}
