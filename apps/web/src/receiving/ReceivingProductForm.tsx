@@ -41,6 +41,7 @@ export default function ReceivingProductForm({
   return (
     <ProductForm
       shopId={shopId}
+      receivingLayout
       parentId={parentId}
       validateBeforeSave={validateCurrentItem}
       validateDraftSave={validateCurrentItem}
