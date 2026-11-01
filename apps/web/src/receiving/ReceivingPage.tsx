@@ -7,6 +7,7 @@ import { useDocument } from '../drafts/use-document';
 import DocumentEditor from '../drafts/DocumentEditor';
 import { useCurrentShift } from '../pos/use-current-shift';
 import ReceivingConfirmationSheet from './ReceivingConfirmationSheet';
+import { validateReceivingDraft } from './receiving-validation';
 
 function declinedPositions(n: number) {
   const mod10 = n % 10;
@@ -102,11 +103,7 @@ function ReceivingWorkspace({
         supplier: supplier.trim(),
         receivedOn,
         comment: comment.trim(),
-        lines: doc.draft.lines.map((l) => ({
-          variantId: l.id,
-          quantity: l.quantity,
-          unitCostMinor: parseSom(l.unitCostText ?? ''),
-        })),
+        lines: validateReceivingDraft(doc.draft.lines),
       };
       const total = (
         body.lines as { quantity: number; unitCostMinor: number }[]
