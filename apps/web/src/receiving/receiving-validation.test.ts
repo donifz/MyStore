@@ -47,8 +47,8 @@ describe('receiving validation stages', () => {
     ).toThrow('Укажите корректное количество для «Мышь».');
     expect(() =>
       validateReceivingDraft([
-        { id: 'a', name: 'A', quantity: 1000000000, unitCostText: '10000000' },
-        { id: 'b', name: 'B', quantity: 1, unitCostText: '1' },
+        { id: 'a', name: 'A', quantity: 1000000000, unitCostText: '90000' },
+        { id: 'b', name: 'B', quantity: 1000000000, unitCostText: '1000' },
       ]),
     ).toThrow('Сумма слишком велика.');
   });
