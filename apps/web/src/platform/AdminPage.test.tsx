@@ -224,3 +224,70 @@ it('explains a conflicting email when creating a shop owner', async () => {
     ),
   ).not.toBeNull();
 });
+
+
+it('paginates pending product moderation without hiding results beyond the first page', async () => {
+  const requests: string[] = [];
+  const products = Array.from({ length: 13 }, (_, index) => ({
+    revision_id: 'revision-' + (index + 1),
+    variant_id: 'variant-' + (index + 1),
+    shop_name: 'Магазин игрушек',
+    name: 'Товар ' + (index + 1),
+    description: '',
+    category: 'Игрушки',
+    has_photo: false,
+    has_publication: false,
+  }));
+  vi.stubGlobal('fetch', async (url: string) => {
+    if (url === '/api/auth/me')
+      return new Response(
+        JSON.stringify({
+          userId: 'admin',
+          email: 'admin@example.test',
+          csrfToken: 'csrf',
+          platformAdmin: true,
+          shops: [],
+        }),
+        { headers: { 'content-type': 'application/json' } },
+      );
+    if (url.startsWith('/api/platform/admin/products')) {
+      requests.push(url);
+      const params = new URL(url, 'http://localhost').searchParams;
+      const page = Number(params.get('page') ?? '1');
+      const pageSize = Number(params.get('pageSize') ?? '25');
+      return new Response(
+        JSON.stringify({
+          items: products.slice((page - 1) * pageSize, page * pageSize),
+          total: products.length,
+          page,
+          pageSize,
+        }),
+        { headers: { 'content-type': 'application/json' } },
+      );
+    }
+    return new Response(JSON.stringify({ items: [], total: 0 }), {
+      headers: { 'content-type': 'application/json' },
+    });
+  });
+  render(
+    <MemoryRouter initialEntries={['/platform/admin?section=products']}>
+      <SessionProvider>
+        <AdminPage />
+      </SessionProvider>
+    </MemoryRouter>,
+  );
+
+  expect(await screen.findByText('Товар 1')).toBeVisible();
+  expect(screen.queryByText('Товар 11')).toBeNull();
+  expect(screen.getByText('1 из 2')).toBeVisible();
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Далее' }));
+  expect(await screen.findByText('Товар 11')).toBeVisible();
+  expect(screen.queryByText('Товар 1')).toBeNull();
+  expect(screen.getByText('2 из 2')).toBeVisible();
+  expect(requests).toEqual(
+    expect.arrayContaining([
+      expect.stringContaining('page=1'),
+      expect.stringContaining('page=2'),
+    ]),
+  );
+});
