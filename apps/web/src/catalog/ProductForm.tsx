@@ -10,7 +10,7 @@ import { api, ApiError, errorText } from '../api/client';
 import { parseSom, formatSom } from '../api/money';
 import type { Variant } from '../api/types';
 import PhotoAssistant, { type CategoryNode } from './PhotoAssistant';
-import { photoFrom } from './product-photo';
+import { usePhotoCropQueue } from './use-photo-crop-queue';
 import { isPurchaseAboveSale, somOrNull } from '../receiving/purchase-warning';
 export default function ProductForm({
   shopId,
@@ -74,7 +74,6 @@ export default function ProductForm({
     [categories, setCategories] = useState<CategoryNode[]>([]),
     [extraOpen, setExtraOpen] = useState(false),
     [busy, setBusy] = useState(false),
-    [loadingPhoto, setLoadingPhoto] = useState(false),
     [recognizing, setRecognizing] = useState(false),
     [barcodeBusy, setBarcodeBusy] = useState(false),
     [hint, setHint] = useState(''),
@@ -92,29 +91,22 @@ export default function ProductForm({
     (value: CategoryNode[]) => setCategories(Array.isArray(value) ? value : []),
     [],
   );
-  const locked = disabled || busy || loadingPhoto || recognizing || barcodeBusy;
-  async function choose(files?: FileList | null) {
+  const photoCrop = usePhotoCropQueue((data) => {
+    photoRevision.current++;
+    setPhotos(data);
+    setPhoto(data[0] ?? '');
+  });
+  const locked =
+    disabled || busy || photoCrop.cropping || recognizing || barcodeBusy;
+
+  function choose(files?: FileList | null) {
     if (!files?.length) return;
     if (files.length > 8) {
       setError('Не более 8 фотографий товара.');
       return;
     }
-    const revision = ++photoRevision.current;
-    setLoadingPhoto(true);
     setError('');
-    setPhoto('');
-    setPhotos([]);
-    try {
-      const data = await Promise.all(Array.from(files).map(photoFrom));
-      if (photoRevision.current === revision) {
-        setPhotos(data);
-        setPhoto(data[0] ?? '');
-      }
-    } catch (e) {
-      if (photoRevision.current === revision) setError(errorText(e));
-    } finally {
-      if (photoRevision.current === revision) setLoadingPhoto(false);
-    }
+    photoCrop.choose(files);
   }
   async function lookup() {
     const code = barcode.trim();
@@ -226,7 +218,8 @@ export default function ProductForm({
     }
   }
   return (
-    <form
+    <>
+      <form
       className="product-form product-form-compact"
       aria-label={formLabel}
       onSubmit={(e) => void submit(e)}
@@ -442,7 +435,6 @@ export default function ProductForm({
                       ×
                     </button>
                   )}
-                  {loadingPhoto && <p role="status">Подготовка фото…</p>}
                   {photos.length > 1 && (
                     <p className="muted">Выбрано фотографий: {photos.length}</p>
                   )}
@@ -661,6 +653,8 @@ export default function ProductForm({
           )}
         </div>
       </footer>
-    </form>
+      </form>
+      {photoCrop.cropDialog}
+    </>
   );
 }
