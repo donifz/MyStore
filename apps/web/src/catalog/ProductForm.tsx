@@ -11,6 +11,7 @@ import { parseSom, formatSom } from '../api/money';
 import type { Variant } from '../api/types';
 import PhotoAssistant, { type CategoryNode } from './PhotoAssistant';
 import { usePhotoCropQueue } from './use-photo-crop-queue';
+import SquareCameraCapture from './SquareCameraCapture';
 import { isPurchaseAboveSale, somOrNull } from '../receiving/purchase-warning';
 export default function ProductForm({
   shopId,
@@ -70,6 +71,7 @@ export default function ProductForm({
     [subcategory, setSubcategory] = useState(''),
     [description, setDescription] = useState(''),
     [photo, setPhoto] = useState(''),
+    [cameraOpen, setCameraOpen] = useState(false),
     [photos, setPhotos] = useState<string[]>([]),
     [categories, setCategories] = useState<CategoryNode[]>([]),
     [extraOpen, setExtraOpen] = useState(false),
@@ -97,7 +99,7 @@ export default function ProductForm({
     setPhoto(data[0] ?? '');
   });
   const locked =
-    disabled || busy || photoCrop.cropping || recognizing || barcodeBusy;
+    disabled || busy || photoCrop.cropping || cameraOpen || recognizing || barcodeBusy;
 
   function choose(files?: FileList | null) {
     if (!files?.length) return;
@@ -294,7 +296,7 @@ export default function ProductForm({
                             title="Снять другое фото на камеру"
                             onClick={(e) => {
                               e.stopPropagation();
-                              cameraInputRef.current?.click();
+                              setCameraOpen(true);
                             }}
                           >
                             <svg
@@ -364,7 +366,7 @@ export default function ProductForm({
                             title="Снять на камеру"
                             onClick={(e) => {
                               e.stopPropagation();
-                              cameraInputRef.current?.click();
+                              setCameraOpen(true);
                             }}
                           >
                             <svg
@@ -653,6 +655,17 @@ export default function ProductForm({
         </div>
       </footer>
       {photoCrop.cropDialog}
+      {cameraOpen && (
+        <SquareCameraCapture
+          onClose={() => setCameraOpen(false)}
+          onFallback={() => cameraInputRef.current?.click()}
+          onPhoto={(data) => {
+            photoRevision.current++;
+            setPhotos([data]);
+            setPhoto(data);
+          }}
+        />
+      )}
     </form>
   );
 }
