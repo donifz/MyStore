@@ -60,7 +60,9 @@ describe('square product photos', () => {
     }));
     try {
       const file = new File(['image'], 'portrait.jpg', { type: 'image/jpeg' });
-      await expect(photoFrom(file)).resolves.toBe('data:image/jpeg;base64,abcd');
+      await expect(photoFrom(file)).resolves.toBe(
+        'data:image/jpeg;base64,abcd',
+      );
       expect(drawImage).toHaveBeenCalledWith(
         expect.anything(),
         0,
