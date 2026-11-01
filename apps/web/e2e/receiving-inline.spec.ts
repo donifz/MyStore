@@ -51,6 +51,18 @@ for (const width of [390, 1440]) {
     // so clicking it introduces a race on slower desktop CI runs.
     await expect(form).toBeVisible();
     await expect(form.getByLabel('Штрихкод')).toHaveValue(barcode);
+    // Photo and Gemini controls should be side-by-side at both widths.
+    // A lengthy AI suggestion must not stretch the photo upload area.
+    const photoBox = await form
+      .locator('.product-photo-upload-card')
+      .boundingBox();
+    const aiBox = await form
+      .getByRole('button', { name: 'Определить по фото' })
+      .boundingBox();
+    expect(photoBox).not.toBeNull();
+    expect(aiBox).not.toBeNull();
+    expect(Math.abs(photoBox!.y - aiBox!.y)).toBeLessThan(6);
+    expect(photoBox!.height).toBeLessThan(240);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
