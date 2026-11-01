@@ -218,8 +218,7 @@ export default function ProductForm({
     }
   }
   return (
-    <>
-      <form
+    <form
       className="product-form product-form-compact"
       aria-label={formLabel}
       onSubmit={(e) => void submit(e)}
@@ -653,8 +652,7 @@ export default function ProductForm({
           )}
         </div>
       </footer>
-      </form>
       {photoCrop.cropDialog}
-    </>
+    </form>
   );
 }
