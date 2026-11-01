@@ -134,28 +134,31 @@ export default function AdminPage() {
     if (!session.user?.platformAdmin) return;
     let active = true;
     setProductLoading(true);
-    const timer = window.setTimeout(() => {
-      const query = search.trim();
-      void api<Page<Product>>(
-        `/platform/admin/products?page=${productPage}&pageSize=${PRODUCTS_PAGE_SIZE}${query ? `&q=${encodeURIComponent(query)}` : ''}`,
-      )
-        .then((result) => {
-          if (!active) return;
-          setProducts(result.items);
-          setProductTotal(result.total);
-          const lastPage = Math.max(
-            1,
-            Math.ceil(result.total / PRODUCTS_PAGE_SIZE),
-          );
-          if (productPage > lastPage) setProductPage(lastPage);
-        })
-        .catch((e) => {
-          if (active) setError(errorText(e));
-        })
-        .finally(() => {
-          if (active) setProductLoading(false);
-        });
-    }, search.trim() ? 250 : 0);
+    const timer = window.setTimeout(
+      () => {
+        const query = search.trim();
+        void api<Page<Product>>(
+          `/platform/admin/products?page=${productPage}&pageSize=${PRODUCTS_PAGE_SIZE}${query ? `&q=${encodeURIComponent(query)}` : ''}`,
+        )
+          .then((result) => {
+            if (!active) return;
+            setProducts(result.items);
+            setProductTotal(result.total);
+            const lastPage = Math.max(
+              1,
+              Math.ceil(result.total / PRODUCTS_PAGE_SIZE),
+            );
+            if (productPage > lastPage) setProductPage(lastPage);
+          })
+          .catch((e) => {
+            if (active) setError(errorText(e));
+          })
+          .finally(() => {
+            if (active) setProductLoading(false);
+          });
+      },
+      search.trim() ? 250 : 0,
+    );
     return () => {
       active = false;
       window.clearTimeout(timer);
@@ -378,10 +381,7 @@ export default function AdminPage() {
   const productFirst = productTotal
     ? (productPage - 1) * PRODUCTS_PAGE_SIZE + 1
     : 0;
-  const productLast = Math.min(
-    productTotal,
-    productPage * PRODUCTS_PAGE_SIZE,
-  );
+  const productLast = Math.min(productTotal, productPage * PRODUCTS_PAGE_SIZE);
   const appStatus = (status: Application['status']) =>
     status === 'approved'
       ? 'Одобрена'
