@@ -51,6 +51,12 @@ for (const width of [390, 1440]) {
     // so clicking it introduces a race on slower desktop CI runs.
     await expect(form).toBeVisible();
     await expect(form.getByLabel('Штрихкод')).toHaveValue(barcode);
+    // A scanned barcode must be visible in the primary form, without
+    // expanding "Дополнительные поля" to see it.
+    await expect(
+      form.locator('.product-form-body > .product-field-barcode'),
+    ).toBeVisible();
+    await expect(form.getByLabel('Штрихкод')).toHaveAttribute('readonly', '');
     // Photo and Gemini controls should be side-by-side at both widths.
     // A lengthy AI suggestion must not stretch the photo upload area.
     const photoBox = await form
