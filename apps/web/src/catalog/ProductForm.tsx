@@ -544,7 +544,7 @@ export default function ProductForm({
                 </label>
               </div>
               {footerFields}
-              {!receivingLayout && barcodeFields}
+              {barcodeFields}
               <div
                 className={`product-form-extra${extraOpen ? ' open' : ''}`}
                 onFocusCapture={() => setExtraOpen(true)}
@@ -563,11 +563,10 @@ export default function ProductForm({
                   </span>
                   <span>
                     <strong>Дополнительные поля</strong>
-                    <small>Штрихкод, артикул, вариант, цвет, описание</small>
+                    <small>Артикул, вариант, цвет, описание</small>
                   </span>
                 </button>
                 <div className="product-form-extra-body">
-                  {receivingLayout && barcodeFields}
                   <label>
                     Подкатегория
                     <select
