@@ -38,6 +38,11 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - name: Show exact receiving Prettier diff
+        run: |
+          npx prettier --write apps/web/src/receiving/receiving-validation.ts
+          git diff -- apps/web/src/receiving/receiving-validation.ts
+          git diff --exit-code -- apps/web/src/receiving/receiving-validation.ts
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm run build
