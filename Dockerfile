@@ -1,4 +1,5 @@
 FROM node:24-alpine AS build
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/package.json
@@ -8,10 +9,17 @@ RUN npm ci
 COPY apps/api apps/api
 COPY apps/web apps/web
 COPY apps/storefront apps/storefront
-RUN npm run build && npm prune --omit=dev
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS="--max-old-space-size=2048"
+RUN npm run build --workspace apps/api && \
+    npm run build --workspace apps/web && \
+    npm run build --workspace apps/storefront && \
+    npm prune --omit=dev
 FROM node:24-alpine
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/apps/api/dist ./apps/api/dist
 COPY --from=build --chown=node:node /app/apps/web/dist ./apps/web/dist
