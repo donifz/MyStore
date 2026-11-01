@@ -24,12 +24,14 @@ export default function PhotoAssistant({
   onApply,
   onBusyChange,
   onCategories,
+  inlineForReceiving = false,
 }: {
   shopId: string;
   photo: string;
   onApply: (s: Suggestion) => void;
   onBusyChange: (busy: boolean) => void;
   onCategories: (categories: CategoryNode[]) => void;
+  inlineForReceiving?: boolean;
 }) {
   const [info, setInfo] = useState<Info | null>(null),
     [busy, setBusy] = useState(false),
@@ -158,8 +160,8 @@ export default function PhotoAssistant({
       : !photo
         ? 'Сначала добавьте фото — ИИ заполнит название, категорию и описание.'
         : 'Заполнить название, категорию и описание по фото.';
-  return (
-    <section className="photo-assistant" aria-label="Помощник по фото">
+  const controls = (
+    <>
       <button
         type="button"
         className="photo-assistant-card"
@@ -258,6 +260,13 @@ export default function PhotoAssistant({
           )}
         </div>
       )}
+    </>
+  );
+  return inlineForReceiving ? (
+    controls
+  ) : (
+    <section className="photo-assistant" aria-label="Помощник по фото">
+      {controls}
     </section>
   );
 }
