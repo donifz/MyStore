@@ -8381,9 +8381,7 @@ fieldset {
 }
 
 /* The barcode is a primary receiving field, not an optional extra. */
-.receiving-product-sheet-drawer
-  .product-form-receiving
-  .product-field-barcode {
+.receiving-product-sheet-drawer .product-form-receiving .product-field-barcode {
   display: flex;
   flex-direction: column;
   gap: 7px;
@@ -8392,16 +8390,15 @@ fieldset {
 }
 .receiving-product-sheet-drawer
   .product-form-receiving
-  .product-field-barcode input {
+  .product-field-barcode
+  input {
   width: 100%;
   min-width: 0;
   min-height: 42px;
   box-sizing: border-box;
   margin: 0;
 }
-.receiving-product-sheet-drawer
-  .product-form-receiving
-  .product-barcode-tools {
+.receiving-product-sheet-drawer .product-form-receiving .product-barcode-tools {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -8411,6 +8408,7 @@ fieldset {
 }
 .receiving-product-sheet-drawer
   .product-form-receiving
-  .product-barcode-tools p {
+  .product-barcode-tools
+  p {
   margin: 0;
 }
