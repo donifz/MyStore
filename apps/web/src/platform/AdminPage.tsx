@@ -595,8 +595,7 @@ export default function AdminPage() {
   );
 
   return (
-    <>
-      <WorkspaceShell
+    <WorkspaceShell
       headerTools={
         <label className="admin-kit-search">
           <span aria-hidden="true">⌕</span>
@@ -1293,8 +1292,6 @@ export default function AdminPage() {
           )}
         </>
       )}
-      </WorkspaceShell>
-
       {selected &&
         createPortal(
           <div className="admin-kit-product-modal-backdrop">
@@ -1433,6 +1430,6 @@ export default function AdminPage() {
           </div>,
           document.body,
         )}
-    </>
+    </WorkspaceShell>
   );
 }
