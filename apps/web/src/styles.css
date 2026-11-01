@@ -8412,3 +8412,20 @@ fieldset {
   p {
   margin: 0;
 }
+
+/* Keep sale price and category side by side, with their labels above. */
+.receiving-product-sheet-drawer
+  .product-form-receiving
+  .product-form-pricing-fields > label {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 7px;
+  min-width: 0;
+}
+.receiving-product-sheet-drawer
+  .product-form-receiving
+  .product-form-pricing-fields :is(input, select) {
+  width: 100%;
+  min-width: 0;
+}
