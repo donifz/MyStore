@@ -57,6 +57,23 @@ for (const width of [390, 1440]) {
       form.locator('.product-form-body > .product-field-barcode'),
     ).toBeVisible();
     await expect(form.getByLabel('Штрихкод')).toHaveAttribute('readonly', '');
+    // Restore the original field layout: labels above inputs, not narrow
+    // horizontal label/input columns, at mobile and desktop widths.
+    for (const [wrapperClass, label] of [
+      ['.product-field-name', 'Название'],
+      ['.product-field-sale-price', 'Цена продажи, сом'],
+      ['.product-field-category', 'Категория'],
+      ['.product-field-cost', 'Закупочная цена, сом'],
+      ['.product-field-quantity', 'Количество первичной приёмки'],
+      ['.product-field-barcode', 'Штрихкод'],
+    ]) {
+      const wrapperBox = await form.locator(wrapperClass).boundingBox();
+      const fieldBox = await form.getByLabel(label, { exact: true }).boundingBox();
+      expect(wrapperBox, label).not.toBeNull();
+      expect(fieldBox, label).not.toBeNull();
+      expect(fieldBox!.y, label).toBeGreaterThan(wrapperBox!.y + 12);
+    }
+
     // Photo and Gemini controls should be side-by-side at both widths.
     // A lengthy AI suggestion must not stretch the photo upload area.
     const photoBox = await form
