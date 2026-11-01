@@ -11,7 +11,10 @@ export type ReceivingDraftItem = {
 };
 
 /** Creating a product must never validate unrelated lines in the draft. */
-export function validateNewReceivingItem(quantity: string, unitCostText: string) {
+export function validateNewReceivingItem(
+  quantity: string,
+  unitCostText: string,
+) {
   const count = Number(quantity);
   if (!Number.isInteger(count) || count < 1 || count > MAX_QUANTITY)
     throw new Error('Укажите корректное количество (1–1 000 000 000).');
