@@ -205,7 +205,7 @@ it('warns on a new product and still posts receiving', async () => {
   );
   expect(receipt?.body.lines[1].unitCostMinor).toBe(250000);
 });
-it('validates existing line costs before creating the card and lets the user fill them in', async () => {
+it('allows adding a valid product and validates other costs when posting the receipt', async () => {
   const calls = start();
   const existingCost = await screen.findByLabelText(
     'Закупочная цена Рюкзак, сом',
@@ -216,12 +216,20 @@ it('validates existing line costs before creating the card and lets the user fil
   await u.type(form.getByLabelText('Цена продажи, сом'), '2000');
   await u.type(form.getByLabelText('Закупочная цена, сом'), '1500');
   await u.click(form.getByRole('button', { name: 'Добавить в приёмку' }));
-  await form.findByText('Укажите корректную закупочную цену для «Рюкзак».');
+  await screen.findByText('Товар добавлен в список приёмки.');
   expect(
-    calls.some((c) => c.method === 'POST' && c.url.endsWith('/variants')),
+    calls.filter((c) => c.method === 'POST' && c.url.endsWith('/variants')),
+  ).toHaveLength(1);
+  expect(load(scope)?.lines).toHaveLength(2);
+
+  await u.click(screen.getAllByRole('button', { name: 'Провести приёмку' })[0]);
+  await screen.findByText('Укажите корректную закупочную цену для «Рюкзак».');
+  expect(
+    calls.some((c) => c.method === 'POST' && c.url.endsWith('/receivings')),
   ).toBe(false);
+  expect(load(scope)?.lines).toHaveLength(2);
+
   fireEvent.change(existingCost, { target: { value: '120' } });
-  await u.click(form.getByRole('button', { name: 'Добавить в приёмку' }));
   await u.click(screen.getAllByRole('button', { name: 'Провести приёмку' })[0]);
   await screen.findByText('Документ проведён: receipt');
   const receipt = calls.find(
