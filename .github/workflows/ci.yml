@@ -38,6 +38,11 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - name: Diagnose moderation pagination Prettier
+        run: |
+          npx prettier --write apps/api/test/product-moderation.e2e-spec.ts apps/web/src/platform/AdminPage.test.tsx apps/web/src/platform/AdminPage.tsx
+          git diff --unified=0 -- apps/api/test/product-moderation.e2e-spec.ts apps/web/src/platform/AdminPage.test.tsx apps/web/src/platform/AdminPage.tsx
+          git diff --exit-code -- apps/api/test/product-moderation.e2e-spec.ts apps/web/src/platform/AdminPage.test.tsx apps/web/src/platform/AdminPage.tsx
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm run build
