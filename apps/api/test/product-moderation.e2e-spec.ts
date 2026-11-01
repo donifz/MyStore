@@ -141,18 +141,20 @@ describe('product publication review', () => {
     expect(second.total).toBe(12);
     expect(second.items).toHaveLength(2);
     expect(
-      new Set([...first.items, ...second.items].map((item: any) => item.revision_id))
-        .size,
+      new Set(
+        [...first.items, ...second.items].map((item: any) => item.revision_id),
+      ).size,
     ).toBe(12);
 
     const found = (
       await request(http())
-        .get('/platform/admin/products?page=1&pageSize=10&q=%D0%9E%D1%81%D0%BE%D0%B1%D0%B5%D0%BD%D0%BD%D0%B0%D1%8F')
+        .get(
+          '/platform/admin/products?page=1&pageSize=10&q=%D0%9E%D1%81%D0%BE%D0%B1%D0%B5%D0%BD%D0%BD%D0%B0%D1%8F',
+        )
         .auth(c.owner, { type: 'bearer' })
         .expect(200)
     ).body;
     expect(found.total).toBe(1);
     expect(found.items[0].name).toBe('Особенная игрушка');
   });
-
 });
