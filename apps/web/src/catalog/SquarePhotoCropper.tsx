@@ -8,7 +8,11 @@ type Props = {
   onCancel: () => void;
 };
 
-export default function SquarePhotoCropper({ file, onConfirm, onCancel }: Props) {
+export default function SquarePhotoCropper({
+  file,
+  onConfirm,
+  onCancel,
+}: Props) {
   const [preview, setPreview] = useState('');
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [zoom, setZoom] = useState(1);
@@ -17,9 +21,12 @@ export default function SquarePhotoCropper({ file, onConfirm, onCancel }: Props)
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const frame = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ x: number; y: number; shiftX: number; shiftY: number } | null>(
-    null,
-  );
+  const drag = useRef<{
+    x: number;
+    y: number;
+    shiftX: number;
+    shiftY: number;
+  } | null>(null);
 
   useEffect(() => {
     const url = URL.createObjectURL(file);
@@ -191,7 +198,12 @@ export default function SquarePhotoCropper({ file, onConfirm, onCancel }: Props)
           </p>
         )}
         <div className="product-crop-actions">
-          <button type="button" className="secondary" disabled={busy} onClick={onCancel}>
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy}
+            onClick={onCancel}
+          >
             Отмена
           </button>
           <button
