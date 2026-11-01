@@ -52,9 +52,13 @@ for (const width of [390, 1440]) {
     await expect(form).toBeVisible();
     // Wait for the receiving sheet entrance animation before comparing
     // bounding boxes; otherwise the sheet moves between measurements.
-    await page.locator('.receiving-product-sheet-drawer').evaluate(async (el) => {
-      await Promise.all(el.getAnimations().map((animation) => animation.finished));
-    });
+    await page
+      .locator('.receiving-product-sheet-drawer')
+      .evaluate(async (el) => {
+        await Promise.all(
+          el.getAnimations().map((animation) => animation.finished),
+        );
+      });
     await expect(form.getByLabel('Штрихкод')).toHaveValue(barcode);
     // A scanned barcode must be visible in the primary form, without
     // expanding "Дополнительные поля" to see it.
