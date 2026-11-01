@@ -27,6 +27,7 @@ import { ProductModerationService } from './product-moderation.service';
 class PageQuery {
   @Type(() => Number) @IsInt() @Min(1) @Max(1000000) page = 1;
   @Type(() => Number) @IsInt() @Min(1) @Max(100) pageSize = 25;
+  @IsOptional() @IsString() @MaxLength(100) q?: string;
 }
 class DecisionDto {
   @IsIn(['approved', 'rejected']) decision!: 'approved' | 'rejected';
@@ -41,7 +42,7 @@ export class ProductModerationController {
   ) {}
   @Get('products') async list(@Req() req: UserRequest, @Query() q: PageQuery) {
     await this.admins.requireAdmin(req.userId);
-    return this.products.list(q.page, q.pageSize);
+    return this.products.list(q.page, q.pageSize, q.q ?? '');
   }
   @Get('products/revisions/:id') async detail(
     @Req() req: UserRequest,

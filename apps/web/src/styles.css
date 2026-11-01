@@ -8431,3 +8431,97 @@ fieldset {
   width: 100%;
   min-width: 0;
 }
+
+/* Product moderation: compact rows and visible page navigation. */
+.admin-kit-products-table td:first-child {
+  min-width: 180px;
+}
+.admin-kit-products-table td:first-child small {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.admin-kit-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--admin-muted);
+}
+.admin-kit-pagination-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.admin-kit-pagination-controls strong {
+  color: var(--admin-text, #23343a);
+  font-variant-numeric: tabular-nums;
+}
+.admin-kit-pagination-controls button {
+  min-height: 38px;
+  padding: 7px 12px;
+  background: #f2f8f5;
+  color: #17694d;
+  border: 1px solid #c9ddd3;
+  border-radius: 9px;
+}
+.admin-kit-pagination-controls button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+@media (max-width: 640px) {
+  .admin-kit-products-table,
+  .admin-kit-products-table tbody,
+  .admin-kit-products-table tr,
+  .admin-kit-products-table td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .admin-kit-products-table thead {
+    display: none;
+  }
+  .admin-kit-products-table tr {
+    padding: 14px;
+    border: 1px solid #e2eae6;
+    border-radius: 12px;
+    margin-bottom: 10px;
+  }
+  .admin-kit-products-table td,
+  .admin-kit-products-table td:first-child {
+    min-width: 0;
+    padding: 5px 0;
+    border: 0;
+    overflow-wrap: anywhere;
+  }
+  .admin-kit-products-table td:not(:first-child) {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+  }
+  .admin-kit-products-table td:not(:first-child)::before {
+    content: attr(data-label);
+    color: var(--admin-muted);
+    font-size: 12px;
+  }
+  .admin-kit-products-table td:first-child strong {
+    font-size: 15px;
+  }
+  .admin-kit-products-table td:first-child small {
+    font-size: 12px;
+  }
+  .admin-kit-products-table td:last-child button {
+    min-height: 38px;
+    justify-self: start;
+  }
+  .admin-kit-pagination {
+    align-items: flex-start;
+  }
+}
