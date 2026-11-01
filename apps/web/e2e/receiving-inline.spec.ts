@@ -69,7 +69,9 @@ for (const width of [390, 1440]) {
     ]) {
       const wrapperBox = await form.locator(wrapperClass).boundingBox();
       const fieldBox = await form
-        .getByLabel(label, { exact: true })
+        .locator(wrapperClass)
+        .locator('input, select')
+        .first()
         .boundingBox();
       expect(wrapperBox, label).not.toBeNull();
       expect(fieldBox, label).not.toBeNull();
