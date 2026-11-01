@@ -13,7 +13,7 @@ describe('receiving validation stages', () => {
     });
   });
 
-  it('rejects invalid quantity, cost and unsafe amount of the new product', () => {
+  it('rejects invalid new-item quantities, costs and totals', () => {
     expect(() => validateNewReceivingItem('0', '55')).toThrow('количество');
     expect(() => validateNewReceivingItem('1.5', '55')).toThrow('количество');
     expect(() => validateNewReceivingItem('1', '')).toThrow(
@@ -26,7 +26,12 @@ describe('receiving validation stages', () => {
 
   it('identifies an invalid previously added item only at posting', () => {
     const lines = [
-      { id: 'old', name: 'Пластилин Караван 8 цветов', quantity: 2, unitCostText: '' },
+      {
+        id: 'old',
+        name: 'Пластилин Караван 8 цветов',
+        quantity: 2,
+        unitCostText: '',
+      },
       { id: 'new', name: 'Сквиш сыр', quantity: 11, unitCostText: '55' },
     ];
     expect(() => validateReceivingDraft(lines)).toThrow(
