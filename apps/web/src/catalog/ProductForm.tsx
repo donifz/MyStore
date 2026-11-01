@@ -228,44 +228,44 @@ export default function ProductForm({
   }
   const barcodeFields = (
     <>
-              <label className="product-field-barcode">
-                Штрихкод
-                <input
-                  maxLength={64}
-                  readOnly={barcodeReadOnly}
-                  value={barcode}
-                  onChange={(e) => {
-                    lookupRevision.current++;
-                    setBarcodeBusy(false);
-                    setBarcode(e.target.value);
-                    setHint('');
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      if (/^\d{8,14}$/.test(barcode.trim())) void lookup();
-                    }
-                  }}
-                  placeholder="Сканируйте или оставьте пустым"
-                />
-              </label>
-              <div className="product-barcode-tools">
-                <p className="muted">
-                  Сканер вводит код как клавиатура. Пустое поле — создадим код.
-                </p>
-                <button
-                  type="button"
-                  disabled={!barcode.trim() || locked}
-                  onClick={() => void lookup()}
-                >
-                  Найти по штрихкоду
-                </button>
-              </div>
-              {hint && (
-                <p role="status" className="notice">
-                  {hint}
-                </p>
-              )}
+      <label className="product-field-barcode">
+        Штрихкод
+        <input
+          maxLength={64}
+          readOnly={barcodeReadOnly}
+          value={barcode}
+          onChange={(e) => {
+            lookupRevision.current++;
+            setBarcodeBusy(false);
+            setBarcode(e.target.value);
+            setHint('');
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              if (/^\d{8,14}$/.test(barcode.trim())) void lookup();
+            }
+          }}
+          placeholder="Сканируйте или оставьте пустым"
+        />
+      </label>
+      <div className="product-barcode-tools">
+        <p className="muted">
+          Сканер вводит код как клавиатура. Пустое поле — создадим код.
+        </p>
+        <button
+          type="button"
+          disabled={!barcode.trim() || locked}
+          onClick={() => void lookup()}
+        >
+          Найти по штрихкоду
+        </button>
+      </div>
+      {hint && (
+        <p role="status" className="notice">
+          {hint}
+        </p>
+      )}
     </>
   );
   return (
