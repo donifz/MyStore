@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
 import { Page, Variant } from '../api/types';
-import BarcodeLabel from './BarcodeLabel';
+import BarcodeLabel, {
+  isSmallLabelBarcodeDense,
+  LabelPrintPage,
+  LabelSize,
+} from './BarcodeLabel';
 import { encodeCode128B } from './code128';
 
 export default function BarcodeLabelsPage() {
@@ -14,6 +18,7 @@ export default function BarcodeLabelsPage() {
   const [copies, setCopies] = useState<Record<string, number>>({});
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [labelSize, setLabelSize] = useState<LabelSize>('30x20');
 
   useEffect(() => {
     if (!shopId) return;
@@ -84,25 +89,41 @@ export default function BarcodeLabelsPage() {
           <p className="eyebrow">Каталог магазина</p>
           <h1>Печать этикеток</h1>
           <p className="muted">
-            Выберите товары и число наклеек. Размер этикетки — 58 × 40 мм.
+            Выберите товары, количество наклеек и размер бумаги.
           </p>
         </div>
-        <button
-          className="primary"
-          disabled={!canPrint}
-          onClick={() => window.print()}
-        >
-          Печать выбранных{products.length ? ` (${products.length})` : ''}
-        </button>
+        <div className="barcode-print-tools">
+          <label>
+            Размер этикетки
+            <select
+              aria-label="Размер этикетки"
+              value={labelSize}
+              onChange={(event) =>
+                setLabelSize(event.target.value as LabelSize)
+              }
+            >
+              <option value="30x20">30 × 20 мм</option>
+              <option value="58x40">58 × 40 мм</option>
+            </select>
+          </label>
+          <button
+            className="primary"
+            disabled={!canPrint}
+            onClick={() => window.print()}
+          >
+            Печать выбранных{products.length ? ` (${products.length})` : ''}
+          </button>
+        </div>
       </div>
 
       <section className="panel no-print">
         <details className="hardware-guide">
-          <summary>Настройка принтера этикеток (58 × 40 мм) и сканера</summary>
+          <summary>Настройка термопринтера и сканера</summary>
           <div className="hardware-guide-body">
             <p>
-              <strong>Термопринтер этикеток (58 × 40 мм):</strong> в окне
-              системной печати выберите размер бумаги <code>58 × 40 мм</code>,
+              <strong>Термопринтер этикеток:</strong> в окне
+              системной печати выберите тот же размер бумаги, что указан
+              выше ({labelSize === '30x20' ? '30 × 20 мм' : '58 × 40 мм'}),
               поля — <code>Нет (0 мм)</code>, масштаб — <code>100%</code> и
               отключите «Верхние и нижние колонтитулы».
             </p>
@@ -196,13 +217,26 @@ export default function BarcodeLabelsPage() {
       </section>
 
       {products.length > 0 && (
-        <section className="selected-labels" aria-label="Этикетки к печати">
-          {products.map((product) => (
+        <>
+          <LabelPrintPage size={labelSize} />
+          {labelSize === '30x20' &&
+            products.some((product) =>
+              isSmallLabelBarcodeDense(product.barcode),
+            ) && (
+              <p className="barcode-size-warning no-print">
+                Длинный штрихкод может плохо считываться на наклейке 30 × 20
+                мм. Для такого товара используйте короткий код или этикетку
+                58 × 40 мм.
+              </p>
+            )}
+          <section className="selected-labels" aria-label="Этикетки к печати">
+            {products.map((product) => (
             <div className="selected-label" key={product.id}>
               <BarcodeLabel
                 product={product}
                 copies={copies[product.id] ?? 1}
                 hidePrintButton
+                size={labelSize}
               />
               <label className="no-print">
                 Наклеек для «{product.name}»
@@ -225,7 +259,8 @@ export default function BarcodeLabelsPage() {
               </label>
             </div>
           ))}
-        </section>
+          </section>
+        </>
       )}
     </>
   );
