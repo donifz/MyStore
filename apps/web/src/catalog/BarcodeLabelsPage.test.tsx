@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import BarcodeLabelsPage from './BarcodeLabelsPage';
@@ -103,4 +103,52 @@ it('uses the chosen paper format and prints the requested number of labels', asy
     'size: 58mm 40mm',
   );
   expect(container.querySelectorAll('.barcode-label--58x40')).toHaveLength(3);
+});
+
+it('loads every catalog page before printing all labels, without changing selected items', async () => {
+  const fetch = vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    const page = Number(new URL(url, 'http://localhost').searchParams.get('page'));
+    const product = {
+      id: `item-${page}`,
+      name: `Товар ${page}`,
+      barcode: `MS0123456789ABCDEF0123456${page}`,
+      sku: `MS-${page}`,
+      salePriceMinor: 50000,
+    };
+    return new Response(
+      JSON.stringify({
+        items: [product],
+        total: 2,
+        page,
+        pageSize: 100,
+      }),
+      { status: 200, headers: { 'content-type': 'application/json' } },
+    );
+  });
+  vi.stubGlobal('fetch', fetch);
+  const print = vi.spyOn(window, 'print').mockImplementation(() => {});
+  const user = userEvent.setup();
+  const { container } = render(
+    <MemoryRouter initialEntries={['/seller/shop-1/labels']}>
+      <Routes>
+        <Route path="/seller/:shopId/labels" element={<BarcodeLabelsPage />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  await screen.findByText('Товар 1');
+  await user.click(screen.getByRole('checkbox', { name: 'Выбрать Товар 1' }));
+  await user.click(screen.getByRole('button', { name: 'Распечатать все товары' }));
+
+  await waitFor(() => expect(print).toHaveBeenCalledOnce());
+  expect(fetch).toHaveBeenCalledWith(expect.stringContaining('page=2&pageSize=100'));
+  expect(container.querySelectorAll('.barcode-label')).toHaveLength(2);
+  expect(container.querySelectorAll('.barcode-label--30x20')).toHaveLength(2);
+  window.dispatchEvent(new Event('afterprint'));
+  await waitFor(() => expect(container.querySelectorAll('.barcode-label')).toHaveLength(1));
+  expect(screen.getByRole('checkbox', { name: 'Выбрать Товар 1' })).toHaveProperty(
+    'checked',
+    true,
+  );
 });
