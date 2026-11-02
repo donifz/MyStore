@@ -19,6 +19,10 @@ export default function BarcodeLabelsPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [labelSize, setLabelSize] = useState<LabelSize>('30x20');
+  const [printingAll, setPrintingAll] = useState(false);
+  const [allPrintProducts, setAllPrintProducts] = useState<Variant[] | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!shopId) return;
@@ -42,10 +46,72 @@ export default function BarcodeLabelsPage() {
     };
   }, [shopId, search, page]);
 
-  const products = Object.values(selected);
+  // Bulk printing is a temporary batch; preserve the user's manual selection.
+  const products = allPrintProducts ?? Object.values(selected);
+
+  useEffect(() => {
+    if (!allPrintProducts?.length) return;
+
+    const reset = () => setAllPrintProducts(null);
+    window.addEventListener('afterprint', reset);
+    // Allow React to commit every label before opening the print preview.
+    const timer = window.setTimeout(() => window.print(), 0);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('afterprint', reset);
+    };
+  }, [allPrintProducts]);
+
+  async function printAllProducts() {
+    if (!shopId || printingAll) return;
+    setPrintingAll(true);
+    setError('');
+    try {
+      const all: Variant[] = [];
+      let currentPage = 1;
+      let total = 0;
+
+      do {
+        const result = await api<Page<Variant>>(
+          `/shops/${shopId}/variants?page=${currentPage}&pageSize=100`,
+        );
+        total = result.total;
+        if (total > all.length && !result.items.length) {
+          throw new Error('Не удалось загрузить все товары для печати');
+        }
+        all.push(...result.items);
+        currentPage += 1;
+      } while (all.length < total);
+
+      if (all.length === 0) {
+        setError('В каталоге нет товаров для печати');
+        return;
+      }
+      const invalid = all.filter((product) => {
+        try {
+          encodeCode128B(product.barcode);
+          return false;
+        } catch {
+          return true;
+        }
+      });
+      if (invalid.length) {
+        setError(
+          `Невозможно напечатать все товары: у ${invalid.length} товаров недопустимый штрихкод`,
+        );
+        return;
+      }
+      setAllPrintProducts(all);
+    } catch (cause) {
+      setError(errorText(cause));
+    } finally {
+      setPrintingAll(false);
+    }
+  }
   const canPrint =
-    products.length > 0 &&
-    products.every((product) => {
+    !printingAll &&
+    Object.values(selected).length > 0 &&
+    Object.values(selected).every((product) => {
       try {
         encodeCode128B(product.barcode);
         return true;
@@ -89,7 +155,7 @@ export default function BarcodeLabelsPage() {
           <p className="eyebrow">Каталог магазина</p>
           <h1>Печать этикеток</h1>
           <p className="muted">
-            Выберите товары, количество наклеек и размер бумаги.
+            Выберите товары для печати или распечатайте весь каталог (по одной наклейке на товар).
           </p>
         </div>
         <div className="barcode-print-tools">
@@ -108,10 +174,18 @@ export default function BarcodeLabelsPage() {
           </label>
           <button
             className="primary"
-            disabled={!canPrint}
+            disabled={!canPrint || Boolean(allPrintProducts)}
             onClick={() => window.print()}
           >
-            Печать выбранных{products.length ? ` (${products.length})` : ''}
+            Печать выбранных
+            {Object.keys(selected).length ? ` (${Object.keys(selected).length})` : ''}
+          </button>
+          <button
+            type="button"
+            disabled={!shopId || printingAll || Boolean(allPrintProducts)}
+            onClick={printAllProducts}
+          >
+            {printingAll ? 'Загрузка всех товаров…' : 'Распечатать все товары'}
           </button>
         </div>
       </div>
@@ -234,11 +308,11 @@ export default function BarcodeLabelsPage() {
             <div className="selected-label" key={product.id}>
               <BarcodeLabel
                 product={product}
-                copies={copies[product.id] ?? 1}
+                copies={allPrintProducts ? 1 : (copies[product.id] ?? 1)}
                 hidePrintButton
                 size={labelSize}
               />
-              <label className="no-print">
+              {!allPrintProducts && <label className="no-print">
                 Наклеек для «{product.name}»
                 <input
                   aria-label={`Количество наклеек для ${product.name}`}
@@ -256,7 +330,7 @@ export default function BarcodeLabelsPage() {
                     }))
                   }
                 />
-              </label>
+              </label>}
             </div>
           ))}
           </section>
