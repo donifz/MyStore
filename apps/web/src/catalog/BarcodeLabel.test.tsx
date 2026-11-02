@@ -36,3 +36,37 @@ it('opens the browser print dialog when asked to print a label', async () => {
 
   expect(print).toHaveBeenCalledOnce();
 });
+
+it('defaults to a 30 × 20 mm label, lets the user choose 58 × 40 mm and keeps the printed code next to the bars', async () => {
+  const user = userEvent.setup();
+  const { container } = render(<BarcodeLabel product={product} />);
+
+  expect(container.querySelector('.barcode-label--30x20')).toBeTruthy();
+  expect(container.querySelector('style')?.textContent).toContain(
+    'size: 30mm 20mm',
+  );
+  expect(container.querySelector('.barcode-mark .barcode-value')).toBeTruthy();
+
+  await user.selectOptions(
+    screen.getByRole('combobox', { name: 'Размер этикетки' }),
+    '58x40',
+  );
+
+  expect(container.querySelector('.barcode-label--58x40')).toBeTruthy();
+  expect(container.querySelector('style')?.textContent).toContain(
+    'size: 58mm 40mm',
+  );
+});
+
+it('lets the user clear and re-enter a copy count without accidentally producing 13 labels', async () => {
+  const user = userEvent.setup();
+  const { container } = render(<BarcodeLabel product={product} />);
+  const input = screen.getByRole('spinbutton', { name: 'Количество копий' });
+
+  await user.clear(input);
+  expect(input).toHaveProperty('value', '');
+  await user.type(input, '3');
+
+  expect(input).toHaveProperty('value', '3');
+  expect(container.querySelectorAll('.barcode-label')).toHaveLength(3);
+});
