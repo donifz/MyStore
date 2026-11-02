@@ -50,3 +50,57 @@ it('prints the selected product labels from the separate label section', async (
   expect(print).toHaveBeenCalledOnce();
   expect(screen.getByText('MS-123456')).toBeTruthy();
 });
+
+it('uses the chosen paper format and prints the requested number of labels', async () => {
+  vi.stubGlobal(
+    'fetch',
+    async () =>
+      new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: 'item-1',
+              name: 'Кружка',
+              barcode: 'MS0123456789ABCDEF01234567',
+              sku: 'MS-123456',
+              salePriceMinor: 50000,
+            },
+          ],
+          total: 1,
+          page: 1,
+          pageSize: 100,
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
+  );
+  const user = userEvent.setup();
+  const { container } = render(
+    <MemoryRouter initialEntries={['/seller/shop-1/labels']}>
+      <Routes>
+        <Route path="/seller/:shopId/labels" element={<BarcodeLabelsPage />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  await screen.findByText('Кружка');
+  await user.click(screen.getByRole('checkbox', { name: 'Выбрать Кружка' }));
+  expect(container.querySelector('style')?.textContent).toContain(
+    'size: 30mm 20mm',
+  );
+
+  await user.clear(screen.getByRole('spinbutton', { name: 'Количество наклеек для Кружка' }));
+  await user.type(
+    screen.getByRole('spinbutton', { name: 'Количество наклеек для Кружка' }),
+    '3',
+  );
+  expect(container.querySelectorAll('.barcode-label')).toHaveLength(3);
+
+  await user.selectOptions(
+    screen.getByRole('combobox', { name: 'Размер этикетки' }),
+    '58x40',
+  );
+  expect(container.querySelector('style')?.textContent).toContain(
+    'size: 58mm 40mm',
+  );
+  expect(container.querySelectorAll('.barcode-label--58x40')).toHaveLength(3);
+});
