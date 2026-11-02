@@ -88,7 +88,9 @@ it('uses the chosen paper format and prints the requested number of labels', asy
     'size: 30mm 20mm',
   );
 
-  await user.clear(screen.getByRole('spinbutton', { name: 'Количество наклеек для Кружка' }));
+  await user.clear(
+    screen.getByRole('spinbutton', { name: 'Количество наклеек для Кружка' }),
+  );
   await user.type(
     screen.getByRole('spinbutton', { name: 'Количество наклеек для Кружка' }),
     '3',
@@ -108,7 +110,9 @@ it('uses the chosen paper format and prints the requested number of labels', asy
 it('loads every catalog page before printing all labels, without changing selected items', async () => {
   const fetch = vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
-    const page = Number(new URL(url, 'http://localhost').searchParams.get('page'));
+    const page = Number(
+      new URL(url, 'http://localhost').searchParams.get('page'),
+    );
     const product = {
       id: `item-${page}`,
       name: `Товар ${page}`,
@@ -139,16 +143,21 @@ it('loads every catalog page before printing all labels, without changing select
 
   await screen.findByText('Товар 1');
   await user.click(screen.getByRole('checkbox', { name: 'Выбрать Товар 1' }));
-  await user.click(screen.getByRole('button', { name: 'Распечатать все товары' }));
+  await user.click(
+    screen.getByRole('button', { name: 'Распечатать все товары' }),
+  );
 
   await waitFor(() => expect(print).toHaveBeenCalledOnce());
-  expect(fetch).toHaveBeenCalledWith(expect.stringContaining('page=2&pageSize=100'));
+  expect(fetch).toHaveBeenCalledWith(
+    expect.stringContaining('page=2&pageSize=100'),
+  );
   expect(container.querySelectorAll('.barcode-label')).toHaveLength(2);
   expect(container.querySelectorAll('.barcode-label--30x20')).toHaveLength(2);
   window.dispatchEvent(new Event('afterprint'));
-  await waitFor(() => expect(container.querySelectorAll('.barcode-label')).toHaveLength(1));
-  expect(screen.getByRole('checkbox', { name: 'Выбрать Товар 1' })).toHaveProperty(
-    'checked',
-    true,
+  await waitFor(() =>
+    expect(container.querySelectorAll('.barcode-label')).toHaveLength(1),
   );
+  expect(
+    screen.getByRole('checkbox', { name: 'Выбрать Товар 1' }),
+  ).toHaveProperty('checked', true);
 });
