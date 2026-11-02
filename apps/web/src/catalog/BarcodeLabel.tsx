@@ -3,18 +3,42 @@ import { formatSom } from '../api/money';
 import { Variant } from '../api/types';
 import { code128SvgPath } from './code128';
 
+export type LabelSize = '30x20' | '58x40';
+
+export function LabelPrintPage({ size }: { size: LabelSize }) {
+  const paperSize = size === '30x20' ? '30mm 20mm' : '58mm 40mm';
+  return (
+    <style>{'@media print { @page { size: ' + paperSize + '; margin: 0; } }'}</style>
+  );
+}
+
+export function isSmallLabelBarcodeDense(value: string) {
+  try {
+    return code128SvgPath(value).width > 170;
+  } catch {
+    return false;
+  }
+}
+
 export default function BarcodeLabel({
   product,
   copies = 1,
   hidePrintButton = false,
+  size,
 }: {
   product: Pick<Variant, 'id' | 'name' | 'barcode' | 'salePriceMinor' | 'sku'>;
   copies?: number;
   hidePrintButton?: boolean;
+  size?: LabelSize;
 }) {
   const [copyCount, setCopyCount] = useState(
     Math.max(1, Math.min(100, copies)),
   );
+  const [localSize, setLocalSize] = useState<LabelSize>('30x20');
+  const labelSize = size ?? localSize;
+  const numberOfCopies = hidePrintButton
+    ? Math.max(1, Math.min(100, copies))
+    : copyCount;
   let barcode: { path: string; width: number } | null = null;
   let barcodeError = '';
   try {
@@ -26,8 +50,13 @@ export default function BarcodeLabel({
 
   return (
     <div className="barcode-preview">
-      {Array.from({ length: copyCount }, (_, index) => (
-        <div className="barcode-label" data-product-id={product.id} key={index}>
+      {!hidePrintButton && <LabelPrintPage size={labelSize} />}
+      {Array.from({ length: numberOfCopies }, (_, index) => (
+        <div
+          className={'barcode-label barcode-label--' + labelSize}
+          data-product-id={product.id}
+          key={index}
+        >
           <strong className="barcode-product-name">{product.name}</strong>
           <strong className="barcode-price">
             {formatSom(product.salePriceMinor)}
@@ -35,26 +64,41 @@ export default function BarcodeLabel({
           {product.sku && (
             <span className="barcode-sku">Арт.: {product.sku}</span>
           )}
-          {barcode ? (
-            <svg
-              className="barcode-symbol"
-              role="img"
-              aria-label="Штрихкод"
-              viewBox={`0 0 ${barcode.width} 50`}
-              preserveAspectRatio="none"
-            >
-              <path d={barcode.path} />
-            </svg>
-          ) : (
-            <p role="alert" className="error barcode-error">
-              {barcodeError}
-            </p>
-          )}
-          <span className="barcode-value">{product.barcode}</span>
+          <div className="barcode-mark">
+            {barcode ? (
+              <svg
+                className="barcode-symbol"
+                role="img"
+                aria-label="Штрихкод"
+                viewBox={`0 0 ${barcode.width} 50`}
+                preserveAspectRatio="none"
+              >
+                <path d={barcode.path} />
+              </svg>
+            ) : (
+              <p role="alert" className="error barcode-error">
+                {barcodeError}
+              </p>
+            )}
+            <span className="barcode-value">{product.barcode}</span>
+          </div>
         </div>
       ))}
       {!hidePrintButton && (
         <div className="barcode-label-actions no-print">
+          <label>
+            Размер этикетки
+            <select
+              aria-label="Размер этикетки"
+              value={labelSize}
+              onChange={(event) =>
+                setLocalSize(event.target.value as LabelSize)
+              }
+            >
+              <option value="30x20">30 × 20 мм</option>
+              <option value="58x40">58 × 40 мм</option>
+            </select>
+          </label>
           <label>
             Копии
             <input
@@ -80,6 +124,15 @@ export default function BarcodeLabel({
           </button>
         </div>
       )}
+      {!hidePrintButton &&
+        labelSize === '30x20' &&
+        barcode &&
+        barcode.width > 170 && (
+          <p className="barcode-size-warning no-print">
+            Длинный штрихкод может плохо считываться на наклейке 30 × 20 мм.
+            Используйте короткий код или этикетку 58 × 40 мм.
+          </p>
+        )}
     </div>
   );
 }
