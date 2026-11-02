@@ -317,17 +317,18 @@ td:first-child {
   width: 58mm;
   height: 40mm;
   padding: 2.5mm;
+  box-sizing: border-box;
   background: #fff;
   color: #111;
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-template-rows: auto auto 1fr auto;
+  grid-template-rows: auto auto 1fr;
   gap: 1mm 2mm;
   overflow: hidden;
   align-content: stretch;
   font-family: Arial, sans-serif;
 }
-.barcode-label:not(:first-child) {
+.barcode-label:not(:first-of-type) {
   display: none;
 }
 .barcode-product-name {
@@ -345,8 +346,16 @@ td:first-child {
   font-size: 7pt;
   line-height: 1.1;
 }
-.barcode-symbol {
+.barcode-mark {
   grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  min-width: 0;
+}
+.barcode-symbol {
+  display: block;
   width: 100%;
   height: 15mm;
   min-height: 0;
@@ -355,11 +364,68 @@ td:first-child {
 .barcode-value {
   grid-column: 1 / -1;
   text-align: center;
-  letter-spacing: 0.15mm;
+  letter-spacing: 0.05mm;
   font-family: monospace;
   font-size: 7pt;
   line-height: 1;
+  margin-top: -0.15mm;
   white-space: nowrap;
+  overflow: hidden;
+}
+.barcode-label--30x20 {
+  width: 30mm;
+  height: 20mm;
+  padding: 0.8mm;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.barcode-label--30x20 .barcode-product-name {
+  font-size: 6pt;
+  line-height: 1.08;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.barcode-label--30x20 .barcode-price {
+  font-size: 8pt;
+  line-height: 1.1;
+}
+.barcode-label--30x20 .barcode-sku {
+  font-size: 5pt;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.barcode-label--30x20 .barcode-mark {
+  margin-top: 0.25mm;
+}
+.barcode-label--30x20 .barcode-symbol {
+  height: 7mm;
+}
+.barcode-label--30x20 .barcode-value {
+  font-size: 5pt;
+  letter-spacing: 0;
+  margin-top: -0.1mm;
+}
+.barcode-size-warning {
+  color: #8a4e0a;
+  font-size: 12px;
+  max-width: 480px;
+}
+.barcode-print-tools {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.barcode-print-tools label {
+  font-size: 13px;
+}
+.barcode-print-tools select,
+.barcode-label-actions select {
+  width: 100%;
+  padding: 8px;
 }
 .barcode-label-actions {
   display: flex;
@@ -460,10 +526,6 @@ td:first-child {
   margin-top: 20px;
 }
 @media print {
-  @page {
-    size: 58mm 40mm;
-    margin: 0;
-  }
   body * {
     display: none !important;
   }
@@ -477,24 +539,32 @@ td:first-child {
   }
   #root .barcode-preview {
     display: block !important;
-    position: absolute;
-    top: 0;
-    left: 0;
-  }
-  #root .selected-label .barcode-preview {
     position: static !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   #root .barcode-preview .barcode-label {
     display: grid !important;
-    margin: 0;
+    margin: 0 !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
     break-after: page;
     page-break-after: always;
   }
-  .barcode-preview .barcode-label:last-of-type {
+  #root .barcode-preview .barcode-label--30x20 {
+    display: flex !important;
+  }
+  #root .barcode-preview .barcode-mark {
+    display: flex !important;
+  }
+  #root .barcode-preview .barcode-symbol {
+    display: block !important;
+  }
+  #root .barcode-preview .barcode-label:last-of-type {
     break-after: auto;
     page-break-after: auto;
   }
-  .selected-label:not(:last-child) .barcode-label:last-of-type {
+  #root .selected-label:not(:last-child) .barcode-label:last-of-type {
     break-after: page;
     page-break-after: always;
   }
