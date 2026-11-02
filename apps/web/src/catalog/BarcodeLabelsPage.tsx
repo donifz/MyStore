@@ -6,6 +6,7 @@ import BarcodeLabel, {
   isSmallLabelBarcodeDense,
   LabelPrintPage,
   LabelSize,
+  normalizeLabelCopies,
 } from './BarcodeLabel';
 import { encodeCode128B } from './code128';
 
@@ -15,7 +16,7 @@ export default function BarcodeLabelsPage() {
   const [page, setPage] = useState(1);
   const [data, setData] = useState<Page<Variant> | null>(null);
   const [selected, setSelected] = useState<Record<string, Variant>>({});
-  const [copies, setCopies] = useState<Record<string, number>>({});
+  const [copies, setCopies] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [labelSize, setLabelSize] = useState<LabelSize>('30x20');
@@ -311,7 +312,11 @@ export default function BarcodeLabelsPage() {
               <div className="selected-label" key={product.id}>
                 <BarcodeLabel
                   product={product}
-                  copies={allPrintProducts ? 1 : (copies[product.id] ?? 1)}
+                  copies={
+                    allPrintProducts
+                      ? 1
+                      : normalizeLabelCopies(copies[product.id] ?? '1')
+                  }
                   hidePrintButton
                   size={labelSize}
                 />
@@ -323,13 +328,18 @@ export default function BarcodeLabelsPage() {
                       type="number"
                       min={1}
                       max={100}
-                      value={copies[product.id] ?? 1}
+                      value={copies[product.id] ?? '1'}
                       onChange={(event) =>
                         setCopies((current) => ({
                           ...current,
-                          [product.id]: Math.max(
-                            1,
-                            Math.min(100, Number(event.target.value) || 1),
+                          [product.id]: event.target.value,
+                        }))
+                      }
+                      onBlur={() =>
+                        setCopies((current) => ({
+                          ...current,
+                          [product.id]: String(
+                            normalizeLabelCopies(current[product.id] ?? '1'),
                           ),
                         }))
                       }
