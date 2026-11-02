@@ -5,6 +5,10 @@ import { code128SvgPath } from './code128';
 
 export type LabelSize = '30x20' | '58x40';
 
+export function normalizeLabelCopies(value: number | string): number {
+  return Math.max(1, Math.min(100, Number(value) || 1));
+}
+
 export function LabelPrintPage({ size }: { size: LabelSize }) {
   const paperSize = size === '30x20' ? '30mm 20mm' : '58mm 40mm';
   return (
@@ -33,14 +37,12 @@ export default function BarcodeLabel({
   hidePrintButton?: boolean;
   size?: LabelSize;
 }) {
-  const [copyCount, setCopyCount] = useState(
-    Math.max(1, Math.min(100, copies)),
-  );
+  const [copyCount, setCopyCount] = useState(String(normalizeLabelCopies(copies)));
   const [localSize, setLocalSize] = useState<LabelSize>('30x20');
   const labelSize = size ?? localSize;
   const numberOfCopies = hidePrintButton
-    ? Math.max(1, Math.min(100, copies))
-    : copyCount;
+    ? normalizeLabelCopies(copies)
+    : normalizeLabelCopies(copyCount);
   let barcode: { path: string; width: number } | null = null;
   let barcodeError = '';
   try {
@@ -109,10 +111,9 @@ export default function BarcodeLabel({
               min={1}
               max={100}
               value={copyCount}
-              onChange={(event) =>
-                setCopyCount(
-                  Math.max(1, Math.min(100, Number(event.target.value) || 1)),
-                )
+              onChange={(event) => setCopyCount(event.target.value)}
+              onBlur={() =>
+                setCopyCount(String(normalizeLabelCopies(copyCount)))
               }
             />
           </label>
