@@ -57,3 +57,16 @@ it('defaults to a 30 × 20 mm label, lets the user choose 58 × 40 mm and keeps 
     'size: 58mm 40mm',
   );
 });
+
+it('lets the user clear and re-enter a copy count without accidentally producing 13 labels', async () => {
+  const user = userEvent.setup();
+  const { container } = render(<BarcodeLabel product={product} />);
+  const input = screen.getByRole('spinbutton', { name: 'Количество копий' });
+
+  await user.clear(input);
+  expect(input).toHaveProperty('value', '');
+  await user.type(input, '3');
+
+  expect(input).toHaveProperty('value', '3');
+  expect(container.querySelectorAll('.barcode-label')).toHaveLength(3);
+});
