@@ -155,7 +155,8 @@ export default function BarcodeLabelsPage() {
           <p className="eyebrow">Каталог магазина</p>
           <h1>Печать этикеток</h1>
           <p className="muted">
-            Выберите товары для печати или распечатайте весь каталог (по одной наклейке на товар).
+            Выберите товары для печати или распечатайте весь каталог (по одной
+            наклейке на товар).
           </p>
         </div>
         <div className="barcode-print-tools">
@@ -178,7 +179,9 @@ export default function BarcodeLabelsPage() {
             onClick={() => window.print()}
           >
             Печать выбранных
-            {Object.keys(selected).length ? ` (${Object.keys(selected).length})` : ''}
+            {Object.keys(selected).length
+              ? ` (${Object.keys(selected).length})`
+              : ''}
           </button>
           <button
             type="button"
@@ -195,11 +198,11 @@ export default function BarcodeLabelsPage() {
           <summary>Настройка термопринтера и сканера</summary>
           <div className="hardware-guide-body">
             <p>
-              <strong>Термопринтер этикеток:</strong> в окне
-              системной печати выберите тот же размер бумаги, что указан
-              выше ({labelSize === '30x20' ? '30 × 20 мм' : '58 × 40 мм'}),
-              поля — <code>Нет (0 мм)</code>, масштаб — <code>100%</code> и
-              отключите «Верхние и нижние колонтитулы».
+              <strong>Термопринтер этикеток:</strong> в окне системной печати
+              выберите тот же размер бумаги, что указан выше (
+              {labelSize === '30x20' ? '30 × 20 мм' : '58 × 40 мм'}), поля —{' '}
+              <code>Нет (0 мм)</code>, масштаб — <code>100%</code> и отключите
+              «Верхние и нижние колонтитулы».
             </p>
             <p>
               <strong>USB-сканер штрихкодов (EAN-13 / EAN-8 / Code128):</strong>{' '}
@@ -298,41 +301,43 @@ export default function BarcodeLabelsPage() {
               isSmallLabelBarcodeDense(product.barcode),
             ) && (
               <p className="barcode-size-warning no-print">
-                Длинный штрихкод может плохо считываться на наклейке 30 × 20
-                мм. Для такого товара используйте короткий код или этикетку
-                58 × 40 мм.
+                Длинный штрихкод может плохо считываться на наклейке 30 × 20 мм.
+                Для такого товара используйте короткий код или этикетку 58 × 40
+                мм.
               </p>
             )}
           <section className="selected-labels" aria-label="Этикетки к печати">
             {products.map((product) => (
-            <div className="selected-label" key={product.id}>
-              <BarcodeLabel
-                product={product}
-                copies={allPrintProducts ? 1 : (copies[product.id] ?? 1)}
-                hidePrintButton
-                size={labelSize}
-              />
-              {!allPrintProducts && <label className="no-print">
-                Наклеек для «{product.name}»
-                <input
-                  aria-label={`Количество наклеек для ${product.name}`}
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={copies[product.id] ?? 1}
-                  onChange={(event) =>
-                    setCopies((current) => ({
-                      ...current,
-                      [product.id]: Math.max(
-                        1,
-                        Math.min(100, Number(event.target.value) || 1),
-                      ),
-                    }))
-                  }
+              <div className="selected-label" key={product.id}>
+                <BarcodeLabel
+                  product={product}
+                  copies={allPrintProducts ? 1 : (copies[product.id] ?? 1)}
+                  hidePrintButton
+                  size={labelSize}
                 />
-              </label>}
-            </div>
-          ))}
+                {!allPrintProducts && (
+                  <label className="no-print">
+                    Наклеек для «{product.name}»
+                    <input
+                      aria-label={`Количество наклеек для ${product.name}`}
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={copies[product.id] ?? 1}
+                      onChange={(event) =>
+                        setCopies((current) => ({
+                          ...current,
+                          [product.id]: Math.max(
+                            1,
+                            Math.min(100, Number(event.target.value) || 1),
+                          ),
+                        }))
+                      }
+                    />
+                  </label>
+                )}
+              </div>
+            ))}
           </section>
         </>
       )}
