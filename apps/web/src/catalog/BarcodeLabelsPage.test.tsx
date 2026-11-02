@@ -148,9 +148,11 @@ it('loads every catalog page before printing all labels, without changing select
   );
 
   await waitFor(() => expect(print).toHaveBeenCalledOnce());
-  expect(fetch).toHaveBeenCalledWith(
-    expect.stringContaining('page=2&pageSize=100'),
-  );
+  expect(
+    fetch.mock.calls.some(([url]) =>
+      String(url).includes('page=2&pageSize=100'),
+    ),
+  ).toBe(true);
   expect(container.querySelectorAll('.barcode-label')).toHaveLength(2);
   expect(container.querySelectorAll('.barcode-label--30x20')).toHaveLength(2);
   window.dispatchEvent(new Event('afterprint'));
