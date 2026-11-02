@@ -8,7 +8,9 @@ export type LabelSize = '30x20' | '58x40';
 export function LabelPrintPage({ size }: { size: LabelSize }) {
   const paperSize = size === '30x20' ? '30mm 20mm' : '58mm 40mm';
   return (
-    <style>{'@media print { @page { size: ' + paperSize + '; margin: 0; } }'}</style>
+    <style>
+      {'@media print { @page { size: ' + paperSize + '; margin: 0; } }'}
+    </style>
   );
 }
 
