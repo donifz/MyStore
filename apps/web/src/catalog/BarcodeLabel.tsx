@@ -37,7 +37,9 @@ export default function BarcodeLabel({
   hidePrintButton?: boolean;
   size?: LabelSize;
 }) {
-  const [copyCount, setCopyCount] = useState(String(normalizeLabelCopies(copies)));
+  const [copyCount, setCopyCount] = useState(
+    String(normalizeLabelCopies(copies)),
+  );
   const [localSize, setLocalSize] = useState<LabelSize>('30x20');
   const labelSize = size ?? localSize;
   const numberOfCopies = hidePrintButton
