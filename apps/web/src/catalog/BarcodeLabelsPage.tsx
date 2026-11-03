@@ -90,7 +90,7 @@ export default function BarcodeLabelsPage() {
       }
       const invalid = all.filter((product) => {
         try {
-          encodeCode128B(product.barcode);
+          encodeCode128B(product.shortBarcode || product.barcode);
           return false;
         } catch {
           return true;
@@ -114,7 +114,7 @@ export default function BarcodeLabelsPage() {
     Object.values(selected).length > 0 &&
     Object.values(selected).every((product) => {
       try {
-        encodeCode128B(product.barcode);
+        encodeCode128B(product.shortBarcode || product.barcode);
         return true;
       } catch {
         return false;
@@ -299,7 +299,7 @@ export default function BarcodeLabelsPage() {
           <LabelPrintPage size={labelSize} />
           {labelSize === '30x20' &&
             products.some((product) =>
-              isSmallLabelBarcodeDense(product.barcode),
+              isSmallLabelBarcodeDense(product.shortBarcode || product.barcode),
             ) && (
               <p className="barcode-size-warning no-print">
                 Длинный штрихкод может плохо считываться на наклейке 30 × 20 мм.

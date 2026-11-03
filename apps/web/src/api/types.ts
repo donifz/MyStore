@@ -42,6 +42,7 @@ export type Variant = {
   id: string;
   name: string;
   barcode: string;
+  shortBarcode?: string;
   salePriceMinor: number;
   physical?: number;
   reserved?: number;

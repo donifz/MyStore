@@ -31,6 +31,7 @@ import { CanonicalStorefrontSettings1760000000027 } from './migrations/176000000
 import { SeasonalStorefrontThemes1760000000028 } from './migrations/1760000000028-SeasonalStorefrontThemes';
 import { RegisterNewShopSlugs1760000000029 } from './migrations/1760000000029-RegisterNewShopSlugs';
 import { ShopCategoryTemplates1760000000030 } from './migrations/1760000000030-ShopCategoryTemplates';
+import { CompactBarcodes1760000000031 } from './migrations/1760000000031-CompactBarcodes';
 export const DATABASE = Symbol('DATABASE');
 export function buildDataSource(url: string) {
   return new DataSource({
@@ -69,6 +70,7 @@ export function buildDataSource(url: string) {
       SeasonalStorefrontThemes1760000000028,
       RegisterNewShopSlugs1760000000029,
       ShopCategoryTemplates1760000000030,
+      CompactBarcodes1760000000031,
     ],
   });
 }

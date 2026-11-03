@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
-import { randomUUID, randomBytes } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { DATABASE } from '../database';
 import { CategoriesService } from './categories.service';
 import { normalizeProductPhoto } from './product-photo';
@@ -41,6 +41,7 @@ export type Variant = {
   id: string;
   name: string;
   barcode: string;
+  shortBarcode: string;
   salePriceMinor: number;
 };
 @Injectable()
@@ -72,6 +73,7 @@ export class VariantsService {
         : {}),
       name: row.name,
       barcode: row.barcode,
+      shortBarcode: row.short_barcode,
       salePriceMinor: Number(row.sale_price_minor),
       description: row.description,
       category: row.category,
@@ -120,7 +122,7 @@ export class VariantsService {
       ? " JOIN LATERAL (SELECT SUM(sl.quantity) sold FROM sale_lines sl JOIN stock_documents d ON d.shop_id=sl.shop_id AND d.id=sl.document_id WHERE sl.shop_id=v.shop_id AND sl.variant_id=v.id AND d.kind='sale' AND d.created_at > now() - interval '30 days') s ON s.sold > 0"
       : '';
     const filter =
-      'v.shop_id=$1 AND v.archived=$2 AND (v.name ILIKE $3 OR v.barcode ILIKE $3 OR v.sku ILIKE $3)' +
+      'v.shop_id=$1 AND v.archived=$2 AND (v.name ILIKE $3 OR v.barcode ILIKE $3 OR v.short_barcode ILIKE $3 OR v.sku ILIKE $3)' +
       stockClause +
       categoryClause;
     const from =
@@ -132,7 +134,7 @@ export class VariantsService {
       params,
     );
     const rows = await this.db.query(
-      'SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.category,(v.photo_data IS NOT NULL) has_photo,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.stock_value_minor,0) stock_value_minor ' +
+      'SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.category,(v.photo_data IS NOT NULL) has_photo,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.stock_value_minor,0) stock_value_minor ' +
         from +
         filter +
         (popular
@@ -159,6 +161,7 @@ export class VariantsService {
         parentId: r.parent_id ?? null,
         name: r.name,
         barcode: r.barcode,
+        shortBarcode: r.short_barcode,
         salePriceMinor: Number(r.sale_price_minor),
         category: r.category ?? '',
         ...(r.has_photo
@@ -213,8 +216,7 @@ export class VariantsService {
     if (sources.length > 8) throw new ConflictException('Maximum eight photos');
     const album = await Promise.all(sources.map(normalizeProductPhoto));
     const photo = album[0] ?? null;
-    const barcode =
-      input.barcode ?? `MS${randomBytes(12).toString('hex').toUpperCase()}`;
+    // The DB generates and indexes a short code for every variant.
     try {
       const [row] = await tx.query(
         'INSERT INTO variants(id,shop_id,name,barcode,sale_price_minor,category,subcategory,description,photo_data,size,color,photo_album,parent_id)VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)RETURNING *',
@@ -222,7 +224,7 @@ export class VariantsService {
           randomUUID(),
           shopId,
           input.name.trim(),
-          barcode,
+          input.barcode ?? null,
           input.salePriceMinor,
           input.category?.trim() ?? '',
           input.subcategory?.trim() ?? '',
@@ -299,7 +301,7 @@ export class VariantsService {
     if (!v) throw new NotFoundException('Variant not found');
     const rootId = v.parent_id || v.id;
     const rows = await this.db.query(
-      `SELECT v.id,v.sku,v.name,v.barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,
+      `SELECT v.id,v.sku,v.name,v.barcode,v.short_barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,
               COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,
               COALESCE(b.physical,0)-COALESCE(b.reserved,0) available
        FROM variants v
@@ -313,6 +315,7 @@ export class VariantsService {
       sku: r.sku,
       name: r.name,
       barcode: r.barcode,
+      shortBarcode: r.short_barcode,
       size: r.size,
       color: r.color,
       archived: Boolean(r.archived),
@@ -348,13 +351,13 @@ export class VariantsService {
     includeLastPurchase = false,
   ): Promise<(Variant & { lastPurchaseMinor?: number }) | null> {
     const [row] = await this.db.query(
-      `SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.sale_price_minor,v.description,v.category,v.subcategory,v.published,(v.photo_data IS NOT NULL) has_photo,
+      `SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.sale_price_minor,v.description,v.category,v.subcategory,v.published,(v.photo_data IS NOT NULL) has_photo,
               (SELECT ROUND(m.value_minor::numeric / NULLIF(m.quantity, 0))::bigint
                FROM stock_movements m
                JOIN stock_documents d ON d.shop_id=m.shop_id AND d.id=m.document_id
                WHERE m.shop_id=v.shop_id AND m.variant_id=v.id AND d.kind='receiving' AND m.quantity > 0
                ORDER BY d.created_at DESC, m.id DESC LIMIT 1) last_purchase_minor
-       FROM variants v WHERE v.shop_id=$1 AND v.barcode=$2`,
+       FROM variants v WHERE v.shop_id=$1 AND (v.barcode=$2 OR v.short_barcode=$2)`,
       [shopId, barcode],
     );
     if (!row) return null;
@@ -444,7 +447,7 @@ export class VariantsService {
   }
   async getById(shopId: string, id: string) {
     const [row] = await this.db.query(
-      "SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.description,v.category,v.subcategory,v.published,(v.photo_data IS NOT NULL) has_photo,cardinality(v.photo_album) photo_count,CASE WHEN EXISTS(SELECT 1 FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='pending') THEN 'pending' WHEN EXISTS(SELECT 1 FROM product_publications p WHERE p.variant_id=v.id) THEN 'approved' ELSE 'unpublished' END publication_status,(SELECT reason FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='rejected' AND r.decided_by IS NOT NULL ORDER BY r.decided_at DESC LIMIT 1) rejection_reason FROM variants v WHERE v.shop_id=$1 AND v.id=$2",
+      "SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.description,v.category,v.subcategory,v.published,(v.photo_data IS NOT NULL) has_photo,cardinality(v.photo_album) photo_count,CASE WHEN EXISTS(SELECT 1 FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='pending') THEN 'pending' WHEN EXISTS(SELECT 1 FROM product_publications p WHERE p.variant_id=v.id) THEN 'approved' ELSE 'unpublished' END publication_status,(SELECT reason FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='rejected' AND r.decided_by IS NOT NULL ORDER BY r.decided_at DESC LIMIT 1) rejection_reason FROM variants v WHERE v.shop_id=$1 AND v.id=$2",
       [shopId, id],
     );
     if (!row) throw new NotFoundException();

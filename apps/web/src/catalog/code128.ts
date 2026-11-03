@@ -124,7 +124,16 @@ export function encodeCode128B(value: string): number[] {
 }
 
 export function code128SvgPath(value: string) {
-  const codes = encodeCode128B(value);
+  // Code 128C encodes eight numeric digits as four pairs.
+  const codes = /^[0-9]{8}$/.test(value)
+    ? (() => {
+        const digits = value.match(/[0-9]{2}/g)!.map(Number);
+        const checksum =
+          digits.reduce((sum, code, index) => sum + code * (index + 1), 105) %
+          103;
+        return [105, ...digits, checksum, 106];
+      })()
+    : encodeCode128B(value);
   let x = 10;
   const bars: string[] = [];
   for (const code of codes) {
