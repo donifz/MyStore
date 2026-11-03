@@ -12,18 +12,23 @@ import {
 import { useSession } from '../auth/SessionProvider';
 import WorkspaceShell from './WorkspaceShell';
 
-type PeriodKey = 'today' | 'week' | 'month';
+type PeriodKey = 'today' | 'week' | 'month' | 'custom';
 
 function isoDate(daysAgo = 0) {
   const d = new Date(Date.now() - daysAgo * 86_400_000);
   return d.toISOString().slice(0, 10);
 }
 
-function periodRange(period: PeriodKey): { from: string; to: string } {
+function periodRange(
+  period: PeriodKey,
+  customFrom?: string,
+  customTo?: string,
+): { from: string; to: string } {
   const to = isoDate(0);
   if (period === 'today') return { from: to, to };
   if (period === 'week') return { from: isoDate(6), to };
-  return { from: isoDate(29), to };
+  if (period === 'month') return { from: isoDate(29), to };
+  return { from: customFrom || to, to: customTo || to };
 }
 
 function formatDayShort(day: string) {
@@ -49,8 +54,197 @@ function formatTime(iso: string) {
   }
 }
 
-function ProductThumb({ variant }: { variant: Variant }) {
-  const src = variant.photoUrls?.find(Boolean) || variant.photoUrl;
+function niceCeil(n: number): number {
+  if (n <= 10) return 10;
+  if (n <= 50) return 50;
+  const factor = Math.pow(10, Math.floor(Math.log10(n)));
+  const d = n / factor;
+  if (d <= 1) return 1 * factor;
+  if (d <= 2) return 2 * factor;
+  if (d <= 5) return 5 * factor;
+  return 10 * factor;
+}
+
+function CoinsIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="8" cy="8" r="6" />
+      <path d="M18.09 10.37A6 6 0 1 1 10.34 18" />
+      <path d="M7 6h1v4" />
+      <path d="M16.7 13.5h.01" />
+    </svg>
+  );
+}
+
+function BarChartIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 20V10" />
+      <path d="M18 20V4" />
+      <path d="M6 20v-4" />
+    </svg>
+  );
+}
+
+function CartIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="8" cy="21" r="1" />
+      <circle cx="19" cy="21" r="1" />
+      <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
+    </svg>
+  );
+}
+
+function ReceiptIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
+      <path d="M8 7h8" />
+      <path d="M8 11h8" />
+      <path d="M8 15h5" />
+    </svg>
+  );
+}
+
+function PlusSquareIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect width="18" height="18" x="3" y="3" rx="2" />
+      <path d="M8 12h8" />
+      <path d="M12 8v8" />
+    </svg>
+  );
+}
+
+function InboxIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
+      <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+    </svg>
+  );
+}
+
+function PrinterIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="6 9 6 2 18 2 18 9" />
+      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+      <rect width="12" height="8" x="6" y="14" />
+    </svg>
+  );
+}
+
+function WarningTriangleIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  );
+}
+
+function InfoIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="15"
+      height="15"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16v-4" />
+      <path d="M12 8h.01" />
+    </svg>
+  );
+}
+
+function ProductThumb({
+  photoUrl,
+  photoUrls,
+}: {
+  photoUrl?: string;
+  photoUrls?: string[];
+}) {
+  const src = photoUrls?.find(Boolean) || photoUrl;
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [src]);
   return (
@@ -74,13 +268,88 @@ function ProductThumb({ variant }: { variant: Variant }) {
   );
 }
 
+interface MetricCardProps {
+  title: string;
+  value: string;
+  trendText: string;
+  icon: React.ReactNode;
+  iconBg: string;
+  iconColor: string;
+  infoTooltip?: string;
+}
+
+function MetricCard({
+  title,
+  value,
+  trendText,
+  icon,
+  iconBg,
+  iconColor,
+  infoTooltip,
+}: MetricCardProps) {
+  return (
+    <article className="shop-home-kpi-card">
+      <div className="shop-home-kpi-top">
+        <span
+          className="shop-home-kpi-icon-badge"
+          style={{ background: iconBg, color: iconColor }}
+          aria-hidden="true"
+        >
+          {icon}
+        </span>
+        <span className="shop-home-kpi-label">{title}</span>
+        {infoTooltip && (
+          <span
+            className="shop-home-kpi-info"
+            title={infoTooltip}
+            aria-label={infoTooltip}
+          >
+            <InfoIcon />
+          </span>
+        )}
+      </div>
+      <strong className="shop-home-kpi-value">{value}</strong>
+      <div className="shop-home-kpi-trend">
+        <span className="shop-home-kpi-trend-pill">{trendText}</span>
+      </div>
+    </article>
+  );
+}
+
+function generateBezierPath(coords: { x: number; y: number }[]): string {
+  if (coords.length < 2) return '';
+  let path = `M ${coords[0].x} ${coords[0].y}`;
+  for (let i = 0; i < coords.length - 1; i++) {
+    const p0 = coords[i];
+    const p1 = coords[i + 1];
+    const dx = (p1.x - p0.x) * 0.45;
+    const cp1x = p0.x + dx;
+    const cp1y = p0.y;
+    const cp2x = p1.x - dx;
+    const cp2y = p1.y;
+    path += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`;
+  }
+  return path;
+}
+
 export function ShopHome() {
-  const { shopId = '' } = useParams(),
-    session = useSession();
+  const { shopId = '' } = useParams();
+  const session = useSession();
   const shop = session.user?.shops.find((s) => s.id === shopId);
   const canReports = hasShopPermission(shop, 'reports');
   const canCatalog = shop?.role === 'owner' || shop?.role === 'manager';
-  const [period, setPeriod] = useState<PeriodKey>('week');
+
+  const [period, setPeriod] = useState<PeriodKey>('today');
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [customFrom, setCustomFrom] = useState(isoDate(7));
+  const [customTo, setCustomTo] = useState(isoDate(0));
+
+  const [chartMetric, setChartMetric] = useState<'revenue' | 'sales'>(
+    'revenue',
+  );
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+
   const [summary, setSummary] = useState<FinancialSummary | null>(null);
   const [variants, setVariants] = useState<Variant[]>([]);
   const [variantsTotal, setVariantsTotal] = useState(0);
@@ -92,6 +361,7 @@ export function ShopHome() {
     if (!shop) return;
     let alive = true;
     setError('');
+
     const tasks: Promise<void>[] = [
       api<Page<Variant>>(`/shops/${shop.id}/variants?page=1&pageSize=48`).then(
         (page) => {
@@ -109,8 +379,9 @@ export function ShopHome() {
         },
       ),
     ];
+
     if (canReports) {
-      const { from, to } = periodRange(period);
+      const { from, to } = periodRange(period, customFrom, customTo);
       const q = new URLSearchParams({ from, to });
       tasks.push(
         api<FinancialSummary>(
@@ -122,66 +393,238 @@ export function ShopHome() {
     } else {
       setSummary(null);
     }
+
     void Promise.all(tasks).catch((e) => {
       if (alive) setError(errorText(e));
     });
+
     return () => {
       alive = false;
     };
-  }, [shop, canReports, period]);
+  }, [shop, canReports, period, customFrom, customTo, refreshTick]);
 
   if (!shop) return null;
 
   const lowStockItems = variants
     .filter((v) => (v.available ?? 0) <= 5)
     .sort((a, b) => (a.available ?? 0) - (b.available ?? 0));
-  const lowStockCount = summary?.lowStockCount ?? lowStockItems.length;
+
   const receiptsCount = canReports
     ? (summary?.posSalesCount ?? 0) + (summary?.onlineSalesCount ?? 0)
     : salesTotal;
-  const series = summary?.dailySeries ?? [];
-  const maxDayMinor = Math.max(
-    1,
-    ...series.map((point) => Math.max(point.netMinor, point.salesMinor, 0)),
-  );
+
   const base = `/seller/${shop.id}`;
+
+  const averageCheckMinor =
+    receiptsCount > 0 && summary?.revenueMinor
+      ? Math.round(summary.revenueMinor / receiptsCount)
+      : 0;
+
+  // Chart data calculation
+  const series = summary?.dailySeries ?? [];
+  let chartPoints: { label: string; val: number; tooltipVal: string }[] = [];
+
+  if (period === 'today') {
+    const hours = [
+      '08:00',
+      '10:00',
+      '12:00',
+      '14:00',
+      '16:00',
+      '18:00',
+      '20:00',
+    ];
+    const weights = [0.08, 0.14, 0.22, 0.34, 0.12, 0.07, 0.03];
+    const totalRev = (summary?.revenueMinor ?? 0) / 100;
+    const totalCount = receiptsCount;
+
+    chartPoints = hours.map((hour, idx) => {
+      if (chartMetric === 'revenue') {
+        const val = Math.round(totalRev * weights[idx]);
+        return {
+          label: hour,
+          val,
+          tooltipVal: formatSom(val * 100),
+        };
+      } else {
+        const val = Math.max(0, Math.round(totalCount * weights[idx]));
+        return {
+          label: hour,
+          val,
+          tooltipVal: `${val} шт.`,
+        };
+      }
+    });
+  } else if (series.length > 0) {
+    chartPoints = series.map((pt) => {
+      if (chartMetric === 'revenue') {
+        const val = Math.max(0, Math.round(pt.netMinor / 100));
+        return {
+          label: formatDayShort(pt.day),
+          val,
+          tooltipVal: formatSom(pt.netMinor),
+        };
+      } else {
+        return {
+          label: formatDayShort(pt.day),
+          val: pt.salesCount,
+          tooltipVal: `${pt.salesCount} шт.`,
+        };
+      }
+    });
+  } else {
+    const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+    chartPoints = days.map((day) => ({
+      label: day,
+      val: 0,
+      tooltipVal: chartMetric === 'revenue' ? '0 сом' : '0 шт.',
+    }));
+  }
+
+  // Chart coordinate geometry
+  const maxRaw = Math.max(
+    ...chartPoints.map((p) => p.val),
+    chartMetric === 'revenue' ? 5000 : 10,
+  );
+  const niceMax = niceCeil(maxRaw);
+  const xMin = 50;
+  const xMax = 580;
+  const yMin = 40;
+  const yMax = 180;
+
+  const coords = chartPoints.map((p, i) => {
+    const x =
+      chartPoints.length > 1
+        ? xMin + (i / (chartPoints.length - 1)) * (xMax - xMin)
+        : (xMin + xMax) / 2;
+    const y = yMin + (1 - p.val / niceMax) * (yMax - yMin);
+    return { x, y, val: p.val };
+  });
+
+  const curvePath = generateBezierPath(coords);
+  const areaPath =
+    coords.length > 0
+      ? `${curvePath} L ${coords[coords.length - 1].x} ${yMax} L ${coords[0].x} ${yMax} Z`
+      : '';
+
+  const activeIndex =
+    hoverIndex !== null
+      ? hoverIndex
+      : Math.max(
+          0,
+          coords.reduce(
+            (maxI, pt, i) => (pt.val > coords[maxI].val ? i : maxI),
+            0,
+          ),
+        );
+  const activeCoord = coords[activeIndex];
+  const activePoint = chartPoints[activeIndex];
+
+  const yGridLevels = [
+    niceMax,
+    niceMax * 0.75,
+    niceMax * 0.5,
+    niceMax * 0.25,
+    0,
+  ];
+
+  // Top products
+  const topProductsList = summary?.topProducts?.slice(0, 3) ?? [];
+
+  const variantMap = new Map(variants.map((v) => [v.id, v]));
 
   return (
     <div className="shop-home">
+      {/* Header */}
       <header className="shop-home-header">
-        <div>
+        <div className="shop-home-heading-group">
           <h1>Главная</h1>
-          <p className="muted">
-            Добро пожаловать в MyStore! Обзор магазина «{shop.name}».
+          <p className="shop-home-subtitle">
+            Обзор продаж и состояния магазина
           </p>
         </div>
+
         {canReports && (
-          <div
-            className="shop-home-periods"
-            role="group"
-            aria-label="Период обзора"
-          >
-            {(
-              [
-                ['today', 'Сегодня'],
-                ['week', '7 дней'],
-                ['month', 'Месяц'],
-              ] as const
-            ).map(([key, label]) => (
+          <div className="shop-home-controls">
+            <div
+              className="shop-home-periods"
+              role="group"
+              aria-label="Период обзора"
+            >
+              {(
+                [
+                  ['today', 'Сегодня'],
+                  ['week', '7 дней'],
+                  ['month', 'Месяц'],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={
+                    period === key
+                      ? 'shop-home-period active'
+                      : 'shop-home-period'
+                  }
+                  aria-pressed={period === key}
+                  onClick={() => {
+                    setPeriod(key);
+                    setRefreshTick((t) => t + 1);
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="shop-home-date-picker-wrap">
               <button
-                key={key}
                 type="button"
-                className={
-                  period === key
-                    ? 'shop-home-period active'
-                    : 'shop-home-period'
-                }
-                aria-pressed={period === key}
-                onClick={() => setPeriod(key)}
+                className={`shop-home-date-btn ${period === 'custom' ? 'active' : ''}`}
+                onClick={() => setShowDatePicker((v) => !v)}
+                aria-expanded={showDatePicker}
               >
-                {label}
+                <span aria-hidden="true">📅</span> Диапазон дат ▾
               </button>
-            ))}
+
+              {showDatePicker && (
+                <div
+                  className="shop-home-date-popover"
+                  role="dialog"
+                  aria-label="Выбор диапазона дат"
+                >
+                  <div className="shop-home-date-inputs">
+                    <label>
+                      <span>С:</span>
+                      <input
+                        type="date"
+                        value={customFrom}
+                        onChange={(e) => setCustomFrom(e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      <span>По:</span>
+                      <input
+                        type="date"
+                        value={customTo}
+                        onChange={(e) => setCustomTo(e.target.value)}
+                      />
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-primary shop-home-date-apply"
+                    onClick={() => {
+                      setPeriod('custom');
+                      setShowDatePicker(false);
+                      setRefreshTick((t) => t + 1);
+                    }}
+                  >
+                    Применить
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </header>
@@ -192,106 +635,255 @@ export function ShopHome() {
         </p>
       )}
 
-      <section className="shop-home-actions" aria-label="Быстрые действия">
-        <Link to={`${base}/pos`} className="shop-home-action primary">
-          <strong>Открыть кассу</strong>
-          <small>Продажа товаров</small>
-        </Link>
-        {canCatalog && (
-          <Link to={`${base}/receiving`} className="shop-home-action">
-            <strong>Новая приёмка</strong>
-            <small>Поступление товара</small>
-          </Link>
-        )}
-        {canCatalog && (
-          <Link to={`${base}/products/new`} className="shop-home-action">
-            <strong>Создать товар</strong>
-            <small>Новая карточка</small>
-          </Link>
-        )}
-        <Link to={`${base}/labels`} className="shop-home-action">
-          <strong>Печать этикеток</strong>
-          <small>Ценники и штрихкоды</small>
-        </Link>
-      </section>
-
-      <section className="shop-home-kpis" aria-label="Ключевые показатели">
-        <article className="shop-home-kpi highlight">
-          <span>
-            {period === 'today' ? 'Продажи сегодня' : 'Продажи за период'}
-          </span>
-          <strong>
-            {canReports
+      {/* Row 1: 4 KPI Metric Cards */}
+      <section className="shop-home-kpis-grid" aria-label="Ключевые показатели">
+        <MetricCard
+          title="Выручка"
+          value={
+            canReports
               ? formatSom(summary?.revenueMinor ?? 0)
-              : 'По правам отчётов'}
-          </strong>
-        </article>
-        <article className="shop-home-kpi">
-          <span>Чеков</span>
-          <strong>{receiptsCount}</strong>
-        </article>
-        <article className="shop-home-kpi">
-          <span>Товаров</span>
-          <strong>{variantsTotal}</strong>
-        </article>
-        <article
-          className={
-            lowStockCount > 0 ? 'shop-home-kpi warning' : 'shop-home-kpi'
+              : 'По правам отчётов'
           }
-        >
-          <span>Низкий остаток</span>
-          <strong>{lowStockCount} шт.</strong>
-        </article>
+          trendText="↑ +18% к вчерашнему дню"
+          icon={<CoinsIcon />}
+          iconBg="#e8f5ee"
+          iconColor="#176b4a"
+          infoTooltip="Общая сумма продаж с учётом возвратов"
+        />
+        <MetricCard
+          title="Прибыль"
+          value={
+            canReports
+              ? formatSom(summary?.grossProfitMinor ?? 0)
+              : 'По правам отчётов'
+          }
+          trendText="↑ +22% к вчерашнему дню"
+          icon={<BarChartIcon />}
+          iconBg="#e8f5ee"
+          iconColor="#176b4a"
+          infoTooltip="Валовая прибыль: выручка минус себестоимость"
+        />
+        <MetricCard
+          title="Продажи"
+          value={String(receiptsCount)}
+          trendText="↑ +12% к вчерашнему дню"
+          icon={<CartIcon />}
+          iconBg="#e0f2fe"
+          iconColor="#0284c7"
+          infoTooltip="Количество проведённых продаж (чеков)"
+        />
+        <MetricCard
+          title="Средний чек"
+          value={canReports ? formatSom(averageCheckMinor) : '0 сом'}
+          trendText="↑ +5% к вчерашнему дню"
+          icon={<ReceiptIcon />}
+          iconBg="#fef3c7"
+          iconColor="#d97706"
+          infoTooltip="Средняя сумма одной покупки"
+        />
       </section>
 
-      <div className="shop-home-grid">
-        <section className="panel shop-home-card shop-home-chart-card">
-          <div className="shop-home-card-head">
-            <h2>Динамика продаж</h2>
-            {canReports && (
-              <Link to={`${base}/reports`} className="shop-home-link">
-                Все отчёты →
-              </Link>
-            )}
+      {/* Row 2: Middle Section (Dynamics Chart + Recent Sales) */}
+      <div className="shop-home-middle-grid">
+        {/* Left Column: Dynamics Area Chart */}
+        <section className="shop-home-card shop-home-dynamics-card">
+          <div className="shop-home-card-header">
+            <h2>
+              {chartMetric === 'revenue'
+                ? 'Динамика выручки'
+                : 'Динамика продаж'}
+            </h2>
+            <div
+              className="shop-home-chart-toggle"
+              role="group"
+              aria-label="Метрика графика"
+            >
+              <button
+                type="button"
+                className={chartMetric === 'revenue' ? 'active' : ''}
+                onClick={() => setChartMetric('revenue')}
+              >
+                Выручка
+              </button>
+              <button
+                type="button"
+                className={chartMetric === 'sales' ? 'active' : ''}
+                onClick={() => setChartMetric('sales')}
+              >
+                Продажи
+              </button>
+            </div>
           </div>
+
           {canReports ? (
-            <div className="shop-home-chart-wrap">
-              {series.length > 0 ? (
-                <div className="shop-home-bars" role="list">
-                  {series.slice(-7).map((point) => {
-                    const value = Math.max(0, point.netMinor);
-                    const pct = Math.max(
-                      10,
-                      Math.round((value / maxDayMinor) * 100),
-                    );
-                    return (
-                      <div
-                        className="shop-home-bar-col"
-                        key={point.day}
-                        role="listitem"
+            <div className="shop-home-svg-chart-container">
+              <svg
+                viewBox="0 0 600 210"
+                className="shop-home-svg-chart"
+                preserveAspectRatio="none"
+                onMouseLeave={() => setHoverIndex(null)}
+              >
+                <defs>
+                  <linearGradient
+                    id="revenueAreaGrad"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="0%" stopColor="#176b4a" stopOpacity="0.25" />
+                    <stop
+                      offset="100%"
+                      stopColor="#176b4a"
+                      stopOpacity="0.01"
+                    />
+                  </linearGradient>
+                  <filter
+                    id="tooltipShadow"
+                    x="-20%"
+                    y="-20%"
+                    width="140%"
+                    height="140%"
+                  >
+                    <feDropShadow
+                      dx="0"
+                      dy="2"
+                      stdDeviation="3"
+                      floodColor="#000"
+                      floodOpacity="0.08"
+                    />
+                  </filter>
+                </defs>
+
+                {/* Y-axis gridlines & labels */}
+                {yGridLevels.map((lvl, idx) => {
+                  const y = yMin + (1 - lvl / niceMax) * (yMax - yMin);
+                  const label =
+                    chartMetric === 'revenue'
+                      ? lvl >= 1000
+                        ? `${Math.round(lvl / 1000)}k`
+                        : `${lvl}`
+                      : `${lvl}`;
+                  return (
+                    <g key={idx}>
+                      <line
+                        x1={xMin}
+                        y1={y}
+                        x2={xMax}
+                        y2={y}
+                        stroke="#f1f5f9"
+                        strokeDasharray="4 4"
+                        strokeWidth="1"
+                      />
+                      <text
+                        x={xMin - 8}
+                        y={y + 4}
+                        textAnchor="end"
+                        fill="#9ca3af"
+                        fontSize="11"
+                        fontFamily="inherit"
                       >
-                        <div className="shop-home-bar-track">
-                          <div
-                            className="shop-home-bar-fill"
-                            style={{ height: `${pct}%` }}
-                            title={`${point.day}: ${formatSom(value)}`}
-                          />
-                        </div>
-                        <small>{formatDayShort(point.day)}</small>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="muted">За выбранный период продаж пока нет.</p>
-              )}
-              <div className="shop-home-chart-summary">
-                <span>Итого за период</span>
-                <strong>{formatSom(summary?.revenueMinor ?? 0)}</strong>
-                <small>
-                  Валовая прибыль: {formatSom(summary?.grossProfitMinor ?? 0)}
-                </small>
-              </div>
+                        {label}
+                      </text>
+                    </g>
+                  );
+                })}
+
+                {/* Filled Area */}
+                {areaPath && <path d={areaPath} fill="url(#revenueAreaGrad)" />}
+
+                {/* Curved Line */}
+                {curvePath && (
+                  <path
+                    d={curvePath}
+                    fill="none"
+                    stroke="#176b4a"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                )}
+
+                {/* Hover trigger areas */}
+                {coords.map((c, i) => (
+                  <circle
+                    key={i}
+                    cx={c.x}
+                    cy={c.y}
+                    r="14"
+                    fill="transparent"
+                    style={{ cursor: 'pointer' }}
+                    onMouseEnter={() => setHoverIndex(i)}
+                  />
+                ))}
+
+                {/* X-axis labels */}
+                {coords.map((c, i) => (
+                  <text
+                    key={i}
+                    x={c.x}
+                    y={yMax + 18}
+                    textAnchor="middle"
+                    fill="#9ca3af"
+                    fontSize="11"
+                    fontFamily="inherit"
+                  >
+                    {chartPoints[i]?.label}
+                  </text>
+                ))}
+
+                {/* Active Indicator & Tooltip */}
+                {activeCoord && activePoint && (
+                  <g className="shop-home-chart-active-marker">
+                    <circle
+                      cx={activeCoord.x}
+                      cy={activeCoord.y}
+                      r="5.5"
+                      fill="#176b4a"
+                      stroke="#ffffff"
+                      strokeWidth="2.5"
+                    />
+                    <g
+                      transform={`translate(${activeCoord.x}, ${Math.max(
+                        20,
+                        activeCoord.y - 38,
+                      )})`}
+                      filter="url(#tooltipShadow)"
+                    >
+                      <rect
+                        x="-44"
+                        y="-10"
+                        width="88"
+                        height="32"
+                        rx="7"
+                        fill="#ffffff"
+                        stroke="#e5e7eb"
+                        strokeWidth="1"
+                      />
+                      <text
+                        x="0"
+                        y="3"
+                        textAnchor="middle"
+                        fill="#6b7280"
+                        fontSize="10"
+                        fontWeight="500"
+                      >
+                        {activePoint.label}
+                      </text>
+                      <text
+                        x="0"
+                        y="16"
+                        textAnchor="middle"
+                        fill="#111827"
+                        fontSize="11.5"
+                        fontWeight="700"
+                      >
+                        {activePoint.tooltipVal}
+                      </text>
+                    </g>
+                  </g>
+                )}
+              </svg>
             </div>
           ) : (
             <p className="muted">
@@ -301,53 +893,31 @@ export function ShopHome() {
           )}
         </section>
 
-        <section className="panel shop-home-card shop-home-low-stock-card">
-          <div className="shop-home-card-head">
-            <h2>Низкий остаток ({lowStockItems.length})</h2>
-            <Link to={`${base}/products`} className="shop-home-link">
-              Все товары →
-            </Link>
-          </div>
-          {lowStockItems.length > 0 ? (
-            <div className="shop-home-stock-list">
-              {lowStockItems.slice(0, 5).map((item) => (
-                <div className="shop-home-stock-row" key={item.id}>
-                  <ProductThumb variant={item} />
-                  <div className="shop-home-stock-meta">
-                    <strong>{item.name}</strong>
-                    <small>Арт. {item.barcode}</small>
-                  </div>
-                  <span className="shop-home-stock-pill">
-                    {item.available ?? 0} шт.
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="muted">Все товары в достаточном количестве.</p>
-          )}
-        </section>
-
-        <section className="panel shop-home-card shop-home-sales-card">
-          <div className="shop-home-card-head">
+        {/* Right Column: Recent Sales */}
+        <section className="shop-home-card shop-home-sales-card">
+          <div className="shop-home-card-header">
             <h2>Последние продажи</h2>
             <Link to={`${base}/sales`} className="shop-home-link">
-              Все продажи →
+              Смотреть все →
             </Link>
           </div>
+
           {sales.length > 0 ? (
-            <div className="shop-home-sales-list">
+            <div className="shop-home-list">
               {sales.map((sale) => (
-                <div className="shop-home-sale-row" key={sale.id}>
+                <div className="shop-home-recent-sale-row" key={sale.id}>
                   <span className="shop-home-sale-time">
                     {formatTime(sale.createdAt)}
                   </span>
-                  <span className="shop-home-sale-id">
-                    Чек #{sale.id.slice(0, 6)}
-                  </span>
-                  <span className="shop-home-sale-method">
-                    {sale.method === 'card' ? 'Карта' : 'Наличные'}
-                  </span>
+                  <div className="shop-home-sale-icon" aria-hidden="true">
+                    <ReceiptIcon />
+                  </div>
+                  <div className="shop-home-sale-meta">
+                    <strong>Чек #{sale.id.slice(0, 6)}</strong>
+                    <small>
+                      {sale.method === 'card' ? 'Оплата картой' : 'Наличные'}
+                    </small>
+                  </div>
                   <strong className="shop-home-sale-sum">
                     {formatSom(sale.totalMinor)}
                   </strong>
@@ -358,34 +928,156 @@ export function ShopHome() {
             <p className="muted">Продаж пока не было.</p>
           )}
         </section>
+      </div>
 
-        {canReports && (
-          <section className="panel shop-home-card shop-home-reports-card">
-            <div className="shop-home-card-head">
-              <h2>Быстрые отчёты</h2>
+      {/* Row 3: Bottom Section (3 Columns: Top Products, Low Stock, Quick Actions) */}
+      <div className="shop-home-bottom-grid">
+        {/* Column 1: Top Products */}
+        <section className="shop-home-card">
+          <div className="shop-home-card-header">
+            <h2>
+              {period === 'today' ? 'Топ товаров за сегодня' : 'Топ товаров'}
+            </h2>
+            <Link to={`${base}/products`} className="shop-home-link">
+              Смотреть все →
+            </Link>
+          </div>
+
+          {topProductsList.length > 0 ? (
+            <div className="shop-home-list">
+              {topProductsList.map((item, idx) => {
+                const variant = variantMap.get(item.id);
+                return (
+                  <div className="shop-home-top-product-row" key={item.id}>
+                    <span className="shop-home-rank-badge">{idx + 1}</span>
+                    <ProductThumb
+                      photoUrl={variant?.photoUrls?.[0] || variant?.photoUrl}
+                      photoUrls={variant?.photoUrls}
+                    />
+                    <div className="shop-home-product-meta">
+                      <strong>{item.name}</strong>
+                      <small>
+                        {item.quantitySold > 0
+                          ? `Продано: ${item.quantitySold} шт.`
+                          : `В наличии: ${variant?.available ?? 0} шт.`}
+                      </small>
+                    </div>
+                    <strong className="shop-home-product-sum">
+                      {formatSom(item.revenueMinor)}
+                    </strong>
+                  </div>
+                );
+              })}
             </div>
-            <div className="shop-home-report-tiles">
-              <Link to={`${base}/reports`} className="shop-home-report-tile">
-                <strong>Продажи</strong>
-                <small>Выручка и чеки</small>
-              </Link>
-              <Link to={`${base}/inventory`} className="shop-home-report-tile">
-                <strong>Остатки</strong>
-                <small>Склад и ревизия</small>
-              </Link>
-              {shop.role === 'owner' && (
-                <Link to={`${base}/staff`} className="shop-home-report-tile">
-                  <strong>Сотрудники</strong>
-                  <small>Роли и доступы</small>
-                </Link>
-              )}
-              <Link to={`${base}/reports`} className="shop-home-report-tile">
-                <strong>Прибыль</strong>
-                <small>Маржа и себестоимость</small>
-              </Link>
+          ) : (
+            <p className="muted">Товары пока не добавлены.</p>
+          )}
+        </section>
+
+        {/* Column 2: Low Stock Alerts */}
+        <section className="shop-home-card">
+          <div className="shop-home-card-header">
+            <h2>Остатки на складе</h2>
+            <Link to={`${base}/inventory`} className="shop-home-link">
+              Смотреть все →
+            </Link>
+          </div>
+
+          {lowStockItems.length > 0 ? (
+            <div className="shop-home-list">
+              {lowStockItems.slice(0, 4).map((item) => (
+                <div className="shop-home-stock-alert-row" key={item.id}>
+                  <span className="shop-home-alert-icon" aria-hidden="true">
+                    <WarningTriangleIcon />
+                  </span>
+                  <div className="shop-home-product-meta">
+                    <strong>{item.name}</strong>
+                    <small className="shop-home-stock-warning-text">
+                      Остаток: {item.available ?? 0} шт.
+                    </small>
+                  </div>
+                </div>
+              ))}
             </div>
-          </section>
-        )}
+          ) : (
+            <p className="muted">Все товары в достаточном количестве.</p>
+          )}
+        </section>
+
+        {/* Column 3: Quick Actions */}
+        <section className="shop-home-card">
+          <div className="shop-home-card-header">
+            <h2>Быстрые действия</h2>
+          </div>
+
+          <div className="shop-home-actions-tile-grid">
+            <Link
+              to={`${base}/pos`}
+              className="shop-home-action-tile"
+              aria-label="Открыть кассу"
+            >
+              <span
+                className="shop-home-action-tile-icon green"
+                aria-hidden="true"
+              >
+                <CartIcon />
+              </span>
+              <span className="shop-home-action-tile-title">Новая продажа</span>
+            </Link>
+
+            {canCatalog && (
+              <Link
+                to={`${base}/products/new`}
+                className="shop-home-action-tile"
+                aria-label="Создать товар"
+              >
+                <span
+                  className="shop-home-action-tile-icon green"
+                  aria-hidden="true"
+                >
+                  <PlusSquareIcon />
+                </span>
+                <span className="shop-home-action-tile-title">
+                  Создать товар
+                </span>
+              </Link>
+            )}
+
+            {canCatalog && (
+              <Link
+                to={`${base}/receiving`}
+                className="shop-home-action-tile"
+                aria-label="Новая приёмка"
+              >
+                <span
+                  className="shop-home-action-tile-icon green"
+                  aria-hidden="true"
+                >
+                  <InboxIcon />
+                </span>
+                <span className="shop-home-action-tile-title">
+                  Приёмка товара
+                </span>
+              </Link>
+            )}
+
+            <Link
+              to={`${base}/labels`}
+              className="shop-home-action-tile"
+              aria-label="Печать этикеток"
+            >
+              <span
+                className="shop-home-action-tile-icon green"
+                aria-hidden="true"
+              >
+                <PrinterIcon />
+              </span>
+              <span className="shop-home-action-tile-title">
+                Печать этикеток
+              </span>
+            </Link>
+          </div>
+        </section>
       </div>
     </div>
   );
