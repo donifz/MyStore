@@ -186,7 +186,7 @@ test('photo creation produces zero stock, then explicit receiving posts quantity
     { shop },
   );
   expect(created.physical).toBe(0);
-  expect(created.barcode).toMatch(/^MS[0-9A-F]{24}$/);
+  expect(created.barcode).toMatch(/^[0-9]{8}$/);
   await page.getByRole('button', { name: 'Провести приёмку' }).click();
   await expect(page.getByRole('status')).toContainText('Документ проведён');
   const after = await page.evaluate(
