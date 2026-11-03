@@ -27,6 +27,13 @@ describe('variants', () => {
       .set('Authorization', `Bearer ${ctx.cashier}`)
       .expect(200);
     expect(found.body.barcode).toBe('0012345678905');
+    expect(found.body.shortBarcode).toMatch(/^\d{8}$/);
+    const shortLookup = await request(ctx.app.getHttpServer())
+      .get(`/shops/${fixture.shop}/variants/by-barcode`)
+      .query({ code: found.body.shortBarcode })
+      .set('Authorization', `Bearer ${ctx.cashier}`)
+      .expect(200);
+    expect(shortLookup.body.id).toBe(id);
     expect(found.body.id).toBe(id);
     expect(found.body).not.toHaveProperty('unitCostMinor');
   });
@@ -93,5 +100,47 @@ describe('variants', () => {
       .set('Authorization', `Bearer ${ctx.owner}`)
       .expect(200);
     expect(lookup.body.id).toBe(created.body.id);
+    expect(created.body.barcode).toMatch(/^\d{8}$/);
+    expect(created.body.shortBarcode).toBe(created.body.barcode);
+  });
+  test('rejects a supplied barcode that belongs to another product as a short code', async () => {
+    const [existing] = await ctx.db.query(
+      'SELECT short_barcode FROM variants WHERE id=$1',
+      [id],
+    );
+    await request(ctx.app.getHttpServer())
+      .post(`/shops/${fixture.shop}/variants`)
+      .set('Authorization', `Bearer ${ctx.owner}`)
+      .set('Idempotency-Key', randomUUID())
+      .send({ name: 'Conflicting', barcode: existing.short_barcode, salePriceMinor: 100 })
+      .expect(409);
+  });
+
+  test('finds products through catalog search by short barcode', async () => {
+    const [existing] = await ctx.db.query(
+      'SELECT short_barcode FROM variants WHERE id=$1',
+      [id],
+    );
+    const catalog = await request(ctx.app.getHttpServer())
+      .get(`/shops/${fixture.shop}/variants`)
+      .query({ q: existing.short_barcode })
+      .set('Authorization', `Bearer ${ctx.owner}`)
+      .expect(200);
+    expect(catalog.body.items.some((item: { id: string }) => item.id === id)).toBe(true);
+  });
+
+  test('database assigns compact codes to directly imported variants', async () => {
+    const importedId = randomUUID();
+    const [row] = await ctx.db.query(
+      'INSERT INTO variants(id,shop_id,name,barcode,sale_price_minor) VALUES($1,$2,$3,$4,$5) RETURNING short_barcode',
+      [importedId, fixture.shop, 'Imported', 'LEGACY-' + importedId, 400],
+    );
+    expect(row.short_barcode).toMatch(/^\d{8}$/);
+    const found = await request(ctx.app.getHttpServer())
+      .get(`/shops/${fixture.shop}/variants/by-barcode`)
+      .query({ code: row.short_barcode })
+      .set('Authorization', `Bearer ${ctx.owner}`)
+      .expect(200);
+    expect(found.body.id).toBe(importedId);
   });
 });
