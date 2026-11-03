@@ -32,7 +32,10 @@ export default function BarcodeLabel({
   hidePrintButton = false,
   size,
 }: {
-  product: Pick<Variant, 'id' | 'name' | 'barcode' | 'salePriceMinor' | 'sku' | 'shortBarcode'>;
+  product: Pick<
+    Variant,
+    'id' | 'name' | 'barcode' | 'salePriceMinor' | 'sku' | 'shortBarcode'
+  >;
   copies?: number;
   hidePrintButton?: boolean;
   size?: LabelSize;

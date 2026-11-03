@@ -112,7 +112,11 @@ describe('variants', () => {
       .post(`/shops/${fixture.shop}/variants`)
       .set('Authorization', `Bearer ${ctx.owner}`)
       .set('Idempotency-Key', randomUUID())
-      .send({ name: 'Conflicting', barcode: existing.short_barcode, salePriceMinor: 100 })
+      .send({
+        name: 'Conflicting',
+        barcode: existing.short_barcode,
+        salePriceMinor: 100,
+      })
       .expect(409);
   });
 
@@ -126,7 +130,9 @@ describe('variants', () => {
       .query({ q: existing.short_barcode })
       .set('Authorization', `Bearer ${ctx.owner}`)
       .expect(200);
-    expect(catalog.body.items.some((item: { id: string }) => item.id === id)).toBe(true);
+    expect(
+      catalog.body.items.some((item: { id: string }) => item.id === id),
+    ).toBe(true);
   });
 
   test('database assigns compact codes to directly imported variants', async () => {

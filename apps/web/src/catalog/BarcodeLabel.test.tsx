@@ -72,7 +72,11 @@ it('lets the user clear and re-enter a copy count without accidentally producing
 });
 
 it('prints the short code for a legacy product without changing its old barcode', () => {
-  const { container } = render(<BarcodeLabel product={{ ...product, shortBarcode: '00001234' }} />);
+  const { container } = render(
+    <BarcodeLabel product={{ ...product, shortBarcode: '00001234' }} />,
+  );
   expect(container.querySelector('.barcode-value')?.textContent).toBe('00001234');
-  expect(container.querySelector('.barcode-symbol')?.getAttribute('viewBox')).toContain('99 50');
+  expect(
+    container.querySelector('.barcode-symbol')?.getAttribute('viewBox'),
+  ).toContain('99 50');
 });
