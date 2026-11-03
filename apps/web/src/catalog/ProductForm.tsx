@@ -10,7 +10,8 @@ import { api, ApiError, errorText } from '../api/client';
 import { parseSom, formatSom } from '../api/money';
 import type { Variant } from '../api/types';
 import PhotoAssistant, { type CategoryNode } from './PhotoAssistant';
-import { photoFrom } from './product-photo';
+import { usePhotoCropQueue } from './use-photo-crop-queue';
+import SquareCameraCapture from './SquareCameraCapture';
 import { isPurchaseAboveSale, somOrNull } from '../receiving/purchase-warning';
 export default function ProductForm({
   shopId,
@@ -29,6 +30,7 @@ export default function ProductForm({
   addToDraftLabel,
   secondarySubmitLabel,
   showCancelInFooter = true,
+  receivingLayout = false,
   onCancel,
   onSaved,
   onAddToDraft,
@@ -52,6 +54,7 @@ export default function ProductForm({
   addToDraftLabel?: string;
   secondarySubmitLabel?: string;
   showCancelInFooter?: boolean;
+  receivingLayout?: boolean;
   validateBeforeSave?: () => void;
   validateDraftSave?: () => void;
   onCancel?: () => void;
@@ -70,11 +73,11 @@ export default function ProductForm({
     [subcategory, setSubcategory] = useState(''),
     [description, setDescription] = useState(''),
     [photo, setPhoto] = useState(''),
+    [cameraOpen, setCameraOpen] = useState(false),
     [photos, setPhotos] = useState<string[]>([]),
     [categories, setCategories] = useState<CategoryNode[]>([]),
     [extraOpen, setExtraOpen] = useState(false),
     [busy, setBusy] = useState(false),
-    [loadingPhoto, setLoadingPhoto] = useState(false),
     [recognizing, setRecognizing] = useState(false),
     [barcodeBusy, setBarcodeBusy] = useState(false),
     [hint, setHint] = useState(''),
@@ -92,29 +95,27 @@ export default function ProductForm({
     (value: CategoryNode[]) => setCategories(Array.isArray(value) ? value : []),
     [],
   );
-  const locked = disabled || busy || loadingPhoto || recognizing || barcodeBusy;
-  async function choose(files?: FileList | null) {
+  const photoCrop = usePhotoCropQueue((data) => {
+    photoRevision.current++;
+    setPhotos(data);
+    setPhoto(data[0] ?? '');
+  });
+  const locked =
+    disabled ||
+    busy ||
+    photoCrop.cropping ||
+    cameraOpen ||
+    recognizing ||
+    barcodeBusy;
+
+  function choose(files?: FileList | null) {
     if (!files?.length) return;
     if (files.length > 8) {
       setError('Не более 8 фотографий товара.');
       return;
     }
-    const revision = ++photoRevision.current;
-    setLoadingPhoto(true);
     setError('');
-    setPhoto('');
-    setPhotos([]);
-    try {
-      const data = await Promise.all(Array.from(files).map(photoFrom));
-      if (photoRevision.current === revision) {
-        setPhotos(data);
-        setPhoto(data[0] ?? '');
-      }
-    } catch (e) {
-      if (photoRevision.current === revision) setError(errorText(e));
-    } finally {
-      if (photoRevision.current === revision) setLoadingPhoto(false);
-    }
+    photoCrop.choose(files);
   }
   async function lookup() {
     const code = barcode.trim();
@@ -225,9 +226,51 @@ export default function ProductForm({
       setBusy(false);
     }
   }
+  const barcodeFields = (
+    <>
+      <label className="product-field-barcode">
+        Штрихкод
+        <input
+          maxLength={64}
+          readOnly={barcodeReadOnly}
+          value={barcode}
+          onChange={(e) => {
+            lookupRevision.current++;
+            setBarcodeBusy(false);
+            setBarcode(e.target.value);
+            setHint('');
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              if (/^\d{8,14}$/.test(barcode.trim())) void lookup();
+            }
+          }}
+          placeholder="Сканируйте или оставьте пустым"
+        />
+      </label>
+      <div className="product-barcode-tools">
+        <p className="muted">
+          Сканер вводит код как клавиатура. Пустое поле — создадим код.
+        </p>
+        <button
+          type="button"
+          disabled={!barcode.trim() || locked}
+          onClick={() => void lookup()}
+        >
+          Найти по штрихкоду
+        </button>
+      </div>
+      {hint && (
+        <p role="status" className="notice">
+          {hint}
+        </p>
+      )}
+    </>
+  );
   return (
     <form
-      className="product-form product-form-compact"
+      className={`product-form product-form-compact${receivingLayout ? ' product-form-receiving' : ''}`}
       aria-label={formLabel}
       onSubmit={(e) => void submit(e)}
     >
@@ -302,7 +345,7 @@ export default function ProductForm({
                             title="Снять другое фото на камеру"
                             onClick={(e) => {
                               e.stopPropagation();
-                              cameraInputRef.current?.click();
+                              setCameraOpen(true);
                             }}
                           >
                             <svg
@@ -372,7 +415,7 @@ export default function ProductForm({
                             title="Снять на камеру"
                             onClick={(e) => {
                               e.stopPropagation();
-                              cameraInputRef.current?.click();
+                              setCameraOpen(true);
                             }}
                           >
                             <svg
@@ -442,7 +485,6 @@ export default function ProductForm({
                       ×
                     </button>
                   )}
-                  {loadingPhoto && <p role="status">Подготовка фото…</p>}
                   {photos.length > 1 && (
                     <p className="muted">Выбрано фотографий: {photos.length}</p>
                   )}
@@ -452,6 +494,7 @@ export default function ProductForm({
                   photo={photo}
                   onBusyChange={setRecognizing}
                   onCategories={updateCategories}
+                  inlineForReceiving={receivingLayout}
                   onApply={(s) => {
                     setName(s.name);
                     setDescription(s.description);
@@ -501,44 +544,7 @@ export default function ProductForm({
                 </label>
               </div>
               {footerFields}
-              <label className="product-field-barcode">
-                Штрихкод
-                <input
-                  maxLength={64}
-                  readOnly={barcodeReadOnly}
-                  value={barcode}
-                  onChange={(e) => {
-                    lookupRevision.current++;
-                    setBarcodeBusy(false);
-                    setBarcode(e.target.value);
-                    setHint('');
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      if (/^\d{8,14}$/.test(barcode.trim())) void lookup();
-                    }
-                  }}
-                  placeholder="Сканируйте или оставьте пустым"
-                />
-              </label>
-              <div className="product-barcode-tools">
-                <p className="muted">
-                  Сканер вводит код как клавиатура. Пустое поле — создадим код.
-                </p>
-                <button
-                  type="button"
-                  disabled={!barcode.trim() || locked}
-                  onClick={() => void lookup()}
-                >
-                  Найти по штрихкоду
-                </button>
-              </div>
-              {hint && (
-                <p role="status" className="notice">
-                  {hint}
-                </p>
-              )}
+              {barcodeFields}
               <div
                 className={`product-form-extra${extraOpen ? ' open' : ''}`}
                 onFocusCapture={() => setExtraOpen(true)}
@@ -661,6 +667,18 @@ export default function ProductForm({
           )}
         </div>
       </footer>
+      {photoCrop.cropDialog}
+      {cameraOpen && (
+        <SquareCameraCapture
+          onClose={() => setCameraOpen(false)}
+          onFallback={() => cameraInputRef.current?.click()}
+          onPhoto={(data) => {
+            photoRevision.current++;
+            setPhotos([data]);
+            setPhoto(data);
+          }}
+        />
+      )}
     </form>
   );
 }

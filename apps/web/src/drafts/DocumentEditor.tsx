@@ -462,7 +462,6 @@ export default function DocumentEditor({
               parentId={parentId}
               barcode={doc.productCreation}
               creationKey={doc.draft.primaryReceiving?.productKey}
-              draftLines={doc.draft.lines}
               disabled={doc.blocked || !doc.online || doc.busy}
               onCancel={doc.closeProductCreation}
               onSwitchToSearch={() => {

@@ -46,16 +46,59 @@ for (const width of [390, 1440]) {
     await scanner.fill(barcode);
     await scanner.press('Enter');
     const form = page.getByRole('form', { name: 'Новый товар в приёмке' });
-    const bannerBtn = page.getByRole('button', {
-      name: 'Создать товар с этим штрихкодом',
-    });
-    if (!(await form.isVisible().catch(() => false))) {
-      if (await bannerBtn.isVisible().catch(() => false)) {
-        await bannerBtn.click();
-      }
-    }
+    // Unknown barcode opens the creation form automatically. The fallback
+    // banner can disappear between isVisible() and click() as the form opens,
+    // so clicking it introduces a race on slower desktop CI runs.
     await expect(form).toBeVisible();
+    // Wait for the receiving sheet entrance animation before comparing
+    // bounding boxes; otherwise the sheet moves between measurements.
+    await page
+      .locator('.receiving-product-sheet-drawer')
+      .evaluate(async (el) => {
+        await Promise.all(
+          el.getAnimations().map((animation) => animation.finished),
+        );
+      });
     await expect(form.getByLabel('Штрихкод')).toHaveValue(barcode);
+    // A scanned barcode must be visible in the primary form, without
+    // expanding "Дополнительные поля" to see it.
+    await expect(
+      form.locator('.product-form-body > .product-field-barcode'),
+    ).toBeVisible();
+    await expect(form.getByLabel('Штрихкод')).toHaveAttribute('readonly', '');
+    // Restore the original field layout: labels above inputs, not narrow
+    // horizontal label/input columns, at mobile and desktop widths.
+    for (const [wrapperClass, label] of [
+      ['.product-field-name', 'Название'],
+      ['.product-field-sale-price', 'Цена продажи, сом'],
+      ['.product-field-category', 'Категория'],
+      ['.product-field-cost', 'Закупочная цена, сом'],
+      ['.product-field-quantity', 'Количество первичной приёмки'],
+      ['.product-field-barcode', 'Штрихкод'],
+    ]) {
+      const wrapperBox = await form.locator(wrapperClass).boundingBox();
+      const fieldBox = await form
+        .locator(wrapperClass)
+        .locator('input, select')
+        .first()
+        .boundingBox();
+      expect(wrapperBox, label).not.toBeNull();
+      expect(fieldBox, label).not.toBeNull();
+      expect(fieldBox!.y, label).toBeGreaterThan(wrapperBox!.y + 12);
+    }
+
+    // Photo and Gemini controls should be side-by-side at both widths.
+    // A lengthy AI suggestion must not stretch the photo upload area.
+    const photoBox = await form
+      .locator('.product-photo-upload-card')
+      .boundingBox();
+    const aiBox = await form
+      .getByRole('button', { name: 'Определить по фото' })
+      .boundingBox();
+    expect(photoBox).not.toBeNull();
+    expect(aiBox).not.toBeNull();
+    expect(Math.abs(photoBox!.y - aiBox!.y)).toBeLessThan(6);
+    expect(photoBox!.height).toBeLessThan(240);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,

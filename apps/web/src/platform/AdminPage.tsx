@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import WorkspaceShell from '../layout/WorkspaceShell';
 import {
@@ -29,6 +30,8 @@ type Product = {
   name: string;
   description: string;
   category: string;
+  subcategory?: string | null;
+  created_at?: string;
   has_photo: boolean;
   has_publication: boolean;
 };
@@ -47,6 +50,13 @@ type Audit = {
   created_at: string;
 };
 type Page<T> = { items: T[]; total: number };
+const PRODUCTS_PAGE_SIZE = 10;
+const productDate = (value?: string, withTime = false) => {
+  if (!value || Number.isNaN(Date.parse(value))) return '—';
+  return withTime
+    ? new Date(value).toLocaleString('ru-RU')
+    : new Date(value).toLocaleDateString('ru-RU');
+};
 
 type AdminOverview = {
   shopCount: number;
@@ -75,6 +85,10 @@ export default function AdminPage() {
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [productPage, setProductPage] = useState(1);
+  const [productTotal, setProductTotal] = useState(0);
+  const [productLoading, setProductLoading] = useState(true);
+  const [productRefresh, setProductRefresh] = useState(0);
   const [audit, setAudit] = useState<Audit[]>([]);
   const [grants, setGrants] = useState<PlatformFinancialGrant[]>([]);
   const [selectedGrant, setSelectedGrant] =
@@ -111,9 +125,8 @@ export default function AdminPage() {
   }
   const [search, setSearch] = useState('');
   async function load() {
-    const [a, p, h, summary, g] = await Promise.all([
+    const [a, h, summary, g] = await Promise.all([
       api<Page<Application>>('/platform/admin/applications'),
-      api<Page<Product>>('/platform/admin/products'),
       api<Page<Audit>>('/platform/admin/audit'),
       api<AdminOverview>('/platform/admin/overview'),
       api<{ items: PlatformFinancialGrant[] }>(
@@ -121,12 +134,51 @@ export default function AdminPage() {
       ).catch(() => ({ items: [] })),
     ]);
     setApplications(a.items);
-    setProducts(p.items);
     setAudit(h.items);
     setOverview(summary);
     setGrants(g.items);
     setLoading(false);
   }
+  useEffect(() => {
+    if (!session.user?.platformAdmin) return;
+    let active = true;
+    setProductLoading(true);
+    const timer = window.setTimeout(
+      () => {
+        const query = search.trim();
+        void api<Page<Product>>(
+          `/platform/admin/products?page=${productPage}&pageSize=${PRODUCTS_PAGE_SIZE}${query ? `&q=${encodeURIComponent(query)}` : ''}`,
+        )
+          .then((result) => {
+            if (!active) return;
+            setProducts(result.items);
+            setProductTotal(result.total);
+            const lastPage = Math.max(
+              1,
+              Math.ceil(result.total / PRODUCTS_PAGE_SIZE),
+            );
+            if (productPage > lastPage) setProductPage(lastPage);
+          })
+          .catch((e) => {
+            if (active) setError(errorText(e));
+          })
+          .finally(() => {
+            if (active) setProductLoading(false);
+          });
+      },
+      search.trim() ? 250 : 0,
+    );
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [
+    session.user?.userId,
+    session.user?.platformAdmin,
+    productPage,
+    search,
+    productRefresh,
+  ]);
   useEffect(() => {
     if (!session.user?.platformAdmin) return;
     void load().catch((e) => {
@@ -171,6 +223,7 @@ export default function AdminPage() {
     }
   }
   async function showProduct(id: string) {
+    setSelected(null);
     setError('');
     setReason('');
     try {
@@ -181,6 +234,22 @@ export default function AdminPage() {
       setError(errorText(e));
     }
   }
+  useEffect(() => {
+    if (!selected) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !busy) {
+        setSelected(null);
+        setReason('');
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [selected, busy]);
   async function decideProduct(decision: 'approved' | 'rejected') {
     if (!selected) return;
     setBusy(true);
@@ -196,9 +265,11 @@ export default function AdminPage() {
       setSelected(null);
       setReason('');
       await load();
+      setProductRefresh((value) => value + 1);
     } catch (e) {
       setError(errorText(e));
       await load().catch(() => {});
+      setProductRefresh((value) => value + 1);
     } finally {
       setBusy(false);
     }
@@ -328,11 +399,15 @@ export default function AdminPage() {
       value.toLowerCase().includes(search.toLowerCase()),
     ),
   );
-  const visibleProducts = products.filter((p) =>
-    [p.name, p.shop_name, p.category].some((value) =>
-      value.toLowerCase().includes(search.toLowerCase()),
-    ),
+  const visibleProducts = products;
+  const productPageCount = Math.max(
+    1,
+    Math.ceil(productTotal / PRODUCTS_PAGE_SIZE),
   );
+  const productFirst = productTotal
+    ? (productPage - 1) * PRODUCTS_PAGE_SIZE + 1
+    : 0;
+  const productLast = Math.min(productTotal, productPage * PRODUCTS_PAGE_SIZE);
   const appStatus = (status: Application['status']) =>
     status === 'approved'
       ? 'Одобрена'
@@ -445,16 +520,19 @@ export default function AdminPage() {
       subtitle="Карточки магазинов на проверке"
       action={<button onClick={() => setTab('products')}>Все товары →</button>}
     >
-      {!visibleProducts.length ? (
+      {productLoading ? (
+        <p role="status">Загрузка товаров…</p>
+      ) : !visibleProducts.length ? (
         <AdminEmpty>Нет карточек на проверке</AdminEmpty>
       ) : (
         <div className="admin-kit-scroll">
-          <table className="admin-kit-table">
+          <table className="admin-kit-table admin-kit-products-table">
             <thead>
               <tr>
                 <th>Товар</th>
                 <th>Магазин</th>
                 <th>Категория</th>
+                <th>Дата</th>
                 <th>Статус</th>
                 <th>Действие</th>
               </tr>
@@ -462,16 +540,16 @@ export default function AdminPage() {
             <tbody>
               {visibleProducts.map((p) => (
                 <tr key={p.revision_id}>
-                  <td>
+                  <td data-label="Товар">
                     <strong>{p.name}</strong>
-                    <small>{p.description}</small>
                   </td>
-                  <td>{p.shop_name}</td>
-                  <td>{p.category || 'Не указана'}</td>
-                  <td>
+                  <td data-label="Магазин">{p.shop_name}</td>
+                  <td data-label="Категория">{p.category || 'Не указана'}</td>
+                  <td data-label="Дата">{productDate(p.created_at)}</td>
+                  <td data-label="Статус">
                     <AdminStatus>На проверке</AdminStatus>
                   </td>
-                  <td>
+                  <td data-label="Действие">
                     <button onClick={() => void showProduct(p.revision_id)}>
                       Посмотреть
                     </button>
@@ -481,6 +559,37 @@ export default function AdminPage() {
             </tbody>
           </table>
         </div>
+      )}
+      {!productLoading && productTotal > 0 && (
+        <nav
+          className="admin-kit-pagination"
+          aria-label="Страницы товаров на модерации"
+        >
+          <span>
+            Показано {productFirst}–{productLast} из {productTotal}
+          </span>
+          <div className="admin-kit-pagination-controls">
+            <button
+              type="button"
+              disabled={productPage === 1}
+              onClick={() => setProductPage((page) => Math.max(1, page - 1))}
+            >
+              Назад
+            </button>
+            <strong aria-live="polite">
+              {productPage} из {productPageCount}
+            </strong>
+            <button
+              type="button"
+              disabled={productPage >= productPageCount}
+              onClick={() =>
+                setProductPage((page) => Math.min(productPageCount, page + 1))
+              }
+            >
+              Далее
+            </button>
+          </div>
+        </nav>
       )}
     </AdminCard>
   );
@@ -493,7 +602,10 @@ export default function AdminPage() {
           <input
             aria-label="Поиск по заявкам и товарам"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setProductPage(1);
+            }}
             placeholder="Поиск партнёров, магазинов, товаров..."
           />
         </label>
@@ -957,65 +1069,7 @@ export default function AdminPage() {
               {applicationsTable}
             </>
           ) : tab === 'products' ? (
-            <>
-              {productsTable}
-              {selected && (
-                <AdminCard
-                  title={`Предложено: ${selected.name}`}
-                  subtitle={selected.shop_name}
-                >
-                  {selected.has_photo && (
-                    <img
-                      className="product-photo"
-                      src={`/api/platform/admin/products/revisions/${selected.revision_id}/photo`}
-                      alt="Фото для проверки"
-                    />
-                  )}
-                  <p>
-                    {selected.category} · {selected.description}
-                  </p>
-                  <h3>
-                    Сейчас на витрине:{' '}
-                    {selected.approved_name ?? 'Ещё не опубликовано'}
-                  </h3>
-                  {selected.approved_has_photo && (
-                    <img
-                      className="product-photo"
-                      src={`/api/platform/admin/products/revisions/${selected.revision_id}/photo?approved=true`}
-                      alt="Одобренное фото"
-                    />
-                  )}
-                  <p>
-                    {selected.approved_category} ·{' '}
-                    {selected.approved_description}
-                  </p>
-                  <label className="admin-kit-reason">
-                    Причина отказа
-                    <input
-                      value={reason}
-                      maxLength={500}
-                      onChange={(e) => setReason(e.target.value)}
-                    />
-                  </label>
-                  <div className="admin-kit-actions">
-                    <button
-                      className="admin-kit-approve"
-                      disabled={busy}
-                      onClick={() => void decideProduct('approved')}
-                    >
-                      Одобрить карточку
-                    </button>
-                    <button
-                      className="admin-kit-reject"
-                      disabled={busy || !reason.trim()}
-                      onClick={() => void decideProduct('rejected')}
-                    >
-                      Отклонить карточку
-                    </button>
-                  </div>
-                </AdminCard>
-              )}
-            </>
+            <>{productsTable}</>
           ) : tab === 'financial-access' ? (
             <div className="admin-kit-grid">
               <div className="admin-kit-primary">
@@ -1236,6 +1290,144 @@ export default function AdminPage() {
           )}
         </>
       )}
+      {selected &&
+        createPortal(
+          <div className="admin-kit-product-modal-backdrop">
+            <section
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="product-moderation-title"
+              className="admin-kit-product-modal"
+            >
+              <header className="admin-kit-product-modal-header">
+                <div>
+                  <h2 id="product-moderation-title">
+                    Предложено: {selected.name}
+                  </h2>
+                  <p>{selected.shop_name}</p>
+                </div>
+                <button
+                  type="button"
+                  className="admin-kit-product-modal-close"
+                  aria-label="Закрыть карточку"
+                  disabled={busy}
+                  autoFocus
+                  onClick={() => {
+                    setSelected(null);
+                    setReason('');
+                  }}
+                >
+                  ×
+                </button>
+              </header>
+              <div className="admin-kit-product-modal-body">
+                <div className="admin-kit-product-modal-photo">
+                  {selected.has_photo ? (
+                    <img
+                      src={
+                        '/api/platform/admin/products/revisions/' +
+                        selected.revision_id +
+                        '/photo'
+                      }
+                      alt={'Фото товара ' + selected.name}
+                    />
+                  ) : (
+                    <span>Фото товара не добавлено</span>
+                  )}
+                </div>
+                <div className="admin-kit-product-modal-info">
+                  <dl>
+                    <div>
+                      <dt>Магазин</dt>
+                      <dd>{selected.shop_name}</dd>
+                    </div>
+                    <div>
+                      <dt>Категория</dt>
+                      <dd>{selected.category || 'Не указана'}</dd>
+                    </div>
+                    <div>
+                      <dt>Подкатегория</dt>
+                      <dd>{selected.subcategory || 'Не указана'}</dd>
+                    </div>
+                    <div>
+                      <dt>Дата заявки</dt>
+                      <dd>{productDate(selected.created_at, true)}</dd>
+                    </div>
+                    <div>
+                      <dt>Статус</dt>
+                      <dd>
+                        <AdminStatus>На проверке</AdminStatus>
+                      </dd>
+                    </div>
+                  </dl>
+                  <h3>Описание</h3>
+                  <p className="admin-kit-product-modal-description">
+                    {selected.description || 'Описание не добавлено'}
+                  </p>
+                </div>
+              </div>
+              {selected.has_publication && (
+                <div className="admin-kit-product-modal-approved">
+                  <h3>Сейчас опубликовано</h3>
+                  <div>
+                    {selected.approved_has_photo && (
+                      <img
+                        src={
+                          '/api/platform/admin/products/revisions/' +
+                          selected.revision_id +
+                          '/photo?approved=true'
+                        }
+                        alt="Текущее фото на витрине"
+                      />
+                    )}
+                    <p>
+                      <strong>{selected.approved_name}</strong>
+                      <span>
+                        {selected.approved_category || 'Без категории'}
+                      </span>
+                      <span>
+                        {selected.approved_description || 'Без описания'}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              )}
+              <footer className="admin-kit-product-modal-footer">
+                <label className="admin-kit-reason">
+                  Причина отклонения
+                  <input
+                    value={reason}
+                    maxLength={500}
+                    onChange={(e) => setReason(e.target.value)}
+                    placeholder="Обязательна при отклонении"
+                  />
+                </label>
+                {error && (
+                  <p role="alert" className="error">
+                    {error}
+                  </p>
+                )}
+                <div className="admin-kit-actions">
+                  <button
+                    className="admin-kit-approve"
+                    disabled={busy}
+                    onClick={() => void decideProduct('approved')}
+                  >
+                    Одобрить карточку
+                  </button>
+                  <button
+                    className="admin-kit-reject"
+                    disabled={busy || !reason.trim()}
+                    onClick={() => void decideProduct('rejected')}
+                  >
+                    Отклонить карточку
+                  </button>
+                </div>
+              </footer>
+            </section>
+          </div>,
+          document.body,
+        )}
     </WorkspaceShell>
   );
 }

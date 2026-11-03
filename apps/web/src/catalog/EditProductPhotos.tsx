@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api, errorText } from '../api/client';
 import type { Variant } from '../api/types';
 import { photoFrom } from './product-photo';
+import { usePhotoCropQueue } from './use-photo-crop-queue';
 
 export default function EditProductPhotos({
   shopId,
@@ -14,28 +15,23 @@ export default function EditProductPhotos({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const photoCrop = usePhotoCropQueue((added) => {
+    setPhotos((current) => [...current, ...added]);
+    setMessage('');
+  });
   useEffect(() => {
     const fallback = variant.photoUrl ? [variant.photoUrl] : [];
     setPhotos(variant.photoUrls ?? fallback);
   }, [variant.id, variant.photoUrl, variant.photoUrls]);
 
-  async function add(files: FileList | null) {
+  function add(files: FileList | null) {
     if (!files?.length) return;
     if (photos.length + files.length > 8) {
       setError('Допускается не более восьми фотографий.');
       return;
     }
-    setBusy(true);
     setError('');
-    try {
-      const added = await Promise.all(Array.from(files).map(photoFrom));
-      setPhotos((current) => [...current, ...added]);
-      setMessage('');
-    } catch (e) {
-      setError(errorText(e));
-    } finally {
-      setBusy(false);
-    }
+    photoCrop.choose(files);
   }
 
   async function save() {
@@ -124,9 +120,9 @@ export default function EditProductPhotos({
           type="file"
           multiple
           accept="image/jpeg,image/png,image/webp"
-          disabled={busy || photos.length >= 8}
+          disabled={busy || photoCrop.cropping || photos.length >= 8}
           onChange={(e) => {
-            void add(e.target.files);
+            add(e.target.files);
             e.target.value = '';
           }}
         />
@@ -149,6 +145,7 @@ export default function EditProductPhotos({
       >
         {busy ? 'Сохранение…' : 'Сохранить фотографии'}
       </button>
+      {photoCrop.cropDialog}
     </section>
   );
 }

@@ -24,12 +24,14 @@ export default function PhotoAssistant({
   onApply,
   onBusyChange,
   onCategories,
+  inlineForReceiving = false,
 }: {
   shopId: string;
   photo: string;
   onApply: (s: Suggestion) => void;
   onBusyChange: (busy: boolean) => void;
   onCategories: (categories: CategoryNode[]) => void;
+  inlineForReceiving?: boolean;
 }) {
   const [info, setInfo] = useState<Info | null>(null),
     [busy, setBusy] = useState(false),
@@ -158,8 +160,8 @@ export default function PhotoAssistant({
       : !photo
         ? 'Сначала добавьте фото — ИИ заполнит название, категорию и описание.'
         : 'Заполнить название, категорию и описание по фото.';
-  return (
-    <section className="photo-assistant" aria-label="Помощник по фото">
+  const controls = (
+    <>
       <button
         type="button"
         className="photo-assistant-card"
@@ -192,50 +194,57 @@ export default function PhotoAssistant({
       )}
       {suggestion && (
         <div className="panel photo-assistant-result">
-          <h2>Предложение ИИ</h2>
-          {suggestion.recognized && (
-            <>
-              <h3>{suggestion.name}</h3>
-              <p>{suggestion.description}</p>
-              {!suggestion.categoryMissing && (
-                <p>
-                  Категория: {suggestion.category}
-                  {suggestion.subcategory ? ` → ${suggestion.subcategory}` : ''}
+          <div className="photo-assistant-result-head">
+            <span aria-hidden="true">✦</span>
+            <h2>Предложение ИИ</h2>
+          </div>
+          <div className="photo-assistant-result-content">
+            {suggestion.recognized && (
+              <>
+                <h3>{suggestion.name}</h3>
+                <p>{suggestion.description}</p>
+                {!suggestion.categoryMissing && (
+                  <p className="photo-assistant-result-category">
+                    Категория: <strong>{suggestion.category}</strong>
+                    {suggestion.subcategory
+                      ? ` → ${suggestion.subcategory}`
+                      : ''}
+                  </p>
+                )}
+                <p className="muted">
+                  Уверенность:{' '}
+                  {
+                    { low: 'низкая', medium: 'средняя', high: 'высокая' }[
+                      suggestion.confidence
+                    ]
+                  }
                 </p>
-              )}
-              <p className="muted">
-                Уверенность:{' '}
-                {
-                  { low: 'низкая', medium: 'средняя', high: 'высокая' }[
-                    suggestion.confidence
-                  ]
-                }
-              </p>
-            </>
-          )}
-          {suggestion.categoryMissing && (
-            <div role="status">
-              <p>
-                Подходящая категория не найдена. Товар не будет отнесён к
-                случайной категории.
-              </p>
-              <p>Предложение: {suggestion.suggestedCategory}</p>
-              <button
-                type="button"
-                disabled={creatingCategory}
-                onClick={() => void addCategory()}
-              >
-                {creatingCategory
-                  ? 'Создаём категорию…'
-                  : 'Создать категорию и применить'}
-              </button>
-            </div>
-          )}
-          {suggestion.warning && <p>{suggestion.warning}</p>}
+              </>
+            )}
+            {suggestion.categoryMissing && (
+              <div role="status">
+                <p>
+                  Подходящая категория не найдена. Товар не будет отнесён к
+                  случайной категории.
+                </p>
+                <p>Предложение: {suggestion.suggestedCategory}</p>
+                <button
+                  type="button"
+                  disabled={creatingCategory}
+                  onClick={() => void addCategory()}
+                >
+                  {creatingCategory
+                    ? 'Создаём категорию…'
+                    : 'Создать категорию и применить'}
+                </button>
+              </div>
+            )}
+            {suggestion.warning && <p>{suggestion.warning}</p>}
+          </div>
           {suggestion.recognized && !suggestion.categoryMissing && (
             <button
               type="button"
-              className="primary"
+              className="primary photo-assistant-apply"
               onClick={() => {
                 onApply(suggestion);
                 setApplied(true);
@@ -245,12 +254,19 @@ export default function PhotoAssistant({
             </button>
           )}
           {applied && (
-            <p role="status">
+            <p role="status" className="photo-assistant-applied">
               Предложение применено. Проверьте поля и укажите цены.
             </p>
           )}
         </div>
       )}
+    </>
+  );
+  return inlineForReceiving ? (
+    controls
+  ) : (
+    <section className="photo-assistant" aria-label="Помощник по фото">
+      {controls}
     </section>
   );
 }
