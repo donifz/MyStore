@@ -9,6 +9,8 @@ export default function SalesHistoryPage() {
   const { shopId } = useParams(),
     s = useSession(),
     [page, setPage] = useState(1),
+    [sort, setSort] = useState('newest'),
+    [method, setMethod] = useState(''),
     [data, setData] = useState<Page<SaleSummary> | null>(null),
     [error, setError] = useState('');
   const shop = s.user?.shops.find((x) => x.id === shopId);
@@ -16,7 +18,7 @@ export default function SalesHistoryPage() {
     hasShopPermission(shop, 'return') || hasShopPermission(shop, 'reports');
   useEffect(() => {
     let alive = true;
-    api<Page<SaleSummary>>(`/shops/${shopId}/pos/sales?page=${page}`)
+    api<Page<SaleSummary>>(`/shops/${shopId}/pos/sales?page=${page}&sort=${sort}${method ? `&method=${method}` : ''}`)
       .then((r) => {
         if (alive) {
           setData(r);
@@ -29,7 +31,7 @@ export default function SalesHistoryPage() {
     return () => {
       alive = false;
     };
-  }, [shopId, page]);
+  }, [shopId, page, sort, method]);
   return (
     <>
       <div className="page-heading">
@@ -44,6 +46,37 @@ export default function SalesHistoryPage() {
           {error}
         </p>
       )}
+      <div className="toolbar">
+        <label>
+          Способ оплаты
+          <select
+            value={method}
+            onChange={(event) => {
+              setMethod(event.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">Все способы</option>
+            <option value="cash">Наличные</option>
+            <option value="card">Карта</option>
+          </select>
+        </label>
+        <label>
+          Сортировка
+          <select
+            value={sort}
+            onChange={(event) => {
+              setSort(event.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="newest">Сначала новые</option>
+            <option value="oldest">Сначала старые</option>
+            <option value="total-desc">По сумме: больше</option>
+            <option value="total-asc">По сумме: меньше</option>
+          </select>
+        </label>
+      </div>
       {data?.items.map((sale) => (
         <section className="panel history-card" key={sale.id}>
           <div>
