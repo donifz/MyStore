@@ -72,6 +72,8 @@ class PageQuery {
   @IsIn(['new', 'confirmed', 'ready', 'issued', 'cancelled', 'expired'])
   status?: string;
   @IsOptional() @IsString() @MaxLength(120) q = '';
+  @IsOptional() @IsIn(['newest', 'oldest', 'total-asc', 'total-desc'])
+  sort = 'newest';
 }
 class StatusDto {
   @IsIn(['confirmed', 'ready', 'cancelled']) status!:
@@ -121,7 +123,7 @@ export class OrdersController {
     @Query() q: PageQuery,
   ) {
     await this.access.requireMembership(req.userId, shop, 'read');
-    return this.orders.list(shop, q.page, q.pageSize, q.status, q.q);
+    return this.orders.list(shop, q.page, q.pageSize, q.status, q.q, q.sort);
   }
   @Get(':id') async detail(
     @Param('shopId', ParseUUIDPipe) shop: string,
