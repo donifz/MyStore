@@ -20,7 +20,6 @@ import {
   IsOptional,
   IsUUID,
   Max,
-  MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
