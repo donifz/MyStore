@@ -1,3 +1,4 @@
+import Pagination from '../components/Pagination';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
@@ -65,18 +66,14 @@ export default function SalesHistoryPage() {
       {data && !data.items.length && (
         <p className="empty-state">Продаж пока нет.</p>
       )}
-      <div className="pagination">
-        <button disabled={page === 1} onClick={() => setPage(page - 1)}>
-          Назад
-        </button>
-        <span>Страница {page}</span>
-        <button
-          disabled={!data || page * data.pageSize >= data.total}
-          onClick={() => setPage(page + 1)}
-        >
-          Далее
-        </button>
-      </div>
+      {data && (
+        <Pagination
+          page={page}
+          total={data.total}
+          size={data.pageSize}
+          onPage={setPage}
+        />
+      )}
     </>
   );
 }
