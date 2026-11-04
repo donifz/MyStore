@@ -15,10 +15,23 @@ export class SalesHistoryService {
     owner: boolean,
     page: number,
     pageSize: number,
+    sort = 'newest',
+    method?: 'cash' | 'card',
   ) {
     const where =
-      "d.shop_id=$1 AND d.kind='sale' AND ($2::boolean OR d.actor_id=$3)";
-    const args = [shopId, owner, actorId];
+      "d.shop_id=$1 AND d.kind='sale' AND ($2::boolean OR d.actor_id=$3)" +
+      (method
+        ? " AND EXISTS (SELECT 1 FROM payment_records pr WHERE pr.shop_id=d.shop_id AND pr.document_id=d.id AND pr.kind='sale' AND pr.method=$4)"
+        : '');
+    const orderBy =
+      sort === 'oldest'
+        ? 'd.created_at ASC,d.id ASC'
+        : sort === 'total-asc'
+          ? 'd.total_minor ASC,d.created_at DESC,d.id'
+          : sort === 'total-desc'
+            ? 'd.total_minor DESC,d.created_at DESC,d.id'
+            : 'd.created_at DESC,d.id';
+    const args = method ? [shopId, owner, actorId, method] : [shopId, owner, actorId];
     const [count] = await this.db.query(
       'SELECT count(*) FROM stock_documents d WHERE ' + where,
       args,
@@ -26,7 +39,7 @@ export class SalesHistoryService {
     const rows = await this.db.query(
       "SELECT d.id,d.total_minor,d.created_at,p.shift_id,r.method FROM stock_documents d LEFT JOIN pos_sales p ON p.shop_id=d.shop_id AND p.document_id=d.id LEFT JOIN payment_records r ON r.shop_id=d.shop_id AND r.document_id=d.id AND r.kind='sale' WHERE " +
         where +
-        ' ORDER BY d.created_at DESC,d.id LIMIT $4 OFFSET $5',
+        ` ORDER BY ${orderBy} LIMIT ${args.length + 1} OFFSET ${args.length + 2}`,
       [...args, pageSize, (page - 1) * pageSize],
     );
     return {
