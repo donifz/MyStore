@@ -17,8 +17,10 @@ import {
   IsArray,
   IsIn,
   IsInt,
+  IsOptional,
   IsUUID,
   Max,
+  MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -41,6 +43,9 @@ class PosSaleDto {
 class PageQuery {
   @Type(() => Number) @IsInt() @Min(1) @Max(1000000) page = 1;
   @Type(() => Number) @IsInt() @Min(1) @Max(100) pageSize = 25;
+  @IsOptional() @IsIn(['newest', 'oldest', 'total-asc', 'total-desc'])
+  sort = 'newest';
+  @IsOptional() @IsIn(['cash', 'card']) method?: 'cash' | 'card';
 }
 @Controller('shops/:shopId/pos/sales')
 @UseGuards(AuthGuard)
@@ -78,6 +83,8 @@ export class PosSalesController {
       m.canReturn || m.canViewReports,
       q.page,
       q.pageSize,
+      q.sort,
+      q.method,
     );
   }
   @Get(':id') async get(
