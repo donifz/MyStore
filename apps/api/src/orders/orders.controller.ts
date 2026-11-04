@@ -72,7 +72,8 @@ class PageQuery {
   @IsIn(['new', 'confirmed', 'ready', 'issued', 'cancelled', 'expired'])
   status?: string;
   @IsOptional() @IsString() @MaxLength(120) q = '';
-  @IsOptional() @IsIn(['newest', 'oldest', 'total-asc', 'total-desc'])
+  @IsOptional()
+  @IsIn(['newest', 'oldest', 'total-asc', 'total-desc'])
   sort = 'newest';
 }
 class StatusDto {
