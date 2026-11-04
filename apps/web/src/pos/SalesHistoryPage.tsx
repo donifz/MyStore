@@ -18,7 +18,9 @@ export default function SalesHistoryPage() {
     hasShopPermission(shop, 'return') || hasShopPermission(shop, 'reports');
   useEffect(() => {
     let alive = true;
-    api<Page<SaleSummary>>(`/shops/${shopId}/pos/sales?page=${page}&sort=${sort}${method ? `&method=${method}` : ''}`)
+    api<Page<SaleSummary>>(
+      `/shops/${shopId}/pos/sales?page=${page}&sort=${sort}${method ? `&method=${method}` : ''}`,
+    )
       .then((r) => {
         if (alive) {
           setData(r);
