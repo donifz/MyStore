@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import Pagination from './Pagination';
 import { paginationItems } from './Pagination';
 
 describe('paginationItems', () => {
@@ -28,4 +31,13 @@ describe('paginationItems', () => {
     expect(paginationItems(99, 3)).toEqual([1, 2, 3]);
     expect(paginationItems(1, 0)).toEqual([1]);
   });
+});
+
+it('keeps going back possible when the current page no longer exists', async () => {
+  const onPage = vi.fn();
+  render(<Pagination page={2} total={24} size={24} onPage={onPage} />);
+  const back = screen.getByRole('button', { name: 'Назад' });
+  expect(back.hasAttribute('disabled')).toBe(false);
+  await userEvent.setup().click(back);
+  expect(onPage).toHaveBeenCalledWith(1);
 });
