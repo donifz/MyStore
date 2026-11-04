@@ -275,6 +275,7 @@ export default function OrdersPage() {
     [data, setData] = useState<Page<Order> | null>(null),
     [page, setPage] = useState(1),
     [statusFilter, setStatusFilter] = useState(''),
+    [sort, setSort] = useState('newest'),
     [searchQuery, setSearchQuery] = useState(''),
     [trigger, setTrigger] = useState(0),
     [error, setError] = useState('');
@@ -285,6 +286,7 @@ export default function OrdersPage() {
     setError('');
     const params = new URLSearchParams({ page: String(page) });
     if (statusFilter) params.set('status', statusFilter);
+    params.set('sort', sort);
     if (searchQuery.trim()) params.set('q', searchQuery.trim());
     api<Page<Order>>(`/shops/${shopId}/orders?${params.toString()}`, {
       signal: controller.signal,
@@ -294,7 +296,7 @@ export default function OrdersPage() {
         if (!controller.signal.aborted) setError(errorText(e));
       });
     return () => controller.abort();
-  }, [shopId, page, statusFilter, searchQuery, trigger, id]);
+  }, [shopId, page, statusFilter, searchQuery, sort, trigger, id]);
   if (!shop || !session.user) return <p>Нет доступа.</p>;
   if (id)
     return (
@@ -355,6 +357,21 @@ export default function OrdersPage() {
                   {label}
                 </option>
               ))}
+            </select>
+          </label>
+          <label>
+            Сортировка
+            <select
+              value={sort}
+              onChange={(event) => {
+                setSort(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="newest">Сначала новые</option>
+              <option value="oldest">Сначала старые</option>
+              <option value="total-desc">Сначала крупные суммы</option>
+              <option value="total-asc">Сначала небольшие суммы</option>
             </select>
           </label>
         </div>
