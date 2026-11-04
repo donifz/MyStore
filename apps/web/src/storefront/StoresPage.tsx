@@ -1,8 +1,8 @@
+import Pagination from '../components/Pagination';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Page } from '../api/types';
 import { PublicStore } from './types';
 import { useResource } from './use-resource';
-import { Pagination } from './CatalogPublicPage';
 export default function StoresPage() {
   const [params, setParams] = useSearchParams();
   const q = params.get('q') ?? '',
