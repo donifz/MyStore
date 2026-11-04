@@ -15,6 +15,7 @@ export default function BarcodeLabelsPage() {
   const { shopId } = useParams();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [sort, setSort] = useState('newest');
   const [data, setData] = useState<Page<Variant> | null>(null);
   const [selected, setSelected] = useState<Record<string, Variant>>({});
   const [copies, setCopies] = useState<Record<string, string>>({});
@@ -32,7 +33,7 @@ export default function BarcodeLabelsPage() {
     setLoading(true);
     setError('');
     api<Page<Variant>>(
-      `/shops/${shopId}/variants?q=${encodeURIComponent(search)}&page=${page}&pageSize=100`,
+      `/shops/${shopId}/variants?q=${encodeURIComponent(search)}&page=${page}&pageSize=100&sort=${sort}`,
     )
       .then((result) => {
         if (active) setData(result);
@@ -46,7 +47,7 @@ export default function BarcodeLabelsPage() {
     return () => {
       active = false;
     };
-  }, [shopId, search, page]);
+  }, [shopId, search, page, sort]);
 
   // Bulk printing is a temporary batch; preserve the user's manual selection.
   const products = allPrintProducts ?? Object.values(selected);
@@ -225,6 +226,22 @@ export default function BarcodeLabelsPage() {
                 setPage(1);
               }}
             />
+          </label>
+          <label>
+            Сортировка
+            <select
+              value={sort}
+              onChange={(event) => {
+                setSort(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="newest">Сначала новые</option>
+              <option value="oldest">Сначала старые</option>
+              <option value="name">Название А–Я</option>
+              <option value="price-asc">Сначала дешевле</option>
+              <option value="price-desc">Сначала дороже</option>
+            </select>
           </label>
           <span className="muted">{data?.total ?? 0} товаров</span>
         </div>
