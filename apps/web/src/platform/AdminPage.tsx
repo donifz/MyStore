@@ -1,3 +1,4 @@
+import Pagination from '../components/Pagination';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
@@ -400,10 +401,6 @@ export default function AdminPage() {
     ),
   );
   const visibleProducts = products;
-  const productPageCount = Math.max(
-    1,
-    Math.ceil(productTotal / PRODUCTS_PAGE_SIZE),
-  );
   const productFirst = productTotal
     ? (productPage - 1) * PRODUCTS_PAGE_SIZE + 1
     : 0;
