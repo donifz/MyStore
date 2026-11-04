@@ -81,7 +81,15 @@ class ListQuery {
     'all' | 'in_stock' | 'low' | 'out';
   @IsOptional() @IsString() @MaxLength(80) category?: string;
   @IsOptional()
-  @IsIn(['newest', 'oldest', 'name', 'name-desc', 'price-asc', 'price-desc', 'popular'])
+  @IsIn([
+    'newest',
+    'oldest',
+    'name',
+    'name-desc',
+    'price-asc',
+    'price-desc',
+    'popular',
+  ])
   sort?:
     | 'newest'
     | 'oldest'
