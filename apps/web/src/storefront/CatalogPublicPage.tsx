@@ -1,42 +1,15 @@
+import Pagination from '../components/Pagination';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { formatSom } from '../api/money';
 import { PublicProducts, PublicStore } from './types';
 import { useResource } from './use-resource';
-export function Pagination({
-  page,
-  total,
-  size,
-  busy,
-  onPage,
-}: {
-  page: number;
-  total: number;
-  size: number;
-  busy: boolean;
-  onPage: (n: number) => void;
-}) {
-  return (
-    <div className="pagination">
-      <button disabled={page === 1 || busy} onClick={() => onPage(page - 1)}>
-        Назад
-      </button>
-      <span>Страница {page}</span>
-      <button
-        disabled={page * size >= total || busy}
-        onClick={() => onPage(page + 1)}
-      >
-        Далее
-      </button>
-    </div>
-  );
-}
 export default function CatalogPublicPage() {
   const { slug } = useParams(),
     [params, setParams] = useSearchParams();
   const page = Math.max(1, Math.min(1000000, Number(params.get('page')) || 1));
   const q = params.get('q') ?? '',
     category = params.get('category') ?? '',
-    sort = params.get('sort') ?? 'name',
+    sort = params.get('sort') ?? 'newest',
     inStock = params.get('inStock') === 'true';
   const query = new URLSearchParams({
     q,
@@ -150,6 +123,7 @@ export default function CatalogPublicPage() {
               value={sort}
               onChange={(e) => change('sort', e.target.value)}
             >
+              <option value="newest">Сначала новые</option>
               <option value="name">По названию</option>
               <option value="price-asc">Сначала дешевле</option>
               <option value="price-desc">Сначала дороже</option>
