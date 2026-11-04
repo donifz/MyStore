@@ -38,13 +38,14 @@ export default function Pagination({
 }) {
   const pages = Math.max(1, Math.ceil(total / Math.max(1, size)));
   const current = Math.max(1, Math.min(page, pages));
+  const requestedPage = Math.max(1, Math.floor(page) || 1);
 
   return (
     <nav className="pagination" aria-label={label}>
       <button
         type="button"
-        disabled={busy || current === 1}
-        onClick={() => onPage(current - 1)}
+        disabled={busy || requestedPage === 1}
+        onClick={() => onPage(Math.max(1, requestedPage - 1))}
       >
         Назад
       </button>
