@@ -51,7 +51,7 @@ class ProductQuery extends StoreQuery {
   maxPrice?: number;
   @IsOptional() @IsString() @MaxLength(80) store = '';
   @IsIn(['true', 'false']) inStock = 'false';
-  @IsIn(['name', 'price-asc', 'price-desc', 'newest']) sort = 'name';
+  @IsIn(['name', 'price-asc', 'price-desc', 'newest']) sort = 'newest';
 }
 class ProfileDto {
   @IsOptional() @IsString() @MaxLength(40) slug?: string;
