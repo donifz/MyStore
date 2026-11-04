@@ -33,7 +33,7 @@ export class ProductModerationService {
        FROM product_publication_revisions r JOIN shops s ON s.id=r.shop_id
        LEFT JOIN product_publications p ON p.variant_id=r.variant_id
        ${where}
-       ORDER BY r.created_at,r.id
+       ORDER BY r.created_at DESC,r.id DESC
        LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
       [...params, pageSize, (page - 1) * pageSize],
     );

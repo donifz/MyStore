@@ -220,6 +220,7 @@ export class OrdersService {
     pageSize: number,
     status?: string,
     q = '',
+    sort = 'newest',
   ) {
     await this.expiry.expire(shop);
     const params: unknown[] = [shop];
@@ -240,8 +241,16 @@ export class OrdersService {
       `SELECT count(*)::int total FROM online_orders o WHERE ${where}`,
       params,
     );
+    const orderBy =
+      sort === 'oldest'
+        ? 'o.created_at ASC,o.id ASC'
+        : sort === 'total-asc'
+          ? 'o.total_minor ASC,o.created_at DESC,o.id'
+          : sort === 'total-desc'
+            ? 'o.total_minor DESC,o.created_at DESC,o.id'
+            : 'o.created_at DESC,o.id';
     const rows = await this.db.query(
-      `SELECT o.*,s.time_zone FROM online_orders o JOIN shops s ON s.id=o.shop_id WHERE ${where} ORDER BY o.created_at DESC,o.id LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      `SELECT o.*,s.time_zone FROM online_orders o JOIN shops s ON s.id=o.shop_id WHERE ${where} ORDER BY ${orderBy} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
       [...params, pageSize, (page - 1) * pageSize],
     );
     return {

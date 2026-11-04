@@ -140,3 +140,20 @@ it('filters catalog variants by stock availability', async () => {
     expect(calls.some((x) => x.includes('stock=low'))).toBe(true),
   );
 });
+
+it('loads newest products first and requests sorting before pagination', async () => {
+  const calls = server('owner');
+  const app = await import('../App');
+  render(
+    <MemoryRouter initialEntries={['/seller/' + shop + '/products']}>
+      <app.default />
+    </MemoryRouter>,
+  );
+  await screen.findByText('Рюкзак');
+  expect(calls.some((call) => call.includes('sort=newest'))).toBe(true);
+  const user = userEvent.setup();
+  await user.selectOptions(screen.getByLabelText('Сортировка'), 'price-desc');
+  await vi.waitFor(() =>
+    expect(calls.some((call) => call.includes('sort=price-desc'))).toBe(true),
+  );
+});

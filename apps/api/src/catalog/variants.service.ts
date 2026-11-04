@@ -97,7 +97,14 @@ export class VariantsService {
     stock?: 'all' | 'in_stock' | 'low' | 'out',
     options: {
       category?: string;
-      sort?: 'name' | 'popular';
+      sort?:
+        | 'newest'
+        | 'oldest'
+        | 'name'
+        | 'name-desc'
+        | 'price-asc'
+        | 'price-desc'
+        | 'popular';
       facets?: boolean;
     } = {},
   ) {
@@ -121,6 +128,18 @@ export class VariantsService {
     const popularJoin = popular
       ? " JOIN LATERAL (SELECT SUM(sl.quantity) sold FROM sale_lines sl JOIN stock_documents d ON d.shop_id=sl.shop_id AND d.id=sl.document_id WHERE sl.shop_id=v.shop_id AND sl.variant_id=v.id AND d.kind='sale' AND d.created_at > now() - interval '30 days') s ON s.sold > 0"
       : '';
+    const orderBy =
+      options.sort === 'newest'
+        ? 'v.created_at DESC,v.id DESC'
+        : options.sort === 'oldest'
+          ? 'v.created_at ASC,v.id ASC'
+          : options.sort === 'name-desc'
+            ? 'v.name DESC,v.id DESC'
+            : options.sort === 'price-asc'
+              ? 'v.sale_price_minor ASC,v.id ASC'
+              : options.sort === 'price-desc'
+                ? 'v.sale_price_minor DESC,v.id ASC'
+                : 'v.name ASC,v.id ASC';
     const filter =
       'v.shop_id=$1 AND v.archived=$2 AND (v.name ILIKE $3 OR v.barcode ILIKE $3 OR v.short_barcode ILIKE $3 OR v.sku ILIKE $3)' +
       stockClause +
@@ -139,7 +158,7 @@ export class VariantsService {
         filter +
         (popular
           ? ' ORDER BY s.sold DESC,v.name,v.id'
-          : ' ORDER BY v.name,v.id') +
+          : ' ORDER BY ' + orderBy) +
         ` LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
       [...params, pageSize, (page - 1) * pageSize],
     );

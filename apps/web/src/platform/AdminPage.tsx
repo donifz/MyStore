@@ -1,3 +1,4 @@
+import Pagination from '../components/Pagination';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
@@ -400,10 +401,6 @@ export default function AdminPage() {
     ),
   );
   const visibleProducts = products;
-  const productPageCount = Math.max(
-    1,
-    Math.ceil(productTotal / PRODUCTS_PAGE_SIZE),
-  );
   const productFirst = productTotal
     ? (productPage - 1) * PRODUCTS_PAGE_SIZE + 1
     : 0;
@@ -561,35 +558,18 @@ export default function AdminPage() {
         </div>
       )}
       {!productLoading && productTotal > 0 && (
-        <nav
-          className="admin-kit-pagination"
-          aria-label="Страницы товаров на модерации"
-        >
+        <div className="admin-kit-pagination">
           <span>
             Показано {productFirst}–{productLast} из {productTotal}
           </span>
-          <div className="admin-kit-pagination-controls">
-            <button
-              type="button"
-              disabled={productPage === 1}
-              onClick={() => setProductPage((page) => Math.max(1, page - 1))}
-            >
-              Назад
-            </button>
-            <strong aria-live="polite">
-              {productPage} из {productPageCount}
-            </strong>
-            <button
-              type="button"
-              disabled={productPage >= productPageCount}
-              onClick={() =>
-                setProductPage((page) => Math.min(productPageCount, page + 1))
-              }
-            >
-              Далее
-            </button>
-          </div>
-        </nav>
+          <Pagination
+            page={productPage}
+            total={productTotal}
+            size={PRODUCTS_PAGE_SIZE}
+            onPage={setProductPage}
+            label="Страницы товаров на модерации"
+          />
+        </div>
       )}
     </AdminCard>
   );

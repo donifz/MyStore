@@ -1,3 +1,4 @@
+import Pagination from '../components/Pagination';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
@@ -14,6 +15,7 @@ export default function BarcodeLabelsPage() {
   const { shopId } = useParams();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [sort, setSort] = useState('newest');
   const [data, setData] = useState<Page<Variant> | null>(null);
   const [selected, setSelected] = useState<Record<string, Variant>>({});
   const [copies, setCopies] = useState<Record<string, string>>({});
@@ -31,7 +33,7 @@ export default function BarcodeLabelsPage() {
     setLoading(true);
     setError('');
     api<Page<Variant>>(
-      `/shops/${shopId}/variants?q=${encodeURIComponent(search)}&page=${page}&pageSize=100`,
+      `/shops/${shopId}/variants?q=${encodeURIComponent(search)}&page=${page}&pageSize=100&sort=${sort}`,
     )
       .then((result) => {
         if (active) setData(result);
@@ -45,7 +47,7 @@ export default function BarcodeLabelsPage() {
     return () => {
       active = false;
     };
-  }, [shopId, search, page]);
+  }, [shopId, search, page, sort]);
 
   // Bulk printing is a temporary batch; preserve the user's manual selection.
   const products = allPrintProducts ?? Object.values(selected);
@@ -225,6 +227,22 @@ export default function BarcodeLabelsPage() {
               }}
             />
           </label>
+          <label>
+            Сортировка
+            <select
+              value={sort}
+              onChange={(event) => {
+                setSort(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="newest">Сначала новые</option>
+              <option value="oldest">Сначала старые</option>
+              <option value="name">Название А–Я</option>
+              <option value="price-asc">Сначала дешевле</option>
+              <option value="price-desc">Сначала дороже</option>
+            </select>
+          </label>
           <span className="muted">{data?.total ?? 0} товаров</span>
         </div>
         <label className="checkbox checkbox-label">
@@ -277,21 +295,15 @@ export default function BarcodeLabelsPage() {
         {!loading && !error && !data?.items.length && (
           <p className="empty-state">Товары не найдены.</p>
         )}
-        <div className="pagination">
-          <button
-            disabled={page === 1 || loading}
-            onClick={() => setPage(page - 1)}
-          >
-            Назад
-          </button>
-          <span>Страница {page}</span>
-          <button
-            disabled={!data || page * data.pageSize >= data.total || loading}
-            onClick={() => setPage(page + 1)}
-          >
-            Далее
-          </button>
-        </div>
+        {data && (
+          <Pagination
+            page={page}
+            total={data.total}
+            size={data.pageSize}
+            busy={loading}
+            onPage={setPage}
+          />
+        )}
       </section>
 
       {products.length > 0 && (
