@@ -689,25 +689,12 @@ export default function OperationsPage() {
           )}
 
           {totalPages > 1 && (
-            <div className="pagination" style={{ marginTop: '1rem' }}>
-              <button
-                type="button"
-                disabled={page <= 1}
-                onClick={() => setPage(page - 1)}
-              >
-                Назад
-              </button>
-              <span style={{ fontSize: '0.875rem' }}>
-                Страница {page} из {totalPages}
-              </span>
-              <button
-                type="button"
-                disabled={page >= totalPages}
-                onClick={() => setPage(page + 1)}
-              >
-                Далее
-              </button>
-            </div>
+            <Pagination
+              page={page}
+              total={filteredAudit.length}
+              size={pageSize}
+              onPage={setPage}
+            />
           )}
         </div>
       )}
