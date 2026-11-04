@@ -31,9 +31,7 @@ export class SalesHistoryService {
           : sort === 'total-desc'
             ? 'd.total_minor DESC,d.created_at DESC,d.id'
             : 'd.created_at DESC,d.id';
-    const args = method
-      ? [shopId, owner, actorId, method]
-      : [shopId, owner, actorId];
+    const args = method ? [shopId, owner, actorId, method] : [shopId, owner, actorId];
     const [count] = await this.db.query(
       'SELECT count(*) FROM stock_documents d WHERE ' + where,
       args,
