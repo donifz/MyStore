@@ -51,7 +51,11 @@ export default function Pagination({
       <div className="pagination-pages">
         {paginationItems(current, pages).map((value, index) =>
           value === '…' ? (
-            <span className="pagination-ellipsis" aria-hidden="true" key={`gap-${index}`}>
+            <span
+              className="pagination-ellipsis"
+              aria-hidden="true"
+              key={`gap-${index}`}
+            >
               …
             </span>
           ) : (
