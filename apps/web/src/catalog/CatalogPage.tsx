@@ -1,3 +1,4 @@
+import Pagination from '../components/Pagination';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
@@ -201,21 +202,15 @@ export default function CatalogPage() {
               : 'Товаров пока нет. Добавьте первую позицию.'}
           </p>
         )}
-        <div className="pagination">
-          <button
-            disabled={page === 1 || loading}
-            onClick={() => setPage(page - 1)}
-          >
-            Назад
-          </button>
-          <span>Страница {page}</span>
-          <button
-            disabled={!data || page * data.pageSize >= data.total || loading}
-            onClick={() => setPage(page + 1)}
-          >
-            Далее
-          </button>
-        </div>
+        {data && (
+          <Pagination
+            page={page}
+            total={data.total}
+            size={data.pageSize}
+            busy={loading}
+            onPage={setPage}
+          />
+        )}
       </section>
       {barcodeProduct && (
         <div
