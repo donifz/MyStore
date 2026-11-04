@@ -32,7 +32,10 @@ export default function BarcodeLabel({
   hidePrintButton = false,
   size,
 }: {
-  product: Pick<Variant, 'id' | 'name' | 'barcode' | 'salePriceMinor' | 'sku'>;
+  product: Pick<
+    Variant,
+    'id' | 'name' | 'barcode' | 'salePriceMinor' | 'sku' | 'shortBarcode'
+  >;
   copies?: number;
   hidePrintButton?: boolean;
   size?: LabelSize;
@@ -45,10 +48,11 @@ export default function BarcodeLabel({
   const numberOfCopies = hidePrintButton
     ? normalizeLabelCopies(copies)
     : normalizeLabelCopies(copyCount);
+  const printedBarcode = product.shortBarcode || product.barcode;
   let barcode: { path: string; width: number } | null = null;
   let barcodeError = '';
   try {
-    barcode = code128SvgPath(product.barcode);
+    barcode = code128SvgPath(printedBarcode);
   } catch (error) {
     barcodeError =
       error instanceof Error ? error.message : 'Не удалось создать штрихкод';
@@ -86,7 +90,7 @@ export default function BarcodeLabel({
                 {barcodeError}
               </p>
             )}
-            <span className="barcode-value">{product.barcode}</span>
+            <span className="barcode-value">{printedBarcode}</span>
           </div>
         </div>
       ))}
