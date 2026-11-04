@@ -1,3 +1,4 @@
+import Pagination from '../components/Pagination';
 import EmailSettings from './EmailSettings';
 import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
