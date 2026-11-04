@@ -522,8 +522,31 @@ td:first-child {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 15px;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 20px;
+}
+.pagination-pages {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.pagination-pages button {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: 9px;
+}
+.pagination-pages .pagination-current {
+  background: var(--admin-accent, #176854);
+  border-color: var(--admin-accent, #176854);
+  color: #fff;
+  opacity: 1;
+}
+.pagination-ellipsis {
+  padding: 0 4px;
+  color: var(--admin-muted, #64748b);
 }
 @media print {
   body * {
