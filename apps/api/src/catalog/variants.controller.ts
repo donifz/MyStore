@@ -80,7 +80,16 @@ class ListQuery {
   @IsOptional() @IsIn(['all', 'in_stock', 'low', 'out']) stock?:
     'all' | 'in_stock' | 'low' | 'out';
   @IsOptional() @IsString() @MaxLength(80) category?: string;
-  @IsOptional() @IsIn(['name', 'popular']) sort?: 'name' | 'popular';
+  @IsOptional()
+  @IsIn(['newest', 'oldest', 'name', 'name-desc', 'price-asc', 'price-desc', 'popular'])
+  sort?:
+    | 'newest'
+    | 'oldest'
+    | 'name'
+    | 'name-desc'
+    | 'price-asc'
+    | 'price-desc'
+    | 'popular';
   @IsOptional() @IsIn(['true', 'false']) facets?: string;
 }
 @Controller('shops/:shopId/variants')
