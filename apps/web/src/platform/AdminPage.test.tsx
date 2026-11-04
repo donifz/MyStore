@@ -278,15 +278,13 @@ it('paginates pending product moderation without hiding results beyond the first
 
   expect(await screen.findByText('Товар 1')).not.toBeNull();
   expect(screen.queryByText('Товар 11')).toBeNull();
-  expect(
-    screen.getByRole('button', { name: 'Страница 1' }).getAttribute('aria-current'),
-  ).toBe('page');
+  const page1Button = screen.getByRole('button', { name: 'Страница 1' });
+  expect(page1Button.getAttribute('aria-current')).toBe('page');
   await userEvent.setup().click(screen.getByRole('button', { name: 'Далее' }));
   expect(await screen.findByText('Товар 11')).not.toBeNull();
   expect(screen.queryByText('Товар 1')).toBeNull();
-  expect(
-    screen.getByRole('button', { name: 'Страница 2' }).getAttribute('aria-current'),
-  ).toBe('page');
+  const page2Button = screen.getByRole('button', { name: 'Страница 2' });
+  expect(page2Button.getAttribute('aria-current')).toBe('page');
   expect(requests).toEqual(
     expect.arrayContaining([
       expect.stringContaining('page=1'),
