@@ -12,6 +12,7 @@ export default function CatalogPage() {
     [q, setQ] = useState(''),
     [page, setPage] = useState(1),
     [archived, setArchived] = useState(false),
+    [sort, setSort] = useState('newest'),
     [stockFilter, setStockFilter] = useState<
       'all' | 'in_stock' | 'low' | 'out'
     >('all'),
@@ -26,7 +27,7 @@ export default function CatalogPage() {
     setError('');
     const stockParam = stockFilter !== 'all' ? `&stock=${stockFilter}` : '';
     api<Page<Variant>>(
-      `/shops/${shopId}/variants?q=${encodeURIComponent(q)}&page=${page}&archived=${archived}${stockParam}`,
+      `/shops/${shopId}/variants?q=${encodeURIComponent(q)}&page=${page}&archived=${archived}&sort=${sort}${stockParam}`,
     )
       .then((r) => {
         if (alive) setData(r);
@@ -40,7 +41,7 @@ export default function CatalogPage() {
     return () => {
       alive = false;
     };
-  }, [shopId, q, page, archived, stockFilter]);
+  }, [shopId, q, page, archived, stockFilter, sort]);
   return (
     <>
       <div className="page-heading">
@@ -116,6 +117,24 @@ export default function CatalogPage() {
               <option value="in_stock">В наличии (&gt; 0)</option>
               <option value="low">Мало на складе (1–5 шт.)</option>
               <option value="out">Нет в наличии (0 шт.)</option>
+            </select>
+          </label>
+          <label>
+            Сортировка
+            <select
+              value={sort}
+              onChange={(event) => {
+                setSort(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="newest">Сначала новые</option>
+              <option value="oldest">Сначала старые</option>
+              <option value="name">Название А–Я</option>
+              <option value="name-desc">Название Я–А</option>
+              <option value="price-asc">Сначала дешевле</option>
+              <option value="price-desc">Сначала дороже</option>
+              <option value="popular">Часто продаются</option>
             </select>
           </label>
           <span
