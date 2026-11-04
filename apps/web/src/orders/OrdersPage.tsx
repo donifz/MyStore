@@ -1,3 +1,4 @@
+import Pagination from '../components/Pagination';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
@@ -405,21 +406,12 @@ export default function OrdersPage() {
               </table>
             </div>
             {!data.items.length && <p>Заказов пока нет.</p>}
-            <div className="toolbar">
-              <button
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                Назад
-              </button>
-              <span>Страница {page}</span>
-              <button
-                disabled={page * data.pageSize >= data.total}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Далее
-              </button>
-            </div>
+            <Pagination
+              page={page}
+              total={data.total}
+              size={data.pageSize}
+              onPage={setPage}
+            />
           </>
         )}
       </section>
