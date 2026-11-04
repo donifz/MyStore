@@ -41,7 +41,7 @@ export class SalesHistoryService {
     const rows = await this.db.query(
       "SELECT d.id,d.total_minor,d.created_at,p.shift_id,r.method FROM stock_documents d LEFT JOIN pos_sales p ON p.shop_id=d.shop_id AND p.document_id=d.id LEFT JOIN payment_records r ON r.shop_id=d.shop_id AND r.document_id=d.id AND r.kind='sale' WHERE " +
         where +
-        ` ORDER BY ${orderBy} LIMIT ${args.length + 1} OFFSET ${args.length + 2}`,
+        ` ORDER BY ${orderBy} LIMIT $${args.length + 1} OFFSET $${args.length + 2}`,
       [...args, pageSize, (page - 1) * pageSize],
     );
     return {
