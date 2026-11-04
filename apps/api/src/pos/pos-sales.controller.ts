@@ -42,7 +42,8 @@ class PosSaleDto {
 class PageQuery {
   @Type(() => Number) @IsInt() @Min(1) @Max(1000000) page = 1;
   @Type(() => Number) @IsInt() @Min(1) @Max(100) pageSize = 25;
-  @IsOptional() @IsIn(['newest', 'oldest', 'total-asc', 'total-desc'])
+  @IsOptional()
+  @IsIn(['newest', 'oldest', 'total-asc', 'total-desc'])
   sort = 'newest';
   @IsOptional() @IsIn(['cash', 'card']) method?: 'cash' | 'card';
 }
