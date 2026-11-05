@@ -74,7 +74,7 @@ export class ReportsService {
     );
     const dailyRows = await db.query(
       `SELECT
-        to_char(d.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS day,
+        to_char(d.created_at AT TIME ZONE 'Asia/Bishkek', 'YYYY-MM-DD') AS day,
         COALESCE(sum(d.total_minor) FILTER (WHERE d.kind='sale'),0) AS sales_minor,
         COALESCE(sum(d.total_minor) FILTER (WHERE d.kind='return'),0) AS returns_minor,
         count(*) FILTER (WHERE d.kind='sale') AS sales_count
