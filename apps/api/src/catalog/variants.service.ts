@@ -43,6 +43,7 @@ export type Variant = {
   barcode: string;
   shortBarcode: string;
   salePriceMinor: number;
+  createdAt?: string;
 };
 @Injectable()
 export class VariantsService {
@@ -75,6 +76,7 @@ export class VariantsService {
       barcode: row.barcode,
       shortBarcode: row.short_barcode,
       salePriceMinor: Number(row.sale_price_minor),
+      ...(row.created_at ? { createdAt: row.created_at } : {}),
       description: row.description,
       category: row.category,
       subcategory: row.subcategory ?? '',
@@ -153,7 +155,7 @@ export class VariantsService {
       params,
     );
     const rows = await this.db.query(
-      'SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.category,(v.photo_data IS NOT NULL) has_photo,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.stock_value_minor,0) stock_value_minor ' +
+      'SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.created_at,v.category,(v.photo_data IS NOT NULL) has_photo,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.stock_value_minor,0) stock_value_minor ' +
         from +
         filter +
         (popular
@@ -182,6 +184,7 @@ export class VariantsService {
         barcode: r.barcode,
         shortBarcode: r.short_barcode,
         salePriceMinor: Number(r.sale_price_minor),
+        createdAt: r.created_at,
         category: r.category ?? '',
         ...(r.has_photo
           ? { photoUrl: `/api/shops/${r.shop_id}/variants/${r.id}/photo` }
