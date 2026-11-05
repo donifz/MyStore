@@ -40,6 +40,7 @@ function server(role = 'cashier') {
                     physical: 10,
                     reserved: 0,
                     available: 10,
+                    createdAt: '2026-11-05T09:30:00.000Z',
                   },
                 ],
                 total: 1,
@@ -156,4 +157,17 @@ it('loads newest products first and requests sorting before pagination', async (
   await vi.waitFor(() =>
     expect(calls.some((call) => call.includes('sort=price-desc'))).toBe(true),
   );
+});
+
+it('displays the product creation date returned by the catalog API', async () => {
+  server('owner');
+  const app = await import('../App');
+  render(
+    <MemoryRouter initialEntries={['/seller/' + shop + '/products']}>
+      <app.default />
+    </MemoryRouter>,
+  );
+  await screen.findByText('Рюкзак');
+  expect(screen.getByRole('columnheader', { name: 'Добавлен' })).toBeTruthy();
+  expect(screen.getByText(/05\.11\.2026/)).toBeTruthy();
 });
