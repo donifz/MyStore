@@ -88,7 +88,9 @@ export default function StaffPage() {
         ? a.role.localeCompare(b.role) || a.email.localeCompare(b.email)
         : a.email.localeCompare(b.email),
     );
-  const invitations = (data?.invitations ?? []).filter((invite) => match(invite.email));
+  const invitations = (data?.invitations ?? []).filter((invite) =>
+    match(invite.email),
+  );
   const displayedMembers = members.slice(
     (memberPage - 1) * staffPageSize,
     memberPage * staffPageSize,
@@ -331,7 +333,9 @@ export default function StaffPage() {
                     <strong>{i.email}</strong>
                     <p className="muted">
                       {i.role === 'manager' ? 'Менеджер' : 'Кассир'} ·{' '}
-                      {i.created_at ? `Создано: ${formatDate(i.created_at)} · ` : ''}
+                      {i.created_at
+                        ? `Создано: ${formatDate(i.created_at)} · `
+                        : ''}
                       {new Date(i.expires_at) < new Date()
                         ? 'Срок истёк'
                         : 'До ' +
