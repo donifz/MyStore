@@ -384,27 +384,39 @@ it('loads later partner applications from the server with filters', async () => 
     let body: unknown = { items: [], total: 0 };
     if (url === '/api/auth/me') {
       body = {
-        userId: 'admin', email: 'admin@example.test',
-        platformAdmin: true, shops: [], csrfToken: 'csrf',
+        userId: 'admin',
+        email: 'admin@example.test',
+        platformAdmin: true,
+        shops: [],
+        csrfToken: 'csrf',
       };
     } else if (url.startsWith('/api/platform/admin/applications?')) {
       requests.push(url);
       const params = new URL(url, 'http://localhost').searchParams;
       const query = (params.get('q') || '').toLowerCase();
       const status = params.get('status') || '';
-      const filtered = applications.filter((application) =>
-        (!query || application.shop_name.toLowerCase().includes(query) || application.email.includes(query)) &&
-        (!status || application.status === status),
+      const filtered = applications.filter(
+        (application) =>
+          (!query ||
+            application.shop_name.toLowerCase().includes(query) ||
+            application.email.includes(query)) &&
+          (!status || application.status === status),
       );
       const page = Number(params.get('page') || 1);
       const pageSize = Number(params.get('pageSize') || 10);
       body = {
         items: filtered.slice((page - 1) * pageSize, page * pageSize),
         total: filtered.length,
-        page, pageSize,
+        page,
+        pageSize,
       };
     } else if (url === '/api/platform/admin/overview') {
-      body = { shopCount: 0, pendingPartners: 7, pendingProducts: 0, shops: [] };
+      body = {
+        shopCount: 0,
+        pendingPartners: 7,
+        pendingProducts: 0,
+        shops: [],
+      };
     }
     return new Response(JSON.stringify(body), {
       headers: { 'content-type': 'application/json' },
@@ -424,6 +436,8 @@ it('loads later partner applications from the server with filters', async () => 
   );
   await userEvent.setup().click(pager.getByRole('button', { name: 'Далее' }));
   expect(await screen.findByText('Магазин 14')).toBeTruthy();
-  await userEvent.setup().selectOptions(screen.getByLabelText('Статус заявки'), 'approved');
+  await userEvent
+    .setup()
+    .selectOptions(screen.getByLabelText('Статус заявки'), 'approved');
   expect(requests.some((url) => url.includes('status=approved'))).toBe(true);
 });
