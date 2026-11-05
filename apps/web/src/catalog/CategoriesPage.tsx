@@ -22,14 +22,19 @@ export default function CategoriesPage() {
   const visibleCategories = categories
     .filter((category) =>
       [category.name, ...category.children.map((child) => child.name)].some(
-        (name) => name.toLocaleLowerCase('ru').includes(query.trim().toLocaleLowerCase('ru')),
+        (name) =>
+          name
+            .toLocaleLowerCase('ru')
+            .includes(query.trim().toLocaleLowerCase('ru')),
       ),
     )
     .sort((a, b) =>
       sort === 'custom'
-        ? Number(a.builtIn) - Number(b.builtIn) || a.name.localeCompare(b.name, 'ru')
+        ? Number(a.builtIn) - Number(b.builtIn) ||
+          a.name.localeCompare(b.name, 'ru')
         : sort === 'builtin'
-          ? Number(b.builtIn) - Number(a.builtIn) || a.name.localeCompare(b.name, 'ru')
+          ? Number(b.builtIn) - Number(a.builtIn) ||
+            a.name.localeCompare(b.name, 'ru')
           : a.name.localeCompare(b.name, 'ru'),
     );
   const pages = Math.max(1, Math.ceil(visibleCategories.length / pageSize));
@@ -115,7 +120,9 @@ export default function CategoriesPage() {
       <section className="category-list" aria-label="Категории магазина">
         <div className="category-list-heading">
           <h2>Категории магазина</h2>
-          <span className="badge">{visibleCategories.length} из {categories.length}</span>
+          <span className="badge">
+            {visibleCategories.length} из {categories.length}
+          </span>
         </div>
         <div className="toolbar">
           <label>
@@ -145,7 +152,9 @@ export default function CategoriesPage() {
           </label>
         </div>
         {visibleCategories.length === 0 && (
-          <p className="empty-state">{query ? 'Категории не найдены.' : 'Категорий пока нет.'}</p>
+          <p className="empty-state">
+            {query ? 'Категории не найдены.' : 'Категорий пока нет.'}
+          </p>
         )}
         <div className="category-grid">
           {pagedCategories.map((c) => (
@@ -156,7 +165,9 @@ export default function CategoriesPage() {
                   {c.builtIn ? 'Готовая' : 'Своя'}
                 </span>
                 {c.createdAt && (
-                  <small className="muted">Добавлено: {formatDate(c.createdAt)}</small>
+                  <small className="muted">
+                    Добавлено: {formatDate(c.createdAt)}
+                  </small>
                 )}
               </div>
               {c.children.length > 0 ? (
