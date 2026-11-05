@@ -58,6 +58,8 @@ app
           }),
         );
       const item = { ...product, store: { ...store } };
+      if (url.searchParams.get('q') === 'broken-image')
+        item.photoUrl = 'data:image/jpeg;base64,broken';
       if (url.searchParams.get('q') === 'long')
         item.name = 'ДлинноеНазвание'.repeat(20);
       if (
