@@ -101,7 +101,11 @@ test('one account switches platform and shop while section survives refresh and 
   await expect(
     page.getByRole('link', { name: 'Аудит', exact: true }),
   ).toHaveAttribute('aria-current', 'page');
-  await expect(page.locator('nav [aria-current="page"]')).toHaveCount(1);
+  // Pagination and section tabs may also have their own current-page marker.
+  // Only the workspace section navigation should have one active section.
+  await expect(
+    page.locator('nav[aria-label="Разделы кабинета"] [aria-current="page"]'),
+  ).toHaveCount(1);
   const active = page.getByRole('link', { name: 'Аудит', exact: true }),
     hover = page.getByRole('link', { name: 'Партнёры', exact: true });
   const activeColor = await active.evaluate(
