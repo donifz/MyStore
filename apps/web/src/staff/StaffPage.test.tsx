@@ -58,10 +58,7 @@ it('creates only manager/cashier directly and retains the operation key after a 
   await screen.findByLabelText('Email нового сотрудника');
   const roleSelect = screen.getByLabelText('Роль нового сотрудника');
   const roleOptions = within(roleSelect).getAllByRole('option');
-  expect(roleOptions.map((o) => o.textContent)).toEqual([
-    'Менеджер',
-    'Кассир',
-  ]);
+  expect(roleOptions.map((o) => o.textContent)).toEqual(['Менеджер', 'Кассир']);
   fireEvent.change(screen.getByLabelText('Email нового сотрудника'), {
     target: { value: 'new@example.test' },
   });
