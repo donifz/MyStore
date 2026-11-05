@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Product } from '../../lib/public-api';
 import Icon from './Icon';
+import ProductPhoto from './ProductPhoto';
 export default function MarketplaceHero({
   products = [],
   shops = false,
@@ -100,7 +101,7 @@ export default function MarketplaceHero({
           ) : (
             photos.map((p, i) => (
               <div className={'sf-art-product sf-art-product--' + i} key={p.id}>
-                <img src={p.photoUrl} alt="" />
+                <ProductPhoto src={p.photoUrl} alt={p.name} />
               </div>
             ))
           )}
