@@ -89,7 +89,9 @@ export default function AdminPage() {
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [shopPage, setShopPage] = useState(1);
   const [shopTotal, setShopTotal] = useState<number | null>(null);
-  const [shopItems, setShopItems] = useState<AdminOverview['shops'] | null>(null);
+  const [shopItems, setShopItems] = useState<AdminOverview['shops'] | null>(
+    null,
+  );
   const [shopSearch, setShopSearch] = useState('');
   const [shopSort, setShopSort] = useState<'name' | 'city'>('name');
   const [shopRefresh, setShopRefresh] = useState(0);
@@ -147,27 +149,28 @@ export default function AdminPage() {
   async function load() {
     setApplicationLoading(true);
     try {
-    const [a, h, summary, g] = await Promise.all([
-      api<Page<Application>>(
-        `/platform/admin/applications?page=${applicationPage}&pageSize=${APPLICATIONS_PAGE_SIZE}&q=${encodeURIComponent(applicationQuery.trim())}&status=${encodeURIComponent(applicationStatus)}`,
-      ),
-      api<Page<Audit>>('/platform/admin/audit'),
-      api<AdminOverview>('/platform/admin/overview'),
-      api<{ items: PlatformFinancialGrant[] }>(
-        '/platform/admin/financial-access',
-      ).catch(() => ({ items: [] })),
-    ]);
-    setApplications(a.items);
-    setApplicationTotal(a.total);
-    const lastApplicationPage = Math.max(
-      1,
-      Math.ceil(a.total / APPLICATIONS_PAGE_SIZE),
-    );
-    if (applicationPage > lastApplicationPage) setApplicationPage(lastApplicationPage);
-    setAudit(h.items);
-    setOverview(summary);
-    setGrants(g.items);
-    setLoading(false);
+      const [a, h, summary, g] = await Promise.all([
+        api<Page<Application>>(
+          `/platform/admin/applications?page=${applicationPage}&pageSize=${APPLICATIONS_PAGE_SIZE}&q=${encodeURIComponent(applicationQuery.trim())}&status=${encodeURIComponent(applicationStatus)}`,
+        ),
+        api<Page<Audit>>('/platform/admin/audit'),
+        api<AdminOverview>('/platform/admin/overview'),
+        api<{ items: PlatformFinancialGrant[] }>(
+          '/platform/admin/financial-access',
+        ).catch(() => ({ items: [] })),
+      ]);
+      setApplications(a.items);
+      setApplicationTotal(a.total);
+      const lastApplicationPage = Math.max(
+        1,
+        Math.ceil(a.total / APPLICATIONS_PAGE_SIZE),
+      );
+      if (applicationPage > lastApplicationPage)
+        setApplicationPage(lastApplicationPage);
+      setAudit(h.items);
+      setOverview(summary);
+      setGrants(g.items);
+      setLoading(false);
     } finally {
       setApplicationLoading(false);
     }
@@ -201,30 +204,49 @@ export default function AdminPage() {
     if (!session.user?.platformAdmin) return;
     let active = true;
     setShopLoading(true);
-    const timer = window.setTimeout(() => {
-      void api<Page<AdminOverview['shops'][number]> & { page?: number; pageSize?: number }>(
-        `/platform/admin/shops?page=${shopPage}&pageSize=${SHOPS_PAGE_SIZE}&q=${encodeURIComponent(shopSearch.trim())}&sort=${shopSort}`,
-      )
-        .then((result) => {
-          if (!active) return;
-          if (result.pageSize !== SHOPS_PAGE_SIZE || result.page !== shopPage) return;
-          setShopItems(result.items);
-          setShopTotal(result.total);
-          const lastPage = Math.max(1, Math.ceil(result.total / SHOPS_PAGE_SIZE));
-          if (shopPage > lastPage) setShopPage(lastPage);
-        })
-        .catch((error) => {
-          if (active) setError(errorText(error));
-        })
-        .finally(() => {
-          if (active) setShopLoading(false);
-        });
-    }, shopSearch.trim() ? 250 : 0);
+    const timer = window.setTimeout(
+      () => {
+        void api<
+          Page<AdminOverview['shops'][number]> & {
+            page?: number;
+            pageSize?: number;
+          }
+        >(
+          `/platform/admin/shops?page=${shopPage}&pageSize=${SHOPS_PAGE_SIZE}&q=${encodeURIComponent(shopSearch.trim())}&sort=${shopSort}`,
+        )
+          .then((result) => {
+            if (!active) return;
+            if (result.pageSize !== SHOPS_PAGE_SIZE || result.page !== shopPage)
+              return;
+            setShopItems(result.items);
+            setShopTotal(result.total);
+            const lastPage = Math.max(
+              1,
+              Math.ceil(result.total / SHOPS_PAGE_SIZE),
+            );
+            if (shopPage > lastPage) setShopPage(lastPage);
+          })
+          .catch((error) => {
+            if (active) setError(errorText(error));
+          })
+          .finally(() => {
+            if (active) setShopLoading(false);
+          });
+      },
+      shopSearch.trim() ? 250 : 0,
+    );
     return () => {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [session.user?.userId, session.user?.platformAdmin, shopPage, shopSearch, shopSort, shopRefresh]);
+  }, [
+    session.user?.userId,
+    session.user?.platformAdmin,
+    shopPage,
+    shopSearch,
+    shopSort,
+    shopRefresh,
+  ]);
 
   useEffect(() => {
     if (!session.user?.platformAdmin) return;
@@ -272,7 +294,12 @@ export default function AdminPage() {
       setError(errorText(e));
       setLoading(false);
     });
-  }, [session.user?.userId, applicationPage, applicationQuery, applicationStatus]);
+  }, [
+    session.user?.userId,
+    applicationPage,
+    applicationQuery,
+    applicationStatus,
+  ]);
   async function decideApplication(
     row: Application,
     decision: 'in_review' | 'approved' | 'rejected',
@@ -480,12 +507,15 @@ export default function AdminPage() {
       </WorkspaceShell>
     );
   const visibleApps = applications;
-  const visibleShops = shopItems ?? (overview?.shops ?? []).filter(
-    (shop) =>
+  const visibleShops =
+    shopItems ??
+    (overview?.shops ?? []).filter((shop) =>
       [shop.name, shop.city ?? ''].some((value) =>
-        value.toLocaleLowerCase('ru').includes(shopSearch.trim().toLocaleLowerCase('ru')),
+        value
+          .toLocaleLowerCase('ru')
+          .includes(shopSearch.trim().toLocaleLowerCase('ru')),
       ),
-  );
+    );
   const visibleShopTotal = shopTotal ?? visibleShops.length;
   const visibleProducts = products;
   const productFirst = productTotal
