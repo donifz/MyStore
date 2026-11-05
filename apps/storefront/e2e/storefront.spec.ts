@@ -53,6 +53,10 @@ test('shows a placeholder instead of a broken image when the photo is corrupt', 
 }) => {
   await page.goto('/?q=broken-image');
   const card = page.locator('.sf-product-card').first();
+  await expect(card).toBeVisible();
+  // Product cards use loading="lazy": the browser may not request a corrupt
+  // image until its card enters the viewport.
+  await card.scrollIntoViewIfNeeded();
   await expect(card.locator('.sf-product-placeholder')).toBeVisible();
   await expect(card.locator('img')).toHaveCount(0);
 });
