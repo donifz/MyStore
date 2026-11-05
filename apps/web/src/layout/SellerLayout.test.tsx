@@ -78,7 +78,13 @@ it('renders store dashboard with KPIs, low stock, recent sales and period select
                   salePriceMinor: 78000,
                   available: 15,
                 },
-              ],
+              ].filter((item) =>
+                url.includes('stock=out')
+                  ? item.available <= 0
+                  : url.includes('stock=low')
+                    ? item.available > 0 && item.available <= 5
+                    : true,
+              ),
               total: 2,
               page: 1,
               pageSize: 48,
