@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import Pagination from '../components/Pagination';
+import { formatDate } from '../api/money';
 import { Link, useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
 import { useSession } from '../auth/SessionProvider';
@@ -154,6 +155,9 @@ export default function CategoriesPage() {
                 <span className="category-origin">
                   {c.builtIn ? 'Готовая' : 'Своя'}
                 </span>
+                {c.createdAt && (
+                  <small className="muted">Добавлено: {formatDate(c.createdAt)}</small>
+                )}
               </div>
               {c.children.length > 0 ? (
                 <ul className="category-children">
