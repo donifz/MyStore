@@ -11,25 +11,13 @@ import {
 } from '../api/types';
 import { useSession } from '../auth/SessionProvider';
 import WorkspaceShell from './WorkspaceShell';
+import {
+  comparisonTrend,
+  dashboardPeriodRange,
+  shopDate,
+} from './dashboard-period';
 
 type PeriodKey = 'today' | 'week' | 'month' | 'custom';
-
-function isoDate(daysAgo = 0) {
-  const d = new Date(Date.now() - daysAgo * 86_400_000);
-  return d.toISOString().slice(0, 10);
-}
-
-function periodRange(
-  period: PeriodKey,
-  customFrom?: string,
-  customTo?: string,
-): { from: string; to: string } {
-  const to = isoDate(0);
-  if (period === 'today') return { from: to, to };
-  if (period === 'week') return { from: isoDate(6), to };
-  if (period === 'month') return { from: isoDate(29), to };
-  return { from: customFrom || to, to: customTo || to };
-}
 
 function formatDayShort(day: string) {
   try {
@@ -40,17 +28,6 @@ function formatDayShort(day: string) {
     }).format(d);
   } catch {
     return day.slice(5);
-  }
-}
-
-function formatTime(iso: string) {
-  try {
-    return new Intl.DateTimeFormat('ru-KG', {
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(new Date(iso));
-  } catch {
-    return iso.slice(11, 16);
   }
 }
 
@@ -342,8 +319,8 @@ export function ShopHome() {
   const [period, setPeriod] = useState<PeriodKey>('today');
   const [refreshTick, setRefreshTick] = useState(0);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [customFrom, setCustomFrom] = useState(isoDate(7));
-  const [customTo, setCustomTo] = useState(isoDate(0));
+  const [customFrom, setCustomFrom] = useState(shopDate(new Date(), 7));
+  const [customTo, setCustomTo] = useState(shopDate());
 
   const [chartMetric, setChartMetric] = useState<'revenue' | 'sales'>(
     'revenue',
@@ -351,8 +328,11 @@ export function ShopHome() {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
   const [summary, setSummary] = useState<FinancialSummary | null>(null);
+  const [previousSummary, setPreviousSummary] =
+    useState<FinancialSummary | null>(null);
   const [variants, setVariants] = useState<Variant[]>([]);
-  const [variantsTotal, setVariantsTotal] = useState(0);
+  const [lowStock, setLowStock] = useState<Variant[]>([]);
+
   const [sales, setSales] = useState<SaleSummary[]>([]);
   const [salesTotal, setSalesTotal] = useState(0);
   const [error, setError] = useState('');
@@ -361,41 +341,74 @@ export function ShopHome() {
     if (!shop) return;
     let alive = true;
     setError('');
+    setSummary(null);
+    setPreviousSummary(null);
+    setLowStock([]);
 
-    const tasks: Promise<void>[] = [
-      api<Page<Variant>>(`/shops/${shop.id}/variants?page=1&pageSize=48`).then(
+    const tasks: Promise<unknown>[] = [
+      Promise.all([
+        api<Page<Variant>>(
+          `/shops/${shop.id}/variants?page=1&pageSize=10&stock=out`,
+        ),
+        api<Page<Variant>>(
+          `/shops/${shop.id}/variants?page=1&pageSize=10&stock=low`,
+        ),
+      ]).then(([empty, low]) => {
+        if (alive) {
+          setLowStock(
+            [...empty.items, ...low.items]
+              .filter((item) => !item.archived)
+              .sort((a, b) => (a.available ?? 0) - (b.available ?? 0)),
+          );
+        }
+      }),
+      api<Page<Variant>>(`/shops/${shop.id}/variants?page=1&pageSize=100`).then(
         (page) => {
           if (!alive) return;
           const active = page.items.filter((v) => !v.archived);
           setVariants(active);
-          setVariantsTotal(page.total || active.length);
         },
       ),
-      api<Page<SaleSummary>>(`/shops/${shop.id}/pos/sales?page=1`).then(
-        (page) => {
-          if (!alive) return;
-          setSales(page.items.slice(0, 5));
-          setSalesTotal(page.total);
-        },
-      ),
+      api<Page<SaleSummary>>(
+        `/shops/${shop.id}/pos/sales?page=1&sort=newest`,
+      ).then((page) => {
+        if (!alive) return;
+        setSales(page.items.slice(0, 5));
+        setSalesTotal(page.total);
+      }),
     ];
 
     if (canReports) {
-      const { from, to } = periodRange(period, customFrom, customTo);
-      const q = new URLSearchParams({ from, to });
-      tasks.push(
-        api<FinancialSummary>(
-          `/shops/${shop.id}/reports/summary?${q.toString()}`,
-        ).then((data) => {
-          if (alive) setSummary(data);
-        }),
-      );
-    } else {
-      setSummary(null);
+      try {
+        const range = dashboardPeriodRange(period, customFrom, customTo);
+        const q = new URLSearchParams({ from: range.from, to: range.to });
+        const previous = new URLSearchParams({
+          from: range.previousFrom,
+          to: range.previousTo,
+        });
+        tasks.push(
+          api<FinancialSummary>(
+            `/shops/${shop.id}/reports/summary?${q.toString()}`,
+          ).then((data) => {
+            if (alive) setSummary(data);
+          }),
+          api<FinancialSummary>(
+            `/shops/${shop.id}/reports/summary?${previous.toString()}`,
+          ).then((data) => {
+            if (alive) setPreviousSummary(data);
+          }),
+        );
+      } catch (error) {
+        setError(
+          error instanceof Error ? error.message : 'Неверный диапазон дат',
+        );
+      }
     }
 
-    void Promise.all(tasks).catch((e) => {
-      if (alive) setError(errorText(e));
+    void Promise.allSettled(tasks).then((results) => {
+      if (!alive) return;
+      const failure = results.find((result) => result.status === 'rejected');
+      if (failure?.status === 'rejected') setError(errorText(failure.reason));
     });
 
     return () => {
@@ -405,13 +418,14 @@ export function ShopHome() {
 
   if (!shop) return null;
 
-  const lowStockItems = variants
-    .filter((v) => (v.available ?? 0) <= 5)
-    .sort((a, b) => (a.available ?? 0) - (b.available ?? 0));
+  const lowStockItems = lowStock;
 
   const receiptsCount = canReports
     ? (summary?.posSalesCount ?? 0) + (summary?.onlineSalesCount ?? 0)
     : salesTotal;
+  const previousReceiptsCount =
+    (previousSummary?.posSalesCount ?? 0) +
+    (previousSummary?.onlineSalesCount ?? 0);
 
   const base = `/seller/${shop.id}`;
 
@@ -424,68 +438,31 @@ export function ShopHome() {
   const series = summary?.dailySeries ?? [];
   let chartPoints: { label: string; val: number; tooltipVal: string }[] = [];
 
-  if (period === 'today') {
-    const hours = [
-      '08:00',
-      '10:00',
-      '12:00',
-      '14:00',
-      '16:00',
-      '18:00',
-      '20:00',
-    ];
-    const weights = [0.08, 0.14, 0.22, 0.34, 0.12, 0.07, 0.03];
-    const totalRev = (summary?.revenueMinor ?? 0) / 100;
-    const totalCount = receiptsCount;
-
-    chartPoints = hours.map((hour, idx) => {
-      if (chartMetric === 'revenue') {
-        const val = Math.round(totalRev * weights[idx]);
-        return {
-          label: hour,
-          val,
-          tooltipVal: formatSom(val * 100),
-        };
-      } else {
-        const val = Math.max(0, Math.round(totalCount * weights[idx]));
-        return {
-          label: hour,
-          val,
-          tooltipVal: `${val} шт.`,
-        };
-      }
+  if (summary && period === 'today') {
+    const hours = summary.hourlySeries ?? [];
+    chartPoints = Array.from({ length: 24 }, (_, hour) => {
+      const point = hours.find((row) => row.hour === hour);
+      const net = point?.netMinor ?? 0;
+      const count = point?.salesCount ?? 0;
+      return {
+        label: `${String(hour).padStart(2, '0')}:00`,
+        val: chartMetric === 'revenue' ? net / 100 : count,
+        tooltipVal: chartMetric === 'revenue' ? formatSom(net) : `${count} шт.`,
+      };
     });
-  } else if (series.length > 0) {
-    chartPoints = series.map((pt) => {
-      if (chartMetric === 'revenue') {
-        const val = Math.max(0, Math.round(pt.netMinor / 100));
-        return {
-          label: formatDayShort(pt.day),
-          val,
-          tooltipVal: formatSom(pt.netMinor),
-        };
-      } else {
-        return {
-          label: formatDayShort(pt.day),
-          val: pt.salesCount,
-          tooltipVal: `${pt.salesCount} шт.`,
-        };
-      }
-    });
-  } else {
-    const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-    chartPoints = days.map((day) => ({
-      label: day,
-      val: 0,
-      tooltipVal: chartMetric === 'revenue' ? '0 сом' : '0 шт.',
+  } else if (summary && series.length > 0) {
+    chartPoints = series.map((pt) => ({
+      label: formatDayShort(pt.day),
+      val: chartMetric === 'revenue' ? pt.netMinor / 100 : pt.salesCount,
+      tooltipVal:
+        chartMetric === 'revenue'
+          ? formatSom(pt.netMinor)
+          : `${pt.salesCount} шт.`,
     }));
   }
 
   // Chart coordinate geometry
-  const maxRaw = Math.max(
-    ...chartPoints.map((p) => p.val),
-    chartMetric === 'revenue' ? 5000 : 10,
-  );
+  const maxRaw = Math.max(...chartPoints.map((p) => p.val), 0);
   const niceMax = niceCeil(maxRaw);
   const xMin = 50;
   const xMax = 580;
@@ -641,10 +618,16 @@ export function ShopHome() {
           title="Выручка"
           value={
             canReports
-              ? formatSom(summary?.revenueMinor ?? 0)
+              ? summary
+                ? formatSom(summary.revenueMinor)
+                : '—'
               : 'По правам отчётов'
           }
-          trendText="↑ +18% к вчерашнему дню"
+          trendText={comparisonTrend(
+            summary?.revenueMinor,
+            previousSummary?.revenueMinor,
+            period,
+          )}
           icon={<CoinsIcon />}
           iconBg="#e8f5ee"
           iconColor="#176b4a"
@@ -654,10 +637,16 @@ export function ShopHome() {
           title="Прибыль"
           value={
             canReports
-              ? formatSom(summary?.grossProfitMinor ?? 0)
+              ? summary
+                ? formatSom(summary.grossProfitMinor)
+                : '—'
               : 'По правам отчётов'
           }
-          trendText="↑ +22% к вчерашнему дню"
+          trendText={comparisonTrend(
+            summary?.grossProfitMinor,
+            previousSummary?.grossProfitMinor,
+            period,
+          )}
           icon={<BarChartIcon />}
           iconBg="#e8f5ee"
           iconColor="#176b4a"
@@ -665,8 +654,12 @@ export function ShopHome() {
         />
         <MetricCard
           title="Продажи"
-          value={String(receiptsCount)}
-          trendText="↑ +12% к вчерашнему дню"
+          value={canReports && !summary ? '—' : String(receiptsCount)}
+          trendText={comparisonTrend(
+            summary ? receiptsCount : undefined,
+            previousSummary ? previousReceiptsCount : undefined,
+            period,
+          )}
           icon={<CartIcon />}
           iconBg="#e0f2fe"
           iconColor="#0284c7"
@@ -674,8 +667,22 @@ export function ShopHome() {
         />
         <MetricCard
           title="Средний чек"
-          value={canReports ? formatSom(averageCheckMinor) : '0 сом'}
-          trendText="↑ +5% к вчерашнему дню"
+          value={
+            canReports
+              ? summary
+                ? formatSom(averageCheckMinor)
+                : '—'
+              : 'По правам отчётов'
+          }
+          trendText={comparisonTrend(
+            summary ? averageCheckMinor : undefined,
+            previousSummary && previousReceiptsCount > 0
+              ? Math.round(previousSummary.revenueMinor / previousReceiptsCount)
+              : previousSummary
+                ? 0
+                : undefined,
+            period,
+          )}
           icon={<ReceiptIcon />}
           iconBg="#fef3c7"
           iconColor="#d97706"
@@ -715,180 +722,193 @@ export function ShopHome() {
             </div>
           </div>
 
-          {canReports ? (
-            <div className="shop-home-svg-chart-container">
-              <svg
-                viewBox="0 0 600 210"
-                className="shop-home-svg-chart"
-                preserveAspectRatio="none"
-                onMouseLeave={() => setHoverIndex(null)}
-              >
-                <defs>
-                  <linearGradient
-                    id="revenueAreaGrad"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop offset="0%" stopColor="#176b4a" stopOpacity="0.25" />
-                    <stop
-                      offset="100%"
-                      stopColor="#176b4a"
-                      stopOpacity="0.01"
-                    />
-                  </linearGradient>
-                  <filter
-                    id="tooltipShadow"
-                    x="-20%"
-                    y="-20%"
-                    width="140%"
-                    height="140%"
-                  >
-                    <feDropShadow
-                      dx="0"
-                      dy="2"
-                      stdDeviation="3"
-                      floodColor="#000"
-                      floodOpacity="0.08"
-                    />
-                  </filter>
-                </defs>
-
-                {/* Y-axis gridlines & labels */}
-                {yGridLevels.map((lvl, idx) => {
-                  const y = yMin + (1 - lvl / niceMax) * (yMax - yMin);
-                  const label =
-                    chartMetric === 'revenue'
-                      ? lvl >= 1000
-                        ? `${Math.round(lvl / 1000)}k`
-                        : `${lvl}`
-                      : `${lvl}`;
-                  return (
-                    <g key={idx}>
-                      <line
-                        x1={xMin}
-                        y1={y}
-                        x2={xMax}
-                        y2={y}
-                        stroke="#f1f5f9"
-                        strokeDasharray="4 4"
-                        strokeWidth="1"
-                      />
-                      <text
-                        x={xMin - 8}
-                        y={y + 4}
-                        textAnchor="end"
-                        fill="#9ca3af"
-                        fontSize="11"
-                        fontFamily="inherit"
-                      >
-                        {label}
-                      </text>
-                    </g>
-                  );
-                })}
-
-                {/* Filled Area */}
-                {areaPath && <path d={areaPath} fill="url(#revenueAreaGrad)" />}
-
-                {/* Curved Line */}
-                {curvePath && (
-                  <path
-                    d={curvePath}
-                    fill="none"
-                    stroke="#176b4a"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                )}
-
-                {/* Hover trigger areas */}
-                {coords.map((c, i) => (
-                  <circle
-                    key={i}
-                    cx={c.x}
-                    cy={c.y}
-                    r="14"
-                    fill="transparent"
-                    style={{ cursor: 'pointer' }}
-                    onMouseEnter={() => setHoverIndex(i)}
-                  />
-                ))}
-
-                {/* X-axis labels */}
-                {coords.map((c, i) => (
-                  <text
-                    key={i}
-                    x={c.x}
-                    y={yMax + 18}
-                    textAnchor="middle"
-                    fill="#9ca3af"
-                    fontSize="11"
-                    fontFamily="inherit"
-                  >
-                    {chartPoints[i]?.label}
-                  </text>
-                ))}
-
-                {/* Active Indicator & Tooltip */}
-                {activeCoord && activePoint && (
-                  <g className="shop-home-chart-active-marker">
-                    <circle
-                      cx={activeCoord.x}
-                      cy={activeCoord.y}
-                      r="5.5"
-                      fill="#176b4a"
-                      stroke="#ffffff"
-                      strokeWidth="2.5"
-                    />
-                    <g
-                      transform={`translate(${activeCoord.x}, ${Math.max(
-                        20,
-                        activeCoord.y - 38,
-                      )})`}
-                      filter="url(#tooltipShadow)"
+          {canReports && summary ? (
+            chartPoints.length ? (
+              <div className="shop-home-svg-chart-container">
+                <svg
+                  viewBox="0 0 600 210"
+                  className="shop-home-svg-chart"
+                  preserveAspectRatio="none"
+                  onMouseLeave={() => setHoverIndex(null)}
+                >
+                  <defs>
+                    <linearGradient
+                      id="revenueAreaGrad"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
                     >
-                      <rect
-                        x="-44"
-                        y="-10"
-                        width="88"
-                        height="32"
-                        rx="7"
-                        fill="#ffffff"
-                        stroke="#e5e7eb"
-                        strokeWidth="1"
+                      <stop
+                        offset="0%"
+                        stopColor="#176b4a"
+                        stopOpacity="0.25"
                       />
-                      <text
-                        x="0"
-                        y="3"
-                        textAnchor="middle"
-                        fill="#6b7280"
-                        fontSize="10"
-                        fontWeight="500"
+                      <stop
+                        offset="100%"
+                        stopColor="#176b4a"
+                        stopOpacity="0.01"
+                      />
+                    </linearGradient>
+                    <filter
+                      id="tooltipShadow"
+                      x="-20%"
+                      y="-20%"
+                      width="140%"
+                      height="140%"
+                    >
+                      <feDropShadow
+                        dx="0"
+                        dy="2"
+                        stdDeviation="3"
+                        floodColor="#000"
+                        floodOpacity="0.08"
+                      />
+                    </filter>
+                  </defs>
+
+                  {/* Y-axis gridlines & labels */}
+                  {yGridLevels.map((lvl, idx) => {
+                    const y = yMin + (1 - lvl / niceMax) * (yMax - yMin);
+                    const label =
+                      chartMetric === 'revenue'
+                        ? lvl >= 1000
+                          ? `${Math.round(lvl / 1000)}k`
+                          : `${lvl}`
+                        : `${lvl}`;
+                    return (
+                      <g key={idx}>
+                        <line
+                          x1={xMin}
+                          y1={y}
+                          x2={xMax}
+                          y2={y}
+                          stroke="#f1f5f9"
+                          strokeDasharray="4 4"
+                          strokeWidth="1"
+                        />
+                        <text
+                          x={xMin - 8}
+                          y={y + 4}
+                          textAnchor="end"
+                          fill="#9ca3af"
+                          fontSize="11"
+                          fontFamily="inherit"
+                        >
+                          {label}
+                        </text>
+                      </g>
+                    );
+                  })}
+
+                  {/* Filled Area */}
+                  {areaPath && (
+                    <path d={areaPath} fill="url(#revenueAreaGrad)" />
+                  )}
+
+                  {/* Curved Line */}
+                  {curvePath && (
+                    <path
+                      d={curvePath}
+                      fill="none"
+                      stroke="#176b4a"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  )}
+
+                  {/* Hover trigger areas */}
+                  {coords.map((c, i) => (
+                    <circle
+                      key={i}
+                      cx={c.x}
+                      cy={c.y}
+                      r="14"
+                      fill="transparent"
+                      style={{ cursor: 'pointer' }}
+                      onMouseEnter={() => setHoverIndex(i)}
+                    />
+                  ))}
+
+                  {/* X-axis labels */}
+                  {coords.map((c, i) => (
+                    <text
+                      key={i}
+                      x={c.x}
+                      y={yMax + 18}
+                      textAnchor="middle"
+                      fill="#9ca3af"
+                      fontSize="11"
+                      fontFamily="inherit"
+                    >
+                      {period === 'today' && i % 3 !== 0
+                        ? ''
+                        : chartPoints[i]?.label}
+                    </text>
+                  ))}
+
+                  {/* Active Indicator & Tooltip */}
+                  {activeCoord && activePoint && (
+                    <g className="shop-home-chart-active-marker">
+                      <circle
+                        cx={activeCoord.x}
+                        cy={activeCoord.y}
+                        r="5.5"
+                        fill="#176b4a"
+                        stroke="#ffffff"
+                        strokeWidth="2.5"
+                      />
+                      <g
+                        transform={`translate(${activeCoord.x}, ${Math.max(
+                          20,
+                          activeCoord.y - 38,
+                        )})`}
+                        filter="url(#tooltipShadow)"
                       >
-                        {activePoint.label}
-                      </text>
-                      <text
-                        x="0"
-                        y="16"
-                        textAnchor="middle"
-                        fill="#111827"
-                        fontSize="11.5"
-                        fontWeight="700"
-                      >
-                        {activePoint.tooltipVal}
-                      </text>
+                        <rect
+                          x="-44"
+                          y="-10"
+                          width="88"
+                          height="32"
+                          rx="7"
+                          fill="#ffffff"
+                          stroke="#e5e7eb"
+                          strokeWidth="1"
+                        />
+                        <text
+                          x="0"
+                          y="3"
+                          textAnchor="middle"
+                          fill="#6b7280"
+                          fontSize="10"
+                          fontWeight="500"
+                        >
+                          {activePoint.label}
+                        </text>
+                        <text
+                          x="0"
+                          y="16"
+                          textAnchor="middle"
+                          fill="#111827"
+                          fontSize="11.5"
+                          fontWeight="700"
+                        >
+                          {activePoint.tooltipVal}
+                        </text>
+                      </g>
                     </g>
-                  </g>
-                )}
-              </svg>
-            </div>
+                  )}
+                </svg>
+              </div>
+            ) : (
+              <p className="muted">За выбранный период продаж нет.</p>
+            )
           ) : (
             <p className="muted">
-              Финансовая аналитика доступна владельцу и сотрудникам с правом
-              просмотра отчётов.
+              {canReports
+                ? 'Нет данных для отображения. Проверьте подключение и период.'
+                : 'Финансовая аналитика доступна владельцу и сотрудникам с правом просмотра отчётов.'}
             </p>
           )}
         </section>
@@ -907,7 +927,12 @@ export function ShopHome() {
               {sales.map((sale) => (
                 <div className="shop-home-recent-sale-row" key={sale.id}>
                   <span className="shop-home-sale-time">
-                    {formatTime(sale.createdAt)}
+                    {new Date(sale.createdAt).toLocaleString('ru-KG', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
                   </span>
                   <div className="shop-home-sale-icon" aria-hidden="true">
                     <ReceiptIcon />
@@ -915,7 +940,11 @@ export function ShopHome() {
                   <div className="shop-home-sale-meta">
                     <strong>Чек #{sale.id.slice(0, 6)}</strong>
                     <small>
-                      {sale.method === 'card' ? 'Оплата картой' : 'Наличные'}
+                      {sale.method === 'card'
+                        ? 'Оплата картой'
+                        : sale.method === 'cash'
+                          ? 'Наличные'
+                          : 'Без записи оплаты'}
                     </small>
                   </div>
                   <strong className="shop-home-sale-sum">
@@ -970,7 +999,7 @@ export function ShopHome() {
               })}
             </div>
           ) : (
-            <p className="muted">Товары пока не добавлены.</p>
+            <p className="muted">За выбранный период продаж товаров нет.</p>
           )}
         </section>
 
