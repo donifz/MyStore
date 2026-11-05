@@ -54,6 +54,7 @@ type Page<T> = { items: T[]; total: number };
 const PRODUCTS_PAGE_SIZE = 10;
 const APPLICATIONS_PAGE_SIZE = 10;
 const SHOPS_PAGE_SIZE = 10;
+const AUDIT_PAGE_SIZE = 15;
 const productDate = (value?: string, withTime = false) => {
   if (!value || Number.isNaN(Date.parse(value))) return '—';
   return withTime
@@ -105,6 +106,10 @@ export default function AdminPage() {
   const [productLoading, setProductLoading] = useState(true);
   const [productRefresh, setProductRefresh] = useState(0);
   const [audit, setAudit] = useState<Audit[]>([]);
+  const [auditLogPage, setAuditLogPage] = useState(1);
+  const [auditLogItems, setAuditLogItems] = useState<Audit[] | null>(null);
+  const [auditLogTotal, setAuditLogTotal] = useState<number | null>(null);
+  const [auditLogLoading, setAuditLogLoading] = useState(false);
   const [grants, setGrants] = useState<PlatformFinancialGrant[]>([]);
   const [selectedGrant, setSelectedGrant] =
     useState<PlatformFinancialGrant | null>(null);
@@ -167,6 +172,31 @@ export default function AdminPage() {
       setApplicationLoading(false);
     }
   }
+  useEffect(() => {
+    if (!session.user?.platformAdmin) return;
+    let active = true;
+    setAuditLogLoading(true);
+    void api<Page<Audit> & { page?: number }>(
+      `/platform/admin/audit?page=${auditLogPage}&pageSize=${AUDIT_PAGE_SIZE}`,
+    )
+      .then((result) => {
+        if (!active) return;
+        setAuditLogItems(result.items);
+        setAuditLogTotal(result.total);
+        const lastPage = Math.max(1, Math.ceil(result.total / AUDIT_PAGE_SIZE));
+        if (auditLogPage > lastPage) setAuditLogPage(lastPage);
+      })
+      .catch((error) => {
+        if (active) setError(errorText(error));
+      })
+      .finally(() => {
+        if (active) setAuditLogLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [session.user?.userId, session.user?.platformAdmin, auditLogPage]);
+
   useEffect(() => {
     if (!session.user?.platformAdmin) return;
     let active = true;
@@ -1380,11 +1410,11 @@ export default function AdminPage() {
               title="Журнал решений"
               subtitle="История действий модерации"
             >
-              {!audit.length ? (
+              {!(auditLogItems ?? audit).length ? (
                 <AdminEmpty>Решений пока нет</AdminEmpty>
               ) : (
                 <div className="admin-kit-activity">
-                  {audit.map((event, index) => (
+                  {(auditLogItems ?? audit).map((event, index) => (
                     <div key={event.entity_id + index}>
                       <span className="admin-kit-activity-dot">✓</span>
                       <div>
@@ -1400,6 +1430,14 @@ export default function AdminPage() {
                   ))}
                 </div>
               )}
+              <Pagination
+                page={auditLogPage}
+                total={auditLogTotal ?? audit.length}
+                size={AUDIT_PAGE_SIZE}
+                onPage={setAuditLogPage}
+                busy={auditLogLoading}
+                label="Страницы журнала решений"
+              />
             </AdminCard>
           )}
         </>
