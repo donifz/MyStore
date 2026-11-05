@@ -51,8 +51,7 @@ export function dashboardPeriodRange(
   }
   const days =
     Math.round(
-      (Date.parse(`${through}T00:00:00Z`) -
-        Date.parse(`${from}T00:00:00Z`)) /
+      (Date.parse(`${through}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) /
         DAY_MS,
     ) + 1;
   return {
@@ -72,7 +71,9 @@ export function comparisonTrend(
     return 'Сравнение недоступно';
   if (current === previous) return 'Без изменений';
   if (previous === 0) return 'Нет базы для сравнения';
-  const percentage = Math.round(((current - previous) / Math.abs(previous)) * 100);
+  const percentage = Math.round(
+    ((current - previous) / Math.abs(previous)) * 100,
+  );
   const periodLabel =
     period === 'today' ? 'к вчерашнему дню' : 'к предыдущему периоду';
   return `${percentage > 0 ? '↑ +' : '↓ '}${Math.abs(percentage)}% ${periodLabel}`;
