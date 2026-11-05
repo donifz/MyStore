@@ -49,6 +49,7 @@ export type Variant = {
   available?: number;
   stockValueMinor?: number;
   lastPurchaseMinor?: number;
+  createdAt?: string;
 };
 export type Page<T> = {
   items: T[];
@@ -143,6 +144,7 @@ export type FinancialSummary = {
   issuedOrdersMinor?: number;
   closedShifts: number;
   cashDiscrepancyMinor: number;
+  hourlySeries?: { hour: number; netMinor: number; salesCount: number }[];
   dailySeries?: {
     day: string;
     salesMinor: number;
