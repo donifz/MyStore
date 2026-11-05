@@ -13,7 +13,7 @@
     "build": "npm run build --workspaces",
     "test": "npm run test:e2e --workspace apps/api && npm run test --workspace apps/web",
     "typecheck": "npm run typecheck --workspaces",
-    "format:check": "node scripts/pr104-ci-format.cjs && prettier --check .",
+    "format:check": "prettier --check .",
     "format": "prettier --write .",
     "hooks:install": "git config core.hooksPath .githooks",
     "dev:web": "npm run dev --workspace apps/web"
