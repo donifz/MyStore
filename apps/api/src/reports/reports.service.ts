@@ -85,6 +85,19 @@ export class ReportsService {
        LIMIT 31`,
       [shop, start, end],
     );
+    const hourlyRows = await db.query(
+      `SELECT
+        extract(hour from d.created_at AT TIME ZONE 'Asia/Bishkek')::int AS hour,
+        COALESCE(sum(d.total_minor) FILTER (WHERE d.kind='sale'),0) AS sales_minor,
+        COALESCE(sum(d.total_minor) FILTER (WHERE d.kind='return'),0) AS returns_minor,
+        count(*) FILTER (WHERE d.kind='sale') AS sales_count
+       FROM stock_documents d
+       WHERE d.shop_id=$1 AND d.created_at >= $2 AND d.created_at < $3
+         AND d.kind IN ('sale','return')
+       GROUP BY 1
+       ORDER BY 1 ASC`,
+      [shop, start, end],
+    );
     const topProductsRows = await db.query(
       `SELECT
         v.id,
@@ -150,6 +163,11 @@ export class ReportsService {
         day: String(r.day),
         salesMinor: Number(r.sales_minor),
         returnsMinor: Number(r.returns_minor),
+        netMinor: Number(r.sales_minor) - Number(r.returns_minor),
+        salesCount: Number(r.sales_count),
+      })),
+      hourlySeries: hourlyRows.map((r: any) => ({
+        hour: Number(r.hour),
         netMinor: Number(r.sales_minor) - Number(r.returns_minor),
         salesCount: Number(r.sales_count),
       })),
