@@ -108,14 +108,24 @@ describe('photo product suggestions', () => {
     upstream
       .mockResolvedValueOnce(
         new Response(
-          JSON.stringify({ error: { status: 'UNAVAILABLE', message: 'temporary provider outage' } }),
+          JSON.stringify({
+            error: {
+              status: 'UNAVAILABLE',
+              message: 'temporary provider outage',
+            },
+          }),
           { status: 503 },
         ),
       )
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify(suggestion) }] } }],
+            candidates: [
+              {
+                finishReason: 'STOP',
+                content: { parts: [{ text: JSON.stringify(suggestion) }] },
+              },
+            ],
           }),
           { status: 200 },
         ),
