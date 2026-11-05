@@ -281,7 +281,11 @@ export default function BarcodeLabelsPage() {
                   <td>{product.name}</td>
                   <td>{product.sku || '—'}</td>
                   <td className="code">{product.barcode}</td>
-                  <td>{product.createdAt ? new Date(product.createdAt).toLocaleDateString('ru-KG') : '—'}</td>
+                  <td>
+                    {product.createdAt
+                      ? new Date(product.createdAt).toLocaleDateString('ru-KG')
+                      : '—'}
+                  </td>
                   <td>
                     {new Intl.NumberFormat('ru-KG', {
                       minimumFractionDigits: 2,
