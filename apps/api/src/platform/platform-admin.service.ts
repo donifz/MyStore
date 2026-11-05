@@ -50,8 +50,8 @@ export class PlatformAdminService {
   }
 
   async listShops(page = 1, pageSize = 10, query = '', sort: 'name' | 'city' = 'name') {
-    const search = '%' + query.trim().replace(/[\\%_]/g, '\\  async setMarketplaceBlocked(
-') + '%';
+    const search =
+      '%' + query.trim().replace(/[%_\\]/g, (character) => '\\' + character) + '%';
     const where = "(name ILIKE $1 OR COALESCE(city,'') ILIKE $1)";
     const [count] = await this.db.query(
       'SELECT count(*)::int AS total FROM shops WHERE ' + where,
