@@ -52,6 +52,9 @@ type Audit = {
 };
 type Page<T> = { items: T[]; total: number };
 const PRODUCTS_PAGE_SIZE = 10;
+const APPLICATIONS_PAGE_SIZE = 10;
+const SHOPS_PAGE_SIZE = 10;
+const AUDIT_PAGE_SIZE = 15;
 const productDate = (value?: string, withTime = false) => {
   if (!value || Number.isNaN(Date.parse(value))) return '—';
   return withTime
@@ -84,13 +87,31 @@ const money = (minor: number) =>
 export default function AdminPage() {
   const session = useSession();
   const [overview, setOverview] = useState<AdminOverview | null>(null);
+  const [shopPage, setShopPage] = useState(1);
+  const [shopTotal, setShopTotal] = useState<number | null>(null);
+  const [shopItems, setShopItems] = useState<AdminOverview['shops'] | null>(
+    null,
+  );
+  const [shopSearch, setShopSearch] = useState('');
+  const [shopSort, setShopSort] = useState<'name' | 'city'>('name');
+  const [shopRefresh, setShopRefresh] = useState(0);
+  const [shopLoading, setShopLoading] = useState(false);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [applicationPage, setApplicationPage] = useState(1);
+  const [applicationTotal, setApplicationTotal] = useState(0);
+  const [applicationQuery, setApplicationQuery] = useState('');
+  const [applicationStatus, setApplicationStatus] = useState('');
+  const [applicationLoading, setApplicationLoading] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [productPage, setProductPage] = useState(1);
   const [productTotal, setProductTotal] = useState(0);
   const [productLoading, setProductLoading] = useState(true);
   const [productRefresh, setProductRefresh] = useState(0);
   const [audit, setAudit] = useState<Audit[]>([]);
+  const [auditLogPage, setAuditLogPage] = useState(1);
+  const [auditLogItems, setAuditLogItems] = useState<Audit[] | null>(null);
+  const [auditLogTotal, setAuditLogTotal] = useState<number | null>(null);
+  const [auditLogLoading, setAuditLogLoading] = useState(false);
   const [grants, setGrants] = useState<PlatformFinancialGrant[]>([]);
   const [selectedGrant, setSelectedGrant] =
     useState<PlatformFinancialGrant | null>(null);
@@ -126,20 +147,107 @@ export default function AdminPage() {
   }
   const [search, setSearch] = useState('');
   async function load() {
-    const [a, h, summary, g] = await Promise.all([
-      api<Page<Application>>('/platform/admin/applications'),
-      api<Page<Audit>>('/platform/admin/audit'),
-      api<AdminOverview>('/platform/admin/overview'),
-      api<{ items: PlatformFinancialGrant[] }>(
-        '/platform/admin/financial-access',
-      ).catch(() => ({ items: [] })),
-    ]);
-    setApplications(a.items);
-    setAudit(h.items);
-    setOverview(summary);
-    setGrants(g.items);
-    setLoading(false);
+    setApplicationLoading(true);
+    try {
+      const [a, h, summary, g] = await Promise.all([
+        api<Page<Application>>(
+          `/platform/admin/applications?page=${applicationPage}&pageSize=${APPLICATIONS_PAGE_SIZE}&q=${encodeURIComponent(applicationQuery.trim())}&status=${encodeURIComponent(applicationStatus)}`,
+        ),
+        api<Page<Audit>>('/platform/admin/audit'),
+        api<AdminOverview>('/platform/admin/overview'),
+        api<{ items: PlatformFinancialGrant[] }>(
+          '/platform/admin/financial-access',
+        ).catch(() => ({ items: [] })),
+      ]);
+      setApplications(a.items);
+      setApplicationTotal(a.total);
+      const lastApplicationPage = Math.max(
+        1,
+        Math.ceil(a.total / APPLICATIONS_PAGE_SIZE),
+      );
+      if (applicationPage > lastApplicationPage)
+        setApplicationPage(lastApplicationPage);
+      setAudit(h.items);
+      setOverview(summary);
+      setGrants(g.items);
+      setLoading(false);
+    } finally {
+      setApplicationLoading(false);
+    }
   }
+  useEffect(() => {
+    if (!session.user?.platformAdmin) return;
+    let active = true;
+    setAuditLogLoading(true);
+    void api<Page<Audit> & { page?: number }>(
+      `/platform/admin/audit?page=${auditLogPage}&pageSize=${AUDIT_PAGE_SIZE}`,
+    )
+      .then((result) => {
+        if (!active) return;
+        setAuditLogItems(result.items);
+        setAuditLogTotal(result.total);
+        const lastPage = Math.max(1, Math.ceil(result.total / AUDIT_PAGE_SIZE));
+        if (auditLogPage > lastPage) setAuditLogPage(lastPage);
+      })
+      .catch((error) => {
+        if (active) setError(errorText(error));
+      })
+      .finally(() => {
+        if (active) setAuditLogLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [session.user?.userId, session.user?.platformAdmin, auditLogPage]);
+
+  useEffect(() => {
+    if (!session.user?.platformAdmin) return;
+    let active = true;
+    setShopLoading(true);
+    const timer = window.setTimeout(
+      () => {
+        void api<
+          Page<AdminOverview['shops'][number]> & {
+            page?: number;
+            pageSize?: number;
+          }
+        >(
+          `/platform/admin/shops?page=${shopPage}&pageSize=${SHOPS_PAGE_SIZE}&q=${encodeURIComponent(shopSearch.trim())}&sort=${shopSort}`,
+        )
+          .then((result) => {
+            if (!active) return;
+            if (result.pageSize !== SHOPS_PAGE_SIZE || result.page !== shopPage)
+              return;
+            setShopItems(result.items);
+            setShopTotal(result.total);
+            const lastPage = Math.max(
+              1,
+              Math.ceil(result.total / SHOPS_PAGE_SIZE),
+            );
+            if (shopPage > lastPage) setShopPage(lastPage);
+          })
+          .catch((error) => {
+            if (active) setError(errorText(error));
+          })
+          .finally(() => {
+            if (active) setShopLoading(false);
+          });
+      },
+      shopSearch.trim() ? 250 : 0,
+    );
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [
+    session.user?.userId,
+    session.user?.platformAdmin,
+    shopPage,
+    shopSearch,
+    shopSort,
+    shopRefresh,
+  ]);
+
   useEffect(() => {
     if (!session.user?.platformAdmin) return;
     let active = true;
@@ -186,7 +294,12 @@ export default function AdminPage() {
       setError(errorText(e));
       setLoading(false);
     });
-  }, [session.user?.userId]);
+  }, [
+    session.user?.userId,
+    applicationPage,
+    applicationQuery,
+    applicationStatus,
+  ]);
   async function decideApplication(
     row: Application,
     decision: 'in_review' | 'approved' | 'rejected',
@@ -362,6 +475,7 @@ export default function AdminPage() {
         password: result.temporaryPassword,
       });
       if (ownerEmail) void load().catch(() => {});
+      setShopRefresh((value) => value + 1);
     } catch (e) {
       setError(
         e instanceof ApiError &&
@@ -392,14 +506,17 @@ export default function AdminPage() {
         </p>
       </WorkspaceShell>
     );
-  const waiting = applications.filter((a) =>
-    ['new', 'in_review'].includes(a.status),
-  );
-  const visibleApps = applications.filter((a) =>
-    [a.shop_name, a.email, a.city].some((value) =>
-      value.toLowerCase().includes(search.toLowerCase()),
-    ),
-  );
+  const visibleApps = applications;
+  const visibleShops =
+    shopItems ??
+    (overview?.shops ?? []).filter((shop) =>
+      [shop.name, shop.city ?? ''].some((value) =>
+        value
+          .toLocaleLowerCase('ru')
+          .includes(shopSearch.trim().toLocaleLowerCase('ru')),
+      ),
+    );
+  const visibleShopTotal = shopTotal ?? visibleShops.length;
   const visibleProducts = products;
   const productFirst = productTotal
     ? (productPage - 1) * PRODUCTS_PAGE_SIZE + 1
@@ -422,6 +539,36 @@ export default function AdminPage() {
         <button onClick={() => setTab('applications')}>Все заявки →</button>
       }
     >
+      <div className="toolbar">
+        <label>
+          Поиск заявок
+          <input
+            value={applicationQuery}
+            placeholder="Магазин или email"
+            onChange={(event) => {
+              setApplicationQuery(event.target.value);
+              setApplicationPage(1);
+            }}
+          />
+        </label>
+        <label>
+          Статус заявки
+          <select
+            value={applicationStatus}
+            onChange={(event) => {
+              setApplicationStatus(event.target.value);
+              setApplicationPage(1);
+            }}
+          >
+            <option value="">Все статусы</option>
+            <option value="new">Новые</option>
+            <option value="in_review">На проверке</option>
+            <option value="approved">Одобрены</option>
+            <option value="rejected">Отклонены</option>
+          </select>
+        </label>
+        <span className="muted">Всего: {applicationTotal}</span>
+      </div>
       {!visibleApps.length ? (
         <AdminEmpty>Заявок пока нет</AdminEmpty>
       ) : (
@@ -508,6 +655,14 @@ export default function AdminPage() {
           </table>
         </div>
       )}
+      <Pagination
+        page={applicationPage}
+        total={applicationTotal}
+        size={APPLICATIONS_PAGE_SIZE}
+        onPage={setApplicationPage}
+        busy={applicationLoading}
+        label="Страницы заявок партнёров"
+      />
     </AdminCard>
   );
 
@@ -874,7 +1029,38 @@ export default function AdminPage() {
                     </div>
                   )}
 
-                  {!overview?.shops.length ? (
+                  <div className="toolbar">
+                    <label>
+                      Поиск магазинов
+                      <input
+                        value={shopSearch}
+                        placeholder="Магазин или город"
+                        onChange={(event) => {
+                          setShopSearch(event.target.value);
+                          setShopPage(1);
+                          setShopItems(null);
+                          setShopTotal(null);
+                        }}
+                      />
+                    </label>
+                    <label>
+                      Сортировка магазинов
+                      <select
+                        value={shopSort}
+                        onChange={(event) => {
+                          setShopSort(event.target.value as 'name' | 'city');
+                          setShopPage(1);
+                          setShopItems(null);
+                          setShopTotal(null);
+                        }}
+                      >
+                        <option value="name">По названию</option>
+                        <option value="city">По городу</option>
+                      </select>
+                    </label>
+                    <span className="muted">Всего: {visibleShopTotal}</span>
+                  </div>
+                  {!visibleShops.length ? (
                     <AdminEmpty>Магазины пока не зарегистрированы</AdminEmpty>
                   ) : (
                     <div className="admin-kit-scroll">
@@ -889,7 +1075,7 @@ export default function AdminPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {overview.shops.map((shop) => (
+                          {visibleShops.map((shop) => (
                             <tr key={shop.id}>
                               <td>
                                 <strong>{shop.name}</strong>
@@ -1004,6 +1190,14 @@ export default function AdminPage() {
                       </table>
                     </div>
                   )}
+                  <Pagination
+                    page={shopPage}
+                    total={visibleShopTotal}
+                    size={SHOPS_PAGE_SIZE}
+                    onPage={setShopPage}
+                    busy={shopLoading}
+                    label="Страницы магазинов платформы"
+                  />
                 </AdminCard>
               </div>
               <div className="admin-kit-secondary">
@@ -1246,11 +1440,11 @@ export default function AdminPage() {
               title="Журнал решений"
               subtitle="История действий модерации"
             >
-              {!audit.length ? (
+              {!(auditLogItems ?? audit).length ? (
                 <AdminEmpty>Решений пока нет</AdminEmpty>
               ) : (
                 <div className="admin-kit-activity">
-                  {audit.map((event, index) => (
+                  {(auditLogItems ?? audit).map((event, index) => (
                     <div key={event.entity_id + index}>
                       <span className="admin-kit-activity-dot">✓</span>
                       <div>
@@ -1266,6 +1460,14 @@ export default function AdminPage() {
                   ))}
                 </div>
               )}
+              <Pagination
+                page={auditLogPage}
+                total={auditLogTotal ?? audit.length}
+                size={AUDIT_PAGE_SIZE}
+                onPage={setAuditLogPage}
+                busy={auditLogLoading}
+                label="Страницы журнала решений"
+              />
             </AdminCard>
           )}
         </>

@@ -95,9 +95,11 @@ it('lands a cashier in the cash register, and a manager in products', async () =
 it('retains a platform section from a direct URL and one active navigation item', async () => {
   open({ ...base, platformAdmin: true }, '/platform/admin?section=audit');
   await screen.findByRole('link', { name: 'Аудит', current: 'page' });
-  expect(document.querySelectorAll('nav [aria-current="page"]')).toHaveLength(
-    1,
-  );
+  expect(
+    document.querySelectorAll(
+      'nav[aria-label="Разделы кабинета"] [aria-current="page"]',
+    ),
+  ).toHaveLength(1);
   expect(screen.getByLabelText('Адрес').textContent).toBe(
     '/platform/admin?section=audit',
   );

@@ -365,3 +365,79 @@ it('keeps the product table and opens its details in a modal', async () => {
   expect(screen.queryByRole('dialog')).toBeNull();
   expect(screen.getByRole('row', { name: /Робот-конструктор/ })).not.toBeNull();
 });
+
+it('loads later partner applications from the server with filters', async () => {
+  const requests: string[] = [];
+  const applications = Array.from({ length: 14 }, (_, index) => ({
+    id: 'application-' + index,
+    shop_name: 'Магазин ' + String(index + 1).padStart(2, '0'),
+    email: 'partner' + index + '@example.test',
+    phone: '555123456',
+    city: 'Ош',
+    address: '',
+    category: 'Игрушки',
+    status: index % 2 === 0 ? 'new' : 'approved',
+    rejection_reason: null,
+    created_at: '2026-11-05T10:00:00.000Z',
+  }));
+  vi.stubGlobal('fetch', async (url: string) => {
+    let body: unknown = { items: [], total: 0 };
+    if (url === '/api/auth/me') {
+      body = {
+        userId: 'admin',
+        email: 'admin@example.test',
+        platformAdmin: true,
+        shops: [],
+        csrfToken: 'csrf',
+      };
+    } else if (url.startsWith('/api/platform/admin/applications?')) {
+      requests.push(url);
+      const params = new URL(url, 'http://localhost').searchParams;
+      const query = (params.get('q') || '').toLowerCase();
+      const status = params.get('status') || '';
+      const filtered = applications.filter(
+        (application) =>
+          (!query ||
+            application.shop_name.toLowerCase().includes(query) ||
+            application.email.includes(query)) &&
+          (!status || application.status === status),
+      );
+      const page = Number(params.get('page') || 1);
+      const pageSize = Number(params.get('pageSize') || 10);
+      body = {
+        items: filtered.slice((page - 1) * pageSize, page * pageSize),
+        total: filtered.length,
+        page,
+        pageSize,
+      };
+    } else if (url === '/api/platform/admin/overview') {
+      body = {
+        shopCount: 0,
+        pendingPartners: 7,
+        pendingProducts: 0,
+        shops: [],
+      };
+    }
+    return new Response(JSON.stringify(body), {
+      headers: { 'content-type': 'application/json' },
+    });
+  });
+  render(
+    <MemoryRouter initialEntries={['/platform/admin?section=applications']}>
+      <SessionProvider>
+        <AdminPage />
+      </SessionProvider>
+    </MemoryRouter>,
+  );
+  expect(await screen.findByText('Магазин 01')).toBeTruthy();
+  expect(screen.queryByText('Магазин 14')).toBeNull();
+  const pager = within(
+    screen.getByRole('navigation', { name: 'Страницы заявок партнёров' }),
+  );
+  await userEvent.setup().click(pager.getByRole('button', { name: 'Далее' }));
+  expect(await screen.findByText('Магазин 14')).toBeTruthy();
+  await userEvent
+    .setup()
+    .selectOptions(screen.getByLabelText('Статус заявки'), 'approved');
+  expect(requests.some((url) => url.includes('status=approved'))).toBe(true);
+});

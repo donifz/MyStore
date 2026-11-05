@@ -73,7 +73,7 @@ export class CategoriesService {
   async list(shopId: string) {
     await this.ensureDefaults(shopId);
     const rows = await this.db.query(
-      'SELECT id,parent_id,name,built_in,platform_category_code FROM shop_categories WHERE shop_id=$1 ORDER BY parent_id NULLS FIRST, lower(name)',
+      'SELECT id,parent_id,name,built_in,platform_category_code,created_at FROM shop_categories WHERE shop_id=$1 ORDER BY parent_id NULLS FIRST, lower(name)',
       [shopId],
     );
     const roots = rows
@@ -82,6 +82,7 @@ export class CategoriesService {
         id: r.id,
         name: r.name,
         builtIn: r.built_in,
+        createdAt: r.created_at,
         platformCategoryCode: r.platform_category_code,
         parentId: null as string | null,
         children: [] as any[],
@@ -94,6 +95,7 @@ export class CategoriesService {
           id: row.id,
           name: row.name,
           builtIn: row.built_in,
+          createdAt: row.created_at,
           platformCategoryCode: row.platform_category_code,
           parentId: row.parent_id,
         });
@@ -115,7 +117,7 @@ export class CategoriesService {
     }
     try {
       const [row] = await this.db.query(
-        'INSERT INTO shop_categories(shop_id,parent_id,name,built_in) VALUES($1,$2,$3,false) RETURNING id,parent_id,name,built_in',
+        'INSERT INTO shop_categories(shop_id,parent_id,name,built_in) VALUES($1,$2,$3,false) RETURNING id,parent_id,name,built_in,created_at',
         [shopId, parentId ?? null, trimmed],
       );
       return {
@@ -123,6 +125,7 @@ export class CategoriesService {
         parentId: row.parent_id,
         name: row.name,
         builtIn: row.built_in,
+        createdAt: row.created_at,
       };
     } catch (e: any) {
       if (e.code === '23505')

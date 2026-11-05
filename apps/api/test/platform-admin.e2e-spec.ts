@@ -55,6 +55,32 @@ describe('platform administration', () => {
       .expect(200);
     expect(overview.body.shopCount).toBeGreaterThanOrEqual(1);
     expect(overview.body).not.toHaveProperty('sales');
+    await request(http)
+      .get('/platform/admin/shops?page=1&pageSize=10')
+      .auth(c.owner, { type: 'bearer' })
+      .expect(403);
+    await c.db.query(
+      "INSERT INTO shops(id,name) SELECT gen_random_uuid(), 'Paged shop ' || n FROM generate_series(1,13) n",
+    );
+    const page1 = await request(http)
+      .get('/platform/admin/shops?page=1&pageSize=10')
+      .auth(token, { type: 'bearer' })
+      .expect(200);
+    const page2 = await request(http)
+      .get('/platform/admin/shops?page=2&pageSize=10')
+      .auth(token, { type: 'bearer' })
+      .expect(200);
+    expect(page1.body.items).toHaveLength(10);
+    expect(page2.body.items.length).toBeGreaterThan(0);
+    expect(page2.body.total).toBe(page1.body.total);
+    expect(page1.body.total).toBeGreaterThanOrEqual(14);
+    const searched = await request(http)
+      .get('/platform/admin/shops?page=1&pageSize=10&q=Paged%20shop%2013')
+      .auth(token, { type: 'bearer' })
+      .expect(200);
+    expect(searched.body.total).toBe(1);
+    expect(searched.body.items[0].name).toBe('Paged shop 13');
+
     expect(overview.body.shops).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ name: expect.any(String) }),

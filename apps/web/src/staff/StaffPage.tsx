@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import Pagination from '../components/Pagination';
+import { formatDate } from '../api/money';
 import { useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
 import { useSession } from '../auth/SessionProvider';
@@ -16,6 +18,7 @@ type Invitation = {
   email: string;
   role: 'manager' | 'cashier';
   expires_at: string;
+  created_at?: string;
 };
 type ResetResult = { userId: string; temporaryPassword: string };
 export default function StaffPage() {
@@ -32,6 +35,10 @@ export default function StaffPage() {
     [stale, setStale] = useState(true);
   const op = useAccessOperation();
   const resetOp = useAccessOperation<ResetResult>();
+  const [staffSearch, setStaffSearch] = useState('');
+  const [memberPage, setMemberPage] = useState(1);
+  const [invitationPage, setInvitationPage] = useState(1);
+  const [staffSort, setStaffSort] = useState<'email' | 'role'>('email');
   const [resetPasswords, setResetPasswords] = useState<Record<string, string>>(
     {},
   );
@@ -71,6 +78,27 @@ export default function StaffPage() {
   async function mutate(path: string, body: unknown) {
     if (await op.run(base + path, body)) await load();
   }
+  const staffPageSize = 10;
+  const match = (email: string) =>
+    email.toLowerCase().includes(staffSearch.trim().toLowerCase());
+  const members = (data?.members ?? [])
+    .filter((member) => match(member.email))
+    .sort((a, b) =>
+      staffSort === 'role'
+        ? a.role.localeCompare(b.role) || a.email.localeCompare(b.email)
+        : a.email.localeCompare(b.email),
+    );
+  const invitations = (data?.invitations ?? []).filter((invite) =>
+    match(invite.email),
+  );
+  const displayedMembers = members.slice(
+    (memberPage - 1) * staffPageSize,
+    memberPage * staffPageSize,
+  );
+  const displayedInvitations = invitations.slice(
+    (invitationPage - 1) * staffPageSize,
+    invitationPage * staffPageSize,
+  );
   if (session.loading) return <p className="loading">Загрузка…</p>;
   if (shop?.role !== 'owner')
     return (
@@ -125,8 +153,35 @@ export default function StaffPage() {
       {!data && !error && <p className="loading">Загрузка сотрудников…</p>}
       {data && (
         <>
+          <div className="toolbar">
+            <label>
+              Поиск сотрудника или приглашения
+              <input
+                value={staffSearch}
+                placeholder="Email"
+                onChange={(event) => {
+                  setStaffSearch(event.target.value);
+                  setMemberPage(1);
+                  setInvitationPage(1);
+                }}
+              />
+            </label>
+            <label>
+              Сортировка сотрудников
+              <select
+                value={staffSort}
+                onChange={(event) => {
+                  setStaffSort(event.target.value as 'email' | 'role');
+                  setMemberPage(1);
+                }}
+              >
+                <option value="email">По email</option>
+                <option value="role">По роли</option>
+              </select>
+            </label>
+          </div>
           <div className="panel">
-            <h2>Сотрудники магазина</h2>
+            <h2>Сотрудники магазина ({members.length})</h2>
             <p className="muted">
               Финансовые отчёты открывают себестоимость, прибыль и CSV-выгрузки.
               Возвраты открывают продажи магазина без себестоимости; денежный
@@ -144,7 +199,7 @@ export default function StaffPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.members.map((m) => (
+                  {displayedMembers.map((m) => (
                     <tr key={m.id}>
                       <td>{m.email}</td>
                       <td>
@@ -258,19 +313,29 @@ export default function StaffPage() {
                 </tbody>
               </table>
             </div>
+            <Pagination
+              page={memberPage}
+              total={members.length}
+              size={staffPageSize}
+              onPage={setMemberPage}
+              label="Страницы сотрудников"
+            />
           </div>
           <div className="panel">
-            <h2>Ранее отправленные приглашения</h2>
-            {!data.invitations.length && (
+            <h2>Ранее отправленные приглашения ({invitations.length})</h2>
+            {!invitations.length && (
               <p className="muted">Нет ожидающих приглашений.</p>
             )}
             <div className="stack">
-              {data.invitations.map((i) => (
+              {displayedInvitations.map((i) => (
                 <article className="staff-invitation" key={i.id}>
                   <div>
                     <strong>{i.email}</strong>
                     <p className="muted">
                       {i.role === 'manager' ? 'Менеджер' : 'Кассир'} ·{' '}
+                      {i.created_at
+                        ? `Создано: ${formatDate(i.created_at)} · `
+                        : ''}
                       {new Date(i.expires_at) < new Date()
                         ? 'Срок истёк'
                         : 'До ' +
@@ -296,6 +361,13 @@ export default function StaffPage() {
                 </article>
               ))}
             </div>
+            <Pagination
+              page={invitationPage}
+              total={invitations.length}
+              size={staffPageSize}
+              onPage={setInvitationPage}
+              label="Страницы приглашений"
+            />
           </div>
         </>
       )}

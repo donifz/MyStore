@@ -49,6 +49,39 @@ export class PlatformAdminService {
     };
   }
 
+  async listShops(
+    page = 1,
+    pageSize = 10,
+    query = '',
+    sort: 'name' | 'city' = 'name',
+  ) {
+    const search =
+      '%' +
+      query.trim().replace(/[%_\\]/g, (character) => '\\' + character) +
+      '%';
+    const where = "(name ILIKE $1 OR COALESCE(city,'') ILIKE $1)";
+    const [count] = await this.db.query(
+      'SELECT count(*)::int AS total FROM shops WHERE ' + where,
+      [search],
+    );
+    const order = sort === 'city' ? "COALESCE(city,''),name,id" : 'name,id';
+    const items = await this.db.query(
+      `SELECT id, name, city, published,
+              marketplace_blocked AS "marketplaceBlocked",
+              marketplace_block_reason AS "marketplaceBlockReason",
+              subscription_until AS "subscriptionUntil",
+              EXISTS (
+                SELECT 1 FROM memberships m
+                WHERE m.shop_id=shops.id AND m.role='owner'
+              ) AS "hasOwner",
+              (SELECT a.email FROM partner_applications a
+               WHERE a.shop_id=shops.id AND a.status='approved') AS "ownerCandidateEmail"
+       FROM shops WHERE ${where} ORDER BY ${order} LIMIT $2 OFFSET $3`,
+      [search, pageSize, (page - 1) * pageSize],
+    );
+    return { items, total: Number(count.total), page, pageSize };
+  }
+
   async setMarketplaceBlocked(
     adminId: string,
     shopId: string,

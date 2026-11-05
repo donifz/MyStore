@@ -90,6 +90,11 @@ describe('photo product suggestions', () => {
       ),
     ).toBe(true);
     expect(payload.generationConfig.responseMimeType).toBe('application/json');
+    const guidance = String(payload.systemInstruction.parts[0].text);
+    expect(guidance).toContain('интернет-магазина');
+    expect(guidance).toContain('не добавляй цвет коробки');
+    expect(guidance).toContain('Не используй рекламных обещаний');
+    expect(payload.contents[0].parts[0].text).toContain('продаваемый ТОВАР');
     expect(payload.generationConfig).not.toHaveProperty('responseFormat');
     expect(String(options!.body)).not.toContain('Чужая категория');
     expect(String(options!.body)).not.toContain('owner@example.test');
@@ -97,6 +102,41 @@ describe('photo product suggestions', () => {
       'SELECT (SELECT count(*)::int FROM variants) variants,(SELECT count(*)::int FROM stock_documents) documents',
     );
     expect(counts).toEqual({ variants: 2, documents: 0 });
+  });
+  it('retries a transient provider 503 once without losing the product suggestion', async () => {
+    const upstream = jest.spyOn(global, 'fetch');
+    upstream
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            error: {
+              status: 'UNAVAILABLE',
+              message: 'temporary provider outage',
+            },
+          }),
+          { status: 503 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            candidates: [
+              {
+                finishReason: 'STOP',
+                content: { parts: [{ text: JSON.stringify(suggestion) }] },
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      );
+    expect((await infer().expect(201)).body.name).toBe(suggestion.name);
+    expect(upstream).toHaveBeenCalledTimes(2);
+  });
+  it('never retries quota exhaustion', async () => {
+    const upstream = provider(undefined, 429);
+    expect((await infer().expect(503)).body.code).toBe('AI_QUOTA_EXCEEDED');
+    expect(upstream).toHaveBeenCalledTimes(1);
   });
   it('keeps photo receiving available when AI is not configured', async () => {
     delete process.env.GEMINI_API_KEY;
