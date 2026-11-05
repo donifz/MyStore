@@ -56,7 +56,11 @@ it('creates only manager/cashier directly and retains the operation key after a 
     </MemoryRouter>,
   );
   await screen.findByLabelText('Email нового сотрудника');
-  expect(within(screen.getByLabelText('Роль нового сотрудника')).getAllByRole('option').map((o) => o.textContent)).toEqual([
+  expect(
+    within(screen.getByLabelText('Роль нового сотрудника'))
+      .getAllByRole('option')
+      .map((o) => o.textContent),
+  ).toEqual([
     'Менеджер',
     'Кассир',
   ]);
@@ -259,14 +263,15 @@ it('paginates and searches all staff members without hiding later entries', asyn
     canViewReports: false,
   }));
   vi.stubGlobal('fetch', async (url: string) => {
-    const body = url === '/api/auth/me'
-      ? {
-          userId: 'owner',
-          shops: [{ id: 'shop', name: 'Test', role: 'owner' }],
-        }
-      : url.endsWith('/email/status')
-        ? { configured: false }
-        : { members, invitations: [] };
+    const body =
+      url === '/api/auth/me'
+        ? {
+            userId: 'owner',
+            shops: [{ id: 'shop', name: 'Test', role: 'owner' }],
+          }
+        : url.endsWith('/email/status')
+          ? { configured: false }
+          : { members, invitations: [] };
     return new Response(JSON.stringify(body), {
       headers: { 'content-type': 'application/json' },
     });
@@ -282,7 +287,11 @@ it('paginates and searches all staff members without hiding later entries', asyn
   );
   await screen.findByText('employee01@example.test');
   expect(screen.queryByText('employee13@example.test')).toBeNull();
-  fireEvent.click(within(screen.getByRole('navigation', { name: 'Страницы сотрудников' })).getByRole('button', { name: 'Далее' }));
+  fireEvent.click(
+    within(
+      screen.getByRole('navigation', { name: 'Страницы сотрудников' }),
+    ).getByRole('button', { name: 'Далее' }),
+  );
   await screen.findByText('employee13@example.test');
   fireEvent.change(screen.getByLabelText('Поиск сотрудника или приглашения'), {
     target: { value: 'employee13' },
