@@ -68,7 +68,12 @@ export class AdminSessionController {
     @Query() query: ShopsPageQuery,
   ) {
     await this.admins.requireAdmin(req.userId);
-    return this.admins.listShops(query.page, query.pageSize, query.q, query.sort);
+    return this.admins.listShops(
+      query.page,
+      query.pageSize,
+      query.q,
+      query.sort,
+    );
   }
 
   @Get('session') async session(@Req() req: UserRequest) {
