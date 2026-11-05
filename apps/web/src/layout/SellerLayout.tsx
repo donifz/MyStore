@@ -28,17 +28,6 @@ function formatDayShort(day: string) {
   }
 }
 
-function formatTime(iso: string) {
-  try {
-    return new Intl.DateTimeFormat('ru-KG', {
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(new Date(iso));
-  } catch {
-    return iso.slice(11, 16);
-  }
-}
-
 function niceCeil(n: number): number {
   if (n <= 10) return 10;
   if (n <= 50) return 50;
@@ -338,7 +327,8 @@ export function ShopHome() {
   const [summary, setSummary] = useState<FinancialSummary | null>(null);
   const [previousSummary, setPreviousSummary] = useState<FinancialSummary | null>(null);
   const [variants, setVariants] = useState<Variant[]>([]);
-  const [variantsTotal, setVariantsTotal] = useState(0);
+  const [lowStock, setLowStock] = useState<Variant[]>([]);
+
   const [sales, setSales] = useState<SaleSummary[]>([]);
   const [salesTotal, setSalesTotal] = useState(0);
   const [error, setError] = useState('');
@@ -351,12 +341,23 @@ export function ShopHome() {
     setPreviousSummary(null);
 
     const tasks: Promise<unknown>[] = [
+      Promise.all([
+        api<Page<Variant>>(`/shops/${shop.id}/variants?page=1&pageSize=10&stock=out`),
+        api<Page<Variant>>(`/shops/${shop.id}/variants?page=1&pageSize=10&stock=low`),
+      ]).then(([empty, low]) => {
+        if (alive) {
+          setLowStock(
+            [...empty.items, ...low.items]
+              .filter((item) => !item.archived)
+              .sort((a, b) => (a.available ?? 0) - (b.available ?? 0)),
+          );
+        }
+      }),
       api<Page<Variant>>(`/shops/${shop.id}/variants?page=1&pageSize=100`).then(
         (page) => {
           if (!alive) return;
           const active = page.items.filter((v) => !v.archived);
           setVariants(active);
-          setVariantsTotal(page.total);
         },
       ),
       api<Page<SaleSummary>>(`/shops/${shop.id}/pos/sales?page=1&sort=newest`).then(
@@ -406,9 +407,7 @@ export function ShopHome() {
 
   if (!shop) return null;
 
-  const lowStockItems = variants
-    .filter((v) => v.available !== undefined && v.available <= 5)
-    .sort((a, b) => (a.available ?? 0) - (b.available ?? 0));
+  const lowStockItems = lowStock;
 
   const receiptsCount = canReports
     ? (summary?.posSalesCount ?? 0) + (summary?.onlineSalesCount ?? 0)
@@ -970,7 +969,7 @@ export function ShopHome() {
               ))}
             </div>
           ) : (
-            <p className="muted">На загруженной странице товаров нет критических остатков.</p>
+            <p className="muted">Все товары в достаточном количестве.</p>
           )}
         </section>
 
