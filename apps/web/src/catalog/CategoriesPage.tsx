@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
+import Pagination from '../components/Pagination';
 import { Link, useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
 import { useSession } from '../auth/SessionProvider';
@@ -13,6 +14,29 @@ export default function CategoriesPage() {
   const [parentId, setParentId] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [sort, setSort] = useState<'name' | 'custom' | 'builtin'>('name');
+  const pageSize = 12;
+  const visibleCategories = categories
+    .filter((category) =>
+      [category.name, ...category.children.map((child) => child.name)].some(
+        (name) => name.toLocaleLowerCase('ru').includes(query.trim().toLocaleLowerCase('ru')),
+      ),
+    )
+    .sort((a, b) =>
+      sort === 'custom'
+        ? Number(a.builtIn) - Number(b.builtIn) || a.name.localeCompare(b.name, 'ru')
+        : sort === 'builtin'
+          ? Number(b.builtIn) - Number(a.builtIn) || a.name.localeCompare(b.name, 'ru')
+          : a.name.localeCompare(b.name, 'ru'),
+    );
+  const pages = Math.max(1, Math.ceil(visibleCategories.length / pageSize));
+  const currentPage = Math.min(page, pages);
+  const pagedCategories = visibleCategories.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
   async function reload() {
     if (shopId)
       setCategories(await api<CategoryNode[]>(`/shops/${shopId}/categories`));
@@ -90,13 +114,40 @@ export default function CategoriesPage() {
       <section className="category-list" aria-label="Категории магазина">
         <div className="category-list-heading">
           <h2>Категории магазина</h2>
-          <span className="badge">{categories.length}</span>
+          <span className="badge">{visibleCategories.length} из {categories.length}</span>
         </div>
-        {categories.length === 0 && (
-          <p className="empty-state">Категорий пока нет.</p>
+        <div className="toolbar">
+          <label>
+            Поиск категории
+            <input
+              value={query}
+              placeholder="Категория или подкатегория"
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(1);
+              }}
+            />
+          </label>
+          <label>
+            Сортировка категорий
+            <select
+              value={sort}
+              onChange={(event) => {
+                setSort(event.target.value as 'name' | 'custom' | 'builtin');
+                setPage(1);
+              }}
+            >
+              <option value="name">По названию</option>
+              <option value="custom">Сначала свои</option>
+              <option value="builtin">Сначала готовые</option>
+            </select>
+          </label>
+        </div>
+        {visibleCategories.length === 0 && (
+          <p className="empty-state">{query ? 'Категории не найдены.' : 'Категорий пока нет.'}</p>
         )}
         <div className="category-grid">
-          {categories.map((c) => (
+          {pagedCategories.map((c) => (
             <article className="panel category-card" key={c.id}>
               <div className="category-card-heading">
                 <h3>{c.name}</h3>
@@ -116,6 +167,13 @@ export default function CategoriesPage() {
             </article>
           ))}
         </div>
+        <Pagination
+          page={currentPage}
+          total={visibleCategories.length}
+          size={pageSize}
+          onPage={setPage}
+          label="Страницы категорий"
+        />
       </section>
     </div>
   );
