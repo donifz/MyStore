@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
 import { Page, Variant } from '../api/types';
 import { formatSom } from '../api/money';
+import { formatDate } from '../api/money';
 import { useSession } from '../auth/SessionProvider';
 import BarcodeLabel from './BarcodeLabel';
 export default function CatalogPage() {
@@ -155,6 +156,7 @@ export default function CatalogPage() {
             <thead>
               <tr>
                 <th>Товар</th>
+                <th>Добавлен</th>
                 <th>Цена</th>
                 <th>Доступно</th>
                 <th>Резерв</th>
@@ -188,6 +190,7 @@ export default function CatalogPage() {
                     )}
                     <small className="code">{v.barcode}</small>
                   </td>
+                  <td>{v.createdAt ? formatDate(v.createdAt) : '—'}</td>
                   <td>{formatSom(v.salePriceMinor)}</td>
                   <td>
                     <span
