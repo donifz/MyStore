@@ -56,11 +56,9 @@ it('creates only manager/cashier directly and retains the operation key after a 
     </MemoryRouter>,
   );
   await screen.findByLabelText('Email нового сотрудника');
-  expect(
-    within(screen.getByLabelText('Роль нового сотрудника'))
-      .getAllByRole('option')
-      .map((o) => o.textContent),
-  ).toEqual([
+  const roleSelect = screen.getByLabelText('Роль нового сотрудника');
+  const roleOptions = within(roleSelect).getAllByRole('option');
+  expect(roleOptions.map((o) => o.textContent)).toEqual([
     'Менеджер',
     'Кассир',
   ]);
