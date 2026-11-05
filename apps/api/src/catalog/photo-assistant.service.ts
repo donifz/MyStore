@@ -180,7 +180,7 @@ export class PhotoAssistantService implements OnApplicationBootstrap {
                       text:
                         'Определи продаваемый ТОВАР (не коробку) и предложи готовые для интернет-магазина название и описание: название по назначению товара, описание о его использовании и подтверждённых особенностях. Не описывай фон, упаковку и её цвет. Выбери категорию строго из списка, подкатегорию только из children выбранной категории. Для категории без подкатегорий укажи subcategory пустой строкой. Верни поля recognized,name,description,category,subcategory,categoryMissing,suggestedCategory,confidence,warning. Список: ' +
                         JSON.stringify(
-                          categories.map((category) => ({
+                          categories.map((category: any) => ({
                             name: category.name,
                             children: category.children.map((child: any) => ({
                               name: child.name,
