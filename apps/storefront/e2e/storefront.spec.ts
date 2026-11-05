@@ -48,6 +48,13 @@ for (const width of [320, 390, 768, 980, 1024, 1200, 1440]) {
     await expect(page.getByLabel('Поиск', { exact: true })).toBeVisible();
   });
 }
+test('shows a placeholder instead of a broken image when the photo is corrupt', async ({ page }) => {
+  await page.goto('/?q=broken-image');
+  const card = page.locator('.sf-product-card').first();
+  await expect(card.locator('.sf-product-placeholder')).toBeVisible();
+  await expect(card.locator('img')).toHaveCount(0);
+});
+
 test('home shows available products first and stores after the catalogue', async ({
   page,
 }) => {
