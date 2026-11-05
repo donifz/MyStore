@@ -20,6 +20,8 @@ describe('shop categories', () => {
     expect(electronics.children.map((item: any) => item.name)).toContain(
       'Ноутбуки',
     );
+    expect(electronics.createdAt).toEqual(expect.any(String));
+    expect(electronics.children[0].createdAt).toEqual(expect.any(String));
 
     const custom = await request(c.app.getHttpServer())
       .post(`/shops/${fixture.shop}/categories`)
