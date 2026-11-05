@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { comparisonTrend, dashboardPeriodRange, shopDate } from './dashboard-period';
+import {
+  comparisonTrend,
+  dashboardPeriodRange,
+  shopDate,
+} from './dashboard-period';
 
 describe('financial reporting periods in Asia/Bishkek', () => {
   const now = new Date('2026-11-04T20:30:00.000Z');
@@ -27,7 +31,9 @@ describe('financial reporting periods in Asia/Bishkek', () => {
   });
 
   it('compares a custom inclusive range to the preceding equal-length range', () => {
-    expect(dashboardPeriodRange('custom', '2026-10-30', '2026-11-03', now)).toEqual({
+    expect(
+      dashboardPeriodRange('custom', '2026-10-30', '2026-11-03', now),
+    ).toEqual({
       from: '2026-10-30T00:00:00+06:00',
       to: '2026-11-04T00:00:00+06:00',
       previousFrom: '2026-10-25T00:00:00+06:00',
@@ -43,7 +49,9 @@ describe('financial comparison', () => {
   it('uses actual amounts and never invents increases', () => {
     expect(comparisonTrend(0, 0)).toBe('Без изменений');
     expect(comparisonTrend(100, 50)).toBe('↑ +100% к вчерашнему дню');
-    expect(comparisonTrend(50, 100, 'week')).toBe('↓ 50% к предыдущему периоду');
+    expect(comparisonTrend(50, 100, 'week')).toBe(
+      '↓ 50% к предыдущему периоду',
+    );
     expect(comparisonTrend(100, 0)).toBe('Нет базы для сравнения');
     expect(comparisonTrend()).toBe('Сравнение недоступно');
   });
