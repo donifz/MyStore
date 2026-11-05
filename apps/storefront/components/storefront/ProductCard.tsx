@@ -4,7 +4,7 @@ import Price from './Price';
 import StockBadge from './StockBadge';
 import BuyButton from '../BuyButton';
 import FavoriteButton from './FavoriteButton';
-import Icon from './Icon';
+import ProductPhoto from './ProductPhoto';
 export default function ProductCard({ product: p }: { product: Product }) {
   const href = `/shop/${p.store.slug}/products/${p.id}`;
   return (
@@ -12,13 +12,7 @@ export default function ProductCard({ product: p }: { product: Product }) {
       <div className="sf-card-media">
         <Link href={href} aria-label={p.name}>
           <div className="sf-product-cover">
-            {p.photoUrl ? (
-              <img src={p.photoUrl} alt={p.name} loading="lazy" />
-            ) : (
-              <span className="sf-product-placeholder">
-                <Icon name="box" width={52} height={52} />
-              </span>
-            )}
+            <ProductPhoto src={p.photoUrl} alt={p.name} />
           </div>
         </Link>
         <FavoriteButton product={p} />
