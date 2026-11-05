@@ -339,6 +339,7 @@ export function ShopHome() {
     setError('');
     setSummary(null);
     setPreviousSummary(null);
+    setLowStock([]);
 
     const tasks: Promise<unknown>[] = [
       Promise.all([
@@ -798,7 +799,7 @@ export function ShopHome() {
                     fontSize="11"
                     fontFamily="inherit"
                   >
-                    {chartPoints[i]?.label}
+                    {period === 'today' && i % 3 !== 0 ? '' : chartPoints[i]?.label}
                   </text>
                 ))}
 
