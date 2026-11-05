@@ -52,6 +52,7 @@ type Audit = {
 };
 type Page<T> = { items: T[]; total: number };
 const PRODUCTS_PAGE_SIZE = 10;
+const APPLICATIONS_PAGE_SIZE = 10;
 const productDate = (value?: string, withTime = false) => {
   if (!value || Number.isNaN(Date.parse(value))) return '—';
   return withTime
@@ -85,6 +86,11 @@ export default function AdminPage() {
   const session = useSession();
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [applicationPage, setApplicationPage] = useState(1);
+  const [applicationTotal, setApplicationTotal] = useState(0);
+  const [applicationQuery, setApplicationQuery] = useState('');
+  const [applicationStatus, setApplicationStatus] = useState('');
+  const [applicationLoading, setApplicationLoading] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [productPage, setProductPage] = useState(1);
   const [productTotal, setProductTotal] = useState(0);
@@ -126,8 +132,12 @@ export default function AdminPage() {
   }
   const [search, setSearch] = useState('');
   async function load() {
+    setApplicationLoading(true);
+    try {
     const [a, h, summary, g] = await Promise.all([
-      api<Page<Application>>('/platform/admin/applications'),
+      api<Page<Application>>(
+        `/platform/admin/applications?page=${applicationPage}&pageSize=${APPLICATIONS_PAGE_SIZE}&q=${encodeURIComponent(applicationQuery.trim())}&status=${encodeURIComponent(applicationStatus)}`,
+      ),
       api<Page<Audit>>('/platform/admin/audit'),
       api<AdminOverview>('/platform/admin/overview'),
       api<{ items: PlatformFinancialGrant[] }>(
@@ -135,10 +145,19 @@ export default function AdminPage() {
       ).catch(() => ({ items: [] })),
     ]);
     setApplications(a.items);
+    setApplicationTotal(a.total);
+    const lastApplicationPage = Math.max(
+      1,
+      Math.ceil(a.total / APPLICATIONS_PAGE_SIZE),
+    );
+    if (applicationPage > lastApplicationPage) setApplicationPage(lastApplicationPage);
     setAudit(h.items);
     setOverview(summary);
     setGrants(g.items);
     setLoading(false);
+    } finally {
+      setApplicationLoading(false);
+    }
   }
   useEffect(() => {
     if (!session.user?.platformAdmin) return;
@@ -186,7 +205,7 @@ export default function AdminPage() {
       setError(errorText(e));
       setLoading(false);
     });
-  }, [session.user?.userId]);
+  }, [session.user?.userId, applicationPage, applicationQuery, applicationStatus]);
   async function decideApplication(
     row: Application,
     decision: 'in_review' | 'approved' | 'rejected',
@@ -392,14 +411,7 @@ export default function AdminPage() {
         </p>
       </WorkspaceShell>
     );
-  const waiting = applications.filter((a) =>
-    ['new', 'in_review'].includes(a.status),
-  );
-  const visibleApps = applications.filter((a) =>
-    [a.shop_name, a.email, a.city].some((value) =>
-      value.toLowerCase().includes(search.toLowerCase()),
-    ),
-  );
+  const visibleApps = applications;
   const visibleProducts = products;
   const productFirst = productTotal
     ? (productPage - 1) * PRODUCTS_PAGE_SIZE + 1
@@ -422,6 +434,36 @@ export default function AdminPage() {
         <button onClick={() => setTab('applications')}>Все заявки →</button>
       }
     >
+      <div className="toolbar">
+        <label>
+          Поиск заявок
+          <input
+            value={applicationQuery}
+            placeholder="Магазин или email"
+            onChange={(event) => {
+              setApplicationQuery(event.target.value);
+              setApplicationPage(1);
+            }}
+          />
+        </label>
+        <label>
+          Статус заявки
+          <select
+            value={applicationStatus}
+            onChange={(event) => {
+              setApplicationStatus(event.target.value);
+              setApplicationPage(1);
+            }}
+          >
+            <option value="">Все статусы</option>
+            <option value="new">Новые</option>
+            <option value="in_review">На проверке</option>
+            <option value="approved">Одобрены</option>
+            <option value="rejected">Отклонены</option>
+          </select>
+        </label>
+        <span className="muted">Всего: {applicationTotal}</span>
+      </div>
       {!visibleApps.length ? (
         <AdminEmpty>Заявок пока нет</AdminEmpty>
       ) : (
@@ -508,6 +550,14 @@ export default function AdminPage() {
           </table>
         </div>
       )}
+      <Pagination
+        page={applicationPage}
+        total={applicationTotal}
+        size={APPLICATIONS_PAGE_SIZE}
+        onPage={setApplicationPage}
+        busy={applicationLoading}
+        label="Страницы заявок партнёров"
+      />
     </AdminCard>
   );
 
