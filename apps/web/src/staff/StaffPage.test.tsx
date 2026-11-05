@@ -4,6 +4,7 @@ import {
   fireEvent,
   waitFor,
   cleanup,
+  within,
 } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -248,3 +249,44 @@ it.each([false, true])(
     );
   },
 );
+
+it('paginates and searches all staff members without hiding later entries', async () => {
+  const members = Array.from({ length: 13 }, (_, i) => ({
+    id: 'employee-' + i,
+    email: 'employee' + String(i + 1).padStart(2, '0') + '@example.test',
+    role: 'cashier',
+    canReturn: false,
+    canViewReports: false,
+  }));
+  vi.stubGlobal('fetch', async (url: string) => {
+    const body = url === '/api/auth/me'
+      ? {
+          userId: 'owner',
+          shops: [{ id: 'shop', name: 'Test', role: 'owner' }],
+        }
+      : url.endsWith('/email/status')
+        ? { configured: false }
+        : { members, invitations: [] };
+    return new Response(JSON.stringify(body), {
+      headers: { 'content-type': 'application/json' },
+    });
+  });
+  render(
+    <MemoryRouter initialEntries={['/seller/shop/staff']}>
+      <SessionProvider>
+        <Routes>
+          <Route path="/seller/:shopId/staff" element={<StaffPage />} />
+        </Routes>
+      </SessionProvider>
+    </MemoryRouter>,
+  );
+  await screen.findByText('employee01@example.test');
+  expect(screen.queryByText('employee13@example.test')).toBeNull();
+  fireEvent.click(within(screen.getByRole('navigation', { name: 'Страницы сотрудников' })).getByRole('button', { name: 'Далее' }));
+  await screen.findByText('employee13@example.test');
+  fireEvent.change(screen.getByLabelText('Поиск сотрудника или приглашения'), {
+    target: { value: 'employee13' },
+  });
+  expect(screen.getByText('employee13@example.test')).toBeTruthy();
+  expect(screen.queryByText('employee01@example.test')).toBeNull();
+});
