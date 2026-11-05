@@ -5,18 +5,31 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import {
   IsBoolean,
   IsEmail,
+  IsIn,
+  IsInt,
+  Max,
+  Min,
   IsOptional,
   IsString,
   MaxLength,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { PlatformAdminService } from './platform-admin.service';
+
+class ShopsPageQuery {
+  @Type(() => Number) @IsInt() @Min(1) @Max(1000000) page = 1;
+  @Type(() => Number) @IsInt() @Min(1) @Max(100) pageSize = 10;
+  @IsOptional() @IsString() @MaxLength(128) q = '';
+  @IsOptional() @IsIn(['name', 'city']) sort: 'name' | 'city' = 'name';
+}
 
 class MarketplaceStatusDto {
   @IsBoolean()
@@ -48,6 +61,14 @@ export class AdminSessionController {
   @Get('overview') async overview(@Req() req: UserRequest) {
     await this.admins.requireAdmin(req.userId);
     return this.admins.overview();
+  }
+
+  @Get('shops') async shops(
+    @Req() req: UserRequest,
+    @Query() query: ShopsPageQuery,
+  ) {
+    await this.admins.requireAdmin(req.userId);
+    return this.admins.listShops(query.page, query.pageSize, query.q, query.sort);
   }
 
   @Get('session') async session(@Req() req: UserRequest) {
