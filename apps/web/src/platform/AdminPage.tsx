@@ -53,6 +53,7 @@ type Audit = {
 type Page<T> = { items: T[]; total: number };
 const PRODUCTS_PAGE_SIZE = 10;
 const APPLICATIONS_PAGE_SIZE = 10;
+const SHOPS_PAGE_SIZE = 10;
 const productDate = (value?: string, withTime = false) => {
   if (!value || Number.isNaN(Date.parse(value))) return '—';
   return withTime
@@ -85,6 +86,13 @@ const money = (minor: number) =>
 export default function AdminPage() {
   const session = useSession();
   const [overview, setOverview] = useState<AdminOverview | null>(null);
+  const [shopPage, setShopPage] = useState(1);
+  const [shopTotal, setShopTotal] = useState<number | null>(null);
+  const [shopItems, setShopItems] = useState<AdminOverview['shops'] | null>(null);
+  const [shopSearch, setShopSearch] = useState('');
+  const [shopSort, setShopSort] = useState<'name' | 'city'>('name');
+  const [shopRefresh, setShopRefresh] = useState(0);
+  const [shopLoading, setShopLoading] = useState(false);
   const [applications, setApplications] = useState<Application[]>([]);
   const [applicationPage, setApplicationPage] = useState(1);
   const [applicationTotal, setApplicationTotal] = useState(0);
@@ -159,6 +167,35 @@ export default function AdminPage() {
       setApplicationLoading(false);
     }
   }
+  useEffect(() => {
+    if (!session.user?.platformAdmin) return;
+    let active = true;
+    setShopLoading(true);
+    const timer = window.setTimeout(() => {
+      void api<Page<AdminOverview['shops'][number]> & { page?: number; pageSize?: number }>(
+        `/platform/admin/shops?page=${shopPage}&pageSize=${SHOPS_PAGE_SIZE}&q=${encodeURIComponent(shopSearch.trim())}&sort=${shopSort}`,
+      )
+        .then((result) => {
+          if (!active) return;
+          if (result.pageSize !== SHOPS_PAGE_SIZE || result.page !== shopPage) return;
+          setShopItems(result.items);
+          setShopTotal(result.total);
+          const lastPage = Math.max(1, Math.ceil(result.total / SHOPS_PAGE_SIZE));
+          if (shopPage > lastPage) setShopPage(lastPage);
+        })
+        .catch((error) => {
+          if (active) setError(errorText(error));
+        })
+        .finally(() => {
+          if (active) setShopLoading(false);
+        });
+    }, shopSearch.trim() ? 250 : 0);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [session.user?.userId, session.user?.platformAdmin, shopPage, shopSearch, shopSort, shopRefresh]);
+
   useEffect(() => {
     if (!session.user?.platformAdmin) return;
     let active = true;
@@ -381,6 +418,7 @@ export default function AdminPage() {
         password: result.temporaryPassword,
       });
       if (ownerEmail) void load().catch(() => {});
+      setShopRefresh((value) => value + 1);
     } catch (e) {
       setError(
         e instanceof ApiError &&
@@ -412,6 +450,13 @@ export default function AdminPage() {
       </WorkspaceShell>
     );
   const visibleApps = applications;
+  const visibleShops = shopItems ?? (overview?.shops ?? []).filter(
+    (shop) =>
+      [shop.name, shop.city ?? ''].some((value) =>
+        value.toLocaleLowerCase('ru').includes(shopSearch.trim().toLocaleLowerCase('ru')),
+      ),
+  );
+  const visibleShopTotal = shopTotal ?? visibleShops.length;
   const visibleProducts = products;
   const productFirst = productTotal
     ? (productPage - 1) * PRODUCTS_PAGE_SIZE + 1
@@ -924,7 +969,38 @@ export default function AdminPage() {
                     </div>
                   )}
 
-                  {!overview?.shops.length ? (
+                  <div className="toolbar">
+                    <label>
+                      Поиск магазинов
+                      <input
+                        value={shopSearch}
+                        placeholder="Магазин или город"
+                        onChange={(event) => {
+                          setShopSearch(event.target.value);
+                          setShopPage(1);
+                          setShopItems(null);
+                          setShopTotal(null);
+                        }}
+                      />
+                    </label>
+                    <label>
+                      Сортировка магазинов
+                      <select
+                        value={shopSort}
+                        onChange={(event) => {
+                          setShopSort(event.target.value as 'name' | 'city');
+                          setShopPage(1);
+                          setShopItems(null);
+                          setShopTotal(null);
+                        }}
+                      >
+                        <option value="name">По названию</option>
+                        <option value="city">По городу</option>
+                      </select>
+                    </label>
+                    <span className="muted">Всего: {visibleShopTotal}</span>
+                  </div>
+                  {!visibleShops.length ? (
                     <AdminEmpty>Магазины пока не зарегистрированы</AdminEmpty>
                   ) : (
                     <div className="admin-kit-scroll">
@@ -939,7 +1015,7 @@ export default function AdminPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {overview.shops.map((shop) => (
+                          {visibleShops.map((shop) => (
                             <tr key={shop.id}>
                               <td>
                                 <strong>{shop.name}</strong>
@@ -1054,6 +1130,14 @@ export default function AdminPage() {
                       </table>
                     </div>
                   )}
+                  <Pagination
+                    page={shopPage}
+                    total={visibleShopTotal}
+                    size={SHOPS_PAGE_SIZE}
+                    onPage={setShopPage}
+                    busy={shopLoading}
+                    label="Страницы магазинов платформы"
+                  />
                 </AdminCard>
               </div>
               <div className="admin-kit-secondary">
