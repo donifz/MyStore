@@ -16,7 +16,12 @@ export type CategoryNode = {
   name: string;
   builtIn: boolean;
   createdAt?: string;
-  children: { id: string; name: string; builtIn?: boolean; createdAt?: string }[];
+  children: {
+    id: string;
+    name: string;
+    builtIn?: boolean;
+    createdAt?: string;
+  }[];
 };
 type Info = { available: boolean; categories: CategoryNode[] };
 export default function PhotoAssistant({
