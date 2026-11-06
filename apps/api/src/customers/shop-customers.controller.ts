@@ -1,5 +1,6 @@
 import {
   ForbiddenException,
+  ServiceUnavailableException,
   Body,
   Controller,
   Get,
@@ -24,6 +25,7 @@ import {
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { ShopAccessService } from '../shops/shop-access.service';
 import { ShopCustomersService } from './shop-customers.service';
+import { creditSalesEnabled } from '../pos/credit-feature';
 
 class NewShopCustomerDto {
   @IsString() @MinLength(2) @MaxLength(120) name!: string;
@@ -77,6 +79,7 @@ export class ShopCustomersController {
     @Req() req: UserRequest,
     @Body() dto: CustomerCreditDto,
   ) {
+    if (!creditSalesEnabled()) throw new ServiceUnavailableException('Кредитные лимиты пока недоступны');
     const membership = await this.access.requireMembership(
       req.userId,
       shopId,
