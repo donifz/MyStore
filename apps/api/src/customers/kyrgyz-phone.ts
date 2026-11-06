@@ -11,10 +11,9 @@ export function normalizeKyrgyzPhone(input: string): string {
   }
   const compact = input.replace(/[\s()\-]/g, '');
   const digits = compact.startsWith('+') ? compact.slice(1) : compact;
-  const normalized =
-    /^0[1-9]\d{8}$/.test(digits)
-      ? '996' + digits.slice(1)
-      : digits;
+  const normalized = /^0[1-9]\d{8}$/.test(digits)
+    ? '996' + digits.slice(1)
+    : digits;
   if (!/^996[1-9]\d{8}$/.test(normalized)) {
     throw new BadRequestException(
       'Укажите кыргызстанский номер в формате +996 XXX XXX XXX',
