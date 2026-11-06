@@ -72,7 +72,9 @@ export class ReturnsService {
           [shopId, saleId],
         );
         if (credit)
-          throw new ConflictException('Returns for credit sales require debt reconciliation');
+          throw new ConflictException(
+            'Returns for credit sales require debt reconciliation',
+          );
         if (input.refundMoney && !sale.paid)
           throw new ConflictException('Legacy payment unknown');
         const parts = [];
