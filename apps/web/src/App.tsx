@@ -34,6 +34,7 @@ import OperationsPage from './operations/OperationsPage';
 import PlatformAccessPage from './platform/PlatformAccessPage';
 import BuyerPortalPage from './customers/BuyerPortalPage';
 import ShopCustomersPage from './customers/ShopCustomersPage';
+import CreditDebtsPage from './pos/CreditDebtsPage';
 import './customers/customers.css';
 export default function App() {
   return (
@@ -81,6 +82,7 @@ export default function App() {
             <Route path="sales/:saleId/return" element={<ReturnPage />} />
             <Route path="pos" element={<SalePage />} />
             <Route path="customers" element={<ShopCustomersPage />} />
+            <Route path="debts" element={<CreditDebtsPage />} />
             <Route path="receiving" element={<ReceivingPage />} />
             <Route path="inventory" element={<StockOperationsPage />} />
             <Route path="reports" element={<ReportsPage />} />

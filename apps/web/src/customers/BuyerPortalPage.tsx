@@ -11,6 +11,16 @@ type BuyerDebt = {
   dueOn: string;
 };
 
+type BuyerRepayment = {
+  id: string;
+  saleId: string;
+  shopId: string;
+  shopName: string;
+  amountMinor: number;
+  method: 'cash' | 'card';
+  createdAt: string;
+};
+
 type BuyerAccount = {
   id: string;
   phone: string;
@@ -51,6 +61,7 @@ async function buyerApi<T>(
 export default function BuyerPortalPage() {
   const [account, setAccount] = useState<BuyerAccount | null>(null);
   const [debts, setDebts] = useState<BuyerDebt[]>([]);
+  const [repayments, setRepayments] = useState<BuyerRepayment[]>([]);
   const [debtsError, setDebtsError] = useState('');
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<'login' | 'register'>('register');
@@ -94,6 +105,24 @@ export default function BuyerPortalPage() {
       });
     return () => {
       alive = false;
+    };
+  }, [account?.id, account?.shops.length]);
+
+  useEffect(() => {
+    if (!account) {
+      setRepayments([]);
+      return;
+    }
+    let live = true;
+    void buyerApi<BuyerRepayment[]>('repayments')
+      .then((rows) => {
+        if (live) setRepayments(rows);
+      })
+      .catch(() => {
+        if (live) setRepayments([]);
+      });
+    return () => {
+      live = false;
     };
   }, [account?.id, account?.shops.length]);
 
@@ -248,6 +277,23 @@ export default function BuyerPortalPage() {
                     </span>
                     <small>Погасить до: {debt.dueOn}</small>
                   </div>
+                ))}
+              </section>
+              <section className="panel buyer-tile">
+                <h2>История погашений</h2>
+                {!repayments.length && (
+                  <p className="muted">Платежей пока нет.</p>
+                )}
+                {repayments.map((payment) => (
+                  <p key={payment.id}>
+                    <strong>{payment.shopName}</strong> ·{' '}
+                    {(payment.amountMinor / 100).toLocaleString('ru-RU')} сом
+                    <small>
+                      {' '}
+                      ·{' '}
+                      {new Date(payment.createdAt).toLocaleDateString('ru-KG')}
+                    </small>
+                  </p>
                 ))}
               </section>
               <section className="panel buyer-tile">

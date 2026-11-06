@@ -140,6 +140,153 @@ describe('POS credit sales accounting', () => {
     expect(row.count).toBe(0);
   });
 
+  it('accepts partial and full repayments without fake product sales', async () => {
+    await request(c.app.getHttpServer())
+      .post(shop + '/customers/' + customerId + '/credit-policy')
+      .auth(c.owner, { type: 'bearer' })
+      .send({ approved: true, limitMinor: 100000 })
+      .expect(201);
+    const created = await sell(5000).expect(201);
+    const path = shop + '/pos/credit-sales/' + created.body.id + '/repayments';
+    const key = randomUUID();
+    const first = await request(c.app.getHttpServer())
+      .post(path)
+      .auth(c.owner, { type: 'bearer' })
+      .set('Idempotency-Key', key)
+      .send({ shiftId, method: 'cash', amountMinor: 10000 })
+      .expect(201);
+    expect(first.body.debtMinor).toBe(15000);
+    const replay = await request(c.app.getHttpServer())
+      .post(path)
+      .auth(c.owner, { type: 'bearer' })
+      .set('Idempotency-Key', key)
+      .send({ shiftId, method: 'cash', amountMinor: 10000 })
+      .expect(201);
+    expect(replay.body).toEqual(first.body);
+    await request(c.app.getHttpServer())
+      .post(path)
+      .auth(c.owner, { type: 'bearer' })
+      .set('Idempotency-Key', randomUUID())
+      .send({ shiftId, method: 'card', amountMinor: 15000 })
+      .expect(201);
+    await request(c.app.getHttpServer())
+      .post(path)
+      .auth(c.owner, { type: 'bearer' })
+      .set('Idempotency-Key', randomUUID())
+      .send({ shiftId, method: 'cash', amountMinor: 1 })
+      .expect(409);
+    const [credit] = await c.db.query(
+      'SELECT paid_minor,total_minor FROM credit_sales WHERE shop_id=$1 AND document_id=$2',
+      [fixture.shop, created.body.id],
+    );
+    expect(Number(credit.paid_minor)).toBe(30000);
+    expect(Number(credit.total_minor)).toBe(30000);
+    const history = await request(c.app.getHttpServer())
+      .get(path)
+      .auth(c.owner, { type: 'bearer' })
+      .expect(200);
+    expect(history.body).toHaveLength(2);
+    const [pay] = await c.db.query(
+      'SELECT count(*)::int AS count FROM payment_records WHERE shop_id=$1 AND document_id=$2',
+      [fixture.shop, created.body.id],
+    );
+    expect(pay.count).toBe(1);
+    const [stockRows] = await c.db.query(
+      'SELECT physical FROM stock_balances WHERE shop_id=$1 AND variant_id=$2',
+      [fixture.shop, variantId],
+    );
+    expect(Number(stockRows.physical)).toBe(8);
+    const shift = await request(c.app.getHttpServer())
+      .get(shop + '/pos/shifts/current')
+      .auth(c.owner, { type: 'bearer' })
+      .expect(200);
+    expect(shift.body.expectedCashMinor).toBe(16000);
+    expect(shift.body.repaymentsCashMinor).toBe(10000);
+    expect(shift.body.repaymentsCardMinor).toBe(15000);
+    const summary = await request(c.app.getHttpServer())
+      .get(shop + '/reports/summary')
+      .auth(c.owner, { type: 'bearer' })
+      .expect(200);
+    expect(summary.body.creditRepaymentsMinor).toBe(25000);
+    expect(summary.body.outstandingCreditMinor).toBe(0);
+    expect(summary.body.paymentsReceivedMinor).toBe(30000);
+    expect(summary.body.cashReceivedMinor).toBe(15000);
+    expect(summary.body.cardReceivedMinor).toBe(15000);
+  });
+
+  it('refuses overpayment, missing shop access and closed shifts', async () => {
+    await request(c.app.getHttpServer())
+      .post(shop + '/customers/' + customerId + '/credit-policy')
+      .auth(c.owner, { type: 'bearer' })
+      .send({ approved: true, limitMinor: 100000 })
+      .expect(201);
+    const created = await sell(5000).expect(201);
+    const path = shop + '/pos/credit-sales/' + created.body.id + '/repayments';
+    await request(c.app.getHttpServer())
+      .post(path)
+      .auth(c.owner, { type: 'bearer' })
+      .set('Idempotency-Key', randomUUID())
+      .send({ shiftId, method: 'cash', amountMinor: 25001 })
+      .expect(409);
+    await request(c.app.getHttpServer())
+      .post(path)
+      .auth(c.owner, { type: 'bearer' })
+      .set('Idempotency-Key', randomUUID())
+      .send({ shiftId, method: 'cash', amountMinor: 0 })
+      .expect(400);
+    await request(c.app.getHttpServer())
+      .post(path)
+      .auth(c.owner, { type: 'bearer' })
+      .set('Idempotency-Key', randomUUID())
+      .send({ shiftId, method: 'cash', amountMinor: 100 })
+      .expect(201);
+    await request(c.app.getHttpServer())
+      .get(
+        `/shops/${fixture.otherShop}/pos/credit-sales/${created.body.id}/repayments`,
+      )
+      .auth(c.owner, { type: 'bearer' })
+      .expect(403);
+    const [count] = await c.db.query(
+      'SELECT count(*)::int AS n FROM credit_repayments WHERE shop_id=$1 AND sale_id=$2',
+      [fixture.shop, created.body.id],
+    );
+    expect(count.n).toBe(1);
+  });
+
+  it('does not expose repayments to another buyer by guessing a sale id', async () => {
+    await request(c.app.getHttpServer())
+      .post(shop + '/customers/' + customerId + '/credit-policy')
+      .auth(c.owner, { type: 'bearer' })
+      .send({ approved: true, limitMinor: 100000 })
+      .expect(201);
+    const created = await sell(0).expect(201);
+    const path = shop + '/pos/credit-sales/' + created.body.id + '/repayments';
+    await request(c.app.getHttpServer())
+      .post(path)
+      .auth(c.owner, { type: 'bearer' })
+      .set('Idempotency-Key', randomUUID())
+      .send({ shiftId, method: 'cash', amountMinor: 5000 })
+      .expect(201);
+    await request(c.app.getHttpServer())
+      .post('/buyer/register')
+      .set('Origin', 'http://localhost:5173')
+      .send({
+        name: 'Unrelated Buyer',
+        phone: '+996555999888',
+        password: 'unrelated-buyer-password',
+      })
+      .expect(201);
+    const agent = request.agent(c.app.getHttpServer());
+    await agent
+      .post('/buyer/login')
+      .set('Origin', 'http://localhost:5173')
+      .send({ phone: '+996555999888', password: 'unrelated-buyer-password' })
+      .expect(201);
+    expect((await agent.get('/buyer/repayments').expect(200)).body).toEqual([]);
+    expect((await agent.get('/buyer/debts').expect(200)).body).toEqual([]);
+    await agent.get(path).expect(401);
+  });
+
   it('rejects overpayment and prevents unsafe refund on credit sale', async () => {
     await request(c.app.getHttpServer())
       .post(shop + '/customers/' + customerId + '/credit-policy')

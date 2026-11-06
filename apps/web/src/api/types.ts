@@ -63,6 +63,8 @@ export type Shift = {
   actorId: string;
   status: 'open' | 'closed';
   salesCashMinor: number;
+  repaymentsCashMinor?: number;
+  repaymentsCardMinor?: number;
   salesCardMinor: number;
   refundsCashMinor: number;
   refundsCardMinor: number;
@@ -132,6 +134,8 @@ export type FinancialSummary = {
   costOfGoodsMinor: number;
   grossProfitMinor: number;
   paymentsReceivedMinor: number;
+  creditRepaymentsMinor?: number;
+  outstandingCreditMinor?: number;
   paymentsRefundedMinor: number;
   cashReceivedMinor: number;
   cardReceivedMinor: number;
