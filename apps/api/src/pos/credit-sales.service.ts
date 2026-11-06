@@ -211,6 +211,22 @@ export class CreditSalesService {
     return rows.map((r: any) => ({ ...r, amountMinor: Number(r.amountMinor) }));
   }
 
+  async buyerRepayments(buyerId: string) {
+    const rows = await this.db.query(
+      `SELECT cr.id,cr.document_id AS "saleId",cr.shop_id AS "shopId",
+       s.name AS "shopName",cr.method,cr.amount_minor AS "amountMinor",
+       cr.created_at AS "createdAt"
+       FROM credit_repayments cr
+       JOIN credit_sales cs ON cs.shop_id=cr.shop_id AND cs.document_id=cr.document_id
+       JOIN shop_customers sc ON sc.shop_id=cs.shop_id AND sc.id=cs.customer_id
+       JOIN shops s ON s.id=cr.shop_id
+       WHERE sc.buyer_account_id=$1
+       ORDER BY cr.created_at DESC,cr.id DESC LIMIT 100`,
+      [buyerId],
+    );
+    return rows.map((row: any) => ({ ...row, amountMinor: Number(row.amountMinor) }));
+  }
+
   async buyerDebts(buyerId: string) {
     const rows = await this.db.query(
       `SELECT cs.document_id AS "saleId",cs.shop_id AS "shopId",
