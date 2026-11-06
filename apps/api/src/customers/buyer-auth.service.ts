@@ -113,15 +113,14 @@ export class BuyerAuthService {
       [buyerId],
     );
     if (!row) throw new UnauthorizedException();
-    // Never expose an unverified phone's matching shop records.
-    const shops = row.phone_verified_at
-      ? await this.db.query(
-          `SELECT s.id AS "shopId",s.name AS "shopName"
-           FROM shop_customers sc JOIN shops s ON s.id=sc.shop_id
-           WHERE sc.buyer_account_id=$1 ORDER BY s.name`,
-          [buyerId],
-        )
-      : [];
+    // Only explicit single-use invitations can set buyer_account_id.
+    // Phone number matching alone NEVER grants shop access.
+    const shops = await this.db.query(
+      `SELECT s.id AS "shopId",s.name AS "shopName"
+       FROM shop_customers sc JOIN shops s ON s.id=sc.shop_id
+       WHERE sc.buyer_account_id=$1 ORDER BY s.name`,
+      [buyerId],
+    );
     return {
       id: row.id,
       phone: row.phone_e164,

@@ -77,6 +77,11 @@ import { EventEmailService } from './email/event-email.service';
 import { BuyerAuthController } from './customers/buyer-auth.controller';
 import { BuyerAuthService } from './customers/buyer-auth.service';
 import { BuyerAuthGuard } from './customers/buyer-auth.guard';
+import { BuyerInvitesService } from './customers/buyer-invites.service';
+import {
+  BuyerInvitesController,
+  ShopBuyerInvitesController,
+} from './customers/buyer-invites.controller';
 import { ShopCustomersController } from './customers/shop-customers.controller';
 import { ShopCustomersService } from './customers/shop-customers.service';
 import { FinancialAccessService } from './platform/financial-access.service';
@@ -120,6 +125,8 @@ export async function createApp(
       PasswordRecoveryController,
       StaffAcceptanceController,
       BuyerAuthController,
+      BuyerInvitesController,
+      ShopBuyerInvitesController,
       ShopCustomersController,
     ],
     providers: [
@@ -157,6 +164,7 @@ export async function createApp(
       StaffService,
       PasswordRecoveryService,
       BuyerAuthService,
+      BuyerInvitesService,
       BuyerAuthGuard,
       ShopCustomersService,
     ],
