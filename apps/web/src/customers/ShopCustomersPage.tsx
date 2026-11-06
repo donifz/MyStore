@@ -21,6 +21,7 @@ type Page = {
   pageSize: number;
 };
 const PAGE_SIZE = 10;
+const creditSalesEnabled = import.meta.env.DEV || import.meta.env.VITE_CREDIT_SALES_ENABLED === 'true';
 
 export default function ShopCustomersPage() {
   const { shopId } = useParams();
@@ -181,7 +182,7 @@ export default function ShopCustomersPage() {
       </section>
       <section className="panel">
         <h2>Список клиентов</h2>
-        {isOwner && (
+        {creditSalesEnabled && isOwner && (
           <label>
             Лимит кредита для одобрения (сом)
             <input
@@ -252,7 +253,7 @@ export default function ShopCustomersPage() {
                       <th>Адрес</th>
                       <th>Добавлен</th>
                       <th>Кабинет</th>
-                      {isOwner && <th>Кредит</th>}
+                      {creditSalesEnabled && isOwner && <th>Кредит</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -276,7 +277,7 @@ export default function ShopCustomersPage() {
                             </button>
                           )}
                         </td>
-                        {isOwner && (
+                        {creditSalesEnabled && isOwner && (
                           <td>
                             {c.creditApproved ? (
                               <button
