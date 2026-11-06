@@ -82,8 +82,8 @@ export default function ShopCustomersPage() {
           <p className="eyebrow">Покупатели магазина</p>
           <h1>Клиенты</h1>
           <p className="muted">
-            Контакты доступны только сотрудникам этого магазина.
-            Создание клиента не открывает его личный кабинет.
+            Контакты доступны только сотрудникам этого магазина. Создание
+            клиента не открывает его личный кабинет.
           </p>
         </div>
       </div>
@@ -93,23 +93,41 @@ export default function ShopCustomersPage() {
           <div className="customer-form-grid">
             <label>
               Имя
-              <input required minLength={2} maxLength={120} value={name}
-                onChange={(e) => setName(e.target.value)} placeholder="Азамат" />
+              <input
+                required
+                minLength={2}
+                maxLength={120}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Азамат"
+              />
             </label>
             <label>
               Номер Кыргызстана
-              <input required type="tel" maxLength={32} value={phone}
+              <input
+                required
+                type="tel"
+                maxLength={32}
+                value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+996 700 123 456" />
+                placeholder="+996 700 123 456"
+              />
             </label>
             <label>
               Адрес (необязательно)
-              <input maxLength={500} value={address}
+              <input
+                maxLength={500}
+                value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="Ош, улица…" />
+                placeholder="Ош, улица…"
+              />
             </label>
           </div>
-          {createError && <p role="alert" className="error">{createError}</p>}
+          {createError && (
+            <p role="alert" className="error">
+              {createError}
+            </p>
+          )}
           <button type="submit" className="primary" disabled={saving}>
             {saving ? 'Сохраняем…' : 'Добавить клиента'}
           </button>
@@ -119,37 +137,65 @@ export default function ShopCustomersPage() {
         <h2>Список клиентов</h2>
         <label className="search-label">
           Поиск по имени или номеру
-          <input value={query} onChange={(e) => {
-            setQuery(e.target.value);
-            setPage(1);
-          }} placeholder="Имя или +996…" />
+          <input
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Имя или +996…"
+          />
         </label>
-        {error && <p role="alert" className="error">{error}</p>}
-        {loading ? <p role="status">Загрузка…</p> : data && (
-          <>
-            <div className="table-wrap">
-              <table>
-                <thead><tr><th>Клиент</th><th>Телефон</th><th>Адрес</th><th>Добавлен</th></tr></thead>
-                <tbody>
-                  {data.items.map((c) => (
-                    <tr key={c.id}>
-                      <td>{c.name}</td>
-                      <td>{c.phone}</td>
-                      <td>{c.address || '—'}</td>
-                      <td>{new Date(c.createdAt).toLocaleDateString('ru-KG')}</td>
+        {error && (
+          <p role="alert" className="error">
+            {error}
+          </p>
+        )}
+        {loading ? (
+          <p role="status">Загрузка…</p>
+        ) : (
+          data && (
+            <>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Клиент</th>
+                      <th>Телефон</th>
+                      <th>Адрес</th>
+                      <th>Добавлен</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {!data.items.length && <p className="muted">Клиенты не найдены.</p>}
-            <Pagination page={data.page} size={data.pageSize} total={data.total} onPage={setPage} />
-          </>
+                  </thead>
+                  <tbody>
+                    {data.items.map((c) => (
+                      <tr key={c.id}>
+                        <td>{c.name}</td>
+                        <td>{c.phone}</td>
+                        <td>{c.address || '—'}</td>
+                        <td>
+                          {new Date(c.createdAt).toLocaleDateString('ru-KG')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {!data.items.length && (
+                <p className="muted">Клиенты не найдены.</p>
+              )}
+              <Pagination
+                page={data.page}
+                size={data.pageSize}
+                total={data.total}
+                onPage={setPage}
+              />
+            </>
+          )
         )}
       </section>
       <p className="muted">
-        Продажа в долг, паспортные данные и привязка кабинета покупателя
-        будут доступны после внедрения защищённой проверки личности.
+        Продажа в долг, паспортные данные и привязка кабинета покупателя будут
+        доступны после внедрения защищённой проверки личности.
       </p>
     </div>
   );
