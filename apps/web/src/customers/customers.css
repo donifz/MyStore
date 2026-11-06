@@ -1,0 +1,16 @@
+.buyer-page{min-height:100vh;background:#f4f6f9;color:#202c3c}
+.buyer-topbar{display:flex;justify-content:space-between;align-items:center;padding:18px max(20px,calc((100vw - 1120px)/2));background:#fff;border-bottom:1px solid #d9e0e7}
+.buyer-brand{font-size:24px;font-weight:800;color:#176854}
+.buyer-container{max-width:1120px;margin:32px auto;padding:0 20px}
+.buyer-heading{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+.buyer-auth{max-width:480px;margin:30px auto;padding:28px}
+.buyer-auth form{display:grid;gap:12px;margin:24px 0 12px}
+.buyer-auth form label{margin-bottom:0}
+.buyer-message{background:#fff8e6;border:1px solid #f0d18a;border-radius:10px;padding:18px;margin:22px 0}
+.buyer-message p{margin-bottom:0}
+.buyer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin:20px 0}
+.buyer-tile{padding:20px}
+.customer-page .customer-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.customer-page .customer-form-grid label{margin-bottom:6px}
+.customer-page .panel{margin-bottom:16px}
+@media(max-width:600px){.buyer-heading{flex-direction:column}.buyer-container{margin:18px auto}.buyer-auth{padding:18px;margin:12px auto}}
