@@ -38,13 +38,6 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - name: Temporary Prettier output for protected credit rollout
-        run: |
-          npx prettier --write apps/api/src/customers/shop-customers.controller.ts apps/api/src/pos/credit-feature.ts apps/api/src/pos/credit-sales.controller.ts apps/web/src/customers/ShopCustomersPage.tsx apps/web/src/pos/PaymentBottomSheet.tsx apps/web/src/pos/SalePage.tsx
-          node - <<'NODE'
-          const fs = require('fs');
-          for(const path of ["apps/api/src/customers/shop-customers.controller.ts","apps/api/src/pos/credit-feature.ts","apps/api/src/pos/credit-sales.controller.ts","apps/web/src/customers/ShopCustomersPage.tsx","apps/web/src/pos/PaymentBottomSheet.tsx","apps/web/src/pos/SalePage.tsx"]) console.log('FORMATFILE:'+path+':'+encodeURIComponent(fs.readFileSync(path,'utf8')));
-          NODE
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm run build
