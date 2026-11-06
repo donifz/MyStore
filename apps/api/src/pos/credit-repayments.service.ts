@@ -64,13 +64,12 @@ export class CreditRepaymentsService {
         if (BigInt(amountMinor) > remaining) {
           throw new ConflictException('Сумма превышает остаток долга');
         }
-        const [updatedRows] = await tx.query(
+        const [updated] = await tx.query(
           `UPDATE credit_sales SET paid_minor=paid_minor+$3
            WHERE shop_id=$1 AND document_id=$2
            RETURNING paid_minor,total_minor`,
           [shopId, saleId, amountMinor],
         );
-        const updated = updatedRows[0];
         const [row] = await tx.query(
           `INSERT INTO credit_repayments
            (id,shop_id,sale_id,shift_id,actor_id,method,amount_minor)
