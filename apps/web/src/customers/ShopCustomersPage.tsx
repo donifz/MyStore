@@ -21,7 +21,8 @@ type Page = {
   pageSize: number;
 };
 const PAGE_SIZE = 10;
-const creditSalesEnabled = import.meta.env.DEV || import.meta.env.VITE_CREDIT_SALES_ENABLED === 'true';
+const creditSalesEnabled =
+  import.meta.env.DEV || import.meta.env.VITE_CREDIT_SALES_ENABLED === 'true';
 
 export default function ShopCustomersPage() {
   const { shopId } = useParams();
