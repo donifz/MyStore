@@ -75,7 +75,12 @@ export class ShopCustomersService {
     }
   }
 
-  async setCreditPolicy(shopId: string, id: string, approved: boolean, limitMinor: number) {
+  async setCreditPolicy(
+    shopId: string,
+    id: string,
+    approved: boolean,
+    limitMinor: number,
+  ) {
     const [row] = await this.db.query(
       `UPDATE shop_customers SET credit_approved=$3,credit_limit_minor=$4,updated_at=now()
        WHERE shop_id=$1 AND id=$2
