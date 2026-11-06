@@ -101,7 +101,7 @@ describe('POS credit sales accounting', () => {
     expect(a.body.debtMinor).toBe(25000);
 
     const payments = await c.db.query(
-      "SELECT amount_minor,method FROM payment_records WHERE shop_id=$1 AND document_id=$2",
+      'SELECT amount_minor,method FROM payment_records WHERE shop_id=$1 AND document_id=$2',
       [fixture.shop, a.body.id],
     );
     expect(payments).toHaveLength(1);
