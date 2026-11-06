@@ -153,7 +153,7 @@ describe('POS credit sales accounting', () => {
       [fixture.shop, created.body.id],
     );
     await request(c.app.getHttpServer())
-      .post(shop + '/returns')
+      .post(shop + '/pos/returns')
       .auth(c.owner, { type: 'bearer' })
       .set('Idempotency-Key', randomUUID())
       .send({
