@@ -38,13 +38,6 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - name: Temporary canonical formatting capture PR 109
-        run: |
-          npx prettier --write apps/api/src/migrations/1760000000034-CreditSales.ts apps/api/src/migrations/1760000000035-CreditRepayments.ts apps/api/src/database.ts apps/api/src/pos/credit-sales.service.ts apps/api/src/pos/credit-sales.controller.ts apps/api/src/pos/shifts.service.ts apps/api/src/pos/pos.types.ts apps/api/src/reports/reports.service.ts apps/api/test/credit-sales.e2e-spec.ts apps/web/src/customers/CustomerDebtsPanel.tsx apps/web/src/customers/ShopCustomersPage.tsx apps/web/src/customers/BuyerPortalPage.tsx
-          node - <<'NODE'
-          const fs=require('fs');
-          for(const path of ["apps/api/src/migrations/1760000000034-CreditSales.ts","apps/api/src/migrations/1760000000035-CreditRepayments.ts","apps/api/src/database.ts","apps/api/src/pos/credit-sales.service.ts","apps/api/src/pos/credit-sales.controller.ts","apps/api/src/pos/shifts.service.ts","apps/api/src/pos/pos.types.ts","apps/api/src/reports/reports.service.ts","apps/api/test/credit-sales.e2e-spec.ts","apps/web/src/customers/CustomerDebtsPanel.tsx","apps/web/src/customers/ShopCustomersPage.tsx","apps/web/src/customers/BuyerPortalPage.tsx"]) console.log('FORMATFILE:'+path+':'+encodeURIComponent(fs.readFileSync(path,'utf8')));
-          NODE
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm run build
