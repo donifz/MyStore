@@ -48,14 +48,6 @@ export class ReportsService {
        FROM payment_records WHERE shop_id=$1 AND created_at >= $2 AND created_at < $3`,
       [shop, start, end],
     );
-    const [debtPayments] = await db.query(
-      `SELECT
-       COALESCE(sum(amount_minor),0) AS total,
-       COALESCE(sum(amount_minor) FILTER(WHERE method='cash'),0) AS cash,
-       COALESCE(sum(amount_minor) FILTER(WHERE method='card'),0) AS card
-       FROM credit_repayments WHERE shop_id=$1 AND created_at >= $2 AND created_at < $3`,
-      [shop, start, end],
-    );
     const [inventory] = await db.query(
       `SELECT
         COALESCE(sum(physical),0) physical,
@@ -156,9 +148,6 @@ export class ReportsService {
       grossProfitMinor: revenue - cost,
       paymentsReceivedMinor: Number(payments.received),
       paymentsRefundedMinor: Number(payments.refunded),
-      creditRepaymentsMinor: Number(debtPayments.total),
-      creditRepaymentsCashMinor: Number(debtPayments.cash),
-      creditRepaymentsCardMinor: Number(debtPayments.card),
       cashReceivedMinor: Number(payments.cash),
       cardReceivedMinor: Number(payments.card),
       physicalUnits: Number(inventory.physical),
