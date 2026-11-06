@@ -81,7 +81,11 @@ export class PosSalesService {
       [shopId, sale.id, shiftId],
     );
     const payment = paidMinor ?? sale.totalMinor;
-    if (!Number.isSafeInteger(payment) || payment < 0 || payment > sale.totalMinor)
+    if (
+      !Number.isSafeInteger(payment) ||
+      payment < 0 ||
+      payment > sale.totalMinor
+    )
       throw new ForbiddenException('Invalid immediate payment');
     if (payment > 0) {
       await tx.query(
