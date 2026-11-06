@@ -34,6 +34,7 @@ import { ShopCategoryTemplates1760000000030 } from './migrations/1760000000030-S
 import { CompactBarcodes1760000000031 } from './migrations/1760000000031-CompactBarcodes';
 import { BuyerAccounts1760000000032 } from './migrations/1760000000032-BuyerAccounts';
 import { BuyerInvites1760000000033 } from './migrations/1760000000033-BuyerInvites';
+import { CreditSales1760000000034 } from './migrations/1760000000034-CreditSales';
 export const DATABASE = Symbol('DATABASE');
 export function buildDataSource(url: string) {
   return new DataSource({
@@ -75,6 +76,7 @@ export function buildDataSource(url: string) {
       CompactBarcodes1760000000031,
       BuyerAccounts1760000000032,
       BuyerInvites1760000000033,
+      CreditSales1760000000034,
     ],
   });
 }
