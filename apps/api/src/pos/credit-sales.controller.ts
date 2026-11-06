@@ -1,10 +1,27 @@
 import {
-  Body, Controller, Get, Headers, Param, ParseUUIDPipe, Post, Query, Req, UseGuards,
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { Type } from 'class-transformer';
 import {
-  ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsIn, IsInt,
-  IsUUID, Max, Min, ValidateNested,
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsDateString,
+  IsIn,
+  IsInt,
+  IsUUID,
+  Max,
+  Min,
+  ValidateNested,
 } from 'class-validator';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { BuyerAuthGuard, BuyerRequest } from '../customers/buyer-auth.guard';
@@ -18,8 +35,12 @@ class CreditSaleDto {
   @IsIn(['cash', 'card']) method!: 'cash' | 'card';
   @IsInt() @Min(0) @Max(Number.MAX_SAFE_INTEGER) paidMinor!: number;
   @IsDateString() dueOn!: string;
-  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(100)
-  @ValidateNested({ each: true }) @Type(() => SaleLineDto) lines!: SaleLineDto[];
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(100)
+  @ValidateNested({ each: true })
+  @Type(() => SaleLineDto)
+  lines!: SaleLineDto[];
 }
 
 @Controller('shops/:shopId/pos/credit-sales')
