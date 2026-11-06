@@ -62,6 +62,13 @@ function NavIcon({ label }: { label: string }) {
           <path d="m7 10 5 5 5-5M12 15V3" />
         </svg>
       );
+    case 'Клиенты':
+      return (
+        <svg className="workspace-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="9" cy="8" r="3.5" />
+          <path d="M2.5 21v-2a6.5 6.5 0 0 1 13 0v2M17 7a3.5 3.5 0 0 1 0 7M18 17a5 5 0 0 1 3.5 4" />
+        </svg>
+      );
     case 'Товары':
       return (
         <svg
