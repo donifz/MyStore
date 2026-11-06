@@ -4,6 +4,8 @@
  * development builds remain enabled to exercise the complete flow.
  */
 export function creditSalesEnabled(): boolean {
-  return process.env.NODE_ENV !== 'production' ||
-    process.env.CREDIT_SALES_ENABLED === 'true';
+  return (
+    process.env.NODE_ENV !== 'production' ||
+    process.env.CREDIT_SALES_ENABLED === 'true'
+  );
 }
