@@ -7,6 +7,7 @@ import {
   IsUUID, Max, Min, ValidateNested,
 } from 'class-validator';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
+import { BuyerAuthGuard, BuyerRequest } from '../customers/buyer-auth.guard';
 import { ShopAccessService } from '../shops/shop-access.service';
 import { SaleLineDto } from './sales.controller';
 import { CreditSalesService } from './credit-sales.service';
@@ -55,5 +56,16 @@ export class CreditSalesController {
   ) {
     await this.access.requireMembership(req.userId, shopId, 'read');
     return this.credits.list(shopId, customerId);
+  }
+}
+
+@Controller('buyer')
+@UseGuards(BuyerAuthGuard)
+export class BuyerDebtsController {
+  constructor(private readonly credits: CreditSalesService) {}
+
+  @Get('debts')
+  async debts(@Req() req: BuyerRequest) {
+    return this.credits.buyerDebts(req.buyerId);
   }
 }
