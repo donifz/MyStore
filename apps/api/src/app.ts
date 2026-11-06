@@ -78,6 +78,8 @@ import { BuyerAuthController } from './customers/buyer-auth.controller';
 import { BuyerAuthService } from './customers/buyer-auth.service';
 import { BuyerAuthGuard } from './customers/buyer-auth.guard';
 import { BuyerInvitesService } from './customers/buyer-invites.service';
+import { CreditSalesService } from './pos/credit-sales.service';
+import { CreditSalesController } from './pos/credit-sales.controller';
 import {
   BuyerInvitesController,
   ShopBuyerInvitesController,
@@ -115,6 +117,7 @@ export async function createApp(
       SalesController,
       ShiftsController,
       PosSalesController,
+      CreditSalesController,
       ReturnsController,
       ReportsController,
       OperationsController,
@@ -153,6 +156,7 @@ export async function createApp(
       SalesService,
       ShiftsService,
       PosSalesService,
+      CreditSalesService,
       ReturnsService,
       SalesHistoryService,
       ReportsService,
