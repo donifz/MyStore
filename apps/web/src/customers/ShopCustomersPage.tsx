@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
 import { useSession } from '../auth/SessionProvider';
 import Pagination from '../components/Pagination';
+import CustomerDebtsPanel from './CustomerDebtsPanel';
 
 type ShopCustomer = {
   id: string;
@@ -44,6 +45,7 @@ export default function ShopCustomersPage() {
   } | null>(null);
   const [revision, setRevision] = useState(0);
   const [creditLimit, setCreditLimit] = useState('5000');
+  const [debtCustomer, setDebtCustomer] = useState<ShopCustomer | null>(null);
 
   const load = useCallback(async () => {
     if (!shopId) return;
@@ -253,6 +255,7 @@ export default function ShopCustomersPage() {
                       <th>Добавлен</th>
                       <th>Кабинет</th>
                       {isOwner && <th>Кредит</th>}
+                      <th>Долги</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -298,6 +301,11 @@ export default function ShopCustomersPage() {
                             )}
                           </td>
                         )}
+                        <td>
+                          <button type="button" onClick={() => setDebtCustomer(c)}>
+                            Посмотреть
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -316,6 +324,14 @@ export default function ShopCustomersPage() {
           )
         )}
       </section>
+      {shopId && debtCustomer && (
+        <CustomerDebtsPanel
+          key={debtCustomer.id}
+          shopId={shopId}
+          customerId={debtCustomer.id}
+          name={debtCustomer.name}
+        />
+      )}
       <p className="muted">
         Покупатель должен войти в свой кабинет с тем же номером и использовать
         одноразовый код. Разрешать кредит и устанавливать лимиты может только
