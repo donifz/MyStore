@@ -124,6 +124,28 @@ export class CreditSalesService {
     );
   }
 
+  async buyerDebts(buyerId: string) {
+    const rows = await this.db.query(
+      `SELECT cs.document_id AS "saleId",cs.shop_id AS "shopId",
+       s.name AS "shopName",cs.total_minor AS "totalMinor",
+       cs.paid_minor AS "paidMinor",
+       (cs.total_minor-cs.paid_minor) AS "debtMinor",
+       cs.due_on AS "dueOn",cs.created_at AS "createdAt"
+       FROM credit_sales cs
+       JOIN shop_customers sc ON sc.shop_id=cs.shop_id AND sc.id=cs.customer_id
+       JOIN shops s ON s.id=cs.shop_id
+       WHERE sc.buyer_account_id=$1
+       ORDER BY cs.created_at DESC LIMIT 100`,
+      [buyerId],
+    );
+    return rows.map((row: any) => ({
+      ...row,
+      totalMinor: Number(row.totalMinor),
+      paidMinor: Number(row.paidMinor),
+      debtMinor: Number(row.debtMinor),
+    }));
+  }
+
   async list(shopId: string, customerId: string) {
     const rows = await this.db.query(
       `SELECT document_id AS "saleId",total_minor AS "totalMinor",
