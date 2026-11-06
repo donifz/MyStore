@@ -1,5 +1,9 @@
 import {
-  BadRequestException, ConflictException, Inject, Injectable, NotFoundException,
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { DATABASE } from '../database';
@@ -11,16 +15,23 @@ export class ShopCustomersService {
 
   async list(shopId: string, query: string, page: number, pageSize: number) {
     const term = query.trim();
-    const phone = term ? (() => {
-      try { return normalizeKyrgyzPhone(term); } catch { return null; }
-    })() : null;
+    const phone = term
+      ? (() => {
+          try {
+            return normalizeKyrgyzPhone(term);
+          } catch {
+            return null;
+          }
+        })()
+      : null;
     const where = `shop_id=$1 AND (
       $2::text='' OR lower(display_name) LIKE '%' || lower($2) || '%'
       OR phone_e164=$3 OR phone_e164 LIKE '%' || $4 || '%'
     )`;
     const args = [shopId, term, phone, term.replace(/\D/g, '')];
     const [count] = await this.db.query(
-      `SELECT count(*)::int AS total FROM shop_customers WHERE ${where}`, args,
+      `SELECT count(*)::int AS total FROM shop_customers WHERE ${where}`,
+      args,
     );
     const rows = await this.db.query(
       `SELECT id,display_name AS "name",phone_e164 AS phone,address,
@@ -32,7 +43,13 @@ export class ShopCustomersService {
     return { items: rows, total: count.total, page, pageSize };
   }
 
-  async create(shopId: string, actorId: string, phoneInput: string, nameInput: string, address?: string) {
+  async create(
+    shopId: string,
+    actorId: string,
+    phoneInput: string,
+    nameInput: string,
+    address?: string,
+  ) {
     const phone = normalizeKyrgyzPhone(phoneInput);
     const name = nameInput.trim().replace(/\s+/g, ' ');
     if (name.length < 2 || name.length > 120) {
@@ -50,7 +67,9 @@ export class ShopCustomersService {
       return row;
     } catch (error) {
       if ((error as { code?: string }).code === '23505') {
-        throw new ConflictException('Клиент с этим номером уже есть в магазине');
+        throw new ConflictException(
+          'Клиент с этим номером уже есть в магазине',
+        );
       }
       throw error;
     }
