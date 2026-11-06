@@ -12,6 +12,7 @@ import {
 import { Type } from 'class-transformer';
 import {
   IsInt,
+  IsBoolean,
   IsOptional,
   IsString,
   Max,
@@ -27,6 +28,10 @@ class NewShopCustomerDto {
   @IsString() @MinLength(2) @MaxLength(120) name!: string;
   @IsString() @MaxLength(32) phone!: string;
   @IsOptional() @IsString() @MaxLength(500) address?: string;
+}
+class CustomerCreditDto {
+  @IsBoolean() approved!: boolean;
+  @IsInt() @Min(0) @Max(Number.MAX_SAFE_INTEGER) limitMinor!: number;
 }
 class CustomerQuery {
   @IsOptional() @IsString() @MaxLength(120) q = '';
@@ -63,6 +68,16 @@ export class ShopCustomersController {
       dto.name,
       dto.address,
     );
+  }
+  @Post(':id/credit-policy')
+  async setCreditPolicy(
+    @Param('shopId', ParseUUIDPipe) shopId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: UserRequest,
+    @Body() dto: CustomerCreditDto,
+  ) {
+    await this.access.requireMembership(req.userId, shopId, 'catalog');
+    return this.customers.setCreditPolicy(shopId, id, dto.approved, dto.limitMinor);
   }
   @Get(':id')
   async get(
