@@ -1,5 +1,5 @@
 import {
-  ConflictException, Inject, Injectable, NotFoundException,
+  BadRequestException, ConflictException, Inject, Injectable, NotFoundException,
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { DATABASE } from '../database';
@@ -35,6 +35,9 @@ export class ShopCustomersService {
   async create(shopId: string, actorId: string, phoneInput: string, nameInput: string, address?: string) {
     const phone = normalizeKyrgyzPhone(phoneInput);
     const name = nameInput.trim().replace(/\s+/g, ' ');
+    if (name.length < 2 || name.length > 120) {
+      throw new BadRequestException('Укажите имя (2–120 символов)');
+    }
     const cleanAddress = address?.trim() || null;
     try {
       const [row] = await this.db.query(
