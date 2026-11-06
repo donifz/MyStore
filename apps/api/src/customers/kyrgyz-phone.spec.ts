@@ -10,8 +10,14 @@ describe('Kyrgyzstan phone formatting', () => {
     expect(normalizeKyrgyzPhone(input)).toBe(expected);
   });
 
-  it.each(['+7 700 123 4567', '070012345', '+996000123456', '+9967001234567', '123', ''])(
-    'rejects an invalid number: %s',
-    (input) => expect(() => normalizeKyrgyzPhone(input)).toThrow(),
+  it.each([
+    '+7 700 123 4567',
+    '070012345',
+    '+996000123456',
+    '+9967001234567',
+    '123',
+    '',
+  ])('rejects an invalid number: %s', (input) =>
+    expect(() => normalizeKyrgyzPhone(input)).toThrow(),
   );
 });
