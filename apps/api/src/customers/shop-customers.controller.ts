@@ -79,7 +79,8 @@ export class ShopCustomersController {
     @Req() req: UserRequest,
     @Body() dto: CustomerCreditDto,
   ) {
-    if (!creditSalesEnabled()) throw new ServiceUnavailableException('Кредитные лимиты пока недоступны');
+    if (!creditSalesEnabled())
+      throw new ServiceUnavailableException('Кредитные лимиты пока недоступны');
     const membership = await this.access.requireMembership(
       req.userId,
       shopId,
