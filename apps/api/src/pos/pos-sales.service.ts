@@ -46,6 +46,7 @@ export class PosSalesService {
     method: PaymentMethod,
     normalized: SaleLine[],
     agreedPrice = false,
+    paidMinor?: number,
   ) {
     await this.shifts.lockOpen(tx, shopId, shiftId, actorId);
     const [member] = await tx.query(
@@ -79,18 +80,15 @@ export class PosSalesService {
       'INSERT INTO pos_sales(shop_id,document_id,shift_id) VALUES($1,$2,$3)',
       [shopId, sale.id, shiftId],
     );
-    await tx.query(
-      "INSERT INTO payment_records(id,shop_id,document_id,shift_id,actor_id,kind,method,amount_minor) VALUES($1,$2,$3,$4,$5,'sale',$6,$7)",
-      [
-        randomUUID(),
-        shopId,
-        sale.id,
-        shiftId,
-        actorId,
-        method,
-        sale.totalMinor,
-      ],
-    );
+    const payment = paidMinor ?? sale.totalMinor;
+    if (!Number.isSafeInteger(payment) || payment < 0 || payment > sale.totalMinor)
+      throw new ForbiddenException('Invalid immediate payment');
+    if (payment > 0) {
+      await tx.query(
+        "INSERT INTO payment_records(id,shop_id,document_id,shift_id,actor_id,kind,method,amount_minor) VALUES($1,$2,$3,$4,$5,'sale',$6,$7)",
+        [randomUUID(), shopId, sale.id, shiftId, actorId, method, payment],
+      );
+    }
     await this.shifts.lockOpen(tx, shopId, shiftId, actorId);
     return { ...sale, shiftId, method };
   }
