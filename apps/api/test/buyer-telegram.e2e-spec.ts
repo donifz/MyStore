@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { createApp } from '../src/app';
+import { BuyerTelegramService } from '../src/customers/buyer-telegram.service';
 import { setup, teardown } from './helpers';
 
 describe('Telegram verification of buyer phone ownership', () => {
@@ -177,6 +178,57 @@ describe('Telegram verification of buyer phone ownership', () => {
     expect(
       (await account.agent.get('/buyer/me').expect(200)).body.phoneVerified,
     ).toBe(false);
+  });
+
+  it('registers a webhook only with matching bot identity and explicit production flags', async () => {
+    const telegram = c.app.get(BuyerTelegramService);
+    const original = {
+      node: process.env.NODE_ENV,
+      auto: process.env.TELEGRAM_AUTO_WEBHOOK,
+      enabled: process.env.TELEGRAM_VERIFY_ENABLED,
+      base: process.env.PUBLIC_BASE_URL,
+    };
+    try {
+      process.env.NODE_ENV = 'production';
+      process.env.TELEGRAM_VERIFY_ENABLED = 'true';
+      process.env.TELEGRAM_AUTO_WEBHOOK = 'true';
+      process.env.PUBLIC_BASE_URL = 'https://mystore.tezkur.kg';
+      mockedSend
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            ok: true,
+            result: { username: 'mystore_test_bot', is_bot: true },
+          }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ ok: true }),
+        } as Response);
+      expect(telegram.config().enabled).toBe(false);
+      await telegram.registerWebhook();
+      expect(mockedSend).toHaveBeenCalledTimes(2);
+      expect(String(mockedSend.mock.calls[0][0])).toContain('/getMe');
+      expect(String(mockedSend.mock.calls[1][0])).toContain('/setWebhook');
+      const payload = JSON.parse(mockedSend.mock.calls[1][1].body as string);
+      expect(payload).toEqual({
+        url: 'https://mystore.tezkur.kg/api/integrations/telegram/buyer-webhook',
+        secret_token: secret,
+        allowed_updates: ['message'],
+        drop_pending_updates: false,
+        max_connections: 4,
+      });
+      expect(telegram.config().enabled).toBe(true);
+    } finally {
+      if (original.node === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = original.node;
+      if (original.auto === undefined) delete process.env.TELEGRAM_AUTO_WEBHOOK;
+      else process.env.TELEGRAM_AUTO_WEBHOOK = original.auto;
+      if (original.enabled === undefined) delete process.env.TELEGRAM_VERIFY_ENABLED;
+      else process.env.TELEGRAM_VERIFY_ENABLED = original.enabled;
+      if (original.base === undefined) delete process.env.PUBLIC_BASE_URL;
+      else process.env.PUBLIC_BASE_URL = original.base;
+    }
   });
 
   it('when not configured, Telegram stays unavailable and normal buyer login works', async () => {
