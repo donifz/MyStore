@@ -11,6 +11,7 @@ export default function PublicLayout() {
             Товары
           </NavLink>
           <NavLink to="/shops">Магазины</NavLink>
+          <NavLink to="/buyer">Личный кабинет</NavLink>
         </nav>
         <span className="market-country">Кыргызстан · сом</span>
       </header>

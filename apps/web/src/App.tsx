@@ -32,6 +32,9 @@ import StockOperationsPage from './inventory/StockOperationsPage';
 import ReportsPage from './reports/ReportsPage';
 import OperationsPage from './operations/OperationsPage';
 import PlatformAccessPage from './platform/PlatformAccessPage';
+import BuyerPortalPage from './customers/BuyerPortalPage';
+import ShopCustomersPage from './customers/ShopCustomersPage';
+import './customers/customers.css';
 export default function App() {
   return (
     <InstallAppProvider>
@@ -59,6 +62,9 @@ export default function App() {
             element={<ResetPasswordPage />}
           />
           <Route path="/seller/login" element={<LoginPage />} />
+          <Route path="/buyer" element={<BuyerPortalPage />} />
+          <Route path="/buyer/login" element={<BuyerPortalPage />} />
+          <Route path="/buyer/register" element={<BuyerPortalPage />} />
           <Route path="/platform/admin" element={<AdminPage />} />
           <Route path="/seller" element={<WorkspaceEntry />} />
           <Route path="/seller/:shopId" element={<SellerLayout />}>
@@ -74,6 +80,7 @@ export default function App() {
             <Route path="sales/:saleId" element={<SaleDetailPage />} />
             <Route path="sales/:saleId/return" element={<ReturnPage />} />
             <Route path="pos" element={<SalePage />} />
+            <Route path="customers" element={<ShopCustomersPage />} />
             <Route path="receiving" element={<ReceivingPage />} />
             <Route path="inventory" element={<StockOperationsPage />} />
             <Route path="reports" element={<ReportsPage />} />
