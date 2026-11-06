@@ -8,6 +8,7 @@ import {
   Post,
   Query,
   Req,
+  ServiceUnavailableException,
   UseGuards,
 } from '@nestjs/common';
 import { Type } from 'class-transformer';
@@ -28,6 +29,7 @@ import { BuyerAuthGuard, BuyerRequest } from '../customers/buyer-auth.guard';
 import { ShopAccessService } from '../shops/shop-access.service';
 import { SaleLineDto } from './sales.controller';
 import { CreditSalesService } from './credit-sales.service';
+import { creditSalesEnabled } from './credit-feature';
 
 class CreditSaleDto {
   @IsUUID() shiftId!: string;
@@ -58,6 +60,7 @@ export class CreditSalesController {
     @Headers('idempotency-key') key: string,
     @Body() dto: CreditSaleDto,
   ) {
+    if (!creditSalesEnabled()) throw new ServiceUnavailableException('Продажа в долг пока недоступна');
     await this.access.requireMembership(req.userId, shopId, 'sell');
     return this.credits.sell({
       shopId,
