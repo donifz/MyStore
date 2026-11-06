@@ -25,7 +25,8 @@ const PAGE_SIZE = 10;
 export default function ShopCustomersPage() {
   const { shopId } = useParams();
   const session = useSession();
-  const isOwner = session.user?.shops.find((s) => s.id === shopId)?.role === 'owner';
+  const isOwner =
+    session.user?.shops.find((s) => s.id === shopId)?.role === 'owner';
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [data, setData] = useState<Page | null>(null);
@@ -180,9 +181,18 @@ export default function ShopCustomersPage() {
       </section>
       <section className="panel">
         <h2>Список клиентов</h2>
-        {isOwner && <label>Лимит кредита для одобрения (сом)
-          <input type="number" min="0" step="0.01" value={creditLimit} onChange={(e) => setCreditLimit(e.target.value)} />
-        </label>}
+        {isOwner && (
+          <label>
+            Лимит кредита для одобрения (сом)
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={creditLimit}
+              onChange={(e) => setCreditLimit(e.target.value)}
+            />
+          </label>
+        )}
         {invitation && (
           <div className="buyer-message" role="status">
             <strong>Приглашение для {invitation.name}</strong>
@@ -266,13 +276,28 @@ export default function ShopCustomersPage() {
                             </button>
                           )}
                         </td>
-                        {isOwner && <td>
-                          {c.creditApproved ? (
-                            <button type="button" onClick={() => void configureCredit(c, false)}>Лимит {Number(c.creditLimitMinor || 0) / 100} сом · отключить</button>
-                          ) : c.linked ? (
-                            <button type="button" onClick={() => void configureCredit(c, true)}>Разрешить кредит</button>
-                          ) : 'Сначала привяжите кабинет'}
-                        </td>}
+                        {isOwner && (
+                          <td>
+                            {c.creditApproved ? (
+                              <button
+                                type="button"
+                                onClick={() => void configureCredit(c, false)}
+                              >
+                                Лимит {Number(c.creditLimitMinor || 0) / 100}{' '}
+                                сом · отключить
+                              </button>
+                            ) : c.linked ? (
+                              <button
+                                type="button"
+                                onClick={() => void configureCredit(c, true)}
+                              >
+                                Разрешить кредит
+                              </button>
+                            ) : (
+                              'Сначала привяжите кабинет'
+                            )}
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -293,7 +318,8 @@ export default function ShopCustomersPage() {
       </section>
       <p className="muted">
         Покупатель должен войти в свой кабинет с тем же номером и использовать
-        одноразовый код. Разрешать кредит и устанавливать лимиты может только владелец магазина.
+        одноразовый код. Разрешать кредит и устанавливать лимиты может только
+        владелец магазина.
       </p>
     </div>
   );
