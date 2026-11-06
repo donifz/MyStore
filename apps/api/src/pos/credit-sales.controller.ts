@@ -120,4 +120,9 @@ export class BuyerDebtsController {
   async debts(@Req() req: BuyerRequest) {
     return this.credits.buyerDebts(req.buyerId);
   }
+
+  @Get('repayments')
+  async repayments(@Req() req: BuyerRequest) {
+    return this.credits.buyerRepayments(req.buyerId);
+  }
 }
