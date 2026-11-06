@@ -35,7 +35,6 @@ import { CompactBarcodes1760000000031 } from './migrations/1760000000031-Compact
 import { BuyerAccounts1760000000032 } from './migrations/1760000000032-BuyerAccounts';
 import { BuyerInvites1760000000033 } from './migrations/1760000000033-BuyerInvites';
 import { CreditSales1760000000034 } from './migrations/1760000000034-CreditSales';
-import { CreditRepayments1760000000035 } from './migrations/1760000000035-CreditRepayments';
 export const DATABASE = Symbol('DATABASE');
 export function buildDataSource(url: string) {
   return new DataSource({
@@ -78,7 +77,6 @@ export function buildDataSource(url: string) {
       BuyerAccounts1760000000032,
       BuyerInvites1760000000033,
       CreditSales1760000000034,
-      CreditRepayments1760000000035,
     ],
   });
 }
