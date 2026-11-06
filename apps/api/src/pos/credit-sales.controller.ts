@@ -43,12 +43,6 @@ class CreditSaleDto {
   lines!: SaleLineDto[];
 }
 
-class CreditRepaymentDto {
-  @IsUUID() shiftId!: string;
-  @IsIn(['cash', 'card']) method!: 'cash' | 'card';
-  @IsInt() @Min(1) @Max(Number.MAX_SAFE_INTEGER) amountMinor!: number;
-}
-
 @Controller('shops/:shopId/pos/credit-sales')
 @UseGuards(AuthGuard)
 export class CreditSalesController {
@@ -75,31 +69,6 @@ export class CreditSalesController {
     });
   }
 
-  @Post(':saleId/repayments')
-  async repay(
-    @Param('shopId', ParseUUIDPipe) shopId: string,
-    @Param('saleId', ParseUUIDPipe) saleId: string,
-    @Req() req: UserRequest,
-    @Headers('idempotency-key') key: string,
-    @Body() dto: CreditRepaymentDto,
-  ) {
-    await this.access.requireMembership(req.userId, shopId, 'sell');
-    return this.credits.repay({
-      shopId, saleId, actorId: req.userId, key,
-      shiftId: dto.shiftId, method: dto.method, amountMinor: dto.amountMinor,
-    });
-  }
-
-  @Get(':saleId/repayments')
-  async repayments(
-    @Param('shopId', ParseUUIDPipe) shopId: string,
-    @Param('saleId', ParseUUIDPipe) saleId: string,
-    @Req() req: UserRequest,
-  ) {
-    await this.access.requireMembership(req.userId, shopId, 'read');
-    return this.credits.repayments(shopId, saleId);
-  }
-
   @Get()
   async list(
     @Param('shopId', ParseUUIDPipe) shopId: string,
@@ -119,10 +88,5 @@ export class BuyerDebtsController {
   @Get('debts')
   async debts(@Req() req: BuyerRequest) {
     return this.credits.buyerDebts(req.buyerId);
-  }
-
-  @Get('repayments')
-  async repayments(@Req() req: BuyerRequest) {
-    return this.credits.buyerRepayments(req.buyerId);
   }
 }
