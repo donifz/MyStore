@@ -44,9 +44,7 @@ describe('shop customers and separate buyer accounts', () => {
       .get(`/shops/${fixture.otherShop}/customers`)
       .auth(c.cashier, { type: 'bearer' })
       .expect(403);
-    await request(c.app.getHttpServer())
-      .get(shopRoot)
-      .expect(401);
+    await request(c.app.getHttpServer()).get(shopRoot).expect(401);
     await request(c.app.getHttpServer())
       .get(shopRoot + '/' + created.body.id)
       .auth(c.cashier, { type: 'bearer' })
@@ -72,7 +70,8 @@ describe('shop customers and separate buyer accounts', () => {
       .expect(201);
 
     const buyer = request.agent(app);
-    const login = await buyer.post('/buyer/login')
+    const login = await buyer
+      .post('/buyer/login')
       .set('Origin', 'http://localhost:5173')
       .send({ phone: '996555123456', password: 'a-long-test-password' })
       .expect(201);
@@ -83,7 +82,8 @@ describe('shop customers and separate buyer accounts', () => {
     expect(me.body.shops).toEqual([]);
     expect(me.body).not.toHaveProperty('password_hash');
 
-    await buyer.post('/buyer/logout')
+    await buyer
+      .post('/buyer/logout')
       .set('Origin', 'http://localhost:5173')
       .set('x-csrf-token', login.body.csrfToken)
       .send({})
@@ -95,7 +95,11 @@ describe('shop customers and separate buyer accounts', () => {
     await request(c.app.getHttpServer())
       .post('/buyer/register')
       .set('Origin', 'http://localhost:5173')
-      .send({ name: 'Buyer', phone: '+77001234567', password: 'long-enough-secret' })
+      .send({
+        name: 'Buyer',
+        phone: '+77001234567',
+        password: 'long-enough-secret',
+      })
       .expect(400);
     await request(c.app.getHttpServer())
       .post(shopRoot)
