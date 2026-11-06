@@ -166,4 +166,83 @@ describe('POS credit sales accounting', () => {
       })
       .expect(409);
   });
+  it('records cash and card repayments without inflating sales, handles replay and overpayment', async () => {
+    const app = c.app.getHttpServer();
+    await request(app)
+      .post(shop + '/customers/' + customerId + '/credit-policy')
+      .auth(c.owner, { type: 'bearer' })
+      .send({ approved: true, limitMinor: 100000 })
+      .expect(201);
+    const credit = (await sell(5000).expect(201)).body;
+    const repayPath = shop + '/pos/credit-sales/' + credit.id + '/repayments';
+    const key = randomUUID();
+    const repay = () => request(app)
+      .post(repayPath)
+      .auth(c.owner, { type: 'bearer' })
+      .set('Idempotency-Key', key)
+      .send({ shiftId, method: 'cash', amountMinor: 10000 });
+    const first = await repay().expect(201);
+    const replay = await repay().expect(201);
+    expect(replay.body).toEqual(first.body);
+    expect(first.body.debtMinor).toBe(15000);
+    await request(app)
+      .post(repayPath)
+      .auth(c.owner, { type: 'bearer' })
+      .set('Idempotency-Key', randomUUID())
+      .send({ shiftId, method: 'cash', amountMinor: 20000 })
+      .expect(409);
+    await request(app)
+      .post(repayPath)
+      .auth(c.owner, { type: 'bearer' })
+      .set('Idempotency-Key', randomUUID())
+      .send({ shiftId, method: 'card', amountMinor: 15000 })
+      .expect(201);
+    const payments = await request(app)
+      .get(repayPath)
+      .auth(c.owner, { type: 'bearer' })
+      .expect(200);
+    expect(payments.body).toHaveLength(2);
+    const shift = (await request(app)
+      .get(shop + '/pos/shifts/current')
+      .auth(c.owner, { type: 'bearer' })
+      .expect(200)).body;
+    expect(shift.expectedCashMinor).toBe(16000);
+    expect(shift.creditRepaymentsCashMinor).toBe(10000);
+    expect(shift.creditRepaymentsCardMinor).toBe(15000);
+    expect(shift.salesCashMinor).toBe(5000);
+    const [money] = await c.db.query(
+      'SELECT paid_minor,total_minor FROM credit_sales WHERE shop_id=$1 AND document_id=$2',
+      [fixture.shop, credit.id],
+    );
+    expect(Number(money.paid_minor)).toBe(Number(money.total_minor));
+    const records = await c.db.query(
+      'SELECT amount_minor FROM payment_records WHERE shop_id=$1 AND document_id=$2',
+      [fixture.shop, credit.id],
+    );
+    expect(records).toHaveLength(1);
+    expect(Number(records[0].amount_minor)).toBe(5000);
+  });
+
+  it('requires an open own shift and shop membership for repayments', async () => {
+    const app = c.app.getHttpServer();
+    await request(app)
+      .post(shop + '/customers/' + customerId + '/credit-policy')
+      .auth(c.owner, { type: 'bearer' })
+      .send({ approved: true, limitMinor: 100000 })
+      .expect(201);
+    const sale = (await sell(0).expect(201)).body;
+    const path = shop + '/pos/credit-sales/' + sale.id + '/repayments';
+    const body = { shiftId, method: 'cash', amountMinor: 1000 };
+    await request(app).post(path).set('Idempotency-Key', randomUUID())
+      .send(body).expect(401);
+    await request(app).post('/shops/' + fixture.otherShop + '/pos/credit-sales/' + sale.id + '/repayments')
+      .auth(c.cashier, { type: 'bearer' })
+      .set('Idempotency-Key', randomUUID())
+      .send(body).expect(403);
+    await request(app).post(path)
+      .auth(c.cashier, { type: 'bearer' })
+      .set('Idempotency-Key', randomUUID())
+      .send(body).expect(403);
+  });
+
 });
