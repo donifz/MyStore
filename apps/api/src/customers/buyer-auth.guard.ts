@@ -6,7 +6,11 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { BuyerAuthService } from './buyer-auth.service';
-import { sessionCookie, validateCsrf, validateOrigin } from '../auth/browser-security';
+import {
+  sessionCookie,
+  validateCsrf,
+  validateOrigin,
+} from '../auth/browser-security';
 
 export type BuyerRequest = Request & { buyerId: string; buyerToken: string };
 
