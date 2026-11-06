@@ -1,4 +1,6 @@
 import {
+  ForbiddenException,
+  ServiceUnavailableException,
   Body,
   Controller,
   Get,
@@ -12,6 +14,7 @@ import {
 import { Type } from 'class-transformer';
 import {
   IsInt,
+  IsBoolean,
   IsOptional,
   IsString,
   Max,
@@ -22,11 +25,16 @@ import {
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { ShopAccessService } from '../shops/shop-access.service';
 import { ShopCustomersService } from './shop-customers.service';
+import { creditSalesEnabled } from '../pos/credit-feature';
 
 class NewShopCustomerDto {
   @IsString() @MinLength(2) @MaxLength(120) name!: string;
   @IsString() @MaxLength(32) phone!: string;
   @IsOptional() @IsString() @MaxLength(500) address?: string;
+}
+class CustomerCreditDto {
+  @IsBoolean() approved!: boolean;
+  @IsInt() @Min(0) @Max(Number.MAX_SAFE_INTEGER) limitMinor!: number;
 }
 class CustomerQuery {
   @IsOptional() @IsString() @MaxLength(120) q = '';
@@ -62,6 +70,29 @@ export class ShopCustomersController {
       dto.phone,
       dto.name,
       dto.address,
+    );
+  }
+  @Post(':id/credit-policy')
+  async setCreditPolicy(
+    @Param('shopId', ParseUUIDPipe) shopId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: UserRequest,
+    @Body() dto: CustomerCreditDto,
+  ) {
+    if (!creditSalesEnabled())
+      throw new ServiceUnavailableException('Кредитные лимиты пока недоступны');
+    const membership = await this.access.requireMembership(
+      req.userId,
+      shopId,
+      'read',
+    );
+    if (membership.role !== 'owner')
+      throw new ForbiddenException('Only shop owner can approve credit');
+    return this.customers.setCreditPolicy(
+      shopId,
+      id,
+      dto.approved,
+      dto.limitMinor,
     );
   }
   @Get(':id')

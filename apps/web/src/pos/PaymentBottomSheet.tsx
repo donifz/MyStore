@@ -1,11 +1,24 @@
 import { useEffect, useRef } from 'react';
 import { formatSom } from '../api/money';
+import CreditFields from './CreditFields';
 
+const creditSalesEnabled =
+  import.meta.env.DEV || import.meta.env.VITE_CREDIT_SALES_ENABLED === 'true';
 const wholeSom = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
 
 export type PaymentBottomSheetProps = {
   open: boolean;
   onClose: () => void;
+  shopId: string;
+  creditMode: boolean;
+  setCreditMode: (value: boolean) => void;
+  creditCustomerId: string;
+  setCreditCustomerId: (value: string) => void;
+  creditPaidText: string;
+  setCreditPaidText: (value: string) => void;
+  creditDueOn: string;
+  setCreditDueOn: (value: string) => void;
+  creditDebtMinor: number | null;
   method: 'cash' | 'card';
   setMethod: (m: 'cash' | 'card') => void;
   received: string;
@@ -30,6 +43,16 @@ export default function PaymentBottomSheet({
   onClose,
   method,
   setMethod,
+  shopId,
+  creditMode,
+  setCreditMode,
+  creditCustomerId,
+  setCreditCustomerId,
+  creditPaidText,
+  setCreditPaidText,
+  creditDueOn,
+  setCreditDueOn,
+  creditDebtMinor,
   received,
   setReceived,
   totalText,
@@ -173,7 +196,29 @@ export default function PaymentBottomSheet({
               </div>
             </fieldset>
 
-            {method === 'cash' && (
+            {creditSalesEnabled && (
+              <label className="pos-credit-toggle">
+                <input
+                  type="checkbox"
+                  checked={creditMode}
+                  onChange={(e) => setCreditMode(e.target.checked)}
+                />
+                Продажа в долг
+              </label>
+            )}
+            <CreditFields
+              shopId={shopId}
+              enabled={creditMode}
+              disabled={isSubmitting || isSubmissionPending}
+              customerId={creditCustomerId}
+              onCustomerChange={setCreditCustomerId}
+              paid={creditPaidText}
+              onPaidChange={setCreditPaidText}
+              dueOn={creditDueOn}
+              onDueChange={setCreditDueOn}
+              debtMinor={creditDebtMinor}
+            />
+            {!creditMode && method === 'cash' && (
               <div className="pos-sheet-cash-section">
                 <label className="pos-received">
                   Получено от покупателя, сом
@@ -259,7 +304,7 @@ export default function PaymentBottomSheet({
               </div>
             )}
 
-            {method === 'card' && (
+            {!creditMode && method === 'card' && (
               <div className="pos-sheet-card-info">
                 <p className="muted">
                   Примите оплату банковской картой через POS-терминал. После
@@ -297,7 +342,9 @@ export default function PaymentBottomSheet({
                   ? 'Проведение…'
                   : isSubmissionPending
                     ? 'Повторить исходный запрос'
-                    : `Провести продажу — ${totalText}`}
+                    : creditMode
+                      ? `Оформить долг — ${creditDebtMinor === null ? '—' : formatSom(creditDebtMinor)}`
+                      : `Провести продажу — ${totalText}`}
               </span>
             </button>
           </div>

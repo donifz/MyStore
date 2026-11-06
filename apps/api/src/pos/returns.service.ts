@@ -67,6 +67,14 @@ export class ReturnsService {
           [shopId, saleId],
         );
         if (!sale) throw new NotFoundException('Sale not found');
+        const [credit] = await tx.query(
+          'SELECT document_id FROM credit_sales WHERE shop_id=$1 AND document_id=$2',
+          [shopId, saleId],
+        );
+        if (credit)
+          throw new ConflictException(
+            'Returns for credit sales require debt reconciliation',
+          );
         if (input.refundMoney && !sale.paid)
           throw new ConflictException('Legacy payment unknown');
         const parts = [];

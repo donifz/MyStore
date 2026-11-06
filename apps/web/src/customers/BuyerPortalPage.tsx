@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 
+type BuyerDebt = {
+  saleId: string;
+  shopId: string;
+  shopName: string;
+  totalMinor: number;
+  paidMinor: number;
+  debtMinor: number;
+  dueOn: string;
+};
+
 type BuyerAccount = {
   id: string;
   phone: string;
@@ -40,6 +50,8 @@ async function buyerApi<T>(
 
 export default function BuyerPortalPage() {
   const [account, setAccount] = useState<BuyerAccount | null>(null);
+  const [debts, setDebts] = useState<BuyerDebt[]>([]);
+  const [debtsError, setDebtsError] = useState('');
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<'login' | 'register'>('register');
   const [name, setName] = useState('');
@@ -63,6 +75,27 @@ export default function BuyerPortalPage() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (!account) {
+      setDebts([]);
+      return;
+    }
+    let alive = true;
+    void buyerApi<BuyerDebt[]>('debts')
+      .then((items) => {
+        if (alive) {
+          setDebts(items);
+          setDebtsError('');
+        }
+      })
+      .catch(() => {
+        if (alive) setDebtsError('Не удалось загрузить долги.');
+      });
+    return () => {
+      alive = false;
+    };
+  }, [account?.id, account?.shops.length]);
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -189,11 +222,33 @@ export default function BuyerPortalPage() {
                 </p>
               </section>
               <section className="panel buyer-tile">
-                <h2>Покупки и долги</h2>
+                <h2>Мои долги</h2>
                 <p className="muted">
-                  История покупок и долгов появится после реализации кредитного
-                  учёта и проверки владельца номера.
+                  Всего осталось:{' '}
+                  <strong>
+                    {(
+                      debts.reduce((sum, debt) => sum + debt.debtMinor, 0) / 100
+                    ).toLocaleString('ru-RU')}{' '}
+                    сом
+                  </strong>
                 </p>
+                {debtsError && (
+                  <p role="alert" className="error">
+                    {debtsError}
+                  </p>
+                )}
+                {!debts.length && !debtsError && (
+                  <p className="muted">Задолженностей нет.</p>
+                )}
+                {debts.map((debt) => (
+                  <div key={debt.saleId} className="buyer-debt-row">
+                    <strong>{debt.shopName}</strong>
+                    <span>
+                      {(debt.debtMinor / 100).toLocaleString('ru-RU')} сом
+                    </span>
+                    <small>Погасить до: {debt.dueOn}</small>
+                  </div>
+                ))}
               </section>
               <section className="panel buyer-tile">
                 <h2>Акции и бонусы</h2>

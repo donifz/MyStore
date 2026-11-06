@@ -9,8 +9,11 @@ import DocumentEditor from '../drafts/DocumentEditor';
 import CameraScanner from '../scanner/CameraScanner';
 import { useCurrentShift } from './use-current-shift';
 import PaymentBottomSheet from './PaymentBottomSheet';
+import CreditFields from './CreditFields';
 
 const POPULAR = '__popular__';
+const creditSalesEnabled =
+  import.meta.env.DEV || import.meta.env.VITE_CREDIT_SALES_ENABLED === 'true';
 const wholeSom = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
 
 /** Round-up cash suggestions above the total, e.g. 420 → 500, 1 000, 2 000, 5 000. */
@@ -140,6 +143,12 @@ function SaleWorkspace({
     [products, setProducts] = useState<Variant[]>([]),
     [catalogError, setCatalogError] = useState(''),
     [received, setReceived] = useState(''),
+    [creditMode, setCreditMode] = useState(false),
+    [creditCustomerId, setCreditCustomerId] = useState(''),
+    [creditPaidText, setCreditPaidText] = useState('0'),
+    [creditDueOn, setCreditDueOn] = useState(() =>
+      new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+    ),
     [camera, setCamera] = useState(false),
     [paymentSheetOpen, setPaymentSheetOpen] = useState(false),
     scanInput = useRef<HTMLInputElement>(null),
@@ -206,6 +215,9 @@ function SaleWorkspace({
     void doc.change([]);
     doc.setError('');
     setReceived('');
+    setCreditMode(false);
+    setCreditCustomerId('');
+    setCreditPaidText('0');
     setQuery('');
     setPaymentSheetOpen(false);
     scanInput.current?.focus();
@@ -224,7 +236,7 @@ function SaleWorkspace({
       doc.setError('Сумма слишком велика.');
       return;
     }
-    if (method === 'cash' && received.trim()) {
+    if (!creditMode && method === 'cash' && received.trim()) {
       if (receivedError || receivedMinor === null) {
         doc.setError('Укажите корректную полученную сумму.');
         return;
@@ -241,21 +253,43 @@ function SaleWorkspace({
       doc.setError(`Укажите причину скидки для "${missingReason.name}".`);
       return;
     }
-    await doc.send(`/shops/${shopId}/pos/sales`, {
-      shiftId: active.id,
-      method,
-      lines: doc.draft.lines.map((l) => ({
-        variantId: l.id,
-        quantity: l.quantity,
-        expectedUnitPriceMinor: l.priceMinor - (l.discountMinor || 0),
-        ...(l.discountMinor
+    if (
+      creditMode &&
+      (!creditCustomerId ||
+        creditDebtMinor === null ||
+        creditDebtMinor <= 0 ||
+        !creditDueOn)
+    ) {
+      doc.setError('Укажите покупателя, сумму оплаты и срок возврата.');
+      return;
+    }
+    await doc.send(
+      creditMode
+        ? `/shops/${shopId}/pos/credit-sales`
+        : `/shops/${shopId}/pos/sales`,
+      {
+        shiftId: active.id,
+        method,
+        ...(creditMode
           ? {
-              discountMinor: l.discountMinor,
-              discountReason: l.discountReason?.trim(),
+              customerId: creditCustomerId,
+              paidMinor: creditPaidMinor,
+              dueOn: creditDueOn,
             }
           : {}),
-      })),
-    });
+        lines: doc.draft.lines.map((l) => ({
+          variantId: l.id,
+          quantity: l.quantity,
+          expectedUnitPriceMinor: l.priceMinor - (l.discountMinor || 0),
+          ...(l.discountMinor
+            ? {
+                discountMinor: l.discountMinor,
+                discountReason: l.discountReason?.trim(),
+              }
+            : {}),
+        })),
+      },
+    );
   }
 
   function scanOrSearch(raw: string) {
@@ -283,6 +317,19 @@ function SaleWorkspace({
     }
   }
 
+  let creditPaidMinor: number | null = null;
+  if (creditMode) {
+    try {
+      creditPaidMinor = parseSom(creditPaidText.trim() || '0');
+    } catch {
+      creditPaidMinor = null;
+    }
+  }
+  const creditDebtMinor =
+    creditMode && creditPaidMinor !== null && creditPaidMinor < totalMinor
+      ? totalMinor - creditPaidMinor
+      : null;
+
   const changeMinor =
     safe && paymentMethod === 'cash' && receivedMinor !== null
       ? BigInt(receivedMinor) - sum
@@ -298,7 +345,10 @@ function SaleWorkspace({
     (!doc.draft.submission &&
       (!active ||
         !safe ||
-        (paymentMethod === 'cash' &&
+        (creditMode &&
+          (!creditCustomerId || creditDebtMinor === null || !creditDueOn)) ||
+        (!creditMode &&
+          paymentMethod === 'cash' &&
           !!received.trim() &&
           (!!receivedError || changeMinor === null || changeMinor < 0n))))
   );
@@ -541,7 +591,30 @@ function SaleWorkspace({
               </div>
             </fieldset>
 
-            {paymentMethod === 'cash' && (
+            {creditSalesEnabled && (
+              <label className="pos-credit-toggle">
+                <input
+                  type="checkbox"
+                  checked={creditMode}
+                  disabled={locked}
+                  onChange={(e) => setCreditMode(e.target.checked)}
+                />
+                Продажа в долг
+              </label>
+            )}
+            <CreditFields
+              shopId={shopId}
+              enabled={creditSalesEnabled && creditMode}
+              disabled={locked}
+              customerId={creditCustomerId}
+              onCustomerChange={setCreditCustomerId}
+              paid={creditPaidText}
+              onPaidChange={setCreditPaidText}
+              dueOn={creditDueOn}
+              onDueChange={setCreditDueOn}
+              debtMinor={creditDebtMinor}
+            />
+            {!creditMode && paymentMethod === 'cash' && (
               <div className="pos-cash-row">
                 <label className="pos-received">
                   Получено от покупателя, сом
@@ -707,6 +780,16 @@ function SaleWorkspace({
         onClose={() => setPaymentSheetOpen(false)}
         method={method}
         setMethod={setMethod}
+        shopId={shopId}
+        creditMode={creditSalesEnabled && creditMode}
+        setCreditMode={creditSalesEnabled ? setCreditMode : () => undefined}
+        creditCustomerId={creditCustomerId}
+        setCreditCustomerId={setCreditCustomerId}
+        creditPaidText={creditPaidText}
+        setCreditPaidText={setCreditPaidText}
+        creditDueOn={creditDueOn}
+        setCreditDueOn={setCreditDueOn}
+        creditDebtMinor={creditDebtMinor}
         received={received}
         setReceived={setReceived}
         totalText={totalText}
