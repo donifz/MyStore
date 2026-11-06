@@ -1,15 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 
-type BuyerRepayment = {
-  id: string;
-  saleId: string;
-  shopName: string;
-  amountMinor: number;
-  method: 'cash' | 'card';
-  createdAt: string;
-};
-
 type BuyerDebt = {
   saleId: string;
   shopId: string;
@@ -60,7 +51,6 @@ async function buyerApi<T>(
 export default function BuyerPortalPage() {
   const [account, setAccount] = useState<BuyerAccount | null>(null);
   const [debts, setDebts] = useState<BuyerDebt[]>([]);
-  const [repayments, setRepayments] = useState<BuyerRepayment[]>([]);
   const [debtsError, setDebtsError] = useState('');
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<'login' | 'register'>('register');
@@ -89,7 +79,6 @@ export default function BuyerPortalPage() {
   useEffect(() => {
     if (!account) {
       setDebts([]);
-      setRepayments([]);
       return;
     }
     let alive = true;
@@ -103,9 +92,6 @@ export default function BuyerPortalPage() {
       .catch(() => {
         if (alive) setDebtsError('Не удалось загрузить долги.');
       });
-    void buyerApi<BuyerRepayment[]>('repayments')
-      .then((items) => { if (alive) setRepayments(items); })
-      .catch(() => { if (alive) setDebtsError('Не удалось загрузить историю оплат.'); });
     return () => {
       alive = false;
     };
@@ -262,18 +248,6 @@ export default function BuyerPortalPage() {
                     </span>
                     <small>Погасить до: {debt.dueOn}</small>
                   </div>
-                ))}
-              </section>
-              <section className="panel buyer-tile">
-                <h2>История погашений</h2>
-                {!repayments.length && <p className="muted">Платежей пока нет.</p>}
-                {repayments.map((payment) => (
-                  <p key={payment.id}>
-                    <strong>{payment.shopName}</strong> ·{' '}
-                    {(payment.amountMinor / 100).toLocaleString('ru-RU')} сом
-                    {' · '}{payment.method === 'cash' ? 'Наличные' : 'Карта'}
-                    {' · '}{new Date(payment.createdAt).toLocaleDateString('ru-KG')}
-                  </p>
                 ))}
               </section>
               <section className="panel buyer-tile">
