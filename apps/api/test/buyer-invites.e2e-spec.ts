@@ -96,7 +96,7 @@ describe('single-use buyer invitations', () => {
       .expect(409);
 
     await c.db.query(
-      `UPDATE shop_customer_invitations SET expires_at=now()-interval '1 minute'
+      `UPDATE shop_customer_invitations SET created_at=now()-interval '2 minutes', expires_at=now()-interval '1 minute'
        WHERE token_hash=(SELECT token_hash FROM shop_customer_invitations
                          WHERE revoked_at IS NULL LIMIT 1)`,
     );
