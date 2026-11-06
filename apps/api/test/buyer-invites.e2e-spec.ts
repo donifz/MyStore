@@ -47,14 +47,18 @@ describe('single-use buyer invitations', () => {
   it('only links with cashier-approved invitation and matching buyer phone', async () => {
     const id = await customer();
     const account = await buyer();
-    expect((await account.agent.get('/buyer/me').expect(200)).body.shops).toEqual([]);
+    expect(
+      (await account.agent.get('/buyer/me').expect(200)).body.shops,
+    ).toEqual([]);
 
     await issue(id, c.owner).expect(201);
     const invitation = (await issue(id).expect(201)).body;
     expect(invitation.token).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(invitation.expiresAt).toBeTruthy();
     expect(
-      JSON.stringify(await c.db.query('SELECT token_hash FROM shop_customer_invitations')),
+      JSON.stringify(
+        await c.db.query('SELECT token_hash FROM shop_customer_invitations'),
+      ),
     ).not.toContain(invitation.token);
 
     await account.agent
@@ -106,7 +110,9 @@ describe('single-use buyer invitations', () => {
       .set('x-csrf-token', account.csrf)
       .send({ token: fresh })
       .expect(409);
-    expect((await account.agent.get('/buyer/me').expect(200)).body.shops).toEqual([]);
+    expect(
+      (await account.agent.get('/buyer/me').expect(200)).body.shops,
+    ).toEqual([]);
   });
 
   it('requires same number and shop authorization; no phone-based auto-link', async () => {
