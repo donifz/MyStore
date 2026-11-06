@@ -74,6 +74,11 @@ import { PasswordRecoveryController } from './auth/password-recovery.controller'
 import { EmailSettingsService } from './email/email-settings.service';
 import { EmailSettingsController } from './email/email-settings.controller';
 import { EventEmailService } from './email/event-email.service';
+import { BuyerAuthController } from './customers/buyer-auth.controller';
+import { BuyerAuthService } from './customers/buyer-auth.service';
+import { BuyerAuthGuard } from './customers/buyer-auth.guard';
+import { ShopCustomersController } from './customers/shop-customers.controller';
+import { ShopCustomersService } from './customers/shop-customers.service';
 import { FinancialAccessService } from './platform/financial-access.service';
 import {
   OwnerFinancialAccessController,
@@ -114,6 +119,8 @@ export async function createApp(
       EmailSettingsController,
       PasswordRecoveryController,
       StaffAcceptanceController,
+      BuyerAuthController,
+      ShopCustomersController,
     ],
     providers: [
       FinancialAccessService,
@@ -149,6 +156,9 @@ export async function createApp(
       EventEmailService,
       StaffService,
       PasswordRecoveryService,
+      BuyerAuthService,
+      BuyerAuthGuard,
+      ShopCustomersService,
     ],
   })
   class AppModule {}
@@ -309,6 +319,8 @@ export async function createApp(
           req.path === '/shops' ||
           /^\/shops\/[^/]+(?:\/products\/[^/]+)?\/?$/.test(req.path) ||
           /^\/shop\/[^/]+(?:\/products\/[^/]+)?\/?$/.test(req.path) ||
+          req.path === '/buyer' ||
+          req.path.startsWith('/buyer/') ||
           req.path === '/seller' ||
           req.path.startsWith('/seller/') ||
           req.path === '/platform/admin'
