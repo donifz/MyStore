@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
+import { useSession } from '../auth/SessionProvider';
 import Pagination from '../components/Pagination';
 
 type ShopCustomer = {
@@ -23,6 +24,8 @@ const PAGE_SIZE = 10;
 
 export default function ShopCustomersPage() {
   const { shopId } = useParams();
+  const session = useSession();
+  const isOwner = session.user?.shops.find((s) => s.id === shopId)?.role === 'owner';
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [data, setData] = useState<Page | null>(null);
@@ -177,9 +180,9 @@ export default function ShopCustomersPage() {
       </section>
       <section className="panel">
         <h2>Список клиентов</h2>
-        <label>Лимит кредита для одобрения (сом)
+        {isOwner && <label>Лимит кредита для одобрения (сом)
           <input type="number" min="0" step="0.01" value={creditLimit} onChange={(e) => setCreditLimit(e.target.value)} />
-        </label>
+        </label>}
         {invitation && (
           <div className="buyer-message" role="status">
             <strong>Приглашение для {invitation.name}</strong>
@@ -239,7 +242,7 @@ export default function ShopCustomersPage() {
                       <th>Адрес</th>
                       <th>Добавлен</th>
                       <th>Кабинет</th>
-                      <th>Кредит</th>
+                      {isOwner && <th>Кредит</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -263,13 +266,13 @@ export default function ShopCustomersPage() {
                             </button>
                           )}
                         </td>
-                        <td>
+                        {isOwner && <td>
                           {c.creditApproved ? (
                             <button type="button" onClick={() => void configureCredit(c, false)}>Лимит {Number(c.creditLimitMinor || 0) / 100} сом · отключить</button>
                           ) : c.linked ? (
                             <button type="button" onClick={() => void configureCredit(c, true)}>Разрешить кредит</button>
                           ) : 'Сначала привяжите кабинет'}
-                        </td>
+                        </td>}
                       </tr>
                     ))}
                   </tbody>
