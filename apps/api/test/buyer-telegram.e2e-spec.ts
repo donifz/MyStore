@@ -224,7 +224,8 @@ describe('Telegram verification of buyer phone ownership', () => {
       else process.env.NODE_ENV = original.node;
       if (original.auto === undefined) delete process.env.TELEGRAM_AUTO_WEBHOOK;
       else process.env.TELEGRAM_AUTO_WEBHOOK = original.auto;
-      if (original.enabled === undefined) delete process.env.TELEGRAM_VERIFY_ENABLED;
+      if (original.enabled === undefined)
+        delete process.env.TELEGRAM_VERIFY_ENABLED;
       else process.env.TELEGRAM_VERIFY_ENABLED = original.enabled;
       if (original.base === undefined) delete process.env.PUBLIC_BASE_URL;
       else process.env.PUBLIC_BASE_URL = original.base;
