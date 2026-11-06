@@ -11,7 +11,11 @@ type BuyerAccount = {
   csrfToken: string;
 };
 
-async function buyerApi<T>(path: string, body?: unknown, csrfToken?: string): Promise<T> {
+async function buyerApi<T>(
+  path: string,
+  body?: unknown,
+  csrfToken?: string,
+): Promise<T> {
   const response = await fetch('/api/buyer/' + path, {
     method: body === undefined ? 'GET' : 'POST',
     credentials: 'same-origin',
@@ -96,7 +100,9 @@ export default function BuyerPortalPage() {
   return (
     <main className="buyer-page">
       <header className="buyer-topbar">
-        <Link to="/" className="buyer-brand">MyStore</Link>
+        <Link to="/" className="buyer-brand">
+          MyStore
+        </Link>
         <Link to="/shops">Каталог магазинов</Link>
       </header>
       <div className="buyer-container">
@@ -118,10 +124,10 @@ export default function BuyerPortalPage() {
               <div className="buyer-message" role="status">
                 <strong>Номер ещё не подтверждён</strong>
                 <p>
-                  Регистрация выполнена. Пока не подключено подтверждение номера,
-                  доступ к истории покупок, задолженностям и персональным
-                  данным магазинов закрыт. Так никто не сможет посмотреть
-                  чужие долги, указав чужой телефон.
+                  Регистрация выполнена. Пока не подключено подтверждение
+                  номера, доступ к истории покупок, задолженностям и
+                  персональным данным магазинов закрыт. Так никто не сможет
+                  посмотреть чужие долги, указав чужой телефон.
                 </p>
               </div>
             )}
@@ -137,15 +143,15 @@ export default function BuyerPortalPage() {
               <section className="panel buyer-tile">
                 <h2>Покупки и долги</h2>
                 <p className="muted">
-                  История покупок и долгов появится после реализации
-                  кредитного учёта и проверки владельца номера.
+                  История покупок и долгов появится после реализации кредитного
+                  учёта и проверки владельца номера.
                 </p>
               </section>
               <section className="panel buyer-tile">
                 <h2>Акции и бонусы</h2>
                 <p className="muted">
-                  Акции магазинов и персональные бонусы будут добавлены
-                  в отдельном этапе. Баллы разных магазинов не смешиваются.
+                  Акции магазинов и персональные бонусы будут добавлены в
+                  отдельном этапе. Баллы разных магазинов не смешиваются.
                 </p>
               </section>
             </div>
@@ -153,10 +159,12 @@ export default function BuyerPortalPage() {
         ) : (
           <section className="panel buyer-auth">
             <p className="eyebrow">MyStore · Покупателям</p>
-            <h1>{mode === 'register' ? 'Создать аккаунт' : 'Войти в кабинет'}</h1>
+            <h1>
+              {mode === 'register' ? 'Создать аккаунт' : 'Войти в кабинет'}
+            </h1>
             <p className="muted">
-              Один кабинет для покупок в магазинах MyStore.
-              Вход по номеру Кыргызстана и паролю.
+              Один кабинет для покупок в магазинах MyStore. Вход по номеру
+              Кыргызстана и паролю.
             </p>
             <form onSubmit={(e) => void submit(e)}>
               {mode === 'register' && (
@@ -189,7 +197,9 @@ export default function BuyerPortalPage() {
                 Пароль
                 <input
                   type="password"
-                  autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                  autoComplete={
+                    mode === 'register' ? 'new-password' : 'current-password'
+                  }
                   required
                   minLength={mode === 'register' ? 12 : 1}
                   maxLength={256}
@@ -198,10 +208,18 @@ export default function BuyerPortalPage() {
                   placeholder="Не менее 12 символов"
                 />
               </label>
-              {error && <p className="error" role="alert">{error}</p>}
+              {error && (
+                <p className="error" role="alert">
+                  {error}
+                </p>
+              )}
               {notice && <p role="status">{notice}</p>}
               <button type="submit" className="primary" disabled={busy}>
-                {busy ? 'Сохраняем…' : mode === 'register' ? 'Зарегистрироваться' : 'Войти'}
+                {busy
+                  ? 'Сохраняем…'
+                  : mode === 'register'
+                    ? 'Зарегистрироваться'
+                    : 'Войти'}
               </button>
             </form>
             <button
@@ -211,7 +229,9 @@ export default function BuyerPortalPage() {
                 setMode(mode === 'register' ? 'login' : 'register');
               }}
             >
-              {mode === 'register' ? 'Уже есть аккаунт? Войти' : 'Нет аккаунта? Регистрация'}
+              {mode === 'register'
+                ? 'Уже есть аккаунт? Войти'
+                : 'Нет аккаунта? Регистрация'}
             </button>
             <p className="muted">
               Ввод номера без подтверждения не предоставляет доступ к чужим
@@ -219,7 +239,11 @@ export default function BuyerPortalPage() {
             </p>
           </section>
         )}
-        {error && account && <p role="alert" className="error">{error}</p>}
+        {error && account && (
+          <p role="alert" className="error">
+            {error}
+          </p>
+        )}
         {notice && account && <p role="status">{notice}</p>}
       </div>
     </main>
