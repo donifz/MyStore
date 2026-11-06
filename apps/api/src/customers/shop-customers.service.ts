@@ -35,7 +35,7 @@ export class ShopCustomersService {
     );
     const rows = await this.db.query(
       `SELECT id,display_name AS "name",phone_e164 AS phone,address,
-        created_at AS "createdAt",buyer_account_id IS NOT NULL AS "linked"
+        created_at AS "createdAt",buyer_account_id IS NOT NULL AS "linked",credit_approved AS "creditApproved",credit_limit_minor AS "creditLimitMinor"
        FROM shop_customers WHERE ${where}
        ORDER BY created_at DESC,id DESC LIMIT $5 OFFSET $6`,
       [...args, pageSize, (page - 1) * pageSize],
