@@ -109,6 +109,8 @@ export class BuyerTelegramService {
     const chat = message?.chat?.id;
     if (
       message?.chat?.type !== 'private' ||
+      typeof user !== 'number' ||
+      typeof chat !== 'number' ||
       !Number.isSafeInteger(user) ||
       !Number.isSafeInteger(chat) ||
       user !== chat ||
