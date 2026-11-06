@@ -1,9 +1,23 @@
 import {
-  Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, Req, UseGuards,
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { Type } from 'class-transformer';
 import {
-  IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
 } from 'class-validator';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { ShopAccessService } from '../shops/shop-access.service';
@@ -42,7 +56,13 @@ export class ShopCustomersController {
     @Body() dto: NewShopCustomerDto,
   ) {
     await this.access.requireMembership(req.userId, shopId, 'sell');
-    return this.customers.create(shopId, req.userId, dto.phone, dto.name, dto.address);
+    return this.customers.create(
+      shopId,
+      req.userId,
+      dto.phone,
+      dto.name,
+      dto.address,
+    );
   }
   @Get(':id')
   async get(
