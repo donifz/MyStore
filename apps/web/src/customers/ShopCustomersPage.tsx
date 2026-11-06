@@ -143,7 +143,7 @@ export default function ShopCustomersPage() {
               </table>
             </div>
             {!data.items.length && <p className="muted">Клиенты не найдены.</p>}
-            <Pagination page={data.page} size={data.pageSize} total={data.total} onChange={setPage} />
+            <Pagination page={data.page} size={data.pageSize} total={data.total} onPage={setPage} />
           </>
         )}
       </section>
