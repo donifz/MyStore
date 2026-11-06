@@ -36,28 +36,17 @@ export class ShiftsService {
       "SELECT COALESCE(sum(amount_minor) FILTER(WHERE type='in'),0) cin, COALESCE(sum(amount_minor) FILTER(WHERE type='out'),0) cout FROM cash_transactions WHERE shop_id=$1 AND shift_id=$2",
       [row.shop_id, row.id],
     );
-    const [creditTotals] = await tx.query(
-      `SELECT
-       COALESCE(sum(amount_minor) FILTER(WHERE method='cash'),0) AS cash,
-       COALESCE(sum(amount_minor) FILTER(WHERE method='card'),0) AS card
-       FROM credit_repayments WHERE shop_id=$1 AND shift_id=$2`,
-      [row.shop_id, row.id],
-    );
-    const creditCash = BigInt(creditTotals.cash);
-    const creditCard = BigInt(creditTotals.card);
     const cin = BigInt(cashTxs?.cin || 0);
     const cout = BigInt(cashTxs?.cout || 0);
     const expected = row.closed_at
       ? BigInt(row.expected_cash_minor)
-      : BigInt(row.opening_cash_minor) + BigInt(sum.n) + creditCash + cin - cout;
+      : BigInt(row.opening_cash_minor) + BigInt(sum.n) + cin - cout;
     return {
       salesCashMinor: safeMoney(BigInt(totals.sc)),
       salesCardMinor: safeMoney(BigInt(totals.sd)),
       refundsCashMinor: safeMoney(BigInt(totals.rc)),
       refundsCardMinor: safeMoney(BigInt(totals.rd)),
       cashInMinor: safeMoney(cin),
-      creditRepaymentsCashMinor: safeMoney(creditCash),
-      creditRepaymentsCardMinor: safeMoney(creditCard),
       cashOutMinor: safeMoney(cout),
       id: row.id,
       shopId: row.shop_id,
