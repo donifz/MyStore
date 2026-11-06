@@ -125,10 +125,9 @@ export class BuyerInvitesService {
            AND id<>$3 AND accepted_at IS NULL AND revoked_at IS NULL`,
         [candidate.shop_id, candidate.customer_id, invitation.id],
       );
-      const [shop] = await tx.query(
-        'SELECT name FROM shops WHERE id=$1',
-        [candidate.shop_id],
-      );
+      const [shop] = await tx.query('SELECT name FROM shops WHERE id=$1', [
+        candidate.shop_id,
+      ]);
       return { shopId: candidate.shop_id, shopName: shop.name };
     });
   }
