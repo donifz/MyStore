@@ -320,7 +320,8 @@ export async function createApp(
           /^\/shops\/[^/]+(?:\/products\/[^/]+)?\/?$/.test(req.path) ||
           /^\/shop\/[^/]+(?:\/products\/[^/]+)?\/?$/.test(req.path) ||
           req.path === '/buyer' ||
-          req.path.startsWith('/buyer/') ||
+          req.path === '/buyer/login' ||
+          req.path === '/buyer/register' ||
           req.path === '/seller' ||
           req.path.startsWith('/seller/') ||
           req.path === '/platform/admin'
