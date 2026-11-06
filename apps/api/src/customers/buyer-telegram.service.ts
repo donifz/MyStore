@@ -41,16 +41,101 @@ function telegramConfig() {
 
 @Injectable()
 export class BuyerTelegramService {
+  private webhookReady = false;
+
   constructor(@Inject(DATABASE) private readonly db: DataSource) {}
+
+  async registerWebhook(): Promise<void> {
+    if (
+      process.env.NODE_ENV !== 'production' ||
+      process.env.TELEGRAM_AUTO_WEBHOOK !== 'true'
+    )
+      return;
+    const config = telegramConfig();
+    const publicBase = process.env.PUBLIC_BASE_URL;
+    if (!config || !publicBase) {
+      console.warn('[buyer-telegram] webhook setup skipped: disabled or incomplete');
+      return;
+    }
+    let webhookUrl: string;
+    try {
+      const parsed = new URL(publicBase);
+      if (
+        parsed.protocol !== 'https:' ||
+        parsed.username ||
+        parsed.password ||
+        parsed.port ||
+        parsed.search ||
+        parsed.hash ||
+        parsed.pathname !== '/'
+      )
+        throw new Error('Invalid origin');
+      webhookUrl = new URL(
+        '/api/integrations/telegram/buyer-webhook',
+        parsed.origin,
+      ).toString();
+    } catch {
+      console.warn('[buyer-telegram] webhook setup skipped: invalid public URL');
+      return;
+    }
+    // Errors and response payloads must not be logged: Telegram API URLs
+    // contain a bot token, even when an HTTP error is returned.
+    try {
+      const base = `https://api.telegram.org/bot${config.token}/`;
+      const me = await fetch(base + 'getMe', {
+        signal: AbortSignal.timeout(8000),
+      });
+      const identity = (await me.json()) as {
+        ok?: boolean;
+        result?: { username?: string; is_bot?: boolean };
+      };
+      if (
+        !me.ok ||
+        identity.ok !== true ||
+        identity.result?.is_bot !== true ||
+        identity.result.username?.toLowerCase() !==
+          config.username.toLowerCase()
+      ) {
+        console.warn('[buyer-telegram] username mismatch or invalid token');
+        return;
+      }
+      const response = await fetch(base + 'setWebhook', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          url: webhookUrl,
+          secret_token: config.secret,
+          allowed_updates: ['message'],
+          drop_pending_updates: false,
+          max_connections: 4,
+        }),
+        signal: AbortSignal.timeout(8000),
+      });
+      const result = (await response.json()) as { ok?: boolean };
+      if (response.ok && result.ok) {
+        this.webhookReady = true;
+        console.info('[buyer-telegram] webhook registered');
+      } else {
+        console.warn('[buyer-telegram] webhook registration failed');
+      }
+    } catch {
+      console.warn('[buyer-telegram] Telegram API unreachable');
+    }
+  }
 
   config() {
     const config = telegramConfig();
-    return { enabled: !!config, botUsername: config?.username ?? null };
+    return {
+      enabled:
+        !!config &&
+        (process.env.NODE_ENV !== 'production' || this.webhookReady),
+      botUsername: config?.username ?? null,
+    };
   }
 
   async issue(buyerId: string) {
     const config = telegramConfig();
-    if (!config) {
+    if (!this.config().enabled || !config) {
       throw new ServiceUnavailableException(
         'Подтверждение через Telegram пока не подключено',
       );
