@@ -31,6 +31,7 @@ export default function ShopCustomersPage() {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [saving, setSaving] = useState(false);
+  const [invitation, setInvitation] = useState<{ token: string; expiresAt: string; name: string } | null>(null);
   const [revision, setRevision] = useState(0);
 
   const load = useCallback(async () => {
@@ -72,6 +73,21 @@ export default function ShopCustomersPage() {
       setCreateError(errorText(err));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function invite(customer: ShopCustomer) {
+    if (!shopId) return;
+    setError('');
+    setInvitation(null);
+    try {
+      const issued = await api<{ token: string; expiresAt: string }>(
+        `/shops/${shopId}/customers/${customer.id}/invite`,
+        { method: 'POST', body: {} },
+      );
+      setInvitation({ ...issued, name: customer.name });
+    } catch (err) {
+      setError(errorText(err));
     }
   }
 
@@ -135,6 +151,17 @@ export default function ShopCustomersPage() {
       </section>
       <section className="panel">
         <h2>Список клиентов</h2>
+        {invitation && (
+          <div className="buyer-message" role="status">
+            <strong>Приглашение для {invitation.name}</strong>
+            <p>Передайте код покупателю лично. Он действителен 15 минут и только один раз.</p>
+            <code style={{ overflowWrap: 'anywhere', display: 'block', margin: '12px 0' }}>{invitation.token}</code>
+            <button type="button" onClick={() => {
+              void navigator.clipboard.writeText(invitation.token);
+            }}>Скопировать код</button>
+            <button type="button" onClick={() => setInvitation(null)}>Скрыть код</button>
+          </div>
+        )
         <label className="search-label">
           Поиск по имени или номеру
           <input
