@@ -93,7 +93,7 @@ export default function BuyerPortalPage() {
         if (alive) setDebtsError('Не удалось загрузить долги.');
       });
     return () => { alive = false; };
-  }, [account?.id]);
+  }, [account?.id, account?.shops.length]);
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
