@@ -139,25 +139,40 @@ export class BuyerTelegramService {
         );
         return { ok: true };
       }
-      await this.send(config.token, chat, 'Подтвердите свой номер кнопкой ниже.', {
-        keyboard: [[{ text: 'Поделиться своим номером', request_contact: true }]],
-        one_time_keyboard: true,
-        resize_keyboard: true,
-      });
+      await this.send(
+        config.token,
+        chat,
+        'Подтвердите свой номер кнопкой ниже.',
+        {
+          keyboard: [
+            [{ text: 'Поделиться своим номером', request_contact: true }],
+          ],
+          one_time_keyboard: true,
+          resize_keyboard: true,
+        },
+      );
       return { ok: true };
     }
 
     const contact = message?.contact;
     if (!contact) return { ok: true };
     if (contact.user_id !== user || typeof contact.phone_number !== 'string') {
-      await this.send(config.token, chat, 'Поделитесь именно своим контактом через кнопку бота.');
+      await this.send(
+        config.token,
+        chat,
+        'Поделитесь именно своим контактом через кнопку бота.',
+      );
       return { ok: true };
     }
     let phone: string;
     try {
       phone = normalizeKyrgyzPhone(contact.phone_number);
     } catch {
-      await this.send(config.token, chat, 'Номер должен быть в формате Кыргызстана +996.');
+      await this.send(
+        config.token,
+        chat,
+        'Номер должен быть в формате Кыргызстана +996.',
+      );
       return { ok: true };
     }
     const status = await this.db.transaction(async (tx) => {
@@ -202,7 +217,8 @@ export class BuyerTelegramService {
       return 'verified';
     });
     const messages: Record<string, string> = {
-      verified: 'Номер подтверждён. Вернитесь в кабинет MyStore и обновите статус.',
+      verified:
+        'Номер подтверждён. Вернитесь в кабинет MyStore и обновите статус.',
       expired: 'Ссылка истекла. Получите новую в кабинете MyStore.',
       mismatch: 'Номер контакта не совпадает с номером аккаунта MyStore.',
       linked: 'Этот Telegram уже связан с другим аккаунтом MyStore.',
