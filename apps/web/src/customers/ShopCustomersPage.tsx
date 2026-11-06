@@ -31,7 +31,11 @@ export default function ShopCustomersPage() {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [saving, setSaving] = useState(false);
-  const [invitation, setInvitation] = useState<{ token: string; expiresAt: string; name: string } | null>(null);
+  const [invitation, setInvitation] = useState<{
+    token: string;
+    expiresAt: string;
+    name: string;
+  } | null>(null);
   const [revision, setRevision] = useState(0);
 
   const load = useCallback(async () => {
@@ -154,12 +158,30 @@ export default function ShopCustomersPage() {
         {invitation && (
           <div className="buyer-message" role="status">
             <strong>Приглашение для {invitation.name}</strong>
-            <p>Передайте код покупателю лично. Он действителен 15 минут и только один раз.</p>
-            <code style={{ overflowWrap: 'anywhere', display: 'block', margin: '12px 0' }}>{invitation.token}</code>
-            <button type="button" onClick={() => {
-              void navigator.clipboard.writeText(invitation.token);
-            }}>Скопировать код</button>
-            <button type="button" onClick={() => setInvitation(null)}>Скрыть код</button>
+            <p>
+              Передайте код покупателю лично. Он действителен 15 минут и только
+              один раз.
+            </p>
+            <code
+              style={{
+                overflowWrap: 'anywhere',
+                display: 'block',
+                margin: '12px 0',
+              }}
+            >
+              {invitation.token}
+            </code>
+            <button
+              type="button"
+              onClick={() => {
+                void navigator.clipboard.writeText(invitation.token);
+              }}
+            >
+              Скопировать код
+            </button>
+            <button type="button" onClick={() => setInvitation(null)}>
+              Скрыть код
+            </button>
           </div>
         )}
         <label className="search-label">
@@ -204,8 +226,13 @@ export default function ShopCustomersPage() {
                           {new Date(c.createdAt).toLocaleDateString('ru-KG')}
                         </td>
                         <td>
-                          {c.linked ? 'Привязан' : (
-                            <button type="button" onClick={() => void invite(c)}>
+                          {c.linked ? (
+                            'Привязан'
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => void invite(c)}
+                            >
                               Выдать код
                             </button>
                           )}
