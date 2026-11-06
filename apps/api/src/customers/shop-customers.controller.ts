@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   Body,
   Controller,
   Get,
@@ -76,7 +77,8 @@ export class ShopCustomersController {
     @Req() req: UserRequest,
     @Body() dto: CustomerCreditDto,
   ) {
-    await this.access.requireMembership(req.userId, shopId, 'catalog');
+    const membership = await this.access.requireMembership(req.userId, shopId, 'read');
+    if (membership.role !== 'owner') throw new ForbiddenException('Only shop owner can approve credit');
     return this.customers.setCreditPolicy(shopId, id, dto.approved, dto.limitMinor);
   }
   @Get(':id')
