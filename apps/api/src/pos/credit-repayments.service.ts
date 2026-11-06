@@ -71,8 +71,11 @@ export class CreditRepaymentsService {
           [shopId, saleId, amountMinor],
         );
         // TypeORM returns [rows, affectedCount] for PostgreSQL UPDATE.
-        const updated = Array.isArray(updatedRows) ? updatedRows[0] : updatedRows;
-        if (!updated) throw new ConflictException('Не удалось обновить остаток долга');
+        const updated = Array.isArray(updatedRows)
+          ? updatedRows[0]
+          : updatedRows;
+        if (!updated)
+          throw new ConflictException('Не удалось обновить остаток долга');
         const [row] = await tx.query(
           `INSERT INTO credit_repayments
            (id,shop_id,sale_id,shift_id,actor_id,method,amount_minor)
