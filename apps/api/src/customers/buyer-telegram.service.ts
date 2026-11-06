@@ -54,7 +54,9 @@ export class BuyerTelegramService {
     const config = telegramConfig();
     const publicBase = process.env.PUBLIC_BASE_URL;
     if (!config || !publicBase) {
-      console.warn('[buyer-telegram] webhook setup skipped: disabled or incomplete');
+      console.warn(
+        '[buyer-telegram] webhook setup skipped: disabled or incomplete',
+      );
       return;
     }
     let webhookUrl: string;
@@ -75,7 +77,9 @@ export class BuyerTelegramService {
         parsed.origin,
       ).toString();
     } catch {
-      console.warn('[buyer-telegram] webhook setup skipped: invalid public URL');
+      console.warn(
+        '[buyer-telegram] webhook setup skipped: invalid public URL',
+      );
       return;
     }
     // Errors and response payloads must not be logged: Telegram API URLs
