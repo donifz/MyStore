@@ -5,7 +5,6 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
 import { DataSource } from 'typeorm';
 import { DATABASE } from '../database';
 import { IdempotencyService } from '../common/idempotency.service';
@@ -13,7 +12,6 @@ import { minor, safeMoney } from '../common/money';
 import { ShopAccessService } from '../shops/shop-access.service';
 import { SaleLine, SalesService } from './sales.service';
 import { PosSalesService } from './pos-sales.service';
-import { ShiftsService } from './shifts.service';
 import { PaymentMethod } from './pos.types';
 
 @Injectable()
@@ -24,7 +22,6 @@ export class CreditSalesService {
     private readonly operations: IdempotencyService,
     private readonly sales: SalesService,
     private readonly pos: PosSalesService,
-    private readonly shifts: ShiftsService,
   ) {}
 
   async sell(input: {
@@ -132,99 +129,6 @@ export class CreditSalesService {
           .requireMembership(actorId, shopId, 'sell', tx)
           .then(() => undefined),
     );
-  }
-
-  async repay(input: {
-    shopId: string;
-    actorId: string;
-    key: string;
-    saleId: string;
-    shiftId: string;
-    method: PaymentMethod;
-    amountMinor: number;
-  }) {
-    const { shopId, actorId, key, method } = input;
-    const saleId = input.saleId.toLowerCase();
-    const shiftId = input.shiftId.toLowerCase();
-    const amount = safeMoney(minor(input.amountMinor));
-    if (amount <= 0) throw new BadRequestException('Укажите сумму погашения больше нуля');
-    return this.operations.execute(
-      shopId,
-      key,
-      { kind: 'credit-repayment', actorId, saleId, shiftId, method, amountMinor: amount },
-      async (tx) => {
-        // Lock the open shift before the debt row: consistent with sale checkout.
-        await this.shifts.lockOpen(tx, shopId, shiftId, actorId);
-        const [sale] = await tx.query(
-          `SELECT customer_id,total_minor,paid_minor
-           FROM credit_sales WHERE shop_id=$1 AND document_id=$2 FOR UPDATE`,
-          [shopId, saleId],
-        );
-        if (!sale) throw new NotFoundException('Продажа в долг не найдена');
-        const balance = BigInt(sale.total_minor) - BigInt(sale.paid_minor);
-        if (BigInt(amount) > balance) {
-          throw new ConflictException('Погашение превышает остаток долга');
-        }
-        const id = randomUUID();
-        await tx.query(
-          `INSERT INTO credit_repayments
-           (shop_id,id,document_id,shift_id,actor_id,method,amount_minor)
-           VALUES($1,$2,$3,$4,$5,$6,$7)`,
-          [shopId, id, saleId, shiftId, actorId, method, amount],
-        );
-        await tx.query(
-          `UPDATE credit_sales
-           SET paid_minor=paid_minor+$3
-           WHERE shop_id=$1 AND document_id=$2`,
-          [shopId, saleId, amount],
-        );
-        return {
-          id,
-          saleId,
-          customerId: sale.customer_id,
-          shiftId,
-          method,
-          amountMinor: amount,
-          debtMinor: safeMoney(balance - BigInt(amount)),
-        };
-      },
-      (tx) =>
-        this.access
-          .requireMembership(actorId, shopId, 'sell', tx)
-          .then(() => undefined),
-    );
-  }
-
-  async repayments(shopId: string, saleId: string) {
-    const [sale] = await this.db.query(
-      'SELECT document_id FROM credit_sales WHERE shop_id=$1 AND document_id=$2',
-      [shopId, saleId],
-    );
-    if (!sale) throw new NotFoundException('Продажа в долг не найдена');
-    const rows = await this.db.query(
-      `SELECT id,document_id AS "saleId",shift_id AS "shiftId",
-       method,amount_minor AS "amountMinor",created_at AS "createdAt"
-       FROM credit_repayments WHERE shop_id=$1 AND document_id=$2
-       ORDER BY created_at DESC,id DESC LIMIT 100`,
-      [shopId, saleId],
-    );
-    return rows.map((r: any) => ({ ...r, amountMinor: Number(r.amountMinor) }));
-  }
-
-  async buyerRepayments(buyerId: string) {
-    const rows = await this.db.query(
-      `SELECT cr.id,cr.document_id AS "saleId",cr.shop_id AS "shopId",
-       s.name AS "shopName",cr.method,cr.amount_minor AS "amountMinor",
-       cr.created_at AS "createdAt"
-       FROM credit_repayments cr
-       JOIN credit_sales cs ON cs.shop_id=cr.shop_id AND cs.document_id=cr.document_id
-       JOIN shop_customers sc ON sc.shop_id=cs.shop_id AND sc.id=cs.customer_id
-       JOIN shops s ON s.id=cr.shop_id
-       WHERE sc.buyer_account_id=$1
-       ORDER BY cr.created_at DESC,cr.id DESC LIMIT 100`,
-      [buyerId],
-    );
-    return rows.map((row: any) => ({ ...row, amountMinor: Number(row.amountMinor) }));
   }
 
   async buyerDebts(buyerId: string) {
