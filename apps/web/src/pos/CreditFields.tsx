@@ -46,14 +46,18 @@ export default function CreditFields({
     const timer = window.setTimeout(() => {
       void api<{ items: Customer[] }>(
         `/shops/${shopId}/customers?page=1&pageSize=100&q=${encodeURIComponent(q)}`,
-      ).then((page) => {
-        if (active) {
-          setCustomers(page.items.filter((c) => c.linked && c.creditApproved));
-          setError('');
-        }
-      }).catch((e) => {
-        if (active) setError(errorText(e));
-      });
+      )
+        .then((page) => {
+          if (active) {
+            setCustomers(
+              page.items.filter((c) => c.linked && c.creditApproved),
+            );
+            setError('');
+          }
+        })
+        .catch((e) => {
+          if (active) setError(errorText(e));
+        });
     }, 250);
     return () => {
       active = false;
@@ -66,7 +70,8 @@ export default function CreditFields({
   return (
     <div className="pos-credit-fields">
       <p className="muted">
-        Клиент должен привязать кабинет, а владелец — разрешить кредит и установить лимит.
+        Клиент должен привязать кабинет, а владелец — разрешить кредит и
+        установить лимит.
       </p>
       <label>
         Поиск покупателя по имени или номеру
@@ -89,7 +94,8 @@ export default function CreditFields({
           <option value="">Выберите клиента</option>
           {customers.map((customer) => (
             <option value={customer.id} key={customer.id}>
-              {customer.name} · {customer.phone} · лимит {formatSom(Number(customer.creditLimitMinor))}
+              {customer.name} · {customer.phone} · лимит{' '}
+              {formatSom(Number(customer.creditLimitMinor))}
             </option>
           ))}
         </select>
@@ -115,9 +121,16 @@ export default function CreditFields({
         />
       </label>
       <p className="muted">
-        Остаток в долг: <strong>{debtMinor === null ? 'Проверьте сумму' : formatSom(debtMinor)}</strong>
+        Остаток в долг:{' '}
+        <strong>
+          {debtMinor === null ? 'Проверьте сумму' : formatSom(debtMinor)}
+        </strong>
       </p>
-      {error && <p role="alert" className="error">{error}</p>}
+      {error && (
+        <p role="alert" className="error">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
