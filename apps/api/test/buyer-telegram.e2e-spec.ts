@@ -164,7 +164,7 @@ describe('Telegram verification of buyer phone ownership', () => {
         .expect(201)
     ).body;
     await c.db.query(
-      "UPDATE buyer_telegram_verifications SET expires_at=now()-interval '1 second' WHERE used_at IS NULL",
+      "UPDATE buyer_telegram_verifications SET created_at=now()-interval '11 minutes', expires_at=now()-interval '1 minute' WHERE used_at IS NULL",
     );
     await webhook(message({ text: '/start ' + url.split('start=')[1] })).expect(
       201,
