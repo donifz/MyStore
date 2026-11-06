@@ -46,8 +46,6 @@ export class BuyerAccounts1760000000032 implements MigrationInterface {
   }
 
   async down(q: QueryRunner): Promise<void> {
-    await q.query(
-      'DROP TABLE shop_customers,buyer_sessions,buyer_accounts',
-    );
+    await q.query('DROP TABLE shop_customers,buyer_sessions,buyer_accounts');
   }
 }
