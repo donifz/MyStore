@@ -12,6 +12,7 @@ import PaymentBottomSheet from './PaymentBottomSheet';
 import CreditFields from './CreditFields';
 
 const POPULAR = '__popular__';
+const creditSalesEnabled = import.meta.env.DEV || import.meta.env.VITE_CREDIT_SALES_ENABLED === 'true';
 const wholeSom = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
 
 /** Round-up cash suggestions above the total, e.g. 420 → 500, 1 000, 2 000, 5 000. */
@@ -589,7 +590,7 @@ function SaleWorkspace({
               </div>
             </fieldset>
 
-            <label className="pos-credit-toggle">
+            {creditSalesEnabled && <label className="pos-credit-toggle">
               <input
                 type="checkbox"
                 checked={creditMode}
@@ -597,10 +598,10 @@ function SaleWorkspace({
                 onChange={(e) => setCreditMode(e.target.checked)}
               />
               Продажа в долг
-            </label>
+            </label>}
             <CreditFields
               shopId={shopId}
-              enabled={creditMode}
+              enabled={creditSalesEnabled && creditMode}
               disabled={locked}
               customerId={creditCustomerId}
               onCustomerChange={setCreditCustomerId}
@@ -777,8 +778,8 @@ function SaleWorkspace({
         method={method}
         setMethod={setMethod}
         shopId={shopId}
-        creditMode={creditMode}
-        setCreditMode={setCreditMode}
+        creditMode={creditSalesEnabled && creditMode}
+        setCreditMode={creditSalesEnabled ? setCreditMode : () => undefined}
         creditCustomerId={creditCustomerId}
         setCreditCustomerId={setCreditCustomerId}
         creditPaidText={creditPaidText}
