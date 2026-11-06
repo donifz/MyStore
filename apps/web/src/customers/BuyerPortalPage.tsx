@@ -92,7 +92,9 @@ export default function BuyerPortalPage() {
       .catch(() => {
         if (alive) setDebtsError('Не удалось загрузить долги.');
       });
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [account?.id, account?.shops.length]);
 
   async function submit(e: FormEvent<HTMLFormElement>) {
@@ -222,14 +224,28 @@ export default function BuyerPortalPage() {
               <section className="panel buyer-tile">
                 <h2>Мои долги</h2>
                 <p className="muted">
-                  Всего осталось: <strong>{(debts.reduce((sum, debt) => sum + debt.debtMinor, 0) / 100).toLocaleString('ru-RU')} сом</strong>
+                  Всего осталось:{' '}
+                  <strong>
+                    {(
+                      debts.reduce((sum, debt) => sum + debt.debtMinor, 0) / 100
+                    ).toLocaleString('ru-RU')}{' '}
+                    сом
+                  </strong>
                 </p>
-                {debtsError && <p role="alert" className="error">{debtsError}</p>}
-                {!debts.length && !debtsError && <p className="muted">Задолженностей нет.</p>}
+                {debtsError && (
+                  <p role="alert" className="error">
+                    {debtsError}
+                  </p>
+                )}
+                {!debts.length && !debtsError && (
+                  <p className="muted">Задолженностей нет.</p>
+                )}
                 {debts.map((debt) => (
                   <div key={debt.saleId} className="buyer-debt-row">
                     <strong>{debt.shopName}</strong>
-                    <span>{(debt.debtMinor / 100).toLocaleString('ru-RU')} сом</span>
+                    <span>
+                      {(debt.debtMinor / 100).toLocaleString('ru-RU')} сом
+                    </span>
                     <small>Погасить до: {debt.dueOn}</small>
                   </div>
                 ))}
