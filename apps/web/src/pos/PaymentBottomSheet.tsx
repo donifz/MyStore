@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { formatSom } from '../api/money';
 import CreditFields from './CreditFields';
 
+const creditSalesEnabled = import.meta.env.DEV || import.meta.env.VITE_CREDIT_SALES_ENABLED === 'true';
 const wholeSom = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
 
 export type PaymentBottomSheetProps = {
@@ -194,14 +195,14 @@ export default function PaymentBottomSheet({
               </div>
             </fieldset>
 
-            <label className="pos-credit-toggle">
+            {creditSalesEnabled && <label className="pos-credit-toggle">
               <input
                 type="checkbox"
                 checked={creditMode}
                 onChange={(e) => setCreditMode(e.target.checked)}
               />
               Продажа в долг
-            </label>
+            </label>}
             <CreditFields
               shopId={shopId}
               enabled={creditMode}
