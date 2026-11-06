@@ -144,7 +144,9 @@ function SaleWorkspace({
     [creditMode, setCreditMode] = useState(false),
     [creditCustomerId, setCreditCustomerId] = useState(''),
     [creditPaidText, setCreditPaidText] = useState('0'),
-    [creditDueOn, setCreditDueOn] = useState(() => new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10)),
+    [creditDueOn, setCreditDueOn] = useState(() =>
+      new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+    ),
     [camera, setCamera] = useState(false),
     [paymentSheetOpen, setPaymentSheetOpen] = useState(false),
     scanInput = useRef<HTMLInputElement>(null),
@@ -249,26 +251,43 @@ function SaleWorkspace({
       doc.setError(`Укажите причину скидки для "${missingReason.name}".`);
       return;
     }
-    if (creditMode && (!creditCustomerId || creditDebtMinor === null || creditDebtMinor <= 0 || !creditDueOn)) {
+    if (
+      creditMode &&
+      (!creditCustomerId ||
+        creditDebtMinor === null ||
+        creditDebtMinor <= 0 ||
+        !creditDueOn)
+    ) {
       doc.setError('Укажите покупателя, сумму оплаты и срок возврата.');
       return;
     }
-    await doc.send(creditMode ? `/shops/${shopId}/pos/credit-sales` : `/shops/${shopId}/pos/sales`, {
-      shiftId: active.id,
-      method,
-      ...(creditMode ? { customerId: creditCustomerId, paidMinor: creditPaidMinor, dueOn: creditDueOn } : {}),
-      lines: doc.draft.lines.map((l) => ({
-        variantId: l.id,
-        quantity: l.quantity,
-        expectedUnitPriceMinor: l.priceMinor - (l.discountMinor || 0),
-        ...(l.discountMinor
+    await doc.send(
+      creditMode
+        ? `/shops/${shopId}/pos/credit-sales`
+        : `/shops/${shopId}/pos/sales`,
+      {
+        shiftId: active.id,
+        method,
+        ...(creditMode
           ? {
-              discountMinor: l.discountMinor,
-              discountReason: l.discountReason?.trim(),
+              customerId: creditCustomerId,
+              paidMinor: creditPaidMinor,
+              dueOn: creditDueOn,
             }
           : {}),
-      })),
-    });
+        lines: doc.draft.lines.map((l) => ({
+          variantId: l.id,
+          quantity: l.quantity,
+          expectedUnitPriceMinor: l.priceMinor - (l.discountMinor || 0),
+          ...(l.discountMinor
+            ? {
+                discountMinor: l.discountMinor,
+                discountReason: l.discountReason?.trim(),
+              }
+            : {}),
+        })),
+      },
+    );
   }
 
   function scanOrSearch(raw: string) {
@@ -324,8 +343,10 @@ function SaleWorkspace({
     (!doc.draft.submission &&
       (!active ||
         !safe ||
-        (creditMode && (!creditCustomerId || creditDebtMinor === null || !creditDueOn)) ||
-        (!creditMode && paymentMethod === 'cash' &&
+        (creditMode &&
+          (!creditCustomerId || creditDebtMinor === null || !creditDueOn)) ||
+        (!creditMode &&
+          paymentMethod === 'cash' &&
           !!received.trim() &&
           (!!receivedError || changeMinor === null || changeMinor < 0n))))
   );
@@ -569,7 +590,12 @@ function SaleWorkspace({
             </fieldset>
 
             <label className="pos-credit-toggle">
-              <input type="checkbox" checked={creditMode} disabled={locked} onChange={(e) => setCreditMode(e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={creditMode}
+                disabled={locked}
+                onChange={(e) => setCreditMode(e.target.checked)}
+              />
               Продажа в долг
             </label>
             <CreditFields
