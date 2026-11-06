@@ -1,5 +1,11 @@
 import {
-  Body, Controller, Get, Post, Req, Res, UseGuards,
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UseGuards,
 } from '@nestjs/common';
 import { IsString, MaxLength, MinLength } from 'class-validator';
 import { Request, Response } from 'express';
@@ -35,24 +41,34 @@ export class BuyerAuthController {
     this.buyers.limit('login:' + (req.ip ?? 'unknown'));
     const session = await this.buyers.login(body.phone, body.password);
     res.cookie('mystore_buyer_session', session.token, {
-      httpOnly: true, sameSite: 'lax',
+      httpOnly: true,
+      sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
-      path: '/', maxAge: 43200000,
+      path: '/',
+      maxAge: 43200000,
     });
     return { expiresIn: session.expiresIn, csrfToken: csrfFor(session.token) };
   }
   @Get('me')
   @UseGuards(BuyerAuthGuard)
   async me(@Req() req: BuyerRequest) {
-    return { ...(await this.buyers.me(req.buyerId)), csrfToken: csrfFor(req.buyerToken) };
+    return {
+      ...(await this.buyers.me(req.buyerId)),
+      csrfToken: csrfFor(req.buyerToken),
+    };
   }
   @Post('logout')
   @UseGuards(BuyerAuthGuard)
-  async logout(@Req() req: BuyerRequest, @Res({ passthrough: true }) res: Response) {
+  async logout(
+    @Req() req: BuyerRequest,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const result = await this.buyers.logout(req.buyerToken);
     res.clearCookie('mystore_buyer_session', {
-      httpOnly: true, sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production', path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
     });
     return result;
   }
