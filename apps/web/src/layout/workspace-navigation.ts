@@ -21,7 +21,7 @@ const sections: PlatformSection[] = [
   'financial-access',
 ];
 const shopRoutes: { pattern: RegExp; roles: Role[] }[] = [
-  { pattern: /^(?:pos|shift|labels|operations)$/, roles: all },
+  { pattern: /^(?:pos|shift|labels|operations|customers)$/, roles: all },
   { pattern: /^orders(?:\/[^/]+)?$/, roles: all },
   { pattern: /^sales(?:\/[^/]+)?$/, roles: all },
   { pattern: /^products$/, roles: all },
@@ -156,6 +156,7 @@ export function workspaceMenu(
   ];
   const more = [
     item('Смена', 'shift', /^shift$/),
+    item('Клиенты', 'customers', /^customers$/),
     item(
       hasShopPermission(shop, 'return') ? 'Продажи и возвраты' : 'Продажи',
       'sales',
