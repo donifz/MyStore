@@ -90,8 +90,12 @@ export default function BuyerPortalPage() {
       .then((result) => {
         if (active) setTelegramEnabled(result.enabled);
       })
-      .catch(() => { if (active) setTelegramEnabled(false); });
-    return () => { active = false; };
+      .catch(() => {
+        if (active) setTelegramEnabled(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [account?.id, account?.phoneVerified]);
 
   async function prepareTelegram() {
@@ -100,11 +104,15 @@ export default function BuyerPortalPage() {
     setTelegramLink('');
     try {
       const result = await buyerApi<{ url: string }>(
-        'telegram/start', {}, account?.csrfToken,
+        'telegram/start',
+        {},
+        account?.csrfToken,
       );
       setTelegramLink(result.url);
     } catch (err) {
-      setTelegramError(err instanceof Error ? err.message : 'Ошибка подтверждения');
+      setTelegramError(
+        err instanceof Error ? err.message : 'Ошибка подтверждения',
+      );
     } finally {
       setBusy(false);
     }
@@ -228,17 +236,29 @@ export default function BuyerPortalPage() {
                   контактом. Номер контакта должен совпадать с номером кабинета.
                   Ссылка действует 10 минут.
                 </p>
-                <button type="button" disabled={busy} onClick={() => void prepareTelegram()}>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void prepareTelegram()}
+                >
                   Получить ссылку для подтверждения
                 </button>
                 {telegramLink && (
                   <p>
-                    <a href={telegramLink} target="_blank" rel="noopener noreferrer">
+                    <a
+                      href={telegramLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       Открыть Telegram-бота
                     </a>
                   </p>
                 )}
-                {telegramError && <p role="alert" className="error">{telegramError}</p>}
+                {telegramError && (
+                  <p role="alert" className="error">
+                    {telegramError}
+                  </p>
+                )}
                 <button type="button" onClick={() => void refresh()}>
                   Проверить статус номера
                 </button>
