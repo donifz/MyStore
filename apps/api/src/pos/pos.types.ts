@@ -20,8 +20,6 @@ export type ShiftView = {
   refundsCashMinor: number;
   refundsCardMinor: number;
   cashInMinor: number;
-  creditRepaymentsCashMinor: number;
-  creditRepaymentsCardMinor: number;
   cashOutMinor: number;
   openingCashMinor: number;
   expectedCashMinor: number;
