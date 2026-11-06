@@ -1,5 +1,5 @@
 import {
-  BadRequestException,
+  HttpException,
   ConflictException,
   ForbiddenException,
   Inject,
@@ -65,6 +65,14 @@ export class BuyerTelegramService {
       if (buyer.phone_verified_at) {
         throw new ConflictException('Номер уже подтверждён');
       }
+      const [recent] = await tx.query(
+        `SELECT id FROM buyer_telegram_verifications
+         WHERE buyer_id=$1 AND created_at>now()-interval '30 seconds'
+         LIMIT 1`,
+        [buyerId],
+      );
+      if (recent)
+        throw new HttpException('Повторите попытку через 30 секунд', 429);
       await tx.query(
         `UPDATE buyer_telegram_verifications
          SET revoked_at=now()
@@ -113,7 +121,7 @@ export class BuyerTelegramService {
     if (typeof text === 'string' && text.startsWith('/start ')) {
       const token = text.slice(7).trim();
       if (!/^[A-Za-z0-9_-]{32}$/.test(token)) return { ok: true };
-      const [bound] = await this.db.query(
+      const [boundRows] = await this.db.query(
         `UPDATE buyer_telegram_verifications
          SET telegram_user_id=$2,chat_id=$3
          WHERE token_hash=$1 AND expires_at>now()
@@ -122,6 +130,7 @@ export class BuyerTelegramService {
          RETURNING id`,
         [digest(token), user, chat],
       );
+      const bound = Array.isArray(boundRows) ? boundRows[0] : boundRows;
       if (!bound) {
         await this.send(
           config.token,
@@ -165,7 +174,7 @@ export class BuyerTelegramService {
         [user, challenge.buyer_id],
       );
       if (other) return 'linked';
-      const [verified] = await tx.query(
+      const [verifiedRows] = await tx.query(
         `UPDATE buyer_accounts
          SET phone_verified_at=COALESCE(phone_verified_at,now()),
              telegram_user_id=$2
@@ -174,6 +183,9 @@ export class BuyerTelegramService {
          RETURNING id`,
         [challenge.buyer_id, user, phone],
       );
+      const verified = Array.isArray(verifiedRows)
+        ? verifiedRows[0]
+        : verifiedRows;
       if (!verified) return 'mismatch';
       await tx.query(
         `UPDATE buyer_telegram_verifications
