@@ -78,7 +78,10 @@ import { BuyerAuthController } from './customers/buyer-auth.controller';
 import { BuyerAuthService } from './customers/buyer-auth.service';
 import { BuyerAuthGuard } from './customers/buyer-auth.guard';
 import { BuyerInvitesService } from './customers/buyer-invites.service';
-import { BuyerInvitesController, ShopBuyerInvitesController } from './customers/buyer-invites.controller';
+import {
+  BuyerInvitesController,
+  ShopBuyerInvitesController,
+} from './customers/buyer-invites.controller';
 import { ShopCustomersController } from './customers/shop-customers.controller';
 import { ShopCustomersService } from './customers/shop-customers.service';
 import { FinancialAccessService } from './platform/financial-access.service';
