@@ -64,12 +64,15 @@ export class CreditRepaymentsService {
         if (BigInt(amountMinor) > remaining) {
           throw new ConflictException('Сумма превышает остаток долга');
         }
-        const [updated] = await tx.query(
+        const [updatedRows] = await tx.query(
           `UPDATE credit_sales SET paid_minor=paid_minor+$3
            WHERE shop_id=$1 AND document_id=$2
            RETURNING paid_minor,total_minor`,
           [shopId, saleId, amountMinor],
         );
+        // TypeORM returns [rows, affectedCount] for PostgreSQL UPDATE.
+        const updated = Array.isArray(updatedRows) ? updatedRows[0] : updatedRows;
+        if (!updated) throw new ConflictException('Не удалось обновить остаток долга');
         const [row] = await tx.query(
           `INSERT INTO credit_repayments
            (id,shop_id,sale_id,shift_id,actor_id,method,amount_minor)
