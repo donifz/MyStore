@@ -161,7 +161,7 @@ export default function ShopCustomersPage() {
             }}>Скопировать код</button>
             <button type="button" onClick={() => setInvitation(null)}>Скрыть код</button>
           </div>
-        )
+        )}
         <label className="search-label">
           Поиск по имени или номеру
           <input
@@ -191,6 +191,7 @@ export default function ShopCustomersPage() {
                       <th>Телефон</th>
                       <th>Адрес</th>
                       <th>Добавлен</th>
+                      <th>Кабинет</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -201,6 +202,13 @@ export default function ShopCustomersPage() {
                         <td>{c.address || '—'}</td>
                         <td>
                           {new Date(c.createdAt).toLocaleDateString('ru-KG')}
+                        </td>
+                        <td>
+                          {c.linked ? 'Привязан' : (
+                            <button type="button" onClick={() => void invite(c)}>
+                              Выдать код
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -221,8 +229,8 @@ export default function ShopCustomersPage() {
         )}
       </section>
       <p className="muted">
-        Продажа в долг, паспортные данные и привязка кабинета покупателя будут
-        доступны после внедрения защищённой проверки личности.
+        Покупатель должен войти в свой кабинет с тем же номером и использовать
+        одноразовый код. Продажа в долг и паспортные данные пока не реализованы.
       </p>
     </div>
   );
