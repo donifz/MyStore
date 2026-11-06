@@ -38,6 +38,13 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - name: Temporary Telegram PR canonical formatting capture
+        run: |
+          npx prettier --write apps/api/src/app.ts apps/api/src/customers/buyer-telegram.service.ts apps/api/test/buyer-telegram.e2e-spec.ts apps/web/src/customers/BuyerPortalPage.tsx
+          node - <<'NODE'
+          const fs=require('fs');
+          for(const path of ["apps/api/src/app.ts","apps/api/src/customers/buyer-telegram.service.ts","apps/api/test/buyer-telegram.e2e-spec.ts","apps/web/src/customers/BuyerPortalPage.tsx"]) console.log('FORMATFILE:'+path+':'+encodeURIComponent(fs.readFileSync(path,'utf8')));
+          NODE
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm run build
