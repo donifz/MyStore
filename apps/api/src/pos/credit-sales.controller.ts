@@ -60,7 +60,8 @@ export class CreditSalesController {
     @Headers('idempotency-key') key: string,
     @Body() dto: CreditSaleDto,
   ) {
-    if (!creditSalesEnabled()) throw new ServiceUnavailableException('Продажа в долг пока недоступна');
+    if (!creditSalesEnabled())
+      throw new ServiceUnavailableException('Продажа в долг пока недоступна');
     await this.access.requireMembership(req.userId, shopId, 'sell');
     return this.credits.sell({
       shopId,
