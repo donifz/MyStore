@@ -8,6 +8,7 @@ describe('shop customers and separate buyer accounts', () => {
 
   beforeEach(async () => {
     c = await setup(createApp);
+    await c.db.query('TRUNCATE buyer_accounts CASCADE');
   });
   afterEach(async () => {
     await teardown(c);
