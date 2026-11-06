@@ -338,7 +338,9 @@ export default function PaymentBottomSheet({
                   ? 'Проведение…'
                   : isSubmissionPending
                     ? 'Повторить исходный запрос'
-                    : creditMode ? `Оформить долг — ${creditDebtMinor === null ? '—' : formatSom(creditDebtMinor)}` : `Провести продажу — ${totalText}`}
+                    : creditMode
+                      ? `Оформить долг — ${creditDebtMinor === null ? '—' : formatSom(creditDebtMinor)}`
+                      : `Провести продажу — ${totalText}`}
               </span>
             </button>
           </div>
