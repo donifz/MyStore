@@ -18,7 +18,7 @@ export class CreditSales1760000000034 implements MigrationInterface {
         PRIMARY KEY(shop_id,document_id),
         FOREIGN KEY(shop_id,document_id) REFERENCES pos_sales(shop_id,document_id),
         FOREIGN KEY(shop_id,customer_id) REFERENCES shop_customers(shop_id,id),
-        CHECK (paid_minor < total_minor)
+        CHECK (paid_minor <= total_minor)
       );
       CREATE INDEX credit_sales_customer
         ON credit_sales(shop_id,customer_id,created_at DESC);
