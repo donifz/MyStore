@@ -16,7 +16,10 @@ import { normalizeKyrgyzPhone } from './kyrgyz-phone';
 export class BuyerAuthService {
   private readonly secret: string;
   private readonly dummyHash = hashPassword('invalid-buyer-account');
-  private readonly attempts = new Map<string, { count: number; expires: number }>();
+  private readonly attempts = new Map<
+    string,
+    { count: number; expires: number }
+  >();
 
   constructor(@Inject(DATABASE) private readonly db: DataSource) {
     const secret = process.env.SESSION_SECRET;
@@ -27,7 +30,9 @@ export class BuyerAuthService {
   }
 
   private digest(token: string) {
-    return createHmac('sha256', this.secret).update('buyer:' + token).digest('hex');
+    return createHmac('sha256', this.secret)
+      .update('buyer:' + token)
+      .digest('hex');
   }
 
   limit(key: string) {
@@ -82,7 +87,8 @@ export class BuyerAuthService {
       password,
       row?.password_hash ?? (await this.dummyHash),
     );
-    if (!row || !valid) throw new UnauthorizedException('Неверный номер или пароль');
+    if (!row || !valid)
+      throw new UnauthorizedException('Неверный номер или пароль');
     const token = randomBytes(32).toString('hex');
     await this.db.query(
       "INSERT INTO buyer_sessions(token_hash,buyer_id,expires_at) VALUES($1,$2,now()+interval '12 hours')",
