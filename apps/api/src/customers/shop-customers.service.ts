@@ -75,6 +75,18 @@ export class ShopCustomersService {
     }
   }
 
+  async setCreditPolicy(shopId: string, id: string, approved: boolean, limitMinor: number) {
+    const [row] = await this.db.query(
+      `UPDATE shop_customers SET credit_approved=$3,credit_limit_minor=$4,updated_at=now()
+       WHERE shop_id=$1 AND id=$2
+       RETURNING id,credit_approved AS "creditApproved",
+       credit_limit_minor AS "creditLimitMinor"`,
+      [shopId, id, approved, approved ? limitMinor : 0],
+    );
+    if (!row) throw new NotFoundException('Клиент не найден');
+    return { ...row, creditLimitMinor: Number(row.creditLimitMinor) };
+  }
+
   async get(shopId: string, id: string) {
     const [row] = await this.db.query(
       `SELECT id,display_name AS "name",phone_e164 AS phone,address,
