@@ -91,7 +91,9 @@ export default function BuyerPortalPage() {
     setNotice('');
     try {
       const linked = await buyerApi<{ shopName: string }>(
-        'link-shop', { token: inviteToken.trim() }, account.csrfToken,
+        'link-shop',
+        { token: inviteToken.trim() },
+        account.csrfToken,
       );
       setInviteToken('');
       setNotice('Магазин «' + linked.shopName + '» привязан к кабинету.');
@@ -145,20 +147,36 @@ export default function BuyerPortalPage() {
               <div className="buyer-message" role="status">
                 <strong>Номер ещё не подтверждён</strong>
                 <p>
-                  Номер ещё не подтверждён через Telegram. Связать кабинет
-                  с конкретным магазином можно только по одноразовому коду,
+                  Номер ещё не подтверждён через Telegram. Связать кабинет с
+                  конкретным магазином можно только по одноразовому коду,
                   полученному лично у кассира. Знание телефона недостаточно.
                 </p>
               </div>
             )}
             <section className="panel buyer-tile">
               <h2>Привязать магазин</h2>
-              <p className="muted">Получите одноразовый код у кассира и введите его здесь. Код действует 15 минут.</p>
+              <p className="muted">
+                Получите одноразовый код у кассира и введите его здесь. Код
+                действует 15 минут.
+              </p>
               <form onSubmit={(e) => void linkShop(e)}>
-                <label>Код приглашения
-                  <input required value={inviteToken} onChange={(e) => setInviteToken(e.target.value)} placeholder="Код от кассира" maxLength={43} />
+                <label>
+                  Код приглашения
+                  <input
+                    required
+                    value={inviteToken}
+                    onChange={(e) => setInviteToken(e.target.value)}
+                    placeholder="Код от кассира"
+                    maxLength={43}
+                  />
                 </label>
-                <button type="submit" className="primary" disabled={busy || inviteToken.trim().length !== 43}>Привязать магазин</button>
+                <button
+                  type="submit"
+                  className="primary"
+                  disabled={busy || inviteToken.trim().length !== 43}
+                >
+                  Привязать магазин
+                </button>
               </form>
             </section>
             <div className="buyer-grid">
