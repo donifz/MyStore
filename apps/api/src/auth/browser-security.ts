@@ -22,10 +22,14 @@ export function validateCsrf(token: string, supplied: unknown): void {
   )
     throw new ForbiddenException('Invalid CSRF token');
 }
-export function sessionCookie(header: string | undefined): string | undefined {
+export function sessionCookie(
+  header: string | undefined,
+  name = 'mystore_session',
+): string | undefined {
+  const prefix = name + '=';
   return header
     ?.split(';')
     .map((x) => x.trim())
-    .find((x) => x.startsWith('mystore_session='))
-    ?.slice(16);
+    .find((x) => x.startsWith(prefix))
+    ?.slice(prefix.length);
 }
