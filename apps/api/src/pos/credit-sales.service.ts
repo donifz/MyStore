@@ -35,22 +35,17 @@ export class CreditSalesService {
     dueOn: string;
     lines: SaleLine[];
   }) {
-    const {
-      shopId,
-      actorId,
-      key,
-      method,
-      customerId,
-      shiftId,
-      dueOn,
-    } = input;
+    const { shopId, actorId, key, method, customerId, shiftId, dueOn } = input;
     const paid = safeMoney(minor(input.paidMinor));
     const lines = this.sales.normalize(input.lines);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dueOn)) {
       throw new BadRequestException('Укажите дату возврата YYYY-MM-DD');
     }
     const date = new Date(dueOn + 'T00:00:00Z');
-    if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== dueOn) {
+    if (
+      !Number.isFinite(date.getTime()) ||
+      date.toISOString().slice(0, 10) !== dueOn
+    ) {
       throw new BadRequestException('Некорректная дата возврата');
     }
     const today = new Date().toISOString().slice(0, 10);
@@ -78,7 +73,9 @@ export class CreditSalesService {
         );
         if (!customer) throw new NotFoundException('Клиент не найден');
         if (!customer.buyer_account_id || !customer.credit_approved) {
-          throw new ConflictException('Кредит клиенту не разрешён или кабинет не привязан');
+          throw new ConflictException(
+            'Кредит клиенту не разрешён или кабинет не привязан',
+          );
         }
         const [balance] = await tx.query(
           `SELECT COALESCE(sum(total_minor-paid_minor),0) AS outstanding
@@ -91,11 +88,18 @@ export class CreditSalesService {
         );
         const total = safeMoney(subtotal);
         if (paid >= total) {
-          throw new BadRequestException('Для полной оплаты используйте обычную продажу');
+          throw new BadRequestException(
+            'Для полной оплаты используйте обычную продажу',
+          );
         }
         const due = total - paid;
-        if (BigInt(balance.outstanding) + BigInt(due) > BigInt(customer.credit_limit_minor)) {
-          throw new ConflictException('Превышен разрешённый лимит задолженности');
+        if (
+          BigInt(balance.outstanding) + BigInt(due) >
+          BigInt(customer.credit_limit_minor)
+        ) {
+          throw new ConflictException(
+            'Превышен разрешённый лимит задолженности',
+          );
         }
         const posted = await this.pos.postInTransaction(
           tx,
@@ -120,7 +124,10 @@ export class CreditSalesService {
           dueOn,
         };
       },
-      (tx) => this.access.requireMembership(actorId, shopId, 'sell', tx).then(() => undefined),
+      (tx) =>
+        this.access
+          .requireMembership(actorId, shopId, 'sell', tx)
+          .then(() => undefined),
     );
   }
 
