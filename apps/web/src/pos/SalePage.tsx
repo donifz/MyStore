@@ -633,7 +633,7 @@ function SaleWorkspace({
               embedded
               open={!paymentSheetOpen}
               onClose={() => undefined}
-              method={method}
+              method={paymentMethod}
               setMethod={setMethod}
               shopId={shopId}
               creditMode={creditSalesEnabled && creditMode}
@@ -744,7 +744,7 @@ function SaleWorkspace({
       <PaymentBottomSheet
         open={paymentSheetOpen}
         onClose={() => setPaymentSheetOpen(false)}
-        method={method}
+        method={paymentMethod}
         setMethod={setMethod}
         shopId={shopId}
         creditMode={creditSalesEnabled && creditMode}
