@@ -170,6 +170,18 @@
   color: #096d4c;
 }
 
+
+.credit-customer-invite-button {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #b8dacb;
+  border-radius: 10px;
+  background: #e8f6ed;
+  color: #086c4f;
+  font-weight: 700;
+}
+
 .credit-customer-create {
   width: 100%;
   min-height: 48px;
