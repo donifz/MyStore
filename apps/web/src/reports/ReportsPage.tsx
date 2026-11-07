@@ -297,21 +297,26 @@ export default function ReportsPage() {
 
       {data && (
         <>
-          <section className="reports-inventory-overview" aria-label="Товары на складе">
+          <section
+            className="reports-inventory-overview"
+            aria-label="Товары на складе"
+          >
             <div className="reports-inventory-heading">
               <div>
                 <p className="eyebrow">Текущий склад</p>
                 <h2>Товары на складе</h2>
               </div>
-              <span className="muted">На данный момент · не зависит от периода продаж</span>
+              <span className="muted">
+                На данный момент · не зависит от периода продаж
+              </span>
             </div>
             <div className="reports-inventory-grid">
               <article className="panel reports-inventory-card">
                 <small>Количество товаров</small>
                 <strong>{data.physicalUnits.toLocaleString('ru-RU')} шт.</strong>
                 <span className="muted">
-                  {data.stockedVariantsCount.toLocaleString('ru-RU')} товарных позиций
-                  {' · '}
+                  {data.stockedVariantsCount.toLocaleString('ru-RU')}{' '}
+                  товарных позиций ·{' '}
                   {data.reservedUnits.toLocaleString('ru-RU')} шт. в резерве
                 </span>
               </article>
@@ -327,8 +332,12 @@ export default function ReportsPage() {
               </article>
               <article className="panel reports-inventory-card">
                 <small>Потенциальная разница</small>
-                <strong>{money(data.stockRetailValueMinor - data.stockValueMinor)}</strong>
-                <span className="muted">Не фактическая прибыль; без расходов и скидок</span>
+                <strong>
+                  {money(data.stockRetailValueMinor - data.stockValueMinor)}
+                </strong>
+                <span className="muted">
+                  Не фактическая прибыль; без расходов и скидок
+                </span>
               </article>
             </div>
           </section>
