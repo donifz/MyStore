@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  formatKyrgyzPhoneInput,
+  KYRGYZ_PHONE_PATTERN,
+} from './kyrgyzPhoneMask';
 
 type BuyerDebt = {
   saleId: string;
@@ -369,8 +373,12 @@ export default function BuyerPortalPage() {
                   autoComplete="tel"
                   required
                   maxLength={32}
+                  pattern={KYRGYZ_PHONE_PATTERN}
+                  title="Номер Кыргызстана: +996 700 123 456"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) =>
+                    setPhone(formatKyrgyzPhoneInput(e.target.value))
+                  }
                   placeholder="+996 700 123 456"
                 />
               </label>
