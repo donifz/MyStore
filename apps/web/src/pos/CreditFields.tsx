@@ -91,7 +91,11 @@ export default function CreditFields({
         `/shops/${shopId}/customers`,
         {
           method: 'POST',
-          body: { name: newName.trim(), phone: newPhone, address: newAddress },
+          body: {
+            name: newName.trim() || 'Покупатель',
+            phone: newPhone,
+            address: newAddress,
+          },
         },
       );
       setNewName('');
@@ -186,9 +190,8 @@ export default function CreditFields({
           onSubmit={(event) => void addCustomer(event)}
         >
           <label>
-            Имя покупателя
+            Имя покупателя (необязательно)
             <input
-              required
               minLength={2}
               maxLength={120}
               value={newName}
