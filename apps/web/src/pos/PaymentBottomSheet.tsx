@@ -88,21 +88,46 @@ export default function PaymentBottomSheet({
   onNewReceipt,
 }: PaymentBottomSheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
-  const [bonusOpen, setBonusOpen] = useState(false);
+  const [activePanel, setActivePanel] = useState<'bonus' | 'credit' | null>(null);
+  const previousBonus = useRef({ token: '', points: 0 });
+  const previousCredit = useRef({
+    enabled: false,
+    customerId: '',
+    paid: '0',
+    dueOn: '',
+  });
+
+  function cancelPanel() {
+    if (activePanel === 'bonus') {
+      setLoyaltyToken(previousBonus.current.token);
+      setRedeemPoints(previousBonus.current.points);
+    } else if (activePanel === 'credit') {
+      const previous = previousCredit.current;
+      setCreditMode(previous.enabled);
+      setCreditCustomerId(previous.customerId);
+      setCreditCustomerEligible(Boolean(previous.customerId));
+      setCreditPaidText(previous.paid);
+      setCreditDueOn(previous.dueOn);
+    }
+    setActivePanel(null);
+  }
 
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        if (activePanel) cancelPanel();
+        else onClose();
+      }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => {
       document.body.style.overflow = prev;
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [open, onClose]);
+  }, [open, onClose, activePanel]);
 
   if (!open) return null;
 
@@ -229,30 +254,22 @@ export default function PaymentBottomSheet({
                     type="button"
                     className="pos-option-trigger"
                     disabled={paymentPending}
-                    aria-expanded={bonusOpen}
-                    onClick={() => setBonusOpen((value) => !value)}
+                    aria-haspopup="dialog"
+                    onClick={() => {
+                      previousBonus.current = {
+                        token: loyaltyToken,
+                        points: redeemPoints,
+                      };
+                      setActivePanel('bonus');
+                    }}
                   >
-                    <span className="pos-option-icon" aria-hidden="true">
-                      ✦
-                    </span>
+                    <span className="pos-option-icon" aria-hidden="true">✦</span>
                     <strong>Бонусы / скидка</strong>
                     <span className="pos-option-detail">
-                      {redeemPoints > 0 ? formatSom(redeemPoints * 100) : ''}
+                      {redeemPoints > 0 ? '−' + formatSom(redeemPoints * 100) : ''}
                     </span>
-                    <span className="pos-option-chevron" aria-hidden="true">
-                      {bonusOpen ? '⌃' : '⌄'}
-                    </span>
+                    <span className="pos-option-chevron" aria-hidden="true">›</span>
                   </button>
-                  {bonusOpen && (
-                    <LoyaltyCheckout
-                      token={loyaltyToken}
-                      setToken={setLoyaltyToken}
-                      points={redeemPoints}
-                      setPoints={setRedeemPoints}
-                      totalMinor={originalTotalMinor}
-                      disabled={paymentPending}
-                    />
-                  )}
                 </section>
               )}
 
@@ -262,35 +279,40 @@ export default function PaymentBottomSheet({
                     type="button"
                     className="pos-option-trigger"
                     disabled={paymentPending}
-                    aria-expanded={creditMode}
+                    aria-haspopup="dialog"
                     aria-pressed={creditMode}
-                    onClick={() => setCreditMode(!creditMode)}
+                    onClick={() => {
+                      previousCredit.current = {
+                        enabled: creditMode,
+                        customerId: creditCustomerId,
+                        paid: creditPaidText,
+                        dueOn: creditDueOn,
+                      };
+                      if (!creditMode) setCreditMode(true);
+                      setActivePanel('credit');
+                    }}
                   >
-                    <span className="pos-option-icon" aria-hidden="true">
-                      ◷
-                    </span>
+                    <span className="pos-option-icon" aria-hidden="true">◷</span>
                     <strong>Продажа в долг</strong>
                     <span className="pos-option-state">
-                      {creditMode ? 'Вкл.' : ''}
+                      {creditMode
+                        ? creditDebtMinor === null
+                          ? 'Выбрано'
+                          : formatSom(creditDebtMinor)
+                        : ''}
                     </span>
-                    <span className="pos-option-chevron" aria-hidden="true">
-                      {creditMode ? '⌃' : '⌄'}
-                    </span>
+                    <span className="pos-option-chevron" aria-hidden="true">›</span>
                   </button>
                   {creditMode && (
-                    <CreditFields
-                      shopId={shopId}
-                      enabled={creditMode}
+                    <button
+                      type="button"
+                      className="pos-option-clear"
                       disabled={paymentPending}
-                      customerId={creditCustomerId}
-                      onCustomerChange={setCreditCustomerId}
-                      onCustomerEligible={setCreditCustomerEligible}
-                      paid={creditPaidText}
-                      onPaidChange={setCreditPaidText}
-                      dueOn={creditDueOn}
-                      onDueChange={setCreditDueOn}
-                      debtMinor={creditDebtMinor}
-                    />
+                      aria-label="Убрать продажу в долг"
+                      onClick={() => setCreditMode(false)}
+                    >
+                      ×
+                    </button>
                   )}
                 </section>
               )}
@@ -459,6 +481,104 @@ export default function PaymentBottomSheet({
           </>
         )}
       </div>
+      {activePanel && (
+        <div className="pos-sheet-option-layer">
+          <div
+            className="pos-sheet-option-backdrop"
+            aria-hidden="true"
+            onClick={cancelPanel}
+          />
+          <section
+            className="pos-sheet-option-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label={
+              activePanel === 'credit' ? 'Продажа в долг' : 'Бонусы / скидка'
+            }
+          >
+            <div className="pos-sheet-option-handle" aria-hidden="true" />
+            <div className="pos-sheet-option-head">
+              <span className="pos-sheet-option-title">
+                <span className={activePanel === 'credit' ? 'option-graphic credit' : 'option-graphic'}>
+                  {activePanel === 'credit' ? '◷' : '✦'}
+                </span>
+                <strong>
+                  {activePanel === 'credit' ? 'Продажа в долг' : 'Бонусы / скидка'}
+                </strong>
+              </span>
+              <button
+                type="button"
+                className="pos-sheet-close"
+                aria-label="Закрыть настройки"
+                onClick={cancelPanel}
+              >
+                ×
+              </button>
+            </div>
+            <div className="pos-sheet-option-scroll">
+              {activePanel === 'credit' ? (
+                <>
+                  <CreditFields
+                    shopId={shopId}
+                    enabled
+                    disabled={paymentPending}
+                    customerId={creditCustomerId}
+                    onCustomerChange={setCreditCustomerId}
+                    onCustomerEligible={setCreditCustomerEligible}
+                    paid={creditPaidText}
+                    onPaidChange={setCreditPaidText}
+                    dueOn={creditDueOn}
+                    onDueChange={setCreditDueOn}
+                    debtMinor={creditDebtMinor}
+                  />
+                </>
+              ) : (
+                <>
+                  <p className="pos-option-subtitle">
+                    Сканируйте QR подтверждённого покупателя, чтобы списать бонусы.
+                  </p>
+                  <LoyaltyCheckout
+                    token={loyaltyToken}
+                    setToken={setLoyaltyToken}
+                    points={redeemPoints}
+                    setPoints={setRedeemPoints}
+                    totalMinor={originalTotalMinor}
+                    disabled={paymentPending}
+                  />
+                </>
+              )}
+            </div>
+            <div className="pos-sheet-option-actions">
+              <button
+                type="button"
+                className="pos-sheet-option-cancel"
+                onClick={cancelPanel}
+              >
+                Отмена
+              </button>
+              <button
+                type="button"
+                className="pos-sheet-option-apply"
+                disabled={
+                  paymentPending ||
+                  (activePanel === 'credit' &&
+                    (!creditCustomerId ||
+                      creditDebtMinor === null ||
+                      creditDebtMinor <= 0 ||
+                      !creditDueOn)) ||
+                  (activePanel === 'bonus' &&
+                    (redeemPoints > Math.floor(originalTotalMinor / 500) ||
+                      (redeemPoints > 0 &&
+                        !/^[A-Za-z0-9_-]{43}$/.test(loyaltyToken))))
+                }
+                onClick={() => setActivePanel(null)}
+              >
+                Применить
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
