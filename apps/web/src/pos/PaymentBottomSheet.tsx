@@ -108,6 +108,8 @@ export default function PaymentBottomSheet({
     'bonus' | 'credit' | 'customer' | null
   >(null);
   const [selectedCustomerName, setSelectedCustomerName] = useState('');
+  const [selectedCustomerDebt, setSelectedCustomerDebt] = useState(0);
+  const [selectedCustomerPoints, setSelectedCustomerPoints] = useState(0);
   const returnToCredit = useRef(false);
   function openCustomer(fromCredit = false) {
     returnToCredit.current = fromCredit;
@@ -329,7 +331,7 @@ export default function PaymentBottomSheet({
                     <span className="pos-option-detail">
                       {redeemPoints > 0
                         ? '−' + formatSom(redeemPoints * 100)
-                        : ''}
+                        : selectedCustomerPoints > 0 ? 'Доступно: ' + selectedCustomerPoints : ''}
                     </span>
                     <span className="pos-option-chevron" aria-hidden="true">
                       <PaymentIcon name="chevron" size={18} />
@@ -366,7 +368,7 @@ export default function PaymentBottomSheet({
                         ? creditDebtMinor === null
                           ? 'Выбрано'
                           : formatSom(creditDebtMinor)
-                        : ''}
+                        : selectedCustomerDebt > 0 ? 'Долг: ' + formatSom(selectedCustomerDebt) : ''}
                     </span>
                     <span className="pos-option-chevron" aria-hidden="true">
                       <PaymentIcon name="chevron" size={18} />
@@ -711,9 +713,11 @@ export default function PaymentBottomSheet({
                   customerId={creditCustomerId}
                   onCustomerChange={setCreditCustomerId}
                   onCustomerEligible={setCreditCustomerEligible}
-                  onSelectedCustomer={(customer) =>
-                    setSelectedCustomerName(customer.name)
-                  }
+                  onSelectedCustomer={(customer) => {
+                    setSelectedCustomerName(customer.name);
+                    setSelectedCustomerDebt(Number(customer.debtMinor || 0));
+                    setSelectedCustomerPoints(Number(customer.balancePoints || 0));
+                  }}
                   paid={creditPaidText}
                   onPaidChange={setCreditPaidText}
                   dueOn={creditDueOn}
