@@ -82,7 +82,8 @@ test('seller flow: receive, shift, lost response retry, return and close', async
   const desktopCheckout = page.getByRole('region', { name: 'Оплата чека' });
   await expect(desktopCheckout).toBeVisible();
   await expect(desktopCheckout.getByRole('button', { name: /Покупатель/ })).toBeVisible();
-  await expect(desktopCheckout.getByRole('button', { name: /Продажа в долг/ })).toBeVisible();
+  await expect(desktopCheckout.locator('.pos-option-customer')).toBeVisible();
+  await expect(desktopCheckout.locator('.pos-option-discount')).toBeVisible();
   await expect(desktopCheckout.getByLabel('Скидка при оплате')).toBeVisible();
   expect(
     await page.evaluate(
@@ -108,7 +109,7 @@ test('seller flow: receive, shift, lost response retry, return and close', async
   await expect(mobileCheckout.getByRole('button', { name: /Провести продажу/ })).toBeVisible();
   const checkoutFields = await mobileCheckout.locator('.pos-checkout-money-row > label').evaluateAll((elements) =>
     elements.map((el) => {
-      const field = el.querySelector('input')?.getBoundingClientRect();
+      const field = el.querySelector('.pos-discount-control, input')?.getBoundingClientRect();
       return field ? { top: field.top, height: field.height } : null;
     }),
   );
