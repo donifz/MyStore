@@ -1,6 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { api, errorText } from '../api/client';
 import { formatSom } from '../api/money';
+import {
+  formatKyrgyzPhoneInput,
+  KYRGYZ_PHONE_PATTERN,
+} from '../customers/kyrgyzPhoneMask';
+import BuyerActivationPanel from '../customers/BuyerActivationPanel';
 
 type Customer = {
   id: string;
@@ -39,6 +44,16 @@ export default function CreditFields({
   const [q, setQ] = useState('');
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [error, setError] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [newAddress, setNewAddress] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [invitation, setInvitation] = useState<{
+    name: string;
+    token: string;
+    expiresAt: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!enabled) return;
@@ -64,6 +79,45 @@ export default function CreditFields({
       window.clearTimeout(timer);
     };
   }, [shopId, enabled, q]);
+
+  async function addCustomer(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (busy || disabled) return;
+    setBusy(true);
+    setError('');
+    setInvitation(null);
+    try {
+      const customer = await api<{ id: string; name: string }>(
+        `/shops/${shopId}/customers`,
+        {
+          method: 'POST',
+          body: {
+            name: newName.trim() || 'Покупатель',
+            phone: newPhone,
+            address: newAddress,
+          },
+        },
+      );
+      setNewName('');
+      setNewPhone('');
+      setNewAddress('');
+      setAdding(false);
+      setQ(customer.name);
+      try {
+        const issued = await api<{ token: string; expiresAt: string }>(
+          `/shops/${shopId}/customers/${customer.id}/invite`,
+          { method: 'POST', body: {} },
+        );
+        setInvitation({ ...issued, name: customer.name });
+      } catch (err) {
+        setError('Клиент создан, но приглашение не выдано: ' + errorText(err));
+      }
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   if (!enabled) return null;
 
@@ -120,6 +174,66 @@ export default function CreditFields({
           onChange={(event) => onDueChange(event.target.value)}
         />
       </label>
+      <button
+        type="button"
+        disabled={disabled || busy}
+        onClick={() => {
+          setAdding((value) => !value);
+          setInvitation(null);
+        }}
+      >
+        {adding ? 'Отмена' : '+ Добавить покупателя по номеру'}
+      </button>
+      {adding && (
+        <form
+          className="pos-credit-enrollment"
+          onSubmit={(event) => void addCustomer(event)}
+        >
+          <label>
+            Имя покупателя (необязательно)
+            <input
+              minLength={2}
+              maxLength={120}
+              value={newName}
+              onChange={(event) => setNewName(event.target.value)}
+              placeholder="Азамат"
+            />
+          </label>
+          <label>
+            Номер телефона
+            <input
+              required
+              type="tel"
+              pattern={KYRGYZ_PHONE_PATTERN}
+              maxLength={32}
+              value={newPhone}
+              onChange={(event) =>
+                setNewPhone(formatKyrgyzPhoneInput(event.target.value))
+              }
+              placeholder="+996 700 123 456"
+            />
+          </label>
+          <label>
+            Адрес (по желанию)
+            <input
+              maxLength={500}
+              value={newAddress}
+              onChange={(event) => setNewAddress(event.target.value)}
+            />
+          </label>
+          <button className="primary" type="submit" disabled={busy || disabled}>
+            {busy ? 'Сохраняем…' : 'Создать и выдать приглашение'}
+          </button>
+        </form>
+      )}
+      {invitation && (
+        <BuyerActivationPanel
+          name={invitation.name}
+          token={invitation.token}
+          expiresAt={invitation.expiresAt}
+          onClose={() => setInvitation(null)}
+        />
+      )}
       <p className="muted">
         Остаток в долг:{' '}
         <strong>

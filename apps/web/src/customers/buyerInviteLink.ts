@@ -1,0 +1,13 @@
+/** The token is a single-use 15-minute shop invitation, not a login credential. */
+export function parseBuyerInviteFragment(fragment: string): string {
+  const token = new URLSearchParams(fragment.replace(/^#/, '')).get('invite');
+  return token && /^[A-Za-z0-9_-]{43}$/.test(token) ? token : '';
+}
+
+export function buyerInviteLink(token: string, origin: string): string {
+  if (!/^[A-Za-z0-9_-]{43}$/.test(token)) {
+    throw new Error('Недействительный код приглашения');
+  }
+  const safeOrigin = new URL(origin).origin;
+  return safeOrigin + '/buyer#invite=' + token;
+}

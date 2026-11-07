@@ -4,6 +4,7 @@ import {
   formatKyrgyzPhoneInput,
   KYRGYZ_PHONE_PATTERN,
 } from './kyrgyzPhoneMask';
+import { parseBuyerInviteFragment } from './buyerInviteLink';
 
 type BuyerDebt = {
   saleId: string;
@@ -75,7 +76,19 @@ export default function BuyerPortalPage() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
-  const [inviteToken, setInviteToken] = useState('');
+  const [inviteToken, setInviteToken] = useState(() =>
+    parseBuyerInviteFragment(window.location.hash),
+  );
+  useEffect(() => {
+    if (parseBuyerInviteFragment(window.location.hash)) {
+      // Remove the secret from browser history and address bar.
+      window.history.replaceState(
+        window.history.state,
+        '',
+        window.location.pathname + window.location.search,
+      );
+    }
+  }, []);
   const [telegramEnabled, setTelegramEnabled] = useState(false);
   const [telegramLink, setTelegramLink] = useState('');
   const [telegramError, setTelegramError] = useState('');
@@ -299,6 +312,12 @@ export default function BuyerPortalPage() {
             )}
             <section className="panel buyer-tile">
               <h2>Привязать магазин</h2>
+              {inviteToken && (
+                <p className="muted">
+                  Приглашение из QR-кода получено. Нажмите «Привязать магазин»,
+                  чтобы подтвердить связь с вашим аккаунтом.
+                </p>
+              )}
               <p className="muted">
                 Получите одноразовый код у кассира и введите его здесь. Код
                 действует 15 минут.
@@ -393,6 +412,12 @@ export default function BuyerPortalPage() {
             <h1>
               {mode === 'register' ? 'Создать аккаунт' : 'Войти в кабинет'}
             </h1>
+            {inviteToken && (
+              <div className="buyer-message" role="status">
+                Приглашение магазина получено. Войдите или зарегистрируйтесь со
+                своим номером и подтвердите привязку.
+              </div>
+            )}
             <p className="muted">
               Один кабинет для покупок в магазинах MyStore. Вход по номеру
               Кыргызстана и паролю.
