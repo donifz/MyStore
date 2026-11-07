@@ -63,6 +63,7 @@ describe('reports and platform management', () => {
 
   test('order issued_at timing, channel separation in financial reports and exports', async () => {
     // 1. Create a product variant and receive 10 units
+    const originalStock = (await get('/reports/summary').expect(200)).body;
     const prodRes = await post('/variants', {
       name: 'Channel Test Shirt',
       barcode: 'CHAN-001',
@@ -74,6 +75,18 @@ describe('reports and platform management', () => {
     await post('/receivings', {
       lines: [{ variantId: vId, quantity: 10, unitCostMinor: 40000 }],
     }).expect(201);
+
+    const stockSummary = (await get('/reports/summary').expect(200)).body;
+    expect(stockSummary.physicalUnits - originalStock.physicalUnits).toBe(10);
+    expect(stockSummary.stockValueMinor - originalStock.stockValueMinor).toBe(
+      400000,
+    );
+    expect(
+      stockSummary.stockRetailValueMinor - originalStock.stockRetailValueMinor,
+    ).toBe(800000);
+    expect(
+      stockSummary.stockedVariantsCount - originalStock.stockedVariantsCount,
+    ).toBe(1);
 
     // 2. Place an online order on storefront
     const orderRes = await request(ctx.app.getHttpServer())
@@ -136,6 +149,15 @@ describe('reports and platform management', () => {
     expect(afterPosSummary.body.onlineSalesMinor).toBe(160000);
     expect(afterPosSummary.body.onlineSalesCount).toBe(1);
     expect(afterPosSummary.body.salesMinor).toBe(240000);
+    expect(afterPosSummary.body.physicalUnits).toBe(
+      stockSummary.physicalUnits - 3,
+    );
+    expect(afterPosSummary.body.stockRetailValueMinor).toBe(
+      stockSummary.stockRetailValueMinor - 240000,
+    );
+    expect(afterPosSummary.body.stockValueMinor).toBe(
+      stockSummary.stockValueMinor - 120000,
+    );
 
     // 4. Check CSV exports
     const salesCsv = await get('/reports/export/sales.csv').expect(200);
