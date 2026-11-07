@@ -81,7 +81,6 @@ export class CreditSalesService {
             'Для полной оплаты используйте обычную продажу',
           );
         }
-        const due = total - paid;
         const posted = await this.pos.postInTransaction(
           tx,
           shopId,
