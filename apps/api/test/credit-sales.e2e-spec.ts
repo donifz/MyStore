@@ -43,14 +43,6 @@ describe('POS credit sales accounting', () => {
         .send({ name: 'Credit Buyer', phone: '0700 123 456' })
         .expect(201)
     ).body.id;
-    const [{ id }] = await c.db.query(
-      `INSERT INTO buyer_accounts(phone_e164,display_name,password_hash)
-       VALUES('+996700123456','Credit Buyer','fixture-hash') RETURNING id`,
-    );
-    await c.db.query(
-      'UPDATE shop_customers SET buyer_account_id=$3 WHERE shop_id=$1 AND id=$2',
-      [fixture.shop, customerId, id],
-    );
   });
   afterEach(async () => {
     await teardown(c);
@@ -71,27 +63,35 @@ describe('POS credit sales accounting', () => {
       });
   }
 
-  it('requires owner credit approval and enforces customer limit', async () => {
-    await sell(5000).expect(409);
-    await request(c.app.getHttpServer())
-      .post(shop + '/customers/' + customerId + '/credit-policy')
-      .auth(c.cashier, { type: 'bearer' })
-      .send({ approved: true, limitMinor: 100000 })
-      .expect(403);
-    await request(c.app.getHttpServer())
-      .post(shop + '/customers/' + customerId + '/credit-policy')
-      .auth(c.owner, { type: 'bearer' })
-      .send({ approved: true, limitMinor: 20000 })
-      .expect(201);
-    await sell(5000).expect(409);
+  it('allows an unverified customer without owner approval or credit limit', async () => {
+    const [customerBefore] = await c.db.query(
+      'SELECT buyer_account_id,credit_approved,credit_limit_minor FROM shop_customers WHERE shop_id=$1 AND id=$2',
+      [fixture.shop, customerId],
+    );
+    expect(customerBefore.buyer_account_id).toBeNull();
+    expect(customerBefore.credit_approved).toBe(false);
+    expect(Number(customerBefore.credit_limit_minor)).toBe(0);
+
+    const response = await sell(5000).expect(201);
+    expect(response.body.customerId).toBe(customerId);
+    expect(response.body.paidMinor).toBe(5000);
+    expect(response.body.debtMinor).toBe(25000);
+  });
+
+  it('does not require credit approval for a linked buyer either', async () => {
+    const [{ id }] = await c.db.query(
+      `INSERT INTO buyer_accounts(phone_e164,display_name,password_hash)
+       VALUES('+996700123456','Credit Buyer','fixture-hash') RETURNING id`,
+    );
+    await c.db.query(
+      'UPDATE shop_customers SET buyer_account_id=$3 WHERE shop_id=$1 AND id=$2',
+      [fixture.shop, customerId, id],
+    );
+    const response = await sell(0).expect(201);
+    expect(response.body.debtMinor).toBe(30000);
   });
 
   it('atomically posts stock, only immediate cash and debt; replay is safe', async () => {
-    await request(c.app.getHttpServer())
-      .post(shop + '/customers/' + customerId + '/credit-policy')
-      .auth(c.owner, { type: 'bearer' })
-      .send({ approved: true, limitMinor: 100000 })
-      .expect(201);
     const key = randomUUID();
     const a = await sell(5000, key).expect(201);
     const b = await sell(5000, key).expect(201);
@@ -126,11 +126,6 @@ describe('POS credit sales accounting', () => {
   });
 
   it('records zero upfront payment without fabricated payment record', async () => {
-    await request(c.app.getHttpServer())
-      .post(shop + '/customers/' + customerId + '/credit-policy')
-      .auth(c.owner, { type: 'bearer' })
-      .send({ approved: true, limitMinor: 100000 })
-      .expect(201);
     const response = await sell(0).expect(201);
     expect(response.body.debtMinor).toBe(30000);
     const [row] = await c.db.query(
@@ -141,11 +136,6 @@ describe('POS credit sales accounting', () => {
   });
 
   it('accepts partial and full repayments without fake product sales', async () => {
-    await request(c.app.getHttpServer())
-      .post(shop + '/customers/' + customerId + '/credit-policy')
-      .auth(c.owner, { type: 'bearer' })
-      .send({ approved: true, limitMinor: 100000 })
-      .expect(201);
     const created = await sell(5000).expect(201);
     const path = shop + '/pos/credit-sales/' + created.body.id + '/repayments';
     const key = randomUUID();
@@ -215,11 +205,6 @@ describe('POS credit sales accounting', () => {
   });
 
   it('refuses overpayment, missing shop access and closed shifts', async () => {
-    await request(c.app.getHttpServer())
-      .post(shop + '/customers/' + customerId + '/credit-policy')
-      .auth(c.owner, { type: 'bearer' })
-      .send({ approved: true, limitMinor: 100000 })
-      .expect(201);
     const created = await sell(5000).expect(201);
     const path = shop + '/pos/credit-sales/' + created.body.id + '/repayments';
     await request(c.app.getHttpServer())
@@ -254,11 +239,6 @@ describe('POS credit sales accounting', () => {
   });
 
   it('does not expose repayments to another buyer by guessing a sale id', async () => {
-    await request(c.app.getHttpServer())
-      .post(shop + '/customers/' + customerId + '/credit-policy')
-      .auth(c.owner, { type: 'bearer' })
-      .send({ approved: true, limitMinor: 100000 })
-      .expect(201);
     const created = await sell(0).expect(201);
     const path = shop + '/pos/credit-sales/' + created.body.id + '/repayments';
     await request(c.app.getHttpServer())
@@ -288,11 +268,6 @@ describe('POS credit sales accounting', () => {
   });
 
   it('rejects overpayment and prevents unsafe refund on credit sale', async () => {
-    await request(c.app.getHttpServer())
-      .post(shop + '/customers/' + customerId + '/credit-policy')
-      .auth(c.owner, { type: 'bearer' })
-      .send({ approved: true, limitMinor: 100000 })
-      .expect(201);
     await sell(30000).expect(400);
     const created = await sell(5000).expect(201);
     const [line] = await c.db.query(
