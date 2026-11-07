@@ -19,62 +19,66 @@ export default function LoyaltyCheckout({
   disabled,
 }: Props) {
   const [scanning, setScanning] = useState(false);
+  // One point = one som; redemption is at most 20% of the receipt.
   const maxPoints = Math.floor(totalMinor / 500);
+  const qrReady = /^[A-Za-z0-9_-]{43}$/.test(token);
+
   return (
-    <div className="pos-credit-enrollment">
-      <strong>Бонусная карта покупателя</strong>
-      <p className="muted">
-        Покупатель открывает «Мой QR» в кабинете MyStore. QR действителен 2
-        минуты и используется только один раз.
-      </p>
-      <label>
-        Код карты
-        <input
+    <div className="pos-loyalty-checkout">
+      <div className="pos-loyalty-qr-row">
+        <button
+          type="button"
+          className="pos-loyalty-scan"
           disabled={disabled}
-          type="text"
-          autoComplete="off"
-          value={token}
-          maxLength={43}
-          placeholder="Сканируйте QR или введите код"
-          onChange={(e) => setToken(e.target.value.trim())}
-        />
-      </label>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => setScanning((value) => !value)}
-      >
-        {scanning ? 'Закрыть сканер' : 'Сканировать QR покупателя'}
-      </button>
+          onClick={() => setScanning((current) => !current)}
+        >
+          {scanning ? 'Закрыть камеру' : 'Сканировать QR'}
+        </button>
+        <label className="pos-loyalty-code">
+          <span className="sr-only">Код карты покупателя</span>
+          <input
+            aria-label="Код карты покупателя"
+            type="text"
+            autoComplete="off"
+            disabled={disabled}
+            maxLength={43}
+            value={token}
+            onChange={(e) => setToken(e.target.value.trim())}
+            placeholder="Или введите код"
+          />
+        </label>
+      </div>
       {scanning && (
         <CameraScanner
           onClose={() => setScanning(false)}
           onScan={(value) => {
-            if (/^[A-Za-z0-9_-]{43}$/.test(value)) setToken(value);
-            else setToken('');
+            setToken(/^[A-Za-z0-9_-]{43}$/.test(value) ? value : '');
             setScanning(false);
           }}
         />
       )}
-      <label>
-        Списать баллов (не более 20% стоимости)
+      {qrReady && <span className="pos-loyalty-ok" role="status">QR считан</span>}
+      <label className="pos-loyalty-points">
+        <span>Списать баллов</span>
         <input
+          aria-label="Списать баллов"
+          inputMode="numeric"
           type="number"
           min="0"
           max={maxPoints}
           step="1"
-          disabled={disabled || !token}
+          disabled={disabled || !qrReady}
           value={points}
           onChange={(e) => {
             const num = Number(e.target.value);
             setPoints(Number.isSafeInteger(num) && num >= 0 ? num : 0);
           }}
         />
+        <span className="pos-loyalty-max">Макс. {maxPoints}</span>
       </label>
-      <p className="muted">
-        1 балл = 1 сом. До {maxPoints} баллов за эту покупку. Баланс и
-        действительность QR проверяет сервер.
-      </p>
+      <small className="pos-loyalty-hint">
+        Только подтверждённый покупатель · 1 балл = 1 сом · до 20% чека
+      </small>
     </div>
   );
 }
