@@ -234,7 +234,8 @@
   width: 100%;
 }
 
-.credit-invite-actions button {
+.credit-invite-actions button,
+.credit-invite-actions a {
   flex: 1 1 120px;
   min-height: 42px;
   padding: 8px 10px;
@@ -243,6 +244,8 @@
   background: #fff;
   color: #096b4e;
   font-weight: 600;
+  text-align: center;
+  text-decoration: none;
 }
 
 .credit-invite-link {
