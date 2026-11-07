@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { formatSom } from '../api/money';
 import CreditFields from './CreditFields';
 import LoyaltyCheckout from './LoyaltyCheckout';
+import PaymentIcon from './PaymentIcon';
 import './payment-bottom-sheet.css';
 
 const creditSalesEnabled =
@@ -163,14 +164,14 @@ export default function PaymentBottomSheet({
             aria-label="Закрыть оплату"
             onClick={onClose}
           >
-            ×
+            <PaymentIcon name="close" size={21} />
           </button>
         </div>
 
         {success ? (
           <div className="pos-sheet-success" role="status">
             <div className="pos-sheet-success-icon" aria-hidden="true">
-              ✓
+              <PaymentIcon name="check" size={26} />
             </div>
             <h3>Продажа проведена</h3>
             <p className="muted">{success}</p>
@@ -206,17 +207,7 @@ export default function PaymentBottomSheet({
                       disabled={paymentPending}
                       onChange={() => setMethod('cash')}
                     />
-                    <svg
-                      className="pos-icon"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.9"
-                      aria-hidden="true"
-                    >
-                      <rect x="2.5" y="6" width="19" height="12" rx="2" />
-                      <circle cx="12" cy="12" r="2.7" />
-                    </svg>
+                    <PaymentIcon name="cash" />
                     <span>Наличные</span>
                   </label>
                   <label
@@ -232,17 +223,7 @@ export default function PaymentBottomSheet({
                       disabled={paymentPending}
                       onChange={() => setMethod('card')}
                     />
-                    <svg
-                      className="pos-icon"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.9"
-                      aria-hidden="true"
-                    >
-                      <rect x="2.5" y="5.5" width="19" height="13" rx="2" />
-                      <path d="M2.5 10h19M6.5 14.5h4" />
-                    </svg>
+                    <PaymentIcon name="card" />
                     <span>Безналичные</span>
                   </label>
                 </div>
@@ -263,12 +244,16 @@ export default function PaymentBottomSheet({
                       setActivePanel('bonus');
                     }}
                   >
-                    <span className="pos-option-icon" aria-hidden="true">✦</span>
+                    <span className="pos-option-icon" aria-hidden="true">
+                      <PaymentIcon name="gift" />
+                    </span>
                     <strong>Бонусы / скидка</strong>
                     <span className="pos-option-detail">
                       {redeemPoints > 0 ? '−' + formatSom(redeemPoints * 100) : ''}
                     </span>
-                    <span className="pos-option-chevron" aria-hidden="true">›</span>
+                    <span className="pos-option-chevron" aria-hidden="true">
+                      <PaymentIcon name="chevron" size={18} />
+                    </span>
                   </button>
                 </section>
               )}
@@ -292,7 +277,9 @@ export default function PaymentBottomSheet({
                       setActivePanel('credit');
                     }}
                   >
-                    <span className="pos-option-icon" aria-hidden="true">◷</span>
+                    <span className="pos-option-icon" aria-hidden="true">
+                      <PaymentIcon name="clock" />
+                    </span>
                     <strong>Продажа в долг</strong>
                     <span className="pos-option-state">
                       {creditMode
@@ -301,7 +288,9 @@ export default function PaymentBottomSheet({
                           : formatSom(creditDebtMinor)
                         : ''}
                     </span>
-                    <span className="pos-option-chevron" aria-hidden="true">›</span>
+                    <span className="pos-option-chevron" aria-hidden="true">
+                      <PaymentIcon name="chevron" size={18} />
+                    </span>
                   </button>
                   {creditMode && (
                     <button
@@ -311,7 +300,7 @@ export default function PaymentBottomSheet({
                       aria-label="Убрать продажу в долг"
                       onClick={() => setCreditMode(false)}
                     >
-                      ×
+                      <PaymentIcon name="close" size={18} />
                     </button>
                   )}
                 </section>
@@ -466,7 +455,9 @@ export default function PaymentBottomSheet({
                 disabled={!canSubmit || isSubmitting}
                 onClick={onSubmit}
               >
-                <span aria-hidden="true">✓</span>
+                <span aria-hidden="true">
+                  <PaymentIcon name="check" size={19} />
+                </span>
                 <span>
                   {isSubmitting
                     ? 'Проведение…'
@@ -499,8 +490,17 @@ export default function PaymentBottomSheet({
             <div className="pos-sheet-option-handle" aria-hidden="true" />
             <div className="pos-sheet-option-head">
               <span className="pos-sheet-option-title">
-                <span className={activePanel === 'credit' ? 'option-graphic credit' : 'option-graphic'}>
-                  {activePanel === 'credit' ? '◷' : '✦'}
+                <span
+                  className={
+                    activePanel === 'credit'
+                      ? 'option-graphic credit'
+                      : 'option-graphic'
+                  }
+                >
+                  <PaymentIcon
+                    name={activePanel === 'credit' ? 'clock' : 'gift'}
+                    size={22}
+                  />
                 </span>
                 <strong>
                   {activePanel === 'credit' ? 'Продажа в долг' : 'Бонусы / скидка'}
@@ -512,13 +512,12 @@ export default function PaymentBottomSheet({
                 aria-label="Закрыть настройки"
                 onClick={cancelPanel}
               >
-                ×
+                <PaymentIcon name="close" size={21} />
               </button>
             </div>
             <div className="pos-sheet-option-scroll">
               {activePanel === 'credit' ? (
-                <>
-                  <CreditFields
+                <CreditFields
                     shopId={shopId}
                     enabled
                     disabled={paymentPending}
@@ -530,8 +529,7 @@ export default function PaymentBottomSheet({
                     dueOn={creditDueOn}
                     onDueChange={setCreditDueOn}
                     debtMinor={creditDebtMinor}
-                  />
-                </>
+                />
               ) : (
                 <>
                   <p className="pos-option-subtitle">
