@@ -107,9 +107,9 @@ export class ShopCustomersService {
     const [row] = await this.db.query(
       `INSERT INTO shop_customers
        (shop_id,phone_e164,display_name,created_by,buyer_account_id)
-       VALUES($1,$2,$3,$4,
+       VALUES($1,$2::text,$3,$4,
          (SELECT id FROM buyer_accounts
-          WHERE phone_e164=$2 AND phone_verified_at IS NOT NULL))
+          WHERE phone_e164=$2::text AND phone_verified_at IS NOT NULL))
        ON CONFLICT (shop_id,phone_e164)
        DO UPDATE SET updated_at=shop_customers.updated_at
        RETURNING id,display_name AS "name",phone_e164 AS phone,
