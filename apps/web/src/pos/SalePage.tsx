@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { api } from '../api/client';
 import type { Page, Variant } from '../api/types';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useSession } from '../auth/SessionProvider';
 import { formatSom, parseSom } from '../api/money';
 import { useDocument } from '../drafts/use-document';
