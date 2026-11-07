@@ -1,12 +1,17 @@
 /* Mobile POS: scroll details, never the payment amount or primary action. */
 .pos-sheet-drawer {
-  max-height: min(94dvh, 940px);
+  /* Give the card shortcuts room while payment totals stay pinned below. */
+  height: min(97dvh, 1040px);
+  max-height: min(97dvh, 1040px);
 }
 .pos-sheet-drawer .pos-sheet-body {
-  /* A constrained CSS grid shrank overflow:hidden option cards to 2px rows
-     once the always-visible payment footer consumed most of the viewport. */
-  display: flex;
-  flex-direction: column;
+  /* Auto-sized grid rows must never collapse cards under the fixed footer. */
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: max-content;
+  align-content: start;
+  column-gap: 10px;
+  row-gap: 10px;
   flex: 1 1 auto;
   min-height: 0;
   padding: 14px 16px 18px;
@@ -15,8 +20,10 @@
   overscroll-behavior: contain;
 }
 .pos-sheet-drawer .pos-sheet-body > * {
-  flex: 0 0 auto;
   min-width: 0;
+}
+.pos-sheet-drawer .pos-sheet-body > :not(.pos-payment-option) {
+  grid-column: 1 / -1;
 }
 .pos-sheet-footer {
   display: grid;
@@ -732,5 +739,64 @@
   .pos-sheet-drawer .pos-option-detail {
     max-width: 35%;
     font-size: 11px;
+  }
+}
+
+
+/* Four premium actions in a single, resilient 2x2 grid on narrow devices. */
+.pos-sheet-drawer .pos-payment-option {
+  min-height: 90px;
+}
+.pos-sheet-drawer .pos-payment-option .pos-option-trigger {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 16px;
+  grid-template-rows: auto auto;
+  align-content: center;
+  align-items: center;
+  column-gap: 7px;
+  row-gap: 4px;
+  min-height: 90px;
+  height: 100%;
+  padding: 10px;
+}
+.pos-sheet-drawer .pos-payment-option .pos-option-icon {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  width: 32px;
+  height: 32px;
+  min-width: 0;
+}
+.pos-sheet-drawer .pos-payment-option .pos-option-trigger strong {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  font-size: clamp(12px, 3.4vw, 15px);
+  line-height: 1.22;
+  overflow-wrap: anywhere;
+}
+.pos-sheet-drawer .pos-payment-option .pos-option-detail,
+.pos-sheet-drawer .pos-payment-option .pos-option-state {
+  grid-column: 2 / 4;
+  grid-row: 2;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.22;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.pos-sheet-drawer .pos-payment-option .pos-option-chevron {
+  grid-column: 3;
+  grid-row: 1;
+}
+@media (max-width: 390px) {
+  .pos-sheet-drawer .pos-sheet-body {
+    column-gap: 8px;
+    row-gap: 8px;
+  }
+  .pos-sheet-drawer .pos-payment-option .pos-option-trigger {
+    column-gap: 5px;
+    padding: 8px;
   }
 }
