@@ -426,7 +426,7 @@
   color: #fff;
 }
 .pos-sheet-option-apply:disabled {
-  opacity: .5;
+  opacity: 0.5;
 }
 .pos-sheet-drawer .pos-payment-option {
   position: relative;
@@ -449,6 +449,51 @@
   display: none;
 }
 @media (min-width: 700px) {
-  .pos-sheet-option-layer { align-items: center; }
-  .pos-sheet-option-dialog { border-radius: 22px; max-height: 82dvh; }
+  .pos-sheet-option-layer {
+    align-items: center;
+  }
+  .pos-sheet-option-dialog {
+    border-radius: 22px;
+    max-height: 82dvh;
+  }
+}
+
+.pos-sheet-drawer .pos-option-icon svg,
+.option-graphic svg {
+  display: block;
+}
+.pos-sheet-drawer .pos-option-chevron {
+  display: grid;
+  place-items: center;
+}
+.pos-sheet-drawer .pos-sheet-close,
+.pos-sheet-option-dialog .pos-sheet-close {
+  display: grid;
+  place-items: center;
+}
+.pos-sheet-option-scroll .credit-customer-tabs button,
+.pos-sheet-option-scroll .credit-customer-invite-button,
+.pos-sheet-option-scroll .credit-customer-create,
+.pos-loyalty-scan,
+.pos-loyalty-ok {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.pos-sheet-option-scroll .credit-customer-radio {
+  display: grid;
+  place-items: center;
+}
+.pos-sheet-option-scroll .credit-invite-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.pos-sheet-option-scroll .credit-invite-actions button svg {
+  flex-shrink: 0;
+}
+.pos-loyalty-ok {
+  justify-content: flex-start;
 }
