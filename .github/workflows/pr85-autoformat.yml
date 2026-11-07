@@ -1,7 +1,7 @@
-name: Autoformat PR 85
+name: Autoformat loyalty code
 on:
   push:
-    branches: [feat/simplify-store-workflows-20261031]
+    branches: [feat/loyalty-qr-checkout-20261107]
 permissions:
   contents: write
 jobs:
@@ -17,12 +17,12 @@ jobs:
       - run: npm ci
       - name: Apply Prettier and commit changes
         run: |
-          npx prettier --write apps/web/src/layout/workspace-navigation.test.ts apps/web/src/layout/workspace-navigation.ts apps/web/src/receiving/ReceivingPage.tsx
+          npx prettier --write apps/api/src/pos/loyalty.service.ts apps/api/src/pos/pos-sales.controller.ts apps/api/src/pos/pos-sales.service.ts apps/web/src/customers/BuyerPortalPage.tsx apps/web/src/pos/LoyaltyCheckout.tsx apps/web/src/reports/ReportsPage.tsx
           npm run format:check
           if ! git diff --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add apps/web/src/layout/workspace-navigation.test.ts apps/web/src/layout/workspace-navigation.ts apps/web/src/receiving/ReceivingPage.tsx
-            git commit -m "style: apply Prettier to simplified workflow UI"
+            git add apps/api/src/pos/loyalty.service.ts apps/api/src/pos/pos-sales.controller.ts apps/api/src/pos/pos-sales.service.ts apps/web/src/customers/BuyerPortalPage.tsx apps/web/src/pos/LoyaltyCheckout.tsx apps/web/src/reports/ReportsPage.tsx
+            git commit -m "style: format loyalty code"
             git push
           fi
