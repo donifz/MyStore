@@ -3,6 +3,7 @@ import { formatSom } from '../api/money';
 import CreditFields from './CreditFields';
 import LoyaltyCheckout from './LoyaltyCheckout';
 import PaymentIcon from './PaymentIcon';
+import type { CheckoutDiscountMode } from './checkout-discount';
 import './payment-bottom-sheet.css';
 
 const creditSalesEnabled =
@@ -31,6 +32,13 @@ export type PaymentBottomSheetProps = {
   redeemPoints: number;
   setRedeemPoints: (value: number) => void;
   originalTotalMinor: number;
+  checkoutOriginalMinor?: number;
+  checkoutDiscountText?: string;
+  setCheckoutDiscountText?: (value: string) => void;
+  checkoutDiscountMode?: CheckoutDiscountMode;
+  setCheckoutDiscountMode?: (value: CheckoutDiscountMode) => void;
+  checkoutDiscountMinor?: number;
+  checkoutDiscountError?: string;
   method: 'cash' | 'card';
   setMethod: (m: 'cash' | 'card') => void;
   received: string;
@@ -72,6 +80,13 @@ export default function PaymentBottomSheet({
   redeemPoints,
   setRedeemPoints,
   originalTotalMinor,
+  checkoutOriginalMinor = originalTotalMinor,
+  checkoutDiscountText = '',
+  setCheckoutDiscountText = () => undefined,
+  checkoutDiscountMode = 'som',
+  setCheckoutDiscountMode = () => undefined,
+  checkoutDiscountMinor = 0,
+  checkoutDiscountError = '',
   received,
   setReceived,
   totalText,
@@ -89,9 +104,17 @@ export default function PaymentBottomSheet({
   onNewReceipt,
 }: PaymentBottomSheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
-  const [activePanel, setActivePanel] = useState<'bonus' | 'credit' | null>(
-    null,
-  );
+  const [activePanel, setActivePanel] = useState<'bonus' | 'credit' | 'customer' | null>(null);
+  const [selectedCustomerName, setSelectedCustomerName] = useState('');
+  const returnToCredit = useRef(false);
+  function openCustomer(fromCredit = false) {
+    returnToCredit.current = fromCredit;
+    setActivePanel('customer');
+  }
+  function openBonus() {
+    previousBonus.current = { token: loyaltyToken, points: redeemPoints };
+    setActivePanel('bonus');
+  }
   const previousBonus = useRef({ token: '', points: 0 });
   const previousCredit = useRef({
     enabled: false,
@@ -101,6 +124,10 @@ export default function PaymentBottomSheet({
   });
 
   function cancelPanel() {
+    if (activePanel === 'customer') {
+      setActivePanel(returnToCredit.current ? 'credit' : null);
+      return;
+    }
     if (activePanel === 'bonus') {
       setLoyaltyToken(previousBonus.current.token);
       setRedeemPoints(previousBonus.current.points);
@@ -157,7 +184,7 @@ export default function PaymentBottomSheet({
         <div className="pos-sheet-handle" aria-hidden="true" />
         <div className="pos-sheet-head">
           <div className="pos-sheet-head-copy">
-            <h2>Оплата чека</h2>
+            <h2><span className="pos-heading-icon"><PaymentIcon name="cart" size={22} /></span> Оплата чека</h2>
             <strong className="pos-sheet-total">К оплате: {totalText}</strong>
           </div>
           <button
@@ -228,8 +255,29 @@ export default function PaymentBottomSheet({
                     <PaymentIcon name="card" />
                     <span>Безналичные</span>
                   </label>
+                  {loyaltyEnabled && (
+                    <button type="button" className="pos-method pos-method-qr" aria-label="QR покупателя" disabled={paymentPending} onClick={openBonus}>
+                      <PaymentIcon name="qr" size={20} /><span>QR</span>
+                    </button>
+                  )}
                 </div>
               </fieldset>
+
+              <section className="pos-payment-option pos-option-customer">
+                <button type="button" className="pos-option-trigger" disabled={paymentPending} aria-haspopup="dialog" onClick={() => openCustomer()}>
+                  <span className="pos-option-icon" aria-hidden="true"><PaymentIcon name="user" /></span>
+                  <strong>Покупатель</strong>
+                  <span className="pos-option-detail">{selectedCustomerName || 'Не выбран'}</span>
+                  <span className="pos-option-chevron" aria-hidden="true"><PaymentIcon name="chevron" size={18} /></span>
+                </button>
+              </section>
+              <section className="pos-payment-option pos-option-discount">
+                <div className="pos-option-trigger">
+                  <span className="pos-option-icon" aria-hidden="true"><PaymentIcon name="tag" /></span>
+                  <strong>Скидка</strong>
+                  <span className="pos-option-detail">{checkoutDiscountMinor ? '− ' + formatSom(checkoutDiscountMinor) : '0,00 сом (0%)'}</span>
+                </div>
+              </section>
 
               {loyaltyEnabled && !creditMode && (
                 <section className="pos-payment-option pos-option-bonus">
@@ -239,17 +287,13 @@ export default function PaymentBottomSheet({
                     disabled={paymentPending}
                     aria-haspopup="dialog"
                     onClick={() => {
-                      previousBonus.current = {
-                        token: loyaltyToken,
-                        points: redeemPoints,
-                      };
-                      setActivePanel('bonus');
+                      openBonus();
                     }}
                   >
                     <span className="pos-option-icon" aria-hidden="true">
-                      <PaymentIcon name="sparkle" />
+                      <PaymentIcon name="gift" />
                     </span>
-                    <strong>Бонусы / скидка</strong>
+                    <strong>Бонусы</strong>
                     <span className="pos-option-detail">
                       {redeemPoints > 0
                         ? '−' + formatSom(redeemPoints * 100)
@@ -282,7 +326,7 @@ export default function PaymentBottomSheet({
                     }}
                   >
                     <span className="pos-option-icon" aria-hidden="true">
-                      <PaymentIcon name="clock" />
+                      <PaymentIcon name="coins" />
                     </span>
                     <strong>Продажа в долг</strong>
                     <span className="pos-option-state">
@@ -319,8 +363,9 @@ export default function PaymentBottomSheet({
             <div className="pos-sheet-footer">
               {!creditMode && method === 'cash' && (
                 <div className="pos-sheet-cash-section">
-                  <label className="pos-received">
-                    Получено от покупателя, сом
+                  <div className="pos-checkout-money-row">
+                    <label className="pos-received">
+                      <span><PaymentIcon name="wallet" size={17} /> Получено от покупателя, сом</span>
                     <input
                       inputMode="decimal"
                       placeholder="0,00"
@@ -328,7 +373,18 @@ export default function PaymentBottomSheet({
                       value={received}
                       onChange={(e) => setReceived(e.target.value)}
                     />
-                  </label>
+                    </label>
+                    <label className="pos-discount-field">
+                      <span><PaymentIcon name="tag" size={17} /> Скидка, сом / %</span>
+                      <span className="pos-discount-control">
+                        <input inputMode="decimal" aria-label="Скидка при оплате" value={checkoutDiscountText} disabled={paymentPending} placeholder="0,00" onChange={(event) => setCheckoutDiscountText(event.target.value)} />
+                        <span className="pos-discount-modes" role="group" aria-label="Единица скидки">
+                          <button type="button" className={checkoutDiscountMode === 'som' ? 'selected' : ''} aria-pressed={checkoutDiscountMode === 'som'} disabled={paymentPending} onClick={() => setCheckoutDiscountMode('som')}>сом</button>
+                          <button type="button" className={checkoutDiscountMode === 'percent' ? 'selected' : ''} aria-pressed={checkoutDiscountMode === 'percent'} disabled={paymentPending} onClick={() => setCheckoutDiscountMode('percent')}>%</button>
+                        </span>
+                      </span>
+                    </label>
+                  </div>
                   <div className="pos-quick">
                     <span className="pos-quick-label">Быстрые суммы</span>
                     <div className="pos-quick-buttons">
@@ -401,6 +457,7 @@ export default function PaymentBottomSheet({
                 </div>
               )}
 
+              {checkoutDiscountError && <p role="alert" className="pos-sheet-warning">{checkoutDiscountError}</p>}
               {receivedError && !creditMode && (
                 <p role="alert" className="error">
                   {receivedError}
@@ -412,11 +469,21 @@ export default function PaymentBottomSheet({
                 </p>
               )}
 
-              <div className="pos-totals pos-sheet-totals">
-                <div className="pos-total-tile">
-                  <span>К оплате</span>
+              <div className="pos-totals pos-sheet-totals pos-checkout-summary">
+                <div className="pos-total-tile pos-summary-original">
+                  <span><PaymentIcon name="cart" size={16} /> Сумма</span>
+                  <strong>{formatSom(checkoutOriginalMinor)}</strong>
+                </div>
+                <div className="pos-total-tile pos-summary-discount">
+                  <span><PaymentIcon name="tag" size={16} /> Скидка</span>
+                  <strong>− {formatSom(checkoutDiscountMinor)}</strong>
+                </div>
+                <div className="pos-total-tile pos-summary-due">
+                  <span><PaymentIcon name="wallet" size={16} /> К оплате</span>
                   <strong>{totalText}</strong>
                 </div>
+              </div>
+              <div className="pos-totals pos-sheet-totals pos-change-row">
                 <div
                   className={
                     !creditMode && isShort
@@ -488,7 +555,7 @@ export default function PaymentBottomSheet({
             role="dialog"
             aria-modal="true"
             aria-label={
-              activePanel === 'credit' ? 'Продажа в долг' : 'Бонусы / скидка'
+              activePanel === 'credit' ? 'Продажа в долг' : activePanel === 'customer' ? 'Покупатель' : 'Бонусы'
             }
           >
             <div className="pos-sheet-option-handle" aria-hidden="true" />
@@ -496,20 +563,16 @@ export default function PaymentBottomSheet({
               <span className="pos-sheet-option-title">
                 <span
                   className={
-                    activePanel === 'credit'
-                      ? 'option-graphic credit'
-                      : 'option-graphic'
+                    activePanel === 'credit' ? 'option-graphic credit' : activePanel === 'customer' ? 'option-graphic customer' : 'option-graphic'
                   }
                 >
                   <PaymentIcon
-                    name={activePanel === 'credit' ? 'clock' : 'sparkle'}
+                    name={activePanel === 'credit' ? 'coins' : activePanel === 'customer' ? 'user' : 'gift'}
                     size={22}
                   />
                 </span>
                 <strong>
-                  {activePanel === 'credit'
-                    ? 'Продажа в долг'
-                    : 'Бонусы / скидка'}
+                  {activePanel === 'credit' ? 'Продажа в долг' : activePanel === 'customer' ? 'Покупатель' : 'Бонусы'}
                 </strong>
               </span>
               <button
@@ -524,6 +587,9 @@ export default function PaymentBottomSheet({
             <div className="pos-sheet-option-scroll">
               {activePanel === 'credit' ? (
                 <CreditFields
+                  selectionOnly
+                  selectedCustomerName={selectedCustomerName}
+                  onOpenCustomer={() => openCustomer(true)}
                   shopId={shopId}
                   enabled
                   disabled={paymentPending}
@@ -534,6 +600,17 @@ export default function PaymentBottomSheet({
                   onPaidChange={setCreditPaidText}
                   dueOn={creditDueOn}
                   onDueChange={setCreditDueOn}
+                  debtMinor={creditDebtMinor}
+                />
+              ) : activePanel === 'customer' ? (
+                <CreditFields
+                  shopId={shopId} enabled customerOnly disabled={paymentPending}
+                  customerId={creditCustomerId}
+                  onCustomerChange={setCreditCustomerId}
+                  onCustomerEligible={setCreditCustomerEligible}
+                  onSelectedCustomer={(customer) => setSelectedCustomerName(customer.name)}
+                  paid={creditPaidText} onPaidChange={setCreditPaidText}
+                  dueOn={creditDueOn} onDueChange={setCreditDueOn}
                   debtMinor={creditDebtMinor}
                 />
               ) : (
@@ -566,6 +643,7 @@ export default function PaymentBottomSheet({
                 className="pos-sheet-option-apply"
                 disabled={
                   paymentPending ||
+                  (activePanel === 'customer' && !creditCustomerId) ||
                   (activePanel === 'credit' &&
                     (!creditCustomerId ||
                       creditDebtMinor === null ||
@@ -576,9 +654,11 @@ export default function PaymentBottomSheet({
                       (redeemPoints > 0 &&
                         !/^[A-Za-z0-9_-]{43}$/.test(loyaltyToken))))
                 }
-                onClick={() => setActivePanel(null)}
+                onClick={() => {
+                  setActivePanel(activePanel === 'customer' && returnToCredit.current ? 'credit' : null);
+                }}
               >
-                Применить
+                {activePanel === 'customer' ? 'Выбрать клиента' : activePanel === 'bonus' ? 'Применить бонусы' : 'Применить'}
               </button>
             </div>
           </section>
