@@ -262,7 +262,7 @@ export default function PaymentBottomSheet({
         ) : (
           <>
             <div className="pos-sheet-body pos-sheet-scroll">
-              <fieldset className="pos-methods">
+              <fieldset className="pos-methods" disabled={paymentPending}>
                 <legend className="pos-sheet-section-title">
                   Способ оплаты
                 </legend>
@@ -611,6 +611,7 @@ export default function PaymentBottomSheet({
               </div>
               <div className="pos-totals pos-sheet-totals pos-change-row">
                 <div
+                  role={changeMinor !== null ? 'status' : undefined}
                   className={
                     !creditMode && isShort
                       ? 'pos-total-tile short'
