@@ -23,5 +23,4 @@ export function formatKyrgyzPhoneInput(input: string): string {
 }
 
 /** HTML validation mirrors the server's +996 + nine digit rule. */
-export const KYRGYZ_PHONE_PATTERN =
-  '[+]996 [1-9][0-9]{2} [0-9]{3} [0-9]{3}';
+export const KYRGYZ_PHONE_PATTERN = '[+]996 [1-9][0-9]{2} [0-9]{3} [0-9]{3}';
