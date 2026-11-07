@@ -55,10 +55,14 @@ describe('cash shifts', () => {
         .send({ expenseMinor });
 
     await close(1200).expect(400);
-    expect((await c.db.query(
-      'SELECT count(*)::int AS count FROM cash_transactions WHERE shift_id=$1',
-      [opened.body.id],
-    ))[0].count).toBe(0);
+    expect(
+      (
+        await c.db.query(
+          'SELECT count(*)::int AS count FROM cash_transactions WHERE shift_id=$1',
+          [opened.body.id],
+        )
+      )[0].count,
+    ).toBe(0);
 
     const result = await close(100).expect(201);
     expect(result.body.cashOutMinor).toBe(100);
@@ -67,10 +71,14 @@ describe('cash shifts', () => {
     expect(result.body.discrepancyMinor).toBe(0);
     const replay = await close(100).expect(201);
     expect(replay.body.expectedCashMinor).toBe(900);
-    expect((await c.db.query(
-      'SELECT count(*)::int AS count FROM cash_transactions WHERE shift_id=$1',
-      [opened.body.id],
-    ))[0].count).toBe(1);
+    expect(
+      (
+        await c.db.query(
+          'SELECT count(*)::int AS count FROM cash_transactions WHERE shift_id=$1',
+          [opened.body.id],
+        )
+      )[0].count,
+    ).toBe(1);
     await close(200).expect(409);
   });
 

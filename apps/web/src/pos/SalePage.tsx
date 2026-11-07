@@ -408,7 +408,9 @@ function SaleWorkspace({
           {!shift.loading && (
             <button
               type="button"
-              className={active ? 'pos-shift-pill ok' : 'pos-shift-pill warning'}
+              className={
+                active ? 'pos-shift-pill ok' : 'pos-shift-pill warning'
+              }
               disabled={!!shift.current && !active}
               onClick={() => setShiftModalOpen(true)}
             >

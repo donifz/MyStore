@@ -77,14 +77,20 @@
   color: #fff;
   background: linear-gradient(140deg, #0a7255, #095d4a);
 }
-.quick-shift-hero span { font-size: 13px; opacity: 0.88; }
+.quick-shift-hero span {
+  font-size: 13px;
+  opacity: 0.88;
+}
 .quick-shift-hero strong {
   font-size: clamp(26px, 6vw, 36px);
   font-weight: 750;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.025em;
 }
-.quick-shift-hero small { font-size: 11px; opacity: 0.76; }
+.quick-shift-hero small {
+  font-size: 11px;
+  opacity: 0.76;
+}
 .quick-shift-totals {
   display: grid;
   gap: 12px;
@@ -98,7 +104,9 @@
   font-size: 14px;
 }
 .quick-shift-totals span,
-.quick-shift-expected span { color: #62736d; }
+.quick-shift-expected span {
+  color: #62736d;
+}
 .quick-shift-totals strong {
   font-size: 15px;
   white-space: nowrap;
@@ -142,7 +150,9 @@
   font-size: 17px;
   font-weight: 600;
 }
-.quick-shift-expense-input span { color: #637a71; }
+.quick-shift-expense-input span {
+  color: #637a71;
+}
 .quick-shift-expense small {
   font-size: 12px;
   font-weight: 400;
@@ -224,7 +234,9 @@
   font-size: 16px;
   font-weight: 750;
 }
-.quick-shift-submit:disabled { opacity: 0.55; }
+.quick-shift-submit:disabled {
+  opacity: 0.55;
+}
 .quick-shift-cancel {
   min-height: 35px;
   border: 0;
@@ -234,6 +246,11 @@
   font-weight: 600;
 }
 @media (min-width: 700px) {
-  .quick-shift-overlay { align-items: center; padding: 24px; }
-  .quick-shift-dialog { border-radius: 24px; }
+  .quick-shift-overlay {
+    align-items: center;
+    padding: 24px;
+  }
+  .quick-shift-dialog {
+    border-radius: 24px;
+  }
 }

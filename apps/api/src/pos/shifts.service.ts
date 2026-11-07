@@ -173,9 +173,7 @@ export class ShiftsService {
     // When no cash count is entered, close with the system-calculated balance.
     // Optional daily expenses are posted atomically before calculating it.
     const manualAmount =
-      actualCashMinor === undefined
-        ? null
-        : safeMoney(minor(actualCashMinor));
+      actualCashMinor === undefined ? null : safeMoney(minor(actualCashMinor));
     const expense =
       expenseMinor === undefined ? 0 : safeMoney(minor(expenseMinor));
     const note = comment?.trim() || null;
@@ -224,8 +222,7 @@ export class ShiftsService {
         const view = expense > 0 ? await this.view(tx, row) : before;
         // A negative expected cash balance cannot be represented as an
         // actual cash count. Preserve it as an audit discrepancy instead.
-        const amount =
-          manualAmount ?? Math.max(0, view.expectedCashMinor);
+        const amount = manualAmount ?? Math.max(0, view.expectedCashMinor);
         if (
           manualAmount !== null &&
           (amount !== view.expectedCashMinor || row.actor_id !== actorId) &&

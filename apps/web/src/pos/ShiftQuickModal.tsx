@@ -24,9 +24,7 @@ export default function ShiftQuickModal({
   const [expense, setExpense] = useState('');
   const [validation, setValidation] = useState('');
   const busy = opening.busy || closing.busy;
-  const pending = shift
-    ? closing.draft.submission
-    : opening.draft.submission;
+  const pending = shift ? closing.draft.submission : opening.draft.submission;
   const netSales = shift
     ? shift.salesCashMinor +
       shift.salesCardMinor -
@@ -50,7 +48,8 @@ export default function ShiftQuickModal({
       if (!closing.draft.submission && expense.trim()) {
         try {
           expenseMinor = parseSom(expense);
-          if (expenseMinor < 0) throw new Error('Расход не может быть отрицательным');
+          if (expenseMinor < 0)
+            throw new Error('Расход не может быть отрицательным');
           if (expenseMinor > shift.expectedCashMinor) {
             setValidation('Расход превышает наличные в кассе.');
             return;
@@ -121,11 +120,15 @@ export default function ShiftQuickModal({
               <div className="quick-shift-totals">
                 <div>
                   <span>Наличные</span>
-                  <strong>{formatSom(shift.salesCashMinor - shift.refundsCashMinor)}</strong>
+                  <strong>
+                    {formatSom(shift.salesCashMinor - shift.refundsCashMinor)}
+                  </strong>
                 </div>
                 <div>
                   <span>Безналичные</span>
-                  <strong>{formatSom(shift.salesCardMinor - shift.refundsCardMinor)}</strong>
+                  <strong>
+                    {formatSom(shift.salesCardMinor - shift.refundsCardMinor)}
+                  </strong>
                 </div>
                 <div>
                   <span>Погашение долгов</span>
@@ -138,7 +141,9 @@ export default function ShiftQuickModal({
                 </div>
               </div>
               <label className="quick-shift-expense">
-                <span>Расход за сегодня <em>необязательно</em></span>
+                <span>
+                  Расход за сегодня <em>необязательно</em>
+                </span>
                 <div className="quick-shift-expense-input">
                   <input
                     type="text"
@@ -160,7 +165,10 @@ export default function ShiftQuickModal({
                   />
                   <span>сом</span>
                 </div>
-                <small>Если были траты из кассы — укажите сумму. Она сохранится отдельно.</small>
+                <small>
+                  Если были траты из кассы — укажите сумму. Она сохранится
+                  отдельно.
+                </small>
               </label>
               <div className="quick-shift-expected">
                 <span>Ожидаемые наличные после расхода</span>
@@ -182,11 +190,13 @@ export default function ShiftQuickModal({
             </>
           ) : (
             <div className="quick-shift-welcome">
-              <span className="quick-shift-welcome-icon" aria-hidden="true">✓</span>
+              <span className="quick-shift-welcome-icon" aria-hidden="true">
+                ✓
+              </span>
               <strong>Всё готово к продажам</strong>
               <p>
-                Откройте смену одним нажатием. Система сама учтёт
-                продажи, оплаты и возвраты.
+                Откройте смену одним нажатием. Система сама учтёт продажи,
+                оплаты и возвраты.
               </p>
               <small>Начальная сумма в кассе — 0 сом.</small>
             </div>
@@ -198,7 +208,8 @@ export default function ShiftQuickModal({
           )}
           {pending && (
             <p className="quick-shift-note" role="status">
-              Предыдущее действие не подтверждено. Повторим его без дублирования.
+              Предыдущее действие не подтверждено. Повторим его без
+              дублирования.
             </p>
           )}
           <button
