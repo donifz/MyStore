@@ -497,3 +497,220 @@
 .pos-loyalty-ok {
   justify-content: flex-start;
 }
+
+
+/* Premium checkout: icons and semantic card colors follow the approved mockup. */
+.pos-sheet-head-copy h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pos-heading-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border-radius: 12px;
+  background: #e7f6ed;
+  color: #087451;
+}
+.pos-sheet-drawer .pos-methods-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 52px;
+  gap: 8px;
+}
+.pos-methods-grid .pos-method-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 5px 2px;
+  border: 1px solid #d5e2dc;
+  background: #fff;
+  color: #20463a;
+  font-size: 10px;
+  line-height: 1.1;
+}
+.pos-sheet-drawer .pos-option-customer {
+  background: #f5f9fe;
+  border-color: #e1e9f5;
+}
+.pos-sheet-drawer .pos-option-customer .pos-option-icon {
+  background: #e4f3ff;
+  color: #08799e;
+}
+.pos-sheet-drawer .pos-option-discount {
+  background: #f4faf7;
+}
+.pos-sheet-drawer .pos-option-discount .pos-option-icon {
+  color: #bb7c06;
+  background: #fff1cc;
+}
+.pos-sheet-drawer .pos-option-bonus .pos-option-icon {
+  color: #087948;
+  background: #daf6df;
+}
+.pos-sheet-drawer .pos-option-credit .pos-option-icon {
+  color: #6e39c5;
+  background: #efe3ff;
+}
+.pos-sheet-drawer .pos-option-detail {
+  max-width: 42%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.pos-sheet-drawer .pos-option-discount .pos-option-trigger {
+  cursor: default;
+}
+.pos-checkout-money-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.06fr) minmax(0, 0.94fr);
+  align-items: end;
+  gap: 10px;
+}
+.pos-checkout-money-row > label {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  color: #415852;
+  font-size: 12px;
+  font-weight: 700;
+}
+.pos-checkout-money-row > label > span:first-child {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  line-height: 1.2;
+}
+.pos-sheet-footer .pos-checkout-money-row input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 47px;
+  border: 1px solid #d1dfd8;
+  border-radius: 11px;
+  padding: 9px;
+  background: #fff;
+  color: #1b2825;
+  font-size: 17px;
+  font-weight: 700;
+}
+.pos-sheet-footer .pos-checkout-money-row input:focus {
+  border-color: #078456;
+  outline: 2px solid rgb(7 132 86 / 12%);
+}
+.pos-discount-control {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 47px;
+  padding-right: 3px;
+  border: 1px solid #d1dfd8;
+  border-radius: 11px;
+  background: #fff;
+}
+.pos-sheet-footer .pos-discount-control input {
+  min-height: 43px;
+  border: 0;
+  border-radius: 10px;
+  flex: 1 1 auto;
+  width: 0;
+  outline: none;
+  font-size: 16px;
+}
+.pos-discount-modes {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 9px;
+  background: #edf0ef;
+}
+.pos-discount-modes button {
+  min-height: 32px;
+  min-width: 29px;
+  padding: 3px 5px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #556862;
+  font-size: 11px;
+  font-weight: 750;
+}
+.pos-discount-modes button.selected {
+  background: #137e5d;
+  color: #fff;
+}
+.pos-sheet-footer .pos-checkout-summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+.pos-sheet-footer .pos-checkout-summary .pos-total-tile {
+  min-width: 0;
+  min-height: 67px;
+  padding: 9px 8px;
+}
+.pos-checkout-summary .pos-total-tile span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  font-size: 11px;
+}
+.pos-sheet-footer .pos-checkout-summary .pos-total-tile strong {
+  white-space: nowrap;
+  font-size: clamp(11px, 3.3vw, 16px);
+  letter-spacing: -0.4px;
+  font-variant-numeric: tabular-nums;
+}
+.pos-sheet-footer .pos-summary-discount {
+  background: #fff1f1;
+  color: #bc2323;
+}
+.pos-sheet-footer .pos-summary-due {
+  background: #e8f7ee;
+  color: #096d4a;
+}
+.pos-sheet-footer .pos-change-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+.pos-sheet-footer .pos-change-row .pos-total-tile {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 12px;
+}
+.pos-sheet-footer .pos-change-row .pos-total-tile strong {
+  color: #087451;
+}
+.option-graphic.customer {
+  background: #e2f2ff;
+  color: #0a7da8;
+}
+.pos-sheet-option-scroll .credit-customer-tabs button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.pos-sheet-option-scroll .credit-customer-search label {
+  color: #50635e;
+  font-weight: 650;
+}
+.pos-sheet-option-scroll .credit-customer-item {
+  border-radius: 15px;
+}
+.pos-sheet-option-scroll .credit-customer-item.selected {
+  background: #edf8f2;
+}
+@media (max-width: 390px) {
+  .pos-sheet-footer { gap: 7px; }
+  .pos-checkout-money-row { gap: 7px; }
+  .pos-sheet-footer .pos-checkout-money-row input { padding: 7px; font-size: 15px; }
+  .pos-sheet-footer .pos-checkout-summary .pos-total-tile strong { font-size: 12px; }
+  .pos-sheet-drawer .pos-option-detail { max-width: 35%; font-size: 11px; }
+}
