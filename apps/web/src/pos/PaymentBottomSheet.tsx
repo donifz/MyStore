@@ -378,7 +378,7 @@ export default function PaymentBottomSheet({
                         >
                           {amount === 0
                             ? 'Без взноса'
-                            : wholeSom.format(amount)}
+                            : wholeSom.format(amount).replace(/[\u00a0\u202f]/g, ' ')}
                         </button>
                       ))}
                     </div>
