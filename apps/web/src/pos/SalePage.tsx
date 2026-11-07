@@ -21,7 +21,6 @@ const loyaltyEnabled =
   import.meta.env.DEV || import.meta.env.VITE_LOYALTY_ENABLED === 'true';
 const creditSalesEnabled =
   import.meta.env.DEV || import.meta.env.VITE_CREDIT_SALES_ENABLED === 'true';
-const wholeSom = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
 
 /** Round-up cash suggestions above the total, e.g. 420 → 500, 1 000, 2 000, 5 000. */
 export function quickCashAmounts(sumMinor: bigint): number[] {
