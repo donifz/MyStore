@@ -12,7 +12,14 @@ type PaymentIconName =
   | 'user-plus'
   | 'qr'
   | 'copy'
-  | 'share';
+  | 'share'
+  | 'cart'
+  | 'tag'
+  | 'gift'
+  | 'coins'
+  | 'search'
+  | 'wallet'
+  | 'percent';
 
 const paths: Record<PaymentIconName, ReactNode> = {
   cash: (
@@ -67,6 +74,52 @@ const paths: Record<PaymentIconName, ReactNode> = {
     <>
       <rect x="8" y="8" width="12" height="12" rx="2" />
       <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+    </>
+  ),
+  cart: (
+    <>
+      <circle cx="9" cy="20" r="1" />
+      <circle cx="19" cy="20" r="1" />
+      <path d="M2 3h3l2.5 12h12l2-9H6" />
+    </>
+  ),
+  tag: (
+    <>
+      <path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9-9-9Z" />
+      <circle cx="8" cy="8" r="1.5" />
+    </>
+  ),
+  gift: (
+    <>
+      <rect x="3" y="9" width="18" height="12" rx="1" />
+      <path d="M2 7h20v4H2zM12 7v14" />
+      <path d="M12 7C6 7 5 2 8 2c2 0 4 3 4 5Zm0 0c6 0 7-5 4-5-2 0-4 3-4 5Z" />
+    </>
+  ),
+  coins: (
+    <>
+      <ellipse cx="12" cy="5.5" rx="8" ry="3" />
+      <path d="M4 5.5v5c0 1.7 3.6 3 8 3s8-1.3 8-3v-5M4 10.5v5c0 1.7 3.6 3 8 3s8-1.3 8-3v-5M4 15.5v3c0 1.7 3.6 3 8 3s8-1.3 8-3v-3" />
+    </>
+  ),
+  search: (
+    <>
+      <circle cx="10.7" cy="10.7" r="7" />
+      <path d="m16 16 5 5" />
+    </>
+  ),
+  wallet: (
+    <>
+      <rect x="3" y="6" width="18" height="15" rx="2" />
+      <path d="M3 10h18M6 6V4h12" />
+      <circle cx="17" cy="15.5" r="1" />
+    </>
+  ),
+  percent: (
+    <>
+      <circle cx="7" cy="7" r="2" />
+      <circle cx="17" cy="17" r="2" />
+      <path d="M5 19 19 5" />
     </>
   ),
   share: (
