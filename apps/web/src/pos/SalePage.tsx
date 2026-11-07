@@ -14,8 +14,6 @@ import {
   parseCheckoutDiscount,
   type CheckoutDiscountMode,
 } from './checkout-discount';
-import CreditFields from './CreditFields';
-import LoyaltyCheckout from './LoyaltyCheckout';
 import ShiftQuickModal from './ShiftQuickModal';
 
 const POPULAR = '__popular__';
@@ -23,7 +21,6 @@ const loyaltyEnabled =
   import.meta.env.DEV || import.meta.env.VITE_LOYALTY_ENABLED === 'true';
 const creditSalesEnabled =
   import.meta.env.DEV || import.meta.env.VITE_CREDIT_SALES_ENABLED === 'true';
-const wholeSom = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
 
 /** Round-up cash suggestions above the total, e.g. 420 → 500, 1 000, 2 000, 5 000. */
 export function quickCashAmounts(sumMinor: bigint): number[] {
@@ -626,187 +623,60 @@ function SaleWorkspace({
         </section>
 
         <div className="pos-side">
-          {/* DESKTOP PAYMENT FORM (hidden on mobile via CSS) */}
+          {/* DESKTOP PAYMENT: same controls, icons, buyer and bonus flows as mobile.
+              The complete workspace uses internal scroll regions, not page scroll. */}
           <aside
             className="pos-panel pos-payment pos-desktop-payment"
             aria-label="Оплата"
           >
-            <fieldset className="pos-methods" disabled={locked}>
-              <legend className="pos-panel-title">Способ оплаты</legend>
-              <div className="pos-methods-grid">
-                {(
-                  [
-                    ['cash', 'Наличные', 'cash'],
-                    ['card', 'Безналичные', 'card'],
-                  ] as const
-                ).map(([value, label, icon]) => (
-                  <label
-                    key={value}
-                    className={
-                      paymentMethod === value
-                        ? 'pos-method selected'
-                        : 'pos-method'
-                    }
-                  >
-                    <input
-                      type="radio"
-                      name="cashier-method"
-                      value={value}
-                      checked={paymentMethod === value}
-                      onChange={() => setMethod(value)}
-                    />
-                    <Icon name={icon} />
-                    <span>{label}</span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-
-            {creditSalesEnabled && (
-              <label className="pos-credit-toggle">
-                <input
-                  type="checkbox"
-                  checked={creditMode}
-                  disabled={locked}
-                  onChange={(e) => setCreditMode(e.target.checked)}
-                />
-                Продажа в долг
-              </label>
-            )}
-            {loyaltyEnabled && !creditMode && (
-              <LoyaltyCheckout
-                token={loyaltyToken}
-                setToken={setLoyaltyToken}
-                points={redeemPoints}
-                setPoints={setRedeemPoints}
-                totalMinor={totalMinor}
-                disabled={locked}
-              />
-            )}
-            <CreditFields
+            <PaymentBottomSheet
+              embedded
+              open={!paymentSheetOpen}
+              onClose={() => undefined}
+              method={paymentMethod}
+              setMethod={setMethod}
               shopId={shopId}
-              enabled={creditSalesEnabled && creditMode}
-              disabled={locked}
-              customerId={creditCustomerId}
-              onCustomerChange={setCreditCustomerId}
-              onCustomerEligible={setCreditCustomerEligible}
-              paid={creditPaidText}
-              onPaidChange={setCreditPaidText}
-              dueOn={creditDueOn}
-              onDueChange={setCreditDueOn}
-              debtMinor={creditDebtMinor}
+              creditMode={creditSalesEnabled && creditMode}
+              setCreditMode={
+                creditSalesEnabled ? setCreditMode : () => undefined
+              }
+              creditCustomerId={creditCustomerId}
+              setCreditCustomerId={setCreditCustomerId}
+              setCreditCustomerEligible={setCreditCustomerEligible}
+              creditPaidText={creditPaidText}
+              setCreditPaidText={setCreditPaidText}
+              creditDueOn={creditDueOn}
+              setCreditDueOn={setCreditDueOn}
+              creditDebtMinor={creditDebtMinor}
+              loyaltyEnabled={loyaltyEnabled && !creditMode}
+              loyaltyToken={loyaltyToken}
+              setLoyaltyToken={setLoyaltyToken}
+              redeemPoints={redeemPoints}
+              setRedeemPoints={setRedeemPoints}
+              originalTotalMinor={safe ? Number(afterCheckoutDiscount) : 0}
+              checkoutOriginalMinor={totalMinor}
+              checkoutDiscountText={checkoutDiscountText}
+              setCheckoutDiscountText={setCheckoutDiscountText}
+              checkoutDiscountMode={checkoutDiscountMode}
+              setCheckoutDiscountMode={setCheckoutDiscountMode}
+              checkoutDiscountMinor={checkoutDiscount.minor}
+              checkoutDiscountError={checkoutDiscountError}
+              received={received}
+              setReceived={setReceived}
+              totalText={totalText}
+              totalMinor={safe ? Number(payableMinor) : 0}
+              changeMinor={changeMinor}
+              receivedMinor={receivedMinor}
+              receivedError={receivedError}
+              quickAmounts={quickAmounts}
+              canSubmit={canSubmit}
+              isSubmitting={doc.busy}
+              isSubmissionPending={!!doc.draft.submission}
+              onSubmit={() => void submit()}
+              error={doc.error}
+              success={doc.success}
+              onNewReceipt={startNewReceipt}
             />
-            {!creditMode && paymentMethod === 'cash' && (
-              <div className="pos-cash-row">
-                <label className="pos-received">
-                  Получено от покупателя, сом
-                  <input
-                    inputMode="decimal"
-                    value={received}
-                    disabled={locked}
-                    placeholder="Например, 1000"
-                    onChange={(event) => setReceived(event.target.value)}
-                  />
-                </label>
-                <div className="pos-quick">
-                  <span className="pos-quick-label">Быстрая сумма</span>
-                  <div className="pos-quick-buttons">
-                    <button
-                      type="button"
-                      className={
-                        receivedMinor !== null &&
-                        BigInt(receivedMinor) === payableMinor
-                          ? 'pos-quick-button selected'
-                          : 'pos-quick-button'
-                      }
-                      disabled={locked || !safe || payableMinor === 0n}
-                      onClick={() =>
-                        setReceived((Number(payableMinor) / 100).toString())
-                      }
-                    >
-                      Без сдачи
-                    </button>
-                    {quickAmounts.map((amount) => (
-                      <button
-                        type="button"
-                        key={amount}
-                        className={
-                          receivedMinor === amount
-                            ? 'pos-quick-button selected'
-                            : 'pos-quick-button'
-                        }
-                        disabled={locked}
-                        onClick={() => setReceived((amount / 100).toString())}
-                      >
-                        {wholeSom.format(amount / 100).replace(/\u00a0/g, ' ')}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {receivedError && (
-              <p role="alert" className="error">
-                {receivedError}
-              </p>
-            )}
-
-            <div className="pos-totals">
-              <div className="pos-total-tile">
-                <span>Итого</span>
-                <strong>{totalText}</strong>
-              </div>
-              {paymentMethod === 'cash' && (
-                <div
-                  className={
-                    changeMinor !== null && changeMinor < 0n
-                      ? 'pos-total-tile short'
-                      : 'pos-total-tile change'
-                  }
-                  {...(changeMinor !== null ? { role: 'status' } : {})}
-                >
-                  <span>
-                    {changeMinor !== null && changeMinor < 0n
-                      ? 'Не хватает'
-                      : 'Сдача'}
-                  </span>
-                  <strong>
-                    {changeMinor === null
-                      ? '—'
-                      : formatSom(
-                          Number(
-                            changeMinor >= 0n ? changeMinor : -changeMinor,
-                          ),
-                        )}
-                  </strong>
-                </div>
-              )}
-            </div>
-
-            <button
-              className="pos-submit"
-              onClick={() => void submit()}
-              disabled={!canSubmit}
-            >
-              <Icon name="receipt" />
-              <span>
-                {doc.busy
-                  ? 'Проведение…'
-                  : doc.draft.submission
-                    ? 'Повторить исходный запрос'
-                    : 'Провести продажу'}
-              </span>
-              {!doc.busy && !doc.draft.submission && (
-                <span className="pos-submit-sum" aria-hidden="true">
-                  {totalText}
-                </span>
-              )}
-            </button>
-            <p className="muted pos-hint">
-              Проводите продажу только после получения денег. Оплата картой
-              отмечается вручную.
-            </p>
           </aside>
 
           {/* CART / RECEIPT WORKSPACE (on mobile, takes full height and scrolls internally) */}
@@ -874,7 +744,7 @@ function SaleWorkspace({
       <PaymentBottomSheet
         open={paymentSheetOpen}
         onClose={() => setPaymentSheetOpen(false)}
-        method={method}
+        method={paymentMethod}
         setMethod={setMethod}
         shopId={shopId}
         creditMode={creditSalesEnabled && creditMode}

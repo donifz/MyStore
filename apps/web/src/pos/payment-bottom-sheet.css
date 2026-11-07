@@ -1,13 +1,29 @@
 /* Mobile POS: scroll details, never the payment amount or primary action. */
 .pos-sheet-drawer {
-  max-height: min(94dvh, 940px);
+  /* Give the card shortcuts room while payment totals stay pinned below. */
+  height: min(97dvh, 1040px);
+  max-height: min(97dvh, 1040px);
 }
 .pos-sheet-drawer .pos-sheet-body {
+  /* Auto-sized grid rows must never collapse cards under the fixed footer. */
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: max-content;
+  align-content: start;
+  column-gap: 10px;
+  row-gap: 10px;
   flex: 1 1 auto;
   min-height: 0;
   padding: 14px 16px 18px;
-  align-content: start;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: contain;
+}
+.pos-sheet-drawer .pos-sheet-body > * {
+  min-width: 0;
+}
+.pos-sheet-drawer .pos-sheet-body > :not(.pos-payment-option) {
+  grid-column: 1 / -1;
 }
 .pos-sheet-footer {
   display: grid;
@@ -724,4 +740,209 @@
     max-width: 35%;
     font-size: 11px;
   }
+}
+
+/* Four premium actions in a single, resilient 2x2 grid on narrow devices. */
+.pos-sheet-drawer .pos-payment-option {
+  min-height: 90px;
+}
+.pos-sheet-drawer .pos-payment-option .pos-option-trigger {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 16px;
+  grid-template-rows: auto auto;
+  align-content: center;
+  align-items: center;
+  column-gap: 7px;
+  row-gap: 4px;
+  min-height: 90px;
+  height: 100%;
+  padding: 10px;
+}
+.pos-sheet-drawer .pos-payment-option .pos-option-icon {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  width: 32px;
+  height: 32px;
+  min-width: 0;
+}
+.pos-sheet-drawer .pos-payment-option .pos-option-trigger strong {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  font-size: clamp(12px, 3.4vw, 15px);
+  line-height: 1.22;
+  overflow-wrap: anywhere;
+}
+.pos-sheet-drawer .pos-payment-option .pos-option-detail,
+.pos-sheet-drawer .pos-payment-option .pos-option-state {
+  grid-column: 2 / 4;
+  grid-row: 2;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.22;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.pos-sheet-drawer .pos-payment-option .pos-option-chevron {
+  grid-column: 3;
+  grid-row: 1;
+}
+@media (max-width: 390px) {
+  .pos-sheet-drawer .pos-sheet-body {
+    column-gap: 8px;
+    row-gap: 8px;
+  }
+  .pos-sheet-drawer .pos-payment-option .pos-option-trigger {
+    column-gap: 5px;
+    padding: 8px;
+  }
+}
+
+/* The same checkout component is embedded in the fixed-height desktop POS.
+   Only the action area scrolls if screen height is limited; receipt, change,
+   payment inputs and the submit button are always visible. */
+.pos-sheet-root.pos-sheet-embedded {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+}
+.pos-sheet-embedded .pos-sheet-drawer {
+  position: relative;
+  z-index: auto;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  overflow: hidden;
+  border: 1px solid #e0ebe6;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgb(16 40 32 / 5%);
+  animation: none;
+}
+.pos-sheet-embedded .pos-sheet-handle {
+  display: none;
+}
+.pos-sheet-embedded .pos-sheet-head {
+  flex: 0 0 auto;
+  padding: 11px 14px;
+}
+.pos-sheet-embedded .pos-sheet-head-copy h2 {
+  font-size: 17px;
+}
+.pos-sheet-embedded .pos-sheet-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  align-content: start;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 10px 12px;
+  row-gap: 8px;
+  column-gap: 8px;
+}
+.pos-sheet-embedded .pos-sheet-body > * {
+  min-height: 0;
+}
+.pos-sheet-embedded .pos-methods-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) 43px;
+  gap: 5px;
+}
+.pos-sheet-embedded .pos-method {
+  min-width: 0;
+  min-height: 42px;
+  padding: 5px 4px;
+  gap: 5px;
+  font-size: 11.5px;
+}
+.pos-sheet-embedded .pos-method .pos-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+.pos-sheet-embedded .pos-payment-option {
+  min-height: 78px;
+}
+.pos-sheet-embedded .pos-payment-option .pos-option-trigger {
+  min-height: 78px;
+  padding: 8px;
+}
+.pos-sheet-embedded .pos-payment-option .pos-option-trigger strong {
+  font-size: 12.5px;
+}
+.pos-sheet-embedded .pos-sheet-footer {
+  flex: 0 0 auto;
+  display: grid;
+  min-height: 0;
+  max-height: 68%;
+  overflow-y: auto;
+  padding: 9px 12px 11px;
+  gap: 6px;
+}
+.pos-sheet-embedded .pos-sheet-footer .pos-quick-button {
+  min-height: 34px;
+}
+.pos-sheet-embedded .pos-sheet-footer .pos-checkout-summary .pos-total-tile {
+  min-height: 50px;
+}
+.pos-sheet-embedded .pos-sheet-footer .pos-change-row .pos-total-tile {
+  min-height: 36px;
+}
+.pos-sheet-embedded .pos-sheet-submit {
+  min-height: 48px;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+.pos-sheet-embedded .pos-sheet-success {
+  overflow-y: auto;
+}
+@media (min-width: 821px) and (max-height: 720px) {
+  .pos-sheet-embedded .pos-sheet-footer {
+    max-height: 72%;
+  }
+  .pos-sheet-embedded .pos-sheet-body {
+    padding: 6px 10px;
+  }
+}
+
+/* Keep cash and discount controls on the exact same baseline even when the
+   Russian cash label wraps to multiple lines on a narrow Android screen. */
+.pos-checkout-money-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+.pos-checkout-money-row > label {
+  display: grid;
+  grid-template-rows: 54px 48px;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+}
+.pos-checkout-money-row > label > span:first-child {
+  display: inline-flex;
+  min-height: 0;
+  align-items: flex-end;
+  gap: 5px;
+}
+.pos-sheet-footer .pos-checkout-money-row .pos-received input,
+.pos-sheet-footer .pos-checkout-money-row .pos-discount-control {
+  box-sizing: border-box;
+  height: 48px;
+  min-height: 48px;
+  margin: 0;
+}
+.pos-sheet-footer .pos-discount-control input {
+  min-height: 43px;
+  height: 43px;
 }
