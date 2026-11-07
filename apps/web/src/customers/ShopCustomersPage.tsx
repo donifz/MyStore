@@ -82,7 +82,7 @@ export default function ShopCustomersPage() {
         `/shops/${shopId}/customers`,
         {
           method: 'POST',
-          body: { name, phone, address },
+          body: { name: name.trim() || 'Покупатель', phone, address },
         },
       );
       setName('');
@@ -159,9 +159,8 @@ export default function ShopCustomersPage() {
         <form onSubmit={(e) => void create(e)}>
           <div className="customer-form-grid">
             <label>
-              Имя
+              Имя (необязательно)
               <input
-                required
                 minLength={2}
                 maxLength={120}
                 value={name}
