@@ -11,6 +11,7 @@ import { useCurrentShift } from './use-current-shift';
 import PaymentBottomSheet from './PaymentBottomSheet';
 import CreditFields from './CreditFields';
 import LoyaltyCheckout from './LoyaltyCheckout';
+import ShiftQuickModal from './ShiftQuickModal';
 
 const POPULAR = '__popular__';
 const loyaltyEnabled =
@@ -136,7 +137,8 @@ function SaleWorkspace({
 }) {
   const doc = useDocument({ userId, shopId, kind: 'sale' }),
     [method, setMethod] = useState<'cash' | 'card'>('cash'),
-    shift = useCurrentShift(shopId, doc.success),
+    [shiftRevision, setShiftRevision] = useState(0),
+    shift = useCurrentShift(shopId, `${doc.success}:${shiftRevision}`),
     [query, setQuery] = useState(''),
     [loadedQuery, setLoadedQuery] = useState<string | null>(null),
     [category, setCategory] = useState(''),
@@ -157,6 +159,7 @@ function SaleWorkspace({
     ),
     [camera, setCamera] = useState(false),
     [paymentSheetOpen, setPaymentSheetOpen] = useState(false),
+    [shiftModalOpen, setShiftModalOpen] = useState(false),
     scanInput = useRef<HTMLInputElement>(null),
     photos = useRef(new Map<string, string>());
 
@@ -402,23 +405,26 @@ function SaleWorkspace({
           </div>
         </div>
         <div className="pos-header-actions">
-          {!shift.loading && !active && (
-            <Link
-              to={'/seller/' + shopId + '/shift'}
-              className="pos-shift-pill warning"
+          {!shift.loading && (
+            <button
+              type="button"
+              className={active ? 'pos-shift-pill ok' : 'pos-shift-pill warning'}
+              disabled={!!shift.current && !active}
+              onClick={() => setShiftModalOpen(true)}
             >
-              <Icon name="clock" />
-              <span>{shift.current ? 'Касса занята' : 'Смена закрыта'}</span>
-            </Link>
-          )}
-          {active && (
-            <Link
-              to={'/seller/' + shopId + '/shift'}
-              className="pos-shift-pill ok"
-            >
-              <span className="pos-dot" aria-hidden="true" />
-              <span>Смена открыта</span>
-            </Link>
+              {active ? (
+                <span className="pos-dot" aria-hidden="true" />
+              ) : (
+                <Icon name="clock" />
+              )}
+              <span>
+                {active
+                  ? 'Завершить смену'
+                  : shift.current
+                    ? 'Касса занята'
+                    : 'Открыть смену'}
+              </span>
+            </button>
           )}
           <button
             type="button"
@@ -817,6 +823,19 @@ function SaleWorkspace({
           <span>Оплатить — {totalText}</span>
         </button>
       </div>
+
+      {shiftModalOpen && (
+        <ShiftQuickModal
+          shopId={shopId}
+          userId={userId}
+          shift={active}
+          onClose={() => setShiftModalOpen(false)}
+          onCompleted={() => {
+            setShiftModalOpen(false);
+            setShiftRevision((value) => value + 1);
+          }}
+        />
+      )}
 
       {/* MOBILE BOTTOM SHEET MODAL */}
       <PaymentBottomSheet
