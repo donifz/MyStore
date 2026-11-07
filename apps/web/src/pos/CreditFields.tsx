@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { api, errorText } from '../api/client';
 import { formatSom } from '../api/money';
 import {
@@ -80,7 +80,7 @@ export default function CreditFields({
     };
   }, [shopId, enabled, q]);
 
-  async function addCustomer(event: React.FormEvent<HTMLFormElement>) {
+  async function addCustomer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy || disabled) return;
     setBusy(true);
