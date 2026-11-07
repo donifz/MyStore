@@ -186,7 +186,11 @@ export default function CreditFields({
               type="search"
               value={query}
               disabled={disabled}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                onCustomerChange('');
+                onCustomerEligible(false);
+              }}
               placeholder="Имя или +996…"
               autoComplete="off"
             />
