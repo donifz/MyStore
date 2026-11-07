@@ -26,7 +26,7 @@ export class ShopCustomersService {
       : null;
     const where = `shop_id=$1 AND (
       $2::text='' OR lower(display_name) LIKE '%' || lower($2) || '%'
-      OR phone_e164=$3 OR phone_e164 LIKE '%' || $4 || '%'
+      OR phone_e164=$3 OR ($4::text<>'' AND phone_e164 LIKE '%' || $4 || '%')
     )`;
     const args = [shopId, term, phone, term.replace(/\D/g, '')];
     const [count] = await this.db.query(
@@ -35,12 +35,88 @@ export class ShopCustomersService {
     );
     const rows = await this.db.query(
       `SELECT id,display_name AS "name",phone_e164 AS phone,address,
-        created_at AS "createdAt",buyer_account_id IS NOT NULL AS "linked",credit_approved AS "creditApproved",credit_limit_minor AS "creditLimitMinor"
+        created_at AS "createdAt",buyer_account_id IS NOT NULL AS "linked",credit_approved AS "creditApproved",credit_limit_minor AS "creditLimitMinor",
+       COALESCE((SELECT SUM(cs.total_minor-cs.paid_minor) FROM credit_sales cs
+         WHERE cs.shop_id=shop_customers.shop_id AND cs.customer_id=shop_customers.id),0) AS "debtMinor",
+       COALESCE((SELECT lw.balance_points FROM loyalty_wallets lw
+         WHERE lw.shop_id=shop_customers.shop_id AND lw.customer_id=shop_customers.id),0) AS "balancePoints"
        FROM shop_customers WHERE ${where}
        ORDER BY created_at DESC,id DESC LIMIT $5 OFFSET $6`,
       [...args, pageSize, (page - 1) * pageSize],
     );
     return { items: rows, total: count.total, page, pageSize };
+  }
+
+  /**
+   * Cross-shop directory returns only identity, never cross-shop debt,
+   * addresses, bonuses, purchases or account verification secrets.
+   * Search is opt-in and requires a nontrivial query.
+   */
+  async directory(shopId: string, query: string) {
+    const term = query.trim();
+    if (term.length < 3) return { items: [] };
+    const digits = term.replace(/\D/g, '');
+    const phone = (() => {
+      try {
+        return normalizeKyrgyzPhone(term);
+      } catch {
+        return null;
+      }
+    })();
+    const rows = await this.db.query(
+      `WITH directory AS (
+        SELECT phone_e164, display_name, created_at FROM shop_customers
+        UNION ALL
+        SELECT phone_e164, display_name, created_at FROM buyer_accounts
+      ), matches AS (
+        SELECT DISTINCT ON (phone_e164)
+          phone_e164, display_name
+        FROM directory
+        WHERE lower(display_name) LIKE '%' || lower($2::text) || '%'
+          OR phone_e164=$3
+          OR ($4::text<>'' AND phone_e164 LIKE '%' || $4 || '%')
+        ORDER BY phone_e164, created_at DESC
+      )
+      SELECT m.phone_e164 AS phone,
+        COALESCE(local.display_name,m.display_name) AS name,
+        local.id, local.buyer_account_id IS NOT NULL AS linked,
+        local.id IS NOT NULL AS "isLocal",
+        COALESCE((SELECT SUM(cs.total_minor-cs.paid_minor) FROM credit_sales cs
+          WHERE cs.shop_id=$1 AND cs.customer_id=local.id),0) AS "debtMinor",
+        COALESCE((SELECT lw.balance_points FROM loyalty_wallets lw
+          WHERE lw.shop_id=$1 AND lw.customer_id=local.id),0) AS "balancePoints"
+      FROM matches m
+      LEFT JOIN shop_customers local ON local.shop_id=$1 AND local.phone_e164=m.phone_e164
+      ORDER BY (local.id IS NOT NULL) DESC, name ASC LIMIT 20`,
+      [shopId, term, phone, digits],
+    );
+    return { items: rows };
+  }
+
+  /** A global identity only becomes a shop customer when a cashier selects it. */
+  async resolve(
+    shopId: string,
+    actorId: string,
+    phoneInput: string,
+    nameInput: string,
+  ) {
+    const phone = normalizeKyrgyzPhone(phoneInput);
+    const name = nameInput.trim().replace(/\s+/g, ' ');
+    if (name.length < 2 || name.length > 120)
+      throw new BadRequestException('Укажите имя (2–120 символов)');
+    const [row] = await this.db.query(
+      `INSERT INTO shop_customers
+       (shop_id,phone_e164,display_name,created_by,buyer_account_id)
+       VALUES($1,$2::text,$3,$4,
+         (SELECT id FROM buyer_accounts
+          WHERE phone_e164=$2::text AND phone_verified_at IS NOT NULL))
+       ON CONFLICT (shop_id,phone_e164)
+       DO UPDATE SET updated_at=shop_customers.updated_at
+       RETURNING id,display_name AS "name",phone_e164 AS phone,
+         buyer_account_id IS NOT NULL AS linked`,
+      [shopId, phone, name, actorId],
+    );
+    return row;
   }
 
   async create(

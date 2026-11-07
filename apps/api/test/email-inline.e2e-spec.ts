@@ -62,10 +62,17 @@ describe('compiled API with Gmail inline queue', () => {
         await new Promise((r) => setTimeout(r, 100));
       expect(accepted).toHaveLength(1);
       expect(accepted[0]).toContain('To: inline-invite@example.test');
-      const [row] = await c.db.query(
-        'SELECT status,encrypted_payload FROM email_deliveries WHERE recipient=$1',
-        [email],
-      );
+      // The child process emits its send event before the worker commits
+      // the final delivery status, so wait for the persisted transition.
+      let row: { status: string; encrypted_payload: string | null } | undefined;
+      for (let i = 0; i < 100; i++) {
+        [row] = await c.db.query(
+          'SELECT status,encrypted_payload FROM email_deliveries WHERE recipient=$1',
+          [email],
+        );
+        if (row?.status === 'sent') break;
+        await new Promise((r) => setTimeout(r, 100));
+      }
       expect(row).toEqual({ status: 'sent', encrypted_payload: null });
       child.kill('SIGTERM');
       expect(await exited).toBe(0);
