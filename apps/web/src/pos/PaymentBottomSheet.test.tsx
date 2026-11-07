@@ -112,6 +112,6 @@ it('has a collapsible credit section and up-front amount in the fixed footer', (
   expect(footer?.textContent).toContain('700,00 сом');
   expect(footer?.textContent).toContain('Оформить долг');
   expect(footer?.querySelector('input')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: '1 000' }));
+  fireEvent.click(screen.getByRole('button', { name: /1\s000/ }));
   expect(setCreditPaidText).toHaveBeenCalledWith('1000');
 });
