@@ -293,3 +293,89 @@ it('supports New Receipt action and mobile payment bottom sheet', async () => {
   await user.click(screen.getByRole('button', { name: /Новый чек/ }));
   await screen.findByText(/Корзина пуста/);
 });
+
+it('opens and closes a cashier shift in the POS dialog without required fields', async () => {
+  const saved: unknown[] = [];
+  let active = false;
+  const shiftData = {
+    id: '22222222-2222-4222-8222-222222222222',
+    actorId: 'cashier',
+    shopId: shop,
+    status: 'open',
+    openedAt: new Date().toISOString(),
+    openingCashMinor: 0,
+    expectedCashMinor: 50000,
+    salesCashMinor: 35000,
+    salesCardMinor: 15000,
+    refundsCashMinor: 0,
+    refundsCardMinor: 0,
+    repaymentsCashMinor: 0,
+    repaymentsCardMinor: 0,
+    cashInMinor: 0,
+    cashOutMinor: 0,
+  };
+  vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+    if (url.endsWith('/pos/shifts') && init?.method === 'POST') {
+      saved.push(JSON.parse(String(init.body)));
+      active = true;
+      return new Response(JSON.stringify(shiftData), {
+        status: 201,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+    if (url.endsWith('/close') && init?.method === 'POST') {
+      saved.push(JSON.parse(String(init.body)));
+      active = false;
+      return new Response(
+        JSON.stringify({
+          ...shiftData,
+          status: 'closed',
+          actualCashMinor: 48500,
+        }),
+        { status: 201, headers: { 'content-type': 'application/json' } },
+      );
+    }
+    const body = url.endsWith('/me')
+      ? {
+          userId: 'cashier',
+          email: 'cashier@test.tld',
+          csrfToken: 'csrf',
+          shops: [{ id: shop, name: 'Магазин', role: 'cashier' }],
+        }
+      : url.endsWith('/current')
+        ? active
+          ? shiftData
+          : null
+        : { items: [], total: 0, page: 1, pageSize: 24 };
+    return new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  });
+  render(
+    <MemoryRouter initialEntries={['/seller/' + shop + '/pos']}>
+      <App />
+    </MemoryRouter>,
+  );
+  const user = userEvent.setup();
+  await user.click(
+    await screen.findByRole('button', { name: 'Открыть смену' }),
+  );
+  expect(screen.getByRole('dialog')).toBeTruthy();
+  await user.click(
+    screen.getByRole('dialog').querySelector('.quick-shift-submit')!,
+  );
+  await waitFor(() => expect(saved[0]).toEqual({}));
+  await user.click(
+    await screen.findByRole('button', { name: 'Завершить смену' }),
+  );
+  expect(screen.getByText('Продажи за смену')).toBeTruthy();
+  fireEvent.change(screen.getByLabelText('Расход за сегодня'), {
+    target: { value: '15' },
+  });
+  await user.click(
+    screen.getByRole('dialog').querySelector('.quick-shift-submit')!,
+  );
+  await waitFor(() => expect(saved[1]).toEqual({ expenseMinor: 1500 }));
+  await screen.findByRole('button', { name: 'Открыть смену' });
+});

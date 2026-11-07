@@ -18,6 +18,70 @@ describe('cash shifts', () => {
       .set('Idempotency-Key', key)
       .send({ openingCashMinor: 1000 });
   }
+  it('opens and closes with no inputs, storing calculated totals', async () => {
+    const app = c.app.getHttpServer();
+    const opened = await request(app)
+      .post(root)
+      .auth(c.cashier, { type: 'bearer' })
+      .set('Idempotency-Key', randomUUID())
+      .send({})
+      .expect(201);
+    expect(opened.body.openingCashMinor).toBe(0);
+    expect(opened.body.expectedCashMinor).toBe(0);
+
+    const key = randomUUID();
+    const close = () =>
+      request(app)
+        .post(root + '/' + opened.body.id + '/close')
+        .auth(c.cashier, { type: 'bearer' })
+        .set('Idempotency-Key', key)
+        .send({});
+    const done = await close().expect(201);
+    expect(done.body.status).toBe('closed');
+    expect(done.body.actualCashMinor).toBe(0);
+    expect(done.body.discrepancyMinor).toBe(0);
+    expect((await close().expect(201)).body.id).toBe(opened.body.id);
+  });
+
+  it('records optional expense exactly once in the same closing transaction', async () => {
+    const app = c.app.getHttpServer();
+    const opened = await open(c.cashier).expect(201);
+    const key = randomUUID();
+    const close = (expenseMinor: number) =>
+      request(app)
+        .post(root + '/' + opened.body.id + '/close')
+        .auth(c.cashier, { type: 'bearer' })
+        .set('Idempotency-Key', key)
+        .send({ expenseMinor });
+
+    await close(1200).expect(400);
+    expect(
+      (
+        await c.db.query(
+          'SELECT count(*)::int AS count FROM cash_transactions WHERE shift_id=$1',
+          [opened.body.id],
+        )
+      )[0].count,
+    ).toBe(0);
+
+    const result = await close(100).expect(201);
+    expect(result.body.cashOutMinor).toBe(100);
+    expect(result.body.expectedCashMinor).toBe(900);
+    expect(result.body.actualCashMinor).toBe(900);
+    expect(result.body.discrepancyMinor).toBe(0);
+    const replay = await close(100).expect(201);
+    expect(replay.body.expectedCashMinor).toBe(900);
+    expect(
+      (
+        await c.db.query(
+          'SELECT count(*)::int AS count FROM cash_transactions WHERE shift_id=$1',
+          [opened.body.id],
+        )
+      )[0].count,
+    ).toBe(1);
+    await close(200).expect(409);
+  });
+
   it('only opens one shift concurrently and replays its key', async () => {
     const key = randomUUID();
     const a = await open(c.owner, key).expect(201);

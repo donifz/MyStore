@@ -23,10 +23,23 @@ import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { ShopAccessService } from '../shops/shop-access.service';
 import { ShiftsService } from './shifts.service';
 class OpenDto {
-  @IsInt() @Min(0) @Max(Number.MAX_SAFE_INTEGER) openingCashMinor!: number;
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(Number.MAX_SAFE_INTEGER)
+  openingCashMinor?: number;
 }
 class CloseDto {
-  @IsInt() @Min(0) @Max(Number.MAX_SAFE_INTEGER) actualCashMinor!: number;
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(Number.MAX_SAFE_INTEGER)
+  actualCashMinor?: number;
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(Number.MAX_SAFE_INTEGER)
+  expenseMinor?: number;
   @IsOptional() @IsString() @MaxLength(500) comment?: string;
 }
 class CashTransactionDto {
@@ -47,7 +60,7 @@ export class ShiftsController {
     @Body() dto: OpenDto,
   ) {
     await this.access.requireMembership(req.userId, shop, 'sell');
-    return this.shifts.open(shop, req.userId, key, dto.openingCashMinor);
+    return this.shifts.open(shop, req.userId, key, dto.openingCashMinor ?? 0);
   }
   @Get('active') async active(
     @Param('shopId', ParseUUIDPipe) shop: string,
@@ -88,6 +101,7 @@ export class ShiftsController {
       key,
       dto.actualCashMinor,
       dto.comment,
+      dto.expenseMinor,
     );
   }
   @Post(':id/cash-in') async cashIn(
