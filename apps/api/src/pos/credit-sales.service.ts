@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
@@ -67,21 +66,11 @@ export class CreditSalesService {
       },
       async (tx) => {
         const [customer] = await tx.query(
-          `SELECT id,buyer_account_id,credit_approved,credit_limit_minor
+          `SELECT id
            FROM shop_customers WHERE shop_id=$1 AND id=$2 FOR UPDATE`,
           [shopId, customerId],
         );
         if (!customer) throw new NotFoundException('Клиент не найден');
-        if (!customer.buyer_account_id || !customer.credit_approved) {
-          throw new ConflictException(
-            'Кредит клиенту не разрешён или кабинет не привязан',
-          );
-        }
-        const [balance] = await tx.query(
-          `SELECT COALESCE(sum(total_minor-paid_minor),0) AS outstanding
-           FROM credit_sales WHERE shop_id=$1 AND customer_id=$2`,
-          [shopId, customerId],
-        );
         const subtotal = lines.reduce(
           (n, l) => n + BigInt(l.quantity) * BigInt(l.expectedUnitPriceMinor),
           0n,
@@ -90,15 +79,6 @@ export class CreditSalesService {
         if (paid >= total) {
           throw new BadRequestException(
             'Для полной оплаты используйте обычную продажу',
-          );
-        }
-        const due = total - paid;
-        if (
-          BigInt(balance.outstanding) + BigInt(due) >
-          BigInt(customer.credit_limit_minor)
-        ) {
-          throw new ConflictException(
-            'Превышен разрешённый лимит задолженности',
           );
         }
         const posted = await this.pos.postInTransaction(

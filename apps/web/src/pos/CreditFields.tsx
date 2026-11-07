@@ -13,8 +13,6 @@ type Customer = {
   name: string;
   phone: string;
   linked: boolean;
-  creditApproved: boolean;
-  creditLimitMinor: string | number;
 };
 
 export type CreditFieldsProps = {
@@ -93,9 +91,6 @@ export default function CreditFields({
   }, [shopId, enabled, query, revision]);
 
   const selected = customers.find((customer) => customer.id === customerId);
-  const eligible = (customer: Customer) =>
-    customer.linked && customer.creditApproved;
-
   async function addCustomer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy || disabled) return;
@@ -118,10 +113,9 @@ export default function CreditFields({
       setNewName('');
       setNewPhone('');
       setNewAddress('');
-      // A new customer cannot be charged on credit until they accept the
-      // invitation and the shop owner approves a separate credit limit.
-      onCustomerChange('');
-      onCustomerEligible(false);
+      // Shop debt can be assigned without verifying the buyer portal account.
+      onCustomerChange(customer.id);
+      onCustomerEligible(true);
       setRevision((n) => n + 1);
       if (customer.linked) {
         setVerifiedEnrollment(customer.name);
@@ -169,8 +163,7 @@ export default function CreditFields({
   return (
     <section className="pos-credit-fields credit-customer-flow">
       <div className="credit-customer-heading">
-        <strong>Продажа в долг</strong>
-        <span>Выберите покупателя или создайте нового</span>
+        <strong>Покупатель</strong>
       </div>
 
       <div
@@ -227,8 +220,7 @@ export default function CreditFields({
           )}
           {!loading && customers.length === 0 && (
             <p className="credit-customer-note">
-              Покупателей не найдено. Вы можете создать клиента и выдать
-              QR-приглашение.
+              Покупатели не найдены. Нажмите «+ Новый клиент».
             </p>
           )}
           <div
@@ -249,7 +241,7 @@ export default function CreditFields({
                 aria-pressed={customerId === customer.id}
                 onClick={() => {
                   onCustomerChange(customer.id);
-                  onCustomerEligible(eligible(customer));
+                  onCustomerEligible(true);
                   setExistingInvitation(null);
                 }}
               >
@@ -260,17 +252,11 @@ export default function CreditFields({
                   <strong>{customer.name}</strong>
                   <small>{customer.phone}</small>
                   <small
-                    className={
-                      eligible(customer)
-                        ? 'credit-customer-ok'
-                        : 'credit-customer-warning'
-                    }
+                    className={customer.linked ? 'credit-customer-ok' : ''}
                   >
-                    {!customer.linked
-                      ? 'Кабинет не подтверждён'
-                      : !customer.creditApproved
-                        ? 'Кредит не разрешён владельцем'
-                        : `Лимит: ${formatSom(Number(customer.creditLimitMinor))}`}
+                    {customer.linked
+                      ? 'Кабинет подтверждён'
+                      : 'Кабинет не подтверждён'}
                   </small>
                 </span>
                 <span className="credit-customer-radio" aria-hidden="true">
@@ -279,22 +265,6 @@ export default function CreditFields({
               </button>
             ))}
           </div>
-          {selected && (
-            <p
-              className={
-                eligible(selected)
-                  ? 'credit-customer-note credit-customer-success'
-                  : 'credit-customer-note'
-              }
-              role="status"
-            >
-              {eligible(selected)
-                ? 'Покупатель выбран. Доступный долг проверяется сервером при оплате.'
-                : selected.linked
-                  ? 'Покупатель выбран, но кредит ещё не разрешён владельцем магазина.'
-                  : 'Покупатель выбран, но сначала нужно подтвердить кабинет по приглашению.'}
-            </p>
-          )}
           {selected && !selected.linked && !existingInvitation && (
             <button
               type="button"
@@ -316,19 +286,11 @@ export default function CreditFields({
               }}
             />
           )}
-          <p className="credit-customer-note">
-            Все покупатели магазина видны в списке. Для продажи в долг нужен
-            подтверждённый кабинет и разрешение владельца.
-          </p>
         </div>
       ) : (
         <div className="credit-customer-new">
           {!invitation && !verifiedEnrollment && (
             <form onSubmit={(event) => void addCustomer(event)}>
-              <p className="credit-customer-note">
-                Новый клиент получит приглашение в общий кабинет MyStore.
-                Создание клиента само по себе не выдаёт кредит.
-              </p>
               <label>
                 Имя покупателя
                 <input
@@ -380,10 +342,8 @@ export default function CreditFields({
               className="credit-customer-note credit-customer-success"
               role="status"
             >
-              <strong>{verifiedEnrollment}</strong> уже подтвердил номер в
-              MyStore. Кабинет подключён автоматически, QR-приглашение не
-              требуется. Владелец магазина должен отдельно разрешить кредит и
-              установить лимит.
+              <strong>{verifiedEnrollment}</strong> — покупатель создан и выбран
+              для продажи. Кабинет уже подтверждён, QR-приглашение не требуется.
               <button
                 type="button"
                 onClick={() => {

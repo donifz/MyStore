@@ -1,11 +1,14 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { formatSom } from '../api/money';
 import CreditFields from './CreditFields';
 import LoyaltyCheckout from './LoyaltyCheckout';
+import './payment-bottom-sheet.css';
 
 const creditSalesEnabled =
   import.meta.env.DEV || import.meta.env.VITE_CREDIT_SALES_ENABLED === 'true';
 const wholeSom = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
+const formatQuickSom = (amount: number) =>
+  wholeSom.format(amount).replace(/[\u00a0\u202f]/g, ' ');
 
 export type PaymentBottomSheetProps = {
   open: boolean;
@@ -85,6 +88,7 @@ export default function PaymentBottomSheet({
   onNewReceipt,
 }: PaymentBottomSheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
+  const [bonusOpen, setBonusOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -104,6 +108,10 @@ export default function PaymentBottomSheet({
 
   const isShort = changeMinor !== null && changeMinor < 0n;
   const isChange = changeMinor !== null && changeMinor >= 0n;
+  const paymentPending = isSubmitting || isSubmissionPending;
+  const creditQuick = [0, 500, 1000, 2000, 5000].filter(
+    (som) => som * 100 < originalTotalMinor,
+  );
 
   return (
     <div
@@ -153,227 +161,302 @@ export default function PaymentBottomSheet({
             </button>
           </div>
         ) : (
-          <div className="pos-sheet-body">
-            <fieldset className="pos-methods">
-              <legend className="pos-sheet-section-title">Способ оплаты</legend>
-              <div className="pos-methods-grid">
-                <label
-                  className={
-                    method === 'cash' ? 'pos-method selected' : 'pos-method'
-                  }
-                >
-                  <input
-                    type="radio"
-                    name="bottom-sheet-method"
-                    value="cash"
-                    checked={method === 'cash'}
-                    onChange={() => setMethod('cash')}
-                  />
-                  <svg
-                    className="pos-icon"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.9"
-                    aria-hidden="true"
-                  >
-                    <rect x="2.5" y="6" width="19" height="12" rx="2" />
-                    <circle cx="12" cy="12" r="2.7" />
-                    <path d="M6 9.5h.01M18 14.5h.01" />
-                  </svg>
-                  <span>Наличные</span>
-                </label>
-                <label
-                  className={
-                    method === 'card' ? 'pos-method selected' : 'pos-method'
-                  }
-                >
-                  <input
-                    type="radio"
-                    name="bottom-sheet-method"
-                    value="card"
-                    checked={method === 'card'}
-                    onChange={() => setMethod('card')}
-                  />
-                  <svg
-                    className="pos-icon"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.9"
-                    aria-hidden="true"
-                  >
-                    <rect x="2.5" y="5.5" width="19" height="13" rx="2" />
-                    <path d="M2.5 10h19M6.5 14.5h4" />
-                  </svg>
-                  <span>Безналичные</span>
-                </label>
-              </div>
-            </fieldset>
-
-            {creditSalesEnabled && (
-              <label className="pos-credit-toggle">
-                <input
-                  type="checkbox"
-                  checked={creditMode}
-                  onChange={(e) => setCreditMode(e.target.checked)}
-                />
-                Продажа в долг
-              </label>
-            )}
-            <CreditFields
-              shopId={shopId}
-              enabled={creditMode}
-              disabled={isSubmitting || isSubmissionPending}
-              customerId={creditCustomerId}
-              onCustomerChange={setCreditCustomerId}
-              onCustomerEligible={setCreditCustomerEligible}
-              paid={creditPaidText}
-              onPaidChange={setCreditPaidText}
-              dueOn={creditDueOn}
-              onDueChange={setCreditDueOn}
-              debtMinor={creditDebtMinor}
-            />
-            {loyaltyEnabled && !creditMode && (
-              <LoyaltyCheckout
-                token={loyaltyToken}
-                setToken={setLoyaltyToken}
-                points={redeemPoints}
-                setPoints={setRedeemPoints}
-                totalMinor={originalTotalMinor}
-                disabled={isSubmitting || isSubmissionPending}
-              />
-            )}
-            {!creditMode && method === 'cash' && (
-              <div className="pos-sheet-cash-section">
-                <label className="pos-received">
-                  Получено от покупателя, сом
-                  <input
-                    inputMode="decimal"
-                    placeholder="0,00"
-                    value={received}
-                    onChange={(e) => setReceived(e.target.value)}
-                  />
-                </label>
-
-                <div className="pos-quick">
-                  <span className="pos-quick-label">Быстрые суммы</span>
-                  <div className="pos-quick-buttons">
-                    <button
-                      type="button"
-                      className={
-                        receivedMinor !== null &&
-                        receivedMinor === totalMinor &&
-                        totalMinor > 0
-                          ? 'button secondary pos-quick-button selected'
-                          : 'button secondary pos-quick-button'
-                      }
-                      onClick={() => setReceived((totalMinor / 100).toString())}
-                    >
-                      Без сдачи
-                    </button>
-                    {quickAmounts.map((amount) => (
-                      <button
-                        type="button"
-                        key={amount}
-                        className={
-                          receivedMinor === amount
-                            ? 'button secondary pos-quick-button selected'
-                            : 'button secondary pos-quick-button'
-                        }
-                        onClick={() => setReceived((amount / 100).toString())}
-                      >
-                        {wholeSom.format(amount / 100).replace(/\u00a0/g, ' ')}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {receivedError && (
-                  <p role="alert" className="error">
-                    {receivedError}
-                  </p>
-                )}
-
-                <div className="pos-totals">
-                  <div className="pos-total-tile">
-                    <span>К оплате</span>
-                    <strong>{totalText}</strong>
-                  </div>
-                  <div
+          <>
+            <div className="pos-sheet-body pos-sheet-scroll">
+              <fieldset className="pos-methods">
+                <legend className="pos-sheet-section-title">
+                  Способ оплаты
+                </legend>
+                <div className="pos-methods-grid">
+                  <label
                     className={
-                      isShort
-                        ? 'pos-total-tile short'
-                        : isChange
-                          ? 'pos-total-tile change'
-                          : 'pos-total-tile'
+                      method === 'cash' ? 'pos-method selected' : 'pos-method'
                     }
                   >
-                    <span>{isShort ? 'Не хватает' : 'Сдача'}</span>
-                    <strong>
-                      {changeMinor === null
-                        ? '—'
-                        : formatSom(
-                            Number(
-                              changeMinor >= 0n ? changeMinor : -changeMinor,
-                            ),
-                          )}
-                    </strong>
+                    <input
+                      type="radio"
+                      name="bottom-sheet-method"
+                      value="cash"
+                      checked={method === 'cash'}
+                      disabled={paymentPending}
+                      onChange={() => setMethod('cash')}
+                    />
+                    <svg
+                      className="pos-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.9"
+                      aria-hidden="true"
+                    >
+                      <rect x="2.5" y="6" width="19" height="12" rx="2" />
+                      <circle cx="12" cy="12" r="2.7" />
+                    </svg>
+                    <span>Наличные</span>
+                  </label>
+                  <label
+                    className={
+                      method === 'card' ? 'pos-method selected' : 'pos-method'
+                    }
+                  >
+                    <input
+                      type="radio"
+                      name="bottom-sheet-method"
+                      value="card"
+                      checked={method === 'card'}
+                      disabled={paymentPending}
+                      onChange={() => setMethod('card')}
+                    />
+                    <svg
+                      className="pos-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.9"
+                      aria-hidden="true"
+                    >
+                      <rect x="2.5" y="5.5" width="19" height="13" rx="2" />
+                      <path d="M2.5 10h19M6.5 14.5h4" />
+                    </svg>
+                    <span>Безналичные</span>
+                  </label>
+                </div>
+              </fieldset>
+
+              {loyaltyEnabled && !creditMode && (
+                <section className="pos-payment-option pos-option-bonus">
+                  <button
+                    type="button"
+                    className="pos-option-trigger"
+                    disabled={paymentPending}
+                    aria-expanded={bonusOpen}
+                    onClick={() => setBonusOpen((value) => !value)}
+                  >
+                    <span className="pos-option-icon" aria-hidden="true">
+                      ✦
+                    </span>
+                    <strong>Бонусы / скидка</strong>
+                    <span className="pos-option-detail">
+                      {redeemPoints > 0 ? formatSom(redeemPoints * 100) : ''}
+                    </span>
+                    <span className="pos-option-chevron" aria-hidden="true">
+                      {bonusOpen ? '⌃' : '⌄'}
+                    </span>
+                  </button>
+                  {bonusOpen && (
+                    <LoyaltyCheckout
+                      token={loyaltyToken}
+                      setToken={setLoyaltyToken}
+                      points={redeemPoints}
+                      setPoints={setRedeemPoints}
+                      totalMinor={originalTotalMinor}
+                      disabled={paymentPending}
+                    />
+                  )}
+                </section>
+              )}
+
+              {creditSalesEnabled && (
+                <section className="pos-payment-option pos-option-credit">
+                  <button
+                    type="button"
+                    className="pos-option-trigger"
+                    disabled={paymentPending}
+                    aria-expanded={creditMode}
+                    aria-pressed={creditMode}
+                    onClick={() => setCreditMode(!creditMode)}
+                  >
+                    <span className="pos-option-icon" aria-hidden="true">
+                      ◷
+                    </span>
+                    <strong>Продажа в долг</strong>
+                    <span className="pos-option-state">
+                      {creditMode ? 'Вкл.' : ''}
+                    </span>
+                    <span className="pos-option-chevron" aria-hidden="true">
+                      {creditMode ? '⌃' : '⌄'}
+                    </span>
+                  </button>
+                  {creditMode && (
+                    <CreditFields
+                      shopId={shopId}
+                      enabled={creditMode}
+                      disabled={paymentPending}
+                      customerId={creditCustomerId}
+                      onCustomerChange={setCreditCustomerId}
+                      onCustomerEligible={setCreditCustomerEligible}
+                      paid={creditPaidText}
+                      onPaidChange={setCreditPaidText}
+                      dueOn={creditDueOn}
+                      onDueChange={setCreditDueOn}
+                      debtMinor={creditDebtMinor}
+                    />
+                  )}
+                </section>
+              )}
+              {method === 'card' && !creditMode && (
+                <p className="pos-sheet-payment-hint">
+                  После оплаты на терминале подтвердите продажу.
+                </p>
+              )}
+            </div>
+
+            <div className="pos-sheet-footer">
+              {!creditMode && method === 'cash' && (
+                <div className="pos-sheet-cash-section">
+                  <label className="pos-received">
+                    Получено от покупателя, сом
+                    <input
+                      inputMode="decimal"
+                      placeholder="0,00"
+                      disabled={paymentPending}
+                      value={received}
+                      onChange={(e) => setReceived(e.target.value)}
+                    />
+                  </label>
+                  <div className="pos-quick">
+                    <span className="pos-quick-label">Быстрые суммы</span>
+                    <div className="pos-quick-buttons">
+                      <button
+                        type="button"
+                        className={
+                          receivedMinor === totalMinor && totalMinor > 0
+                            ? 'pos-quick-button selected'
+                            : 'pos-quick-button'
+                        }
+                        disabled={paymentPending || totalMinor <= 0}
+                        onClick={() =>
+                          setReceived((totalMinor / 100).toString())
+                        }
+                      >
+                        Без сдачи
+                      </button>
+                      {quickAmounts.map((amount) => (
+                        <button
+                          type="button"
+                          key={amount}
+                          className={
+                            receivedMinor === amount
+                              ? 'pos-quick-button selected'
+                              : 'pos-quick-button'
+                          }
+                          disabled={paymentPending}
+                          onClick={() => setReceived((amount / 100).toString())}
+                        >
+                          {wholeSom
+                            .format(amount / 100)
+                            .replace(/\u00a0/g, ' ')}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
+              )}
+              {creditMode && (
+                <div className="pos-sheet-cash-section">
+                  <label className="pos-received">
+                    Оплачено сейчас, сом
+                    <input
+                      inputMode="decimal"
+                      value={creditPaidText}
+                      disabled={paymentPending}
+                      onChange={(e) => setCreditPaidText(e.target.value)}
+                    />
+                  </label>
+                  <div className="pos-quick">
+                    <span className="pos-quick-label">Быстрые суммы</span>
+                    <div className="pos-quick-buttons">
+                      {creditQuick.map((amount) => (
+                        <button
+                          type="button"
+                          key={amount}
+                          disabled={paymentPending}
+                          className={
+                            Number(creditPaidText) === amount
+                              ? 'pos-quick-button selected'
+                              : 'pos-quick-button'
+                          }
+                          onClick={() => setCreditPaidText(amount.toString())}
+                        >
+                          {amount === 0 ? 'Без взноса' : formatQuickSom(amount)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
 
-                {isShort && (
-                  <p role="alert" className="notice warning">
-                    Внесённой суммы недостаточно для проведения продажи.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {!creditMode && method === 'card' && (
-              <div className="pos-sheet-card-info">
-                <p className="muted">
-                  Примите оплату банковской картой через POS-терминал. После
-                  успешной авторизации на терминале нажмите кнопку проведения
-                  продажи.
+              {receivedError && !creditMode && (
+                <p role="alert" className="error">
+                  {receivedError}
                 </p>
+              )}
+              {isShort && !creditMode && (
+                <p role="alert" className="pos-sheet-warning">
+                  Не хватает средств для оплаты.
+                </p>
+              )}
+
+              <div className="pos-totals pos-sheet-totals">
+                <div className="pos-total-tile">
+                  <span>К оплате</span>
+                  <strong>{totalText}</strong>
+                </div>
+                <div
+                  className={
+                    !creditMode && isShort
+                      ? 'pos-total-tile short'
+                      : isChange
+                        ? 'pos-total-tile change'
+                        : 'pos-total-tile'
+                  }
+                >
+                  <span>{!creditMode && isShort ? 'Не хватает' : 'Сдача'}</span>
+                  <strong>
+                    {creditMode || changeMinor === null
+                      ? '—'
+                      : formatSom(
+                          Number(
+                            changeMinor >= 0n ? changeMinor : -changeMinor,
+                          ),
+                        )}
+                  </strong>
+                </div>
               </div>
-            )}
-
-            {error && (
-              <p role="alert" className="error">
-                {error}
-              </p>
-            )}
-
-            <button
-              type="button"
-              className="pos-submit pos-sheet-submit"
-              disabled={!canSubmit || isSubmitting}
-              onClick={onSubmit}
-            >
-              <svg
-                className="pos-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                aria-hidden="true"
+              {creditMode && (
+                <div className="pos-sheet-credit-total">
+                  <span>В долг</span>
+                  <strong>
+                    {creditDebtMinor === null
+                      ? '—'
+                      : formatSom(creditDebtMinor)}
+                  </strong>
+                </div>
+              )}
+              {error && (
+                <p role="alert" className="error">
+                  {error}
+                </p>
+              )}
+              <button
+                type="button"
+                className="pos-submit pos-sheet-submit"
+                disabled={!canSubmit || isSubmitting}
+                onClick={onSubmit}
               >
-                <circle cx="12" cy="12" r="9" />
-                <path d="m8.2 12.2 2.5 2.6 5.2-5.4" />
-              </svg>
-              <span>
-                {isSubmitting
-                  ? 'Проведение…'
-                  : isSubmissionPending
-                    ? 'Повторить исходный запрос'
-                    : creditMode
-                      ? `Оформить долг — ${creditDebtMinor === null ? '—' : formatSom(creditDebtMinor)}`
-                      : `Провести продажу — ${totalText}`}
-              </span>
-            </button>
-          </div>
+                <span aria-hidden="true">✓</span>
+                <span>
+                  {isSubmitting
+                    ? 'Проведение…'
+                    : isSubmissionPending
+                      ? 'Повторить исходный запрос'
+                      : creditMode
+                        ? `Оформить долг — ${creditDebtMinor === null ? '—' : formatSom(creditDebtMinor)}`
+                        : `Провести продажу — ${totalText}`}
+                </span>
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>

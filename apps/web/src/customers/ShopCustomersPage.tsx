@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
-import { useSession } from '../auth/SessionProvider';
 import Pagination from '../components/Pagination';
 import BuyerActivationPanel from './BuyerActivationPanel';
 import {
@@ -16,8 +15,6 @@ type ShopCustomer = {
   address: string | null;
   createdAt: string;
   linked?: boolean;
-  creditApproved?: boolean;
-  creditLimitMinor?: number | string;
 };
 type Page = {
   items: ShopCustomer[];
@@ -26,14 +23,8 @@ type Page = {
   pageSize: number;
 };
 const PAGE_SIZE = 10;
-const creditSalesEnabled =
-  import.meta.env.DEV || import.meta.env.VITE_CREDIT_SALES_ENABLED === 'true';
-
 export default function ShopCustomersPage() {
   const { shopId } = useParams();
-  const session = useSession();
-  const isOwner =
-    session.user?.shops.find((s) => s.id === shopId)?.role === 'owner';
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [data, setData] = useState<Page | null>(null);
@@ -50,7 +41,6 @@ export default function ShopCustomersPage() {
     name: string;
   } | null>(null);
   const [revision, setRevision] = useState(0);
-  const [creditLimit, setCreditLimit] = useState('5000');
 
   const load = useCallback(async () => {
     if (!shopId) return;
@@ -105,25 +95,6 @@ export default function ShopCustomersPage() {
       setCreateError(errorText(err));
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function configureCredit(customer: ShopCustomer, approved: boolean) {
-    if (!shopId) return;
-    setError('');
-    try {
-      const limitMinor = approved ? Math.round(Number(creditLimit) * 100) : 0;
-      if (!Number.isSafeInteger(limitMinor) || limitMinor < 0) {
-        setError('Некорректный лимит кредита');
-        return;
-      }
-      await api(`/shops/${shopId}/customers/${customer.id}/credit-policy`, {
-        method: 'POST',
-        body: { approved, limitMinor },
-      });
-      setRevision((n) => n + 1);
-    } catch (err) {
-      setError(errorText(err));
     }
   }
 
@@ -206,18 +177,6 @@ export default function ShopCustomersPage() {
       </section>
       <section className="panel">
         <h2>Список клиентов</h2>
-        {creditSalesEnabled && isOwner && (
-          <label>
-            Лимит кредита для одобрения (сом)
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={creditLimit}
-              onChange={(e) => setCreditLimit(e.target.value)}
-            />
-          </label>
-        )}
         {invitation && (
           <BuyerActivationPanel
             name={invitation.name}
@@ -256,7 +215,6 @@ export default function ShopCustomersPage() {
                       <th>Адрес</th>
                       <th>Добавлен</th>
                       <th>Кабинет</th>
-                      {creditSalesEnabled && isOwner && <th>Кредит</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -280,28 +238,6 @@ export default function ShopCustomersPage() {
                             </button>
                           )}
                         </td>
-                        {creditSalesEnabled && isOwner && (
-                          <td>
-                            {c.creditApproved ? (
-                              <button
-                                type="button"
-                                onClick={() => void configureCredit(c, false)}
-                              >
-                                Лимит {Number(c.creditLimitMinor || 0) / 100}{' '}
-                                сом · отключить
-                              </button>
-                            ) : c.linked ? (
-                              <button
-                                type="button"
-                                onClick={() => void configureCredit(c, true)}
-                              >
-                                Разрешить кредит
-                              </button>
-                            ) : (
-                              'Сначала привяжите кабинет'
-                            )}
-                          </td>
-                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -321,9 +257,8 @@ export default function ShopCustomersPage() {
         )}
       </section>
       <p className="muted">
-        Покупатель должен войти в свой кабинет с тем же номером и использовать
-        одноразовый код. Разрешать кредит и устанавливать лимиты может только
-        владелец магазина.
+        Продажа в долг доступна и без подтверждённого кабинета. Для просмотра
+        своих долгов и бонусов покупатель должен безопасно подтвердить личность.
       </p>
     </div>
   );
