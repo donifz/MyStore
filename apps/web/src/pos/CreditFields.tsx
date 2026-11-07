@@ -6,6 +6,7 @@ import {
   KYRGYZ_PHONE_PATTERN,
 } from '../customers/kyrgyzPhoneMask';
 import PosBuyerInvitation from './PosBuyerInvitation';
+import PaymentIcon from './PaymentIcon';
 import './credit-fields.css';
 
 type Customer = {
@@ -178,6 +179,7 @@ export default function CreditFields({
           disabled={disabled}
           onClick={() => setMode('existing')}
         >
+          <PaymentIcon name="user" size={17} />
           Существующий
         </button>
         <button
@@ -191,7 +193,8 @@ export default function CreditFields({
             onCustomerEligible(false);
           }}
         >
-          + Новый клиент
+          <PaymentIcon name="user-plus" size={17} />
+          Новый клиент
         </button>
       </div>
 
@@ -260,7 +263,9 @@ export default function CreditFields({
                   </small>
                 </span>
                 <span className="credit-customer-radio" aria-hidden="true">
-                  {customerId === customer.id ? '✓' : ''}
+                  {customerId === customer.id ? (
+                    <PaymentIcon name="check" size={16} />
+                  ) : null}
                 </span>
               </button>
             ))}
@@ -272,6 +277,7 @@ export default function CreditFields({
               disabled={disabled || busy}
               onClick={() => void inviteExisting(selected)}
             >
+              <PaymentIcon name="qr" size={17} />
               {busy ? 'Создаём приглашение…' : 'Выдать QR-приглашение'}
             </button>
           )}
@@ -333,6 +339,7 @@ export default function CreditFields({
                 type="submit"
                 disabled={busy || disabled}
               >
+                <PaymentIcon name="qr" size={17} />
                 {busy ? 'Сохраняем…' : 'Создать и показать QR-приглашение'}
               </button>
             </form>
