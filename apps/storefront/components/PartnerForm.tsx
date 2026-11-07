@@ -34,7 +34,7 @@ export default function PartnerPage() {
         body: {
           shopName: name.trim(),
           email: email.trim(),
-          phone: phone.trim(),
+          phone: phone.replace(/\s/g, ''),
           city: city.trim(),
           address: address.trim(),
           category:
