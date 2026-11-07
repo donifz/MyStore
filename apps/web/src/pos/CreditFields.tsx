@@ -5,7 +5,7 @@ import {
   formatKyrgyzPhoneInput,
   KYRGYZ_PHONE_PATTERN,
 } from '../customers/kyrgyzPhoneMask';
-import BuyerActivationPanel from '../customers/BuyerActivationPanel';
+import PosBuyerInvitation from './PosBuyerInvitation';
 import './credit-fields.css';
 
 type Customer = {
@@ -330,7 +330,7 @@ export default function CreditFields({
             </div>
           )}
           {invitation && (
-            <BuyerActivationPanel
+            <PosBuyerInvitation
               name={invitation.name}
               token={invitation.token}
               expiresAt={invitation.expiresAt}
