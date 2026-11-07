@@ -90,7 +90,7 @@ it('applies date presets and forwards period filter to sales and orders CSV link
   const stockOverview = screen.getByRole('region', {
     name: 'Товары на складе',
   });
-  const stockText = stockOverview.textContent?.replace(/\\u00a0/g, ' ');
+  const stockText = stockOverview.textContent?.replace(/\u00a0/g, ' ');
   expect(stockText).toContain('10 шт.');
   expect(stockText).toContain('2 товарных позиций');
   expect(stockText).toContain('1 000');
