@@ -77,6 +77,11 @@ import { EventEmailService } from './email/event-email.service';
 import { BuyerAuthController } from './customers/buyer-auth.controller';
 import { BuyerAuthService } from './customers/buyer-auth.service';
 import { BuyerAuthGuard } from './customers/buyer-auth.guard';
+import { BuyerTelegramService } from './customers/buyer-telegram.service';
+import {
+  BuyerTelegramController,
+  TelegramWebhookController,
+} from './customers/buyer-telegram.controller';
 import { BuyerInvitesService } from './customers/buyer-invites.service';
 import { CreditSalesService } from './pos/credit-sales.service';
 import { CreditRepaymentsService } from './pos/credit-repayments.service';
@@ -139,6 +144,8 @@ export async function createApp(
       PasswordRecoveryController,
       StaffAcceptanceController,
       BuyerAuthController,
+      BuyerTelegramController,
+      TelegramWebhookController,
       BuyerInvitesController,
       ShopBuyerInvitesController,
       ShopCustomersController,
@@ -180,6 +187,7 @@ export async function createApp(
       StaffService,
       PasswordRecoveryService,
       BuyerAuthService,
+      BuyerTelegramService,
       BuyerInvitesService,
       BuyerAuthGuard,
       ShopCustomersService,

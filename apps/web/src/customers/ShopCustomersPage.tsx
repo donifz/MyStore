@@ -3,6 +3,10 @@ import { useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
 import { useSession } from '../auth/SessionProvider';
 import Pagination from '../components/Pagination';
+import {
+  formatKyrgyzPhoneInput,
+  KYRGYZ_PHONE_PATTERN,
+} from './kyrgyzPhoneMask';
 
 type ShopCustomer = {
   id: string;
@@ -156,8 +160,13 @@ export default function ShopCustomersPage() {
                 required
                 type="tel"
                 maxLength={32}
+                autoComplete="tel"
+                pattern={KYRGYZ_PHONE_PATTERN}
+                title="Номер Кыргызстана: +996 700 123 456"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) =>
+                  setPhone(formatKyrgyzPhoneInput(e.target.value))
+                }
                 placeholder="+996 700 123 456"
               />
             </label>

@@ -3,6 +3,7 @@ import { startInlineEmail } from './email/email-runner';
 import { OrderExpirationService } from './orders/order-expiration.service';
 import { buildDataSource } from './database';
 import { createApp } from './app';
+import { BuyerTelegramService } from './customers/buyer-telegram.service';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { RequestHandler } from 'express';
@@ -42,6 +43,8 @@ async function main() {
   }, 60000);
   timer.unref();
   await app.listen(Number(process.env.PORT ?? 3001), '0.0.0.0');
+  // Register only after HTTP ingress is listening. Failure must not stop POS.
+  await app.get(BuyerTelegramService).registerWebhook();
   const email = startInlineEmail(db);
   let closing = false;
   const close = async () => {

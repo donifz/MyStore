@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  formatKyrgyzPhoneInput,
+  KYRGYZ_PHONE_PATTERN,
+} from './kyrgyzPhoneMask';
 
 type BuyerDebt = {
   saleId: string;
@@ -72,6 +76,9 @@ export default function BuyerPortalPage() {
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [inviteToken, setInviteToken] = useState('');
+  const [telegramEnabled, setTelegramEnabled] = useState(false);
+  const [telegramLink, setTelegramLink] = useState('');
+  const [telegramError, setTelegramError] = useState('');
 
   const refresh = useCallback(async () => {
     try {
@@ -86,6 +93,45 @@ export default function BuyerPortalPage() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (!account) {
+      setTelegramEnabled(false);
+      setTelegramLink('');
+      return;
+    }
+    let active = true;
+    void buyerApi<{ enabled: boolean }>('telegram/config')
+      .then((result) => {
+        if (active) setTelegramEnabled(result.enabled);
+      })
+      .catch(() => {
+        if (active) setTelegramEnabled(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [account?.id, account?.phoneVerified]);
+
+  async function prepareTelegram() {
+    setBusy(true);
+    setTelegramError('');
+    setTelegramLink('');
+    try {
+      const result = await buyerApi<{ url: string }>(
+        'telegram/start',
+        {},
+        account?.csrfToken,
+      );
+      setTelegramLink(result.url);
+    } catch (err) {
+      setTelegramError(
+        err instanceof Error ? err.message : 'Ошибка подтверждения',
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
 
   useEffect(() => {
     if (!account) {
@@ -215,6 +261,42 @@ export default function BuyerPortalPage() {
                 </p>
               </div>
             )}
+            {!account.phoneVerified && telegramEnabled && (
+              <section className="panel buyer-tile">
+                <h2>Подтвердить телефон через Telegram</h2>
+                <p className="muted">
+                  Нажмите кнопку, затем в боте Telegram поделитесь своим
+                  контактом. Номер контакта должен совпадать с номером кабинета.
+                  Ссылка действует 10 минут.
+                </p>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void prepareTelegram()}
+                >
+                  Получить ссылку для подтверждения
+                </button>
+                {telegramLink && (
+                  <p>
+                    <a
+                      href={telegramLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Открыть Telegram-бота
+                    </a>
+                  </p>
+                )}
+                {telegramError && (
+                  <p role="alert" className="error">
+                    {telegramError}
+                  </p>
+                )}
+                <button type="button" onClick={() => void refresh()}>
+                  Проверить статус номера
+                </button>
+              </section>
+            )}
             <section className="panel buyer-tile">
               <h2>Привязать магазин</h2>
               <p className="muted">
@@ -337,8 +419,12 @@ export default function BuyerPortalPage() {
                   autoComplete="tel"
                   required
                   maxLength={32}
+                  pattern={KYRGYZ_PHONE_PATTERN}
+                  title="Номер Кыргызстана: +996 700 123 456"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) =>
+                    setPhone(formatKyrgyzPhoneInput(e.target.value))
+                  }
                   placeholder="+996 700 123 456"
                 />
               </label>

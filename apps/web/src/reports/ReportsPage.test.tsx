@@ -40,6 +40,8 @@ it('applies date presets and forwards period filter to sales and orders CSV link
           physicalUnits: 10,
           reservedUnits: 0,
           stockValueMinor: 100000,
+          stockRetailValueMinor: 160000,
+          stockedVariantsCount: 2,
           lowStockCount: 0,
           openOrders: 0,
           issuedOrders: 0,
@@ -85,6 +87,17 @@ it('applies date presets and forwards period filter to sales and orders CSV link
   );
   const u = userEvent.setup();
   await screen.findByText('Выручка за вычетом возвратов');
+  const stockOverview = screen.getByRole('region', {
+    name: 'Товары на складе',
+  });
+  const stockText = stockOverview.textContent?.replace(/\u00a0/g, ' ');
+  expect(stockText).toContain('10 шт.');
+  expect(stockText).toContain('2 товарных позиций');
+  expect(stockText).toContain('1 000');
+  expect(stockText).toContain('1 600');
+  expect(stockText).toContain('600');
+  expect(stockText).toContain('не зависит от периода продаж');
+  expect(screen.getAllByText('Стоимость по продаже')).toHaveLength(1);
   expect(screen.getByText('Продажи и возвраты по дням')).toBeTruthy();
   expect(screen.getByText('Каналы продаж и оплата')).toBeTruthy();
   expect(screen.getByText('Структура выручки и маржинальность')).toBeTruthy();

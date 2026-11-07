@@ -36,6 +36,7 @@ import { BuyerAccounts1760000000032 } from './migrations/1760000000032-BuyerAcco
 import { BuyerInvites1760000000033 } from './migrations/1760000000033-BuyerInvites';
 import { CreditSales1760000000034 } from './migrations/1760000000034-CreditSales';
 import { CreditRepayments1760000000035 } from './migrations/1760000000035-CreditRepayments';
+import { BuyerTelegramVerification1760000000036 } from './migrations/1760000000036-BuyerTelegramVerification';
 export const DATABASE = Symbol('DATABASE');
 export function buildDataSource(url: string) {
   return new DataSource({
@@ -79,6 +80,7 @@ export function buildDataSource(url: string) {
       BuyerInvites1760000000033,
       CreditSales1760000000034,
       CreditRepayments1760000000035,
+      BuyerTelegramVerification1760000000036,
     ],
   });
 }
