@@ -213,7 +213,7 @@ function SaleWorkspace({
     safe = sum <= BigInt(Number.MAX_SAFE_INTEGER);
   const totalMinor = safe ? Number(sum) : 0;
   const validLoyalty =
-    !loyaltyToken ||
+    (!loyaltyToken && redeemPoints === 0) ||
     (/^[A-Za-z0-9_-]{43}$/.test(loyaltyToken) &&
       Number.isSafeInteger(redeemPoints) &&
       redeemPoints >= 0 &&
