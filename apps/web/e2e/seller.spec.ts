@@ -81,7 +81,9 @@ test('seller flow: receive, shift, lost response retry, return and close', async
   // The desktop checkout must be visible without scrolling the document.
   const desktopCheckout = page.getByRole('region', { name: 'Оплата чека' });
   await expect(desktopCheckout).toBeVisible();
-  await expect(desktopCheckout.getByRole('button', { name: /Покупатель/ })).toBeVisible();
+  await expect(
+    desktopCheckout.getByRole('button', { name: /Покупатель/ }),
+  ).toBeVisible();
   await expect(desktopCheckout.locator('.pos-option-customer')).toBeVisible();
   await expect(desktopCheckout.locator('.pos-option-discount')).toBeVisible();
   await expect(desktopCheckout.getByLabel('Скидка при оплате')).toBeVisible();
@@ -106,16 +108,26 @@ test('seller flow: receive, shift, lost response retry, return and close', async
   expect(cardBoxes.length).toBeGreaterThanOrEqual(2);
   expect(cardBoxes.every((box) => box.height >= 76)).toBe(true);
   expect(Math.abs(cardBoxes[0].y - cardBoxes[1].y)).toBeLessThan(2);
-  await expect(mobileCheckout.getByRole('button', { name: /Провести продажу/ })).toBeVisible();
-  const checkoutFields = await mobileCheckout.locator('.pos-checkout-money-row > label').evaluateAll((elements) =>
-    elements.map((el) => {
-      const field = el.querySelector('.pos-discount-control, input')?.getBoundingClientRect();
-      return field ? { top: field.top, height: field.height } : null;
-    }),
-  );
+  await expect(
+    mobileCheckout.getByRole('button', { name: /Провести продажу/ }),
+  ).toBeVisible();
+  const checkoutFields = await mobileCheckout
+    .locator('.pos-checkout-money-row > label')
+    .evaluateAll((elements) =>
+      elements.map((el) => {
+        const field = el
+          .querySelector('.pos-discount-control, input')
+          ?.getBoundingClientRect();
+        return field ? { top: field.top, height: field.height } : null;
+      }),
+    );
   expect(checkoutFields).toHaveLength(2);
-  expect(Math.abs(checkoutFields[0]!.top - checkoutFields[1]!.top)).toBeLessThan(2);
-  await mobileCheckout.getByRole('button', { name: 'Закрыть оплату' }).click();
+  expect(
+    Math.abs(checkoutFields[0]!.top - checkoutFields[1]!.top),
+  ).toBeLessThan(2);
+  await mobileCheckout
+    .getByRole('button', { name: 'Закрыть оплату' })
+    .click();
   await page.setViewportSize({ width: 1440, height: 1000 });
   await context.setOffline(true);
   await expect(
