@@ -5,12 +5,14 @@ import { IdempotencyService } from '../common/idempotency.service';
 import { SalesService, SaleLine } from './sales.service';
 import { ShiftsService } from './shifts.service';
 import { PaymentMethod } from './pos.types';
+import { LoyaltyService } from './loyalty.service';
 @Injectable()
 export class PosSalesService {
   constructor(
     private readonly ops: IdempotencyService,
     private readonly sales: SalesService,
     private readonly shifts: ShiftsService,
+    private readonly loyalty: LoyaltyService,
   ) {}
   async sell(
     shopId: string,
@@ -19,13 +21,21 @@ export class PosSalesService {
     shiftId: string,
     method: PaymentMethod,
     lines: SaleLine[],
+    rewards?: { token: string; redeemPoints: number },
   ) {
     const normalized = this.sales.normalize(lines);
     shiftId = shiftId.toLowerCase();
     return this.ops.execute(
       shopId,
       key,
-      { kind: 'pos-sale', actorId, shiftId, method, lines: normalized },
+      {
+        kind: 'pos-sale',
+        actorId,
+        shiftId,
+        method,
+        lines: normalized,
+        rewards,
+      },
       (tx) =>
         this.postInTransaction(
           tx,
@@ -34,6 +44,9 @@ export class PosSalesService {
           shiftId,
           method,
           normalized,
+          false,
+          undefined,
+          rewards,
         ),
     );
   }
@@ -47,6 +60,7 @@ export class PosSalesService {
     normalized: SaleLine[],
     agreedPrice = false,
     paidMinor?: number,
+    rewards?: { token: string; redeemPoints: number },
   ) {
     await this.shifts.lockOpen(tx, shopId, shiftId, actorId);
     const [member] = await tx.query(
@@ -80,7 +94,21 @@ export class PosSalesService {
       'INSERT INTO pos_sales(shop_id,document_id,shift_id) VALUES($1,$2,$3)',
       [shopId, sale.id, shiftId],
     );
-    const payment = paidMinor ?? sale.totalMinor;
+    if (rewards && paidMinor !== undefined) {
+      throw new ForbiddenException(
+        'Bonuses cannot be combined with credit sales',
+      );
+    }
+    const loyalty = rewards
+      ? await this.loyalty.applyToSale(tx, {
+          shopId,
+          saleId: sale.id,
+          token: rewards.token,
+          redeemPoints: rewards.redeemPoints,
+          totalMinor: sale.totalMinor,
+        })
+      : null;
+    const payment = loyalty?.cashMinor ?? paidMinor ?? sale.totalMinor;
     if (
       !Number.isSafeInteger(payment) ||
       payment < 0 ||
@@ -94,6 +122,6 @@ export class PosSalesService {
       );
     }
     await this.shifts.lockOpen(tx, shopId, shiftId, actorId);
-    return { ...sale, shiftId, method };
+    return { ...sale, shiftId, method, ...(loyalty ? { loyalty } : {}) };
   }
 }

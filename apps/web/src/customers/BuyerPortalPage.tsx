@@ -5,6 +5,7 @@ import {
   KYRGYZ_PHONE_PATTERN,
 } from './kyrgyzPhoneMask';
 import { parseBuyerInviteFragment } from './buyerInviteLink';
+import BuyerInviteQr from './BuyerInviteQr';
 
 type BuyerDebt = {
   saleId: string;
@@ -68,6 +69,13 @@ export default function BuyerPortalPage() {
   const [debts, setDebts] = useState<BuyerDebt[]>([]);
   const [repayments, setRepayments] = useState<BuyerRepayment[]>([]);
   const [debtsError, setDebtsError] = useState('');
+  const [loyaltyEnabled, setLoyaltyEnabled] = useState(false);
+  const [loyaltyWallets, setLoyaltyWallets] = useState<
+    { shopId: string; shopName: string; balancePoints: number }[]
+  >([]);
+  const [loyaltyCode, setLoyaltyCode] = useState('');
+  const [loyaltyError, setLoyaltyError] = useState('');
+  const [loyaltyBusy, setLoyaltyBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<'login' | 'register'>('register');
   const [name, setName] = useState('');
@@ -184,6 +192,55 @@ export default function BuyerPortalPage() {
       live = false;
     };
   }, [account?.id, account?.shops.length]);
+
+  useEffect(() => {
+    if (!account) {
+      setLoyaltyWallets([]);
+      setLoyaltyEnabled(false);
+      setLoyaltyCode('');
+      return;
+    }
+    let live = true;
+    void buyerApi<{ enabled: boolean }>('loyalty/config')
+      .then(async (result) => {
+        if (!live) return;
+        setLoyaltyEnabled(result.enabled);
+        if (result.enabled) {
+          const wallets =
+            await buyerApi<
+              { shopId: string; shopName: string; balancePoints: number }[]
+            >('loyalty/wallets');
+          if (live) setLoyaltyWallets(wallets);
+        }
+      })
+      .catch(() => {
+        if (live) setLoyaltyError('Не удалось загрузить бонусы.');
+      });
+    return () => {
+      live = false;
+    };
+  }, [account?.id, account?.shops.length]);
+
+  async function showLoyaltyQr() {
+    if (!account || loyaltyBusy) return;
+    setLoyaltyBusy(true);
+    setLoyaltyError('');
+    try {
+      const code = await buyerApi<{ token: string }>(
+        'loyalty/qr',
+        {},
+        account.csrfToken,
+      );
+      setLoyaltyCode(code.token);
+    } catch (err) {
+      setLoyaltyCode('');
+      setLoyaltyError(
+        err instanceof Error ? err.message : 'Ошибка генерации QR',
+      );
+    } finally {
+      setLoyaltyBusy(false);
+    }
+  }
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -398,11 +455,51 @@ export default function BuyerPortalPage() {
                 ))}
               </section>
               <section className="panel buyer-tile">
-                <h2>Акции и бонусы</h2>
-                <p className="muted">
-                  Акции магазинов и персональные бонусы будут добавлены в
-                  отдельном этапе. Баллы разных магазинов не смешиваются.
-                </p>
+                <h2>Мои бонусы</h2>
+                {loyaltyEnabled ? (
+                  <>
+                    {!loyaltyWallets.length && (
+                      <p className="muted">
+                        Баллы появятся после привязки магазина и покупок.
+                      </p>
+                    )}
+                    {loyaltyWallets.map((wallet) => (
+                      <p key={wallet.shopId}>
+                        <strong>{wallet.shopName}</strong> ·{' '}
+                        {wallet.balancePoints} баллов
+                      </p>
+                    ))}
+                    <p className="muted">
+                      1 балл = 1 сом. Покажите QR кассиру. Код одноразовый,
+                      действует 2 минуты.
+                    </p>
+                    <button
+                      type="button"
+                      disabled={loyaltyBusy || !account.phoneVerified}
+                      onClick={() => void showLoyaltyQr()}
+                    >
+                      {loyaltyBusy ? 'Создаём QR…' : 'Показать мой QR'}
+                    </button>
+                    {!account.phoneVerified && (
+                      <p className="muted">
+                        Сначала подтвердите телефон через Telegram.
+                      </p>
+                    )}
+                    {loyaltyCode && (
+                      <div className="buyer-invite-panel">
+                        <BuyerInviteQr value={loyaltyCode} />
+                        <p className="muted">
+                          QR нельзя использовать повторно.
+                        </p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="muted">
+                    Бонусная программа пока не подключена.
+                  </p>
+                )}
+                {loyaltyError && <p role="alert">{loyaltyError}</p>}
               </section>
             </div>
           </>

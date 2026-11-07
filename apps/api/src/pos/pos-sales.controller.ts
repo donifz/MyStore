@@ -18,6 +18,8 @@ import {
   IsIn,
   IsInt,
   IsOptional,
+  IsString,
+  Matches,
   IsUUID,
   Max,
   Min,
@@ -38,6 +40,11 @@ class PosSaleDto {
   @ValidateNested({ each: true })
   @Type(() => SaleLineDto)
   lines!: SaleLineDto[];
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Za-z0-9_-]{43}$/)
+  loyaltyToken?: string;
+  @IsOptional() @IsInt() @Min(0) @Max(9007199254740991) redeemPoints?: number;
 }
 class PageQuery {
   @Type(() => Number) @IsInt() @Min(1) @Max(1000000) page = 1;
@@ -69,6 +76,9 @@ export class PosSalesController {
       dto.shiftId,
       dto.method,
       dto.lines,
+      dto.loyaltyToken
+        ? { token: dto.loyaltyToken, redeemPoints: dto.redeemPoints ?? 0 }
+        : undefined,
     );
   }
   @Get() async list(

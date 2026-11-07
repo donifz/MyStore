@@ -75,6 +75,16 @@ export class ReturnsService {
           throw new ConflictException(
             'Returns for credit sales require debt reconciliation',
           );
+        // Until bonuses are reversed pro rata, refunding a loyalty sale
+        // could give back more money than was actually paid.
+        const [bonusSale] = await tx.query(
+          'SELECT sale_id FROM loyalty_ledger WHERE shop_id=$1 AND sale_id=$2 LIMIT 1',
+          [shopId, saleId],
+        );
+        if (bonusSale)
+          throw new ConflictException(
+            'Возврат покупки с бонусами требует пересчёта баллов',
+          );
         if (input.refundMoney && !sale.paid)
           throw new ConflictException('Legacy payment unknown');
         const parts = [];

@@ -85,6 +85,8 @@ import {
 import { BuyerInvitesService } from './customers/buyer-invites.service';
 import { CreditSalesService } from './pos/credit-sales.service';
 import { CreditRepaymentsService } from './pos/credit-repayments.service';
+import { LoyaltyService } from './pos/loyalty.service';
+import { BuyerLoyaltyController } from './pos/loyalty.controller';
 import {
   CreditRepaymentsController,
   BuyerRepaymentsController,
@@ -134,6 +136,7 @@ export async function createApp(
       CreditRepaymentsController,
       BuyerRepaymentsController,
       BuyerDebtsController,
+      BuyerLoyaltyController,
       ReturnsController,
       ReportsController,
       OperationsController,
@@ -176,6 +179,7 @@ export async function createApp(
       PosSalesService,
       CreditSalesService,
       CreditRepaymentsService,
+      LoyaltyService,
       ReturnsService,
       SalesHistoryService,
       ReportsService,
