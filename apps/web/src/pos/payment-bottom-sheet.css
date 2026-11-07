@@ -498,7 +498,6 @@
   justify-content: flex-start;
 }
 
-
 /* Premium checkout: icons and semantic card colors follow the approved mockup. */
 .pos-sheet-head-copy h2 {
   display: flex;
@@ -708,9 +707,21 @@
   background: #edf8f2;
 }
 @media (max-width: 390px) {
-  .pos-sheet-footer { gap: 7px; }
-  .pos-checkout-money-row { gap: 7px; }
-  .pos-sheet-footer .pos-checkout-money-row input { padding: 7px; font-size: 15px; }
-  .pos-sheet-footer .pos-checkout-summary .pos-total-tile strong { font-size: 12px; }
-  .pos-sheet-drawer .pos-option-detail { max-width: 35%; font-size: 11px; }
+  .pos-sheet-footer {
+    gap: 7px;
+  }
+  .pos-checkout-money-row {
+    gap: 7px;
+  }
+  .pos-sheet-footer .pos-checkout-money-row input {
+    padding: 7px;
+    font-size: 15px;
+  }
+  .pos-sheet-footer .pos-checkout-summary .pos-total-tile strong {
+    font-size: 12px;
+  }
+  .pos-sheet-drawer .pos-option-detail {
+    max-width: 35%;
+    font-size: 11px;
+  }
 }

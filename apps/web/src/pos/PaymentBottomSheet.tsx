@@ -104,7 +104,9 @@ export default function PaymentBottomSheet({
   onNewReceipt,
 }: PaymentBottomSheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
-  const [activePanel, setActivePanel] = useState<'bonus' | 'credit' | 'customer' | null>(null);
+  const [activePanel, setActivePanel] = useState<
+    'bonus' | 'credit' | 'customer' | null
+  >(null);
   const [selectedCustomerName, setSelectedCustomerName] = useState('');
   const returnToCredit = useRef(false);
   function openCustomer(fromCredit = false) {
@@ -184,7 +186,12 @@ export default function PaymentBottomSheet({
         <div className="pos-sheet-handle" aria-hidden="true" />
         <div className="pos-sheet-head">
           <div className="pos-sheet-head-copy">
-            <h2><span className="pos-heading-icon"><PaymentIcon name="cart" size={22} /></span> Оплата чека</h2>
+            <h2>
+              <span className="pos-heading-icon">
+                <PaymentIcon name="cart" size={22} />
+              </span>{' '}
+              Оплата чека
+            </h2>
             <strong className="pos-sheet-total">К оплате: {totalText}</strong>
           </div>
           <button
@@ -256,26 +263,51 @@ export default function PaymentBottomSheet({
                     <span>Безналичные</span>
                   </label>
                   {loyaltyEnabled && (
-                    <button type="button" className="pos-method pos-method-qr" aria-label="QR покупателя" disabled={paymentPending} onClick={openBonus}>
-                      <PaymentIcon name="qr" size={20} /><span>QR</span>
+                    <button
+                      type="button"
+                      className="pos-method pos-method-qr"
+                      aria-label="QR покупателя"
+                      disabled={paymentPending}
+                      onClick={openBonus}
+                    >
+                      <PaymentIcon name="qr" size={20} />
+                      <span>QR</span>
                     </button>
                   )}
                 </div>
               </fieldset>
 
               <section className="pos-payment-option pos-option-customer">
-                <button type="button" className="pos-option-trigger" disabled={paymentPending} aria-haspopup="dialog" onClick={() => openCustomer()}>
-                  <span className="pos-option-icon" aria-hidden="true"><PaymentIcon name="user" /></span>
+                <button
+                  type="button"
+                  className="pos-option-trigger"
+                  disabled={paymentPending}
+                  aria-haspopup="dialog"
+                  onClick={() => openCustomer()}
+                >
+                  <span className="pos-option-icon" aria-hidden="true">
+                    <PaymentIcon name="user" />
+                  </span>
                   <strong>Покупатель</strong>
-                  <span className="pos-option-detail">{selectedCustomerName || 'Не выбран'}</span>
-                  <span className="pos-option-chevron" aria-hidden="true"><PaymentIcon name="chevron" size={18} /></span>
+                  <span className="pos-option-detail">
+                    {selectedCustomerName || 'Не выбран'}
+                  </span>
+                  <span className="pos-option-chevron" aria-hidden="true">
+                    <PaymentIcon name="chevron" size={18} />
+                  </span>
                 </button>
               </section>
               <section className="pos-payment-option pos-option-discount">
                 <div className="pos-option-trigger">
-                  <span className="pos-option-icon" aria-hidden="true"><PaymentIcon name="tag" /></span>
+                  <span className="pos-option-icon" aria-hidden="true">
+                    <PaymentIcon name="tag" />
+                  </span>
                   <strong>Скидка</strong>
-                  <span className="pos-option-detail">{checkoutDiscountMinor ? '− ' + formatSom(checkoutDiscountMinor) : '0,00 сом (0%)'}</span>
+                  <span className="pos-option-detail">
+                    {checkoutDiscountMinor
+                      ? '− ' + formatSom(checkoutDiscountMinor)
+                      : '0,00 сом (0%)'}
+                  </span>
                 </div>
               </section>
 
@@ -365,22 +397,62 @@ export default function PaymentBottomSheet({
                 <div className="pos-sheet-cash-section">
                   <div className="pos-checkout-money-row">
                     <label className="pos-received">
-                      <span><PaymentIcon name="wallet" size={17} /> Получено от покупателя, сом</span>
-                    <input
-                      inputMode="decimal"
-                      placeholder="0,00"
-                      disabled={paymentPending}
-                      value={received}
-                      onChange={(e) => setReceived(e.target.value)}
-                    />
+                      <span>
+                        <PaymentIcon name="wallet" size={17} /> Получено от
+                        покупателя, сом
+                      </span>
+                      <input
+                        inputMode="decimal"
+                        placeholder="0,00"
+                        disabled={paymentPending}
+                        value={received}
+                        onChange={(e) => setReceived(e.target.value)}
+                      />
                     </label>
                     <label className="pos-discount-field">
-                      <span><PaymentIcon name="tag" size={17} /> Скидка, сом / %</span>
+                      <span>
+                        <PaymentIcon name="tag" size={17} /> Скидка, сом / %
+                      </span>
                       <span className="pos-discount-control">
-                        <input inputMode="decimal" aria-label="Скидка при оплате" value={checkoutDiscountText} disabled={paymentPending} placeholder="0,00" onChange={(event) => setCheckoutDiscountText(event.target.value)} />
-                        <span className="pos-discount-modes" role="group" aria-label="Единица скидки">
-                          <button type="button" className={checkoutDiscountMode === 'som' ? 'selected' : ''} aria-pressed={checkoutDiscountMode === 'som'} disabled={paymentPending} onClick={() => setCheckoutDiscountMode('som')}>сом</button>
-                          <button type="button" className={checkoutDiscountMode === 'percent' ? 'selected' : ''} aria-pressed={checkoutDiscountMode === 'percent'} disabled={paymentPending} onClick={() => setCheckoutDiscountMode('percent')}>%</button>
+                        <input
+                          inputMode="decimal"
+                          aria-label="Скидка при оплате"
+                          value={checkoutDiscountText}
+                          disabled={paymentPending}
+                          placeholder="0,00"
+                          onChange={(event) =>
+                            setCheckoutDiscountText(event.target.value)
+                          }
+                        />
+                        <span
+                          className="pos-discount-modes"
+                          role="group"
+                          aria-label="Единица скидки"
+                        >
+                          <button
+                            type="button"
+                            className={
+                              checkoutDiscountMode === 'som' ? 'selected' : ''
+                            }
+                            aria-pressed={checkoutDiscountMode === 'som'}
+                            disabled={paymentPending}
+                            onClick={() => setCheckoutDiscountMode('som')}
+                          >
+                            сом
+                          </button>
+                          <button
+                            type="button"
+                            className={
+                              checkoutDiscountMode === 'percent'
+                                ? 'selected'
+                                : ''
+                            }
+                            aria-pressed={checkoutDiscountMode === 'percent'}
+                            disabled={paymentPending}
+                            onClick={() => setCheckoutDiscountMode('percent')}
+                          >
+                            %
+                          </button>
                         </span>
                       </span>
                     </label>
@@ -457,7 +529,11 @@ export default function PaymentBottomSheet({
                 </div>
               )}
 
-              {checkoutDiscountError && <p role="alert" className="pos-sheet-warning">{checkoutDiscountError}</p>}
+              {checkoutDiscountError && (
+                <p role="alert" className="pos-sheet-warning">
+                  {checkoutDiscountError}
+                </p>
+              )}
               {receivedError && !creditMode && (
                 <p role="alert" className="error">
                   {receivedError}
@@ -471,15 +547,21 @@ export default function PaymentBottomSheet({
 
               <div className="pos-totals pos-sheet-totals pos-checkout-summary">
                 <div className="pos-total-tile pos-summary-original">
-                  <span><PaymentIcon name="cart" size={16} /> Сумма</span>
+                  <span>
+                    <PaymentIcon name="cart" size={16} /> Сумма
+                  </span>
                   <strong>{formatSom(checkoutOriginalMinor)}</strong>
                 </div>
                 <div className="pos-total-tile pos-summary-discount">
-                  <span><PaymentIcon name="tag" size={16} /> Скидка</span>
+                  <span>
+                    <PaymentIcon name="tag" size={16} /> Скидка
+                  </span>
                   <strong>− {formatSom(checkoutDiscountMinor)}</strong>
                 </div>
                 <div className="pos-total-tile pos-summary-due">
-                  <span><PaymentIcon name="wallet" size={16} /> К оплате</span>
+                  <span>
+                    <PaymentIcon name="wallet" size={16} /> К оплате
+                  </span>
                   <strong>{totalText}</strong>
                 </div>
               </div>
@@ -555,7 +637,11 @@ export default function PaymentBottomSheet({
             role="dialog"
             aria-modal="true"
             aria-label={
-              activePanel === 'credit' ? 'Продажа в долг' : activePanel === 'customer' ? 'Покупатель' : 'Бонусы'
+              activePanel === 'credit'
+                ? 'Продажа в долг'
+                : activePanel === 'customer'
+                  ? 'Покупатель'
+                  : 'Бонусы'
             }
           >
             <div className="pos-sheet-option-handle" aria-hidden="true" />
@@ -563,16 +649,30 @@ export default function PaymentBottomSheet({
               <span className="pos-sheet-option-title">
                 <span
                   className={
-                    activePanel === 'credit' ? 'option-graphic credit' : activePanel === 'customer' ? 'option-graphic customer' : 'option-graphic'
+                    activePanel === 'credit'
+                      ? 'option-graphic credit'
+                      : activePanel === 'customer'
+                        ? 'option-graphic customer'
+                        : 'option-graphic'
                   }
                 >
                   <PaymentIcon
-                    name={activePanel === 'credit' ? 'coins' : activePanel === 'customer' ? 'user' : 'gift'}
+                    name={
+                      activePanel === 'credit'
+                        ? 'coins'
+                        : activePanel === 'customer'
+                          ? 'user'
+                          : 'gift'
+                    }
                     size={22}
                   />
                 </span>
                 <strong>
-                  {activePanel === 'credit' ? 'Продажа в долг' : activePanel === 'customer' ? 'Покупатель' : 'Бонусы'}
+                  {activePanel === 'credit'
+                    ? 'Продажа в долг'
+                    : activePanel === 'customer'
+                      ? 'Покупатель'
+                      : 'Бонусы'}
                 </strong>
               </span>
               <button
@@ -604,13 +704,20 @@ export default function PaymentBottomSheet({
                 />
               ) : activePanel === 'customer' ? (
                 <CreditFields
-                  shopId={shopId} enabled customerOnly disabled={paymentPending}
+                  shopId={shopId}
+                  enabled
+                  customerOnly
+                  disabled={paymentPending}
                   customerId={creditCustomerId}
                   onCustomerChange={setCreditCustomerId}
                   onCustomerEligible={setCreditCustomerEligible}
-                  onSelectedCustomer={(customer) => setSelectedCustomerName(customer.name)}
-                  paid={creditPaidText} onPaidChange={setCreditPaidText}
-                  dueOn={creditDueOn} onDueChange={setCreditDueOn}
+                  onSelectedCustomer={(customer) =>
+                    setSelectedCustomerName(customer.name)
+                  }
+                  paid={creditPaidText}
+                  onPaidChange={setCreditPaidText}
+                  dueOn={creditDueOn}
+                  onDueChange={setCreditDueOn}
                   debtMinor={creditDebtMinor}
                 />
               ) : (
@@ -655,10 +762,18 @@ export default function PaymentBottomSheet({
                         !/^[A-Za-z0-9_-]{43}$/.test(loyaltyToken))))
                 }
                 onClick={() => {
-                  setActivePanel(activePanel === 'customer' && returnToCredit.current ? 'credit' : null);
+                  setActivePanel(
+                    activePanel === 'customer' && returnToCredit.current
+                      ? 'credit'
+                      : null,
+                  );
                 }}
               >
-                {activePanel === 'customer' ? 'Выбрать клиента' : activePanel === 'bonus' ? 'Применить бонусы' : 'Применить'}
+                {activePanel === 'customer'
+                  ? 'Выбрать клиента'
+                  : activePanel === 'bonus'
+                    ? 'Применить бонусы'
+                    : 'Применить'}
               </button>
             </div>
           </section>

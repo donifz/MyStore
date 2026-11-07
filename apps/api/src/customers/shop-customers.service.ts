@@ -53,7 +53,11 @@ export class ShopCustomersService {
     if (term.length < 3) return { items: [] };
     const digits = term.replace(/\D/g, '');
     const phone = (() => {
-      try { return normalizeKyrgyzPhone(term); } catch { return null; }
+      try {
+        return normalizeKyrgyzPhone(term);
+      } catch {
+        return null;
+      }
     })();
     const rows = await this.db.query(
       `WITH directory AS (
@@ -82,7 +86,12 @@ export class ShopCustomersService {
   }
 
   /** A global identity only becomes a shop customer when a cashier selects it. */
-  async resolve(shopId: string, actorId: string, phoneInput: string, nameInput: string) {
+  async resolve(
+    shopId: string,
+    actorId: string,
+    phoneInput: string,
+    nameInput: string,
+  ) {
     const phone = normalizeKyrgyzPhone(phoneInput);
     const name = nameInput.trim().replace(/\\s+/g, ' ');
     if (name.length < 2 || name.length > 120)

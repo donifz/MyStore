@@ -33,7 +33,12 @@ export type CreditFieldsProps = {
   selectionOnly?: boolean;
   selectedCustomerName?: string;
   onOpenCustomer?: () => void;
-  onSelectedCustomer?: (customer: { id: string; name: string; phone: string; linked: boolean }) => void;
+  onSelectedCustomer?: (customer: {
+    id: string;
+    name: string;
+    phone: string;
+    linked: boolean;
+  }) => void;
 };
 
 export default function CreditFields({
@@ -81,9 +86,10 @@ export default function CreditFields({
     let active = true;
     const timer = window.setTimeout(() => {
       setLoading(true);
-      const endpoint = query.trim().length >= 3
-        ? `/shops/${shopId}/customers/directory?q=${encodeURIComponent(query)}`
-        : `/shops/${shopId}/customers?page=1&pageSize=100&q=${encodeURIComponent(query)}`;
+      const endpoint =
+        query.trim().length >= 3
+          ? `/shops/${shopId}/customers/directory?q=${encodeURIComponent(query)}`
+          : `/shops/${shopId}/customers?page=1&pageSize=100&q=${encodeURIComponent(query)}`;
       void api<{ items: Customer[] }>(endpoint)
         .then((page) => {
           if (!active) return;
@@ -113,14 +119,24 @@ export default function CreditFields({
     try {
       const resolved = customer.id
         ? customer
-        : await api<{ id: string; name: string; phone: string; linked: boolean }>(
-            `/shops/${shopId}/customers/resolve`,
-            { method: 'POST', body: { name: customer.name, phone: customer.phone } },
-          );
+        : await api<{
+            id: string;
+            name: string;
+            phone: string;
+            linked: boolean;
+          }>(`/shops/${shopId}/customers/resolve`, {
+            method: 'POST',
+            body: { name: customer.name, phone: customer.phone },
+          });
       if (!resolved.id) throw new Error('Не удалось выбрать покупателя.');
       onCustomerChange(resolved.id);
       onCustomerEligible(true);
-      onSelectedCustomer?.({ id: resolved.id, name: resolved.name, phone: resolved.phone, linked: resolved.linked });
+      onSelectedCustomer?.({
+        id: resolved.id,
+        name: resolved.name,
+        phone: resolved.phone,
+        linked: resolved.linked,
+      });
       setRevision((n) => n + 1);
     } catch (err) {
       setError(errorText(err));
@@ -154,7 +170,12 @@ export default function CreditFields({
       // Shop debt can be assigned without verifying the buyer portal account.
       onCustomerChange(customer.id);
       onCustomerEligible(true);
-      onSelectedCustomer?.({ id: customer.id, name: customer.name, phone: createdPhone, linked: customer.linked });
+      onSelectedCustomer?.({
+        id: customer.id,
+        name: customer.name,
+        phone: createdPhone,
+        linked: customer.linked,
+      });
       setRevision((n) => n + 1);
       if (customer.linked) {
         setVerifiedEnrollment(customer.name);
@@ -203,26 +224,49 @@ export default function CreditFields({
     return (
       <section className="pos-credit-fields credit-customer-flow">
         <div className="credit-customer-balance">
-          <span><PaymentIcon name="user" size={19} /> Покупатель</span>
-          <strong>{customerId ? selectedCustomerName || 'Выбран' : 'Не выбран'}</strong>
+          <span>
+            <PaymentIcon name="user" size={19} /> Покупатель
+          </span>
+          <strong>
+            {customerId ? selectedCustomerName || 'Выбран' : 'Не выбран'}
+          </strong>
         </div>
-        <button type="button" className="credit-customer-invite-button" disabled={disabled} onClick={onOpenCustomer}>
+        <button
+          type="button"
+          className="credit-customer-invite-button"
+          disabled={disabled}
+          onClick={onOpenCustomer}
+        >
           <PaymentIcon name="user" size={18} />
           {customerId ? 'Изменить покупателя' : 'Выбрать покупателя'}
         </button>
         <div className="credit-customer-payment">
           <label>
             Оплачено сейчас, сом
-            <input inputMode="decimal" value={paid} disabled={disabled} onChange={(event) => onPaidChange(event.target.value)} placeholder="0" />
+            <input
+              inputMode="decimal"
+              value={paid}
+              disabled={disabled}
+              onChange={(event) => onPaidChange(event.target.value)}
+              placeholder="0"
+            />
           </label>
           <label>
             Вернуть до
-            <input type="date" value={dueOn} disabled={disabled} required onChange={(event) => onDueChange(event.target.value)} />
+            <input
+              type="date"
+              value={dueOn}
+              disabled={disabled}
+              required
+              onChange={(event) => onDueChange(event.target.value)}
+            />
           </label>
         </div>
         <div className="credit-customer-balance">
           <span>Остаток в долг</span>
-          <strong>{debtMinor === null ? 'Проверьте сумму' : formatSom(debtMinor)}</strong>
+          <strong>
+            {debtMinor === null ? 'Проверьте сумму' : formatSom(debtMinor)}
+          </strong>
         </div>
       </section>
     );
@@ -443,34 +487,38 @@ export default function CreditFields({
         </div>
       )}
 
-      {!customerOnly && <div className="credit-customer-payment">
-        <label>
-          Оплачено сейчас, сом
-          <input
-            inputMode="decimal"
-            value={paid}
-            disabled={disabled}
-            onChange={(event) => onPaidChange(event.target.value)}
-            placeholder="0"
-          />
-        </label>
-        <label>
-          Вернуть до
-          <input
-            type="date"
-            value={dueOn}
-            disabled={disabled}
-            required
-            onChange={(event) => onDueChange(event.target.value)}
-          />
-        </label>
-      </div>}
-      {!customerOnly && <div className="credit-customer-balance">
-        <span>Остаток в долг</span>
-        <strong>
-          {debtMinor === null ? 'Проверьте сумму' : formatSom(debtMinor)}
-        </strong>
-      </div>}
+      {!customerOnly && (
+        <div className="credit-customer-payment">
+          <label>
+            Оплачено сейчас, сом
+            <input
+              inputMode="decimal"
+              value={paid}
+              disabled={disabled}
+              onChange={(event) => onPaidChange(event.target.value)}
+              placeholder="0"
+            />
+          </label>
+          <label>
+            Вернуть до
+            <input
+              type="date"
+              value={dueOn}
+              disabled={disabled}
+              required
+              onChange={(event) => onDueChange(event.target.value)}
+            />
+          </label>
+        </div>
+      )}
+      {!customerOnly && (
+        <div className="credit-customer-balance">
+          <span>Остаток в долг</span>
+          <strong>
+            {debtMinor === null ? 'Проверьте сумму' : formatSom(debtMinor)}
+          </strong>
+        </div>
+      )}
       {error && (
         <p role="alert" className="error">
           {error}

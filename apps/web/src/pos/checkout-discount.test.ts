@@ -17,9 +17,7 @@ it('calculates a fixed or percentage discount in integer minor units', () => {
 });
 
 it('allocates a checkout discount to real sale lines with a recorded reason', () => {
-  const lines = [
-    { id: 'a', quantity: 1, priceMinor: 80000, discountMinor: 0 },
-  ];
+  const lines = [{ id: 'a', quantity: 1, priceMinor: 80000, discountMinor: 0 }];
   expect(allocateCheckoutDiscount(lines, 5000)).toEqual([
     {
       ...lines[0],

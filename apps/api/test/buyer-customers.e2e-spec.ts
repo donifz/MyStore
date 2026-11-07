@@ -55,7 +55,13 @@ describe('shop customers and separate buyer accounts', () => {
     await c.db.query(
       `INSERT INTO shop_customers(shop_id,phone_e164,display_name,address,created_by)
        VALUES($1,$2,$3,$4,$5)`,
-      [fixture.otherShop, '+996700888777', 'Алия Тестовая', 'Приватный адрес', fixture.owner],
+      [
+        fixture.otherShop,
+        '+996700888777',
+        'Алия Тестовая',
+        'Приватный адрес',
+        fixture.owner,
+      ],
     );
     const app = c.app.getHttpServer();
     const directory = await request(app)
@@ -64,7 +70,10 @@ describe('shop customers and separate buyer accounts', () => {
       .expect(200);
     expect(directory.body.items).toHaveLength(1);
     expect(directory.body.items[0]).toMatchObject({
-      name: 'Алия Тестовая', phone: '+996700888777', id: null, isLocal: false,
+      name: 'Алия Тестовая',
+      phone: '+996700888777',
+      id: null,
+      isLocal: false,
     });
     expect(directory.body.items[0]).not.toHaveProperty('address');
     expect(directory.body.items[0]).not.toHaveProperty('creditLimitMinor');
@@ -91,7 +100,9 @@ describe('shop customers and separate buyer accounts', () => {
       .auth(c.cashier, { type: 'bearer' })
       .expect(200);
     expect(phoneSearch.body.items[0].id).toBe(resolved.body.id);
-    await request(app).get(shopRoot + '/directory?q=Алия').expect(401);
+    await request(app)
+      .get(shopRoot + '/directory?q=Алия')
+      .expect(401);
   });
 
   it('does not grant debts or shop membership by matching an unverified phone', async () => {

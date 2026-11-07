@@ -154,7 +154,8 @@ function SaleWorkspace({
     [catalogError, setCatalogError] = useState(''),
     [received, setReceived] = useState(''),
     [checkoutDiscountText, setCheckoutDiscountText] = useState(''),
-    [checkoutDiscountMode, setCheckoutDiscountMode] = useState<CheckoutDiscountMode>('som'),
+    [checkoutDiscountMode, setCheckoutDiscountMode] =
+      useState<CheckoutDiscountMode>('som'),
     [creditMode, setCreditMode] = useState(false),
     [loyaltyToken, setLoyaltyToken] = useState(''),
     [redeemPoints, setRedeemPoints] = useState(0),
@@ -231,8 +232,11 @@ function SaleWorkspace({
   const checkoutLines = checkoutDiscount.error
     ? null
     : allocateCheckoutDiscount(doc.draft.lines, checkoutDiscount.minor);
-  const checkoutDiscountError = checkoutDiscount.error ||
-    (checkoutLines === null ? 'Невозможно точно распределить скидку по товарам. Уменьшите сумму.' : '');
+  const checkoutDiscountError =
+    checkoutDiscount.error ||
+    (checkoutLines === null
+      ? 'Невозможно точно распределить скидку по товарам. Уменьшите сумму.'
+      : '');
   const afterCheckoutDiscount = sum - BigInt(checkoutDiscount.minor);
   const validLoyalty =
     (!loyaltyToken && redeemPoints === 0) ||
@@ -381,7 +385,9 @@ function SaleWorkspace({
     }
   }
   const creditDebtMinor =
-    creditMode && creditPaidMinor !== null && creditPaidMinor < Number(afterCheckoutDiscount)
+    creditMode &&
+    creditPaidMinor !== null &&
+    creditPaidMinor < Number(afterCheckoutDiscount)
       ? Number(afterCheckoutDiscount) - creditPaidMinor
       : null;
 

@@ -52,8 +52,7 @@ export function allocateCheckoutDiscount<T extends CheckoutDiscountLine>(
   lines: T[],
   discountMinor: number,
 ): (T & { discountMinor: number; discountReason?: string })[] | null {
-  if (!Number.isSafeInteger(discountMinor) || discountMinor < 0)
-    return null;
+  if (!Number.isSafeInteger(discountMinor) || discountMinor < 0) return null;
   const result = lines.map((line) => ({
     ...line,
     discountMinor: line.discountMinor ?? 0,

@@ -186,6 +186,10 @@ it('shows money received and checkout discount beside each other without auto di
   expect(setDiscount).toHaveBeenCalledWith('80');
   fireEvent.click(screen.getByRole('button', { name: '%' }));
   expect(setMode).toHaveBeenCalledWith('percent');
-  expect(container.querySelector('.pos-summary-discount')?.textContent).toContain('50,00 сом');
-  expect(container.querySelector('.pos-summary-due')?.textContent).toContain('750,00 сом');
+  expect(
+    container.querySelector('.pos-summary-discount')?.textContent,
+  ).toContain('50,00 сом');
+  expect(container.querySelector('.pos-summary-due')?.textContent).toContain(
+    '750,00 сом',
+  );
 });
