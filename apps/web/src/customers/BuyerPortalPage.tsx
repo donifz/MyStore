@@ -414,8 +414,8 @@ export default function BuyerPortalPage() {
             </h1>
             {inviteToken && (
               <div className="buyer-message" role="status">
-                Приглашение магазина получено. Войдите или зарегистрируйтесь
-                со своим номером и подтвердите привязку.
+                Приглашение магазина получено. Войдите или зарегистрируйтесь со
+                своим номером и подтвердите привязку.
               </div>
             )}
             <p className="muted">

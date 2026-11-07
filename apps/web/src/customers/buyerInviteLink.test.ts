@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  buyerInviteLink,
-  parseBuyerInviteFragment,
-} from './buyerInviteLink';
+import { buyerInviteLink, parseBuyerInviteFragment } from './buyerInviteLink';
 
 const token = 'a'.repeat(43);
 
