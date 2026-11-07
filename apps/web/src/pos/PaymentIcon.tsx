@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 type PaymentIconName =
   | 'cash'
   | 'card'
-  | 'gift'
+  | 'sparkle'
   | 'clock'
   | 'chevron'
   | 'close'
@@ -27,12 +27,8 @@ const paths: Record<PaymentIconName, ReactNode> = {
       <path d="M2.5 10h19M6.5 14.5h4" />
     </>
   ),
-  gift: (
-    <>
-      <rect x="3" y="9" width="18" height="12" rx="2" />
-      <path d="M2 9h20M12 9v12" />
-      <path d="M12 9H7.5a2.5 2.5 0 1 1 2.5-2.5L12 9Zm0 0h4.5A2.5 2.5 0 1 0 14 6.5L12 9Z" />
-    </>
+  sparkle: (
+    <path d="M12 2c1.5 6.5 3.5 8.5 10 10-6.5 1.5-8.5 3.5-10 10-1.5-6.5-3.5-8.5-10-10 6.5-1.5 8.5-3.5 10-10Z" />
   ),
   clock: (
     <>
