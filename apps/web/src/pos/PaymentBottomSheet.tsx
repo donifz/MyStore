@@ -14,6 +14,8 @@ const formatQuickSom = (amount: number) =>
 
 export type PaymentBottomSheetProps = {
   open: boolean;
+  /** Render the same checkout experience inline on desktop, without a page overlay. */
+  embedded?: boolean;
   onClose: () => void;
   shopId: string;
   creditMode: boolean;
@@ -60,6 +62,7 @@ export type PaymentBottomSheetProps = {
 
 export default function PaymentBottomSheet({
   open,
+  embedded = false,
   onClose,
   method,
   setMethod,
@@ -173,13 +176,13 @@ export default function PaymentBottomSheet({
   }
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || (embedded && !activePanel)) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (activePanel) cancelPanel();
-        else onClose();
+        else if (!embedded) onClose();
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -187,7 +190,7 @@ export default function PaymentBottomSheet({
       document.body.style.overflow = prev;
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [open, onClose, activePanel]);
+  }, [open, embedded, onClose, activePanel]);
 
   if (!open) return null;
 
@@ -200,16 +203,18 @@ export default function PaymentBottomSheet({
 
   return (
     <div
-      className="pos-sheet-root"
-      role="dialog"
-      aria-modal="true"
+      className={embedded ? 'pos-sheet-root pos-sheet-embedded' : 'pos-sheet-root'}
+      role={embedded ? 'region' : 'dialog'}
+      aria-modal={embedded ? undefined : true}
       aria-label="Оплата чека"
     >
-      <div
-        className="pos-sheet-backdrop"
-        aria-hidden="true"
-        onClick={onClose}
-      />
+      {!embedded && (
+        <div
+          className="pos-sheet-backdrop"
+          aria-hidden="true"
+          onClick={onClose}
+        />
+      )}
       <div className="pos-sheet-drawer" ref={sheetRef}>
         <div className="pos-sheet-handle" aria-hidden="true" />
         <div className="pos-sheet-head">
@@ -222,14 +227,16 @@ export default function PaymentBottomSheet({
             </h2>
             <strong className="pos-sheet-total">К оплате: {totalText}</strong>
           </div>
-          <button
-            type="button"
-            className="pos-sheet-close"
-            aria-label="Закрыть оплату"
-            onClick={onClose}
-          >
-            <PaymentIcon name="close" size={21} />
-          </button>
+          {!embedded && (
+            <button
+              type="button"
+              className="pos-sheet-close"
+              aria-label="Закрыть оплату"
+              onClick={onClose}
+            >
+              <PaymentIcon name="close" size={21} />
+            </button>
+          )}
         </div>
 
         {success ? (
@@ -640,6 +647,17 @@ export default function PaymentBottomSheet({
               <button
                 type="button"
                 className="pos-submit pos-sheet-submit"
+                aria-label={
+                  embedded
+                    ? isSubmitting
+                      ? 'Проведение…'
+                      : isSubmissionPending
+                        ? 'Повторить исходный запрос'
+                        : creditMode
+                          ? 'Оформить долг'
+                          : 'Провести продажу'
+                    : undefined
+                }
                 disabled={!canSubmit || isSubmitting}
                 onClick={onSubmit}
               >
