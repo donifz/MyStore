@@ -60,6 +60,11 @@ export default function CreditFields({
   } | null>(null);
   const [revision, setRevision] = useState(0);
   const [verifiedEnrollment, setVerifiedEnrollment] = useState('');
+  const [existingInvitation, setExistingInvitation] = useState<{
+    name: string;
+    token: string;
+    expiresAt: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!enabled) return;
@@ -140,6 +145,25 @@ export default function CreditFields({
     }
   }
 
+  async function inviteExisting(customer: Customer) {
+    if (busy || disabled) return;
+    setBusy(true);
+    setError('');
+    setExistingInvitation(null);
+    try {
+      const result = await api<{ token: string; expiresAt: string }>(
+        `/shops/${shopId}/customers/${customer.id}/invite`,
+        { method: 'POST', body: {} },
+      );
+      setExistingInvitation({ ...result, name: customer.name });
+    } catch (err) {
+      setError(errorText(err));
+      setRevision((n) => n + 1);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!enabled) return null;
 
   return (
@@ -188,6 +212,7 @@ export default function CreditFields({
               disabled={disabled}
               onChange={(event) => {
                 setQuery(event.target.value);
+                setExistingInvitation(null);
                 onCustomerChange('');
                 onCustomerEligible(false);
               }}
@@ -225,6 +250,7 @@ export default function CreditFields({
                 onClick={() => {
                   onCustomerChange(customer.id);
                   onCustomerEligible(eligible(customer));
+                  setExistingInvitation(null);
                 }}
               >
                 <span className="credit-customer-avatar" aria-hidden="true">
@@ -268,6 +294,27 @@ export default function CreditFields({
                   ? 'Покупатель выбран, но кредит ещё не разрешён владельцем магазина.'
                   : 'Покупатель выбран, но сначала нужно подтвердить кабинет по приглашению.'}
             </p>
+          )}
+          {selected && !selected.linked && !existingInvitation && (
+            <button
+              type="button"
+              className="credit-customer-invite-button"
+              disabled={disabled || busy}
+              onClick={() => void inviteExisting(selected)}
+            >
+              {busy ? 'Создаём приглашение…' : 'Выдать QR-приглашение'}
+            </button>
+          )}
+          {existingInvitation && (
+            <PosBuyerInvitation
+              name={existingInvitation.name}
+              token={existingInvitation.token}
+              expiresAt={existingInvitation.expiresAt}
+              onClose={() => {
+                setExistingInvitation(null);
+                setRevision((n) => n + 1);
+              }}
+            />
           )}
           <p className="credit-customer-note">
             Все покупатели магазина видны в списке. Для продажи в долг нужен
