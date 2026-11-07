@@ -104,7 +104,9 @@ describe('Telegram verification of buyer phone ownership', () => {
       .auth(c.cashier, { type: 'bearer' })
       .send({ name: 'Telegram Customer', phone: '+996700123456' })
       .expect(201);
-    expect((await account.agent.get('/buyer/me').expect(200)).body.shops).toEqual([]);
+    expect(
+      (await account.agent.get('/buyer/me').expect(200)).body.shops,
+    ).toEqual([]);
     const issued = (
       await account.agent
         .post('/buyer/telegram/start')
@@ -143,7 +145,8 @@ describe('Telegram verification of buyer phone ownership', () => {
         contact: { phone_number: '+996700123456', user_id: 234567890 },
       }),
     ).expect(201);
-    const verifiedAccount = (await account.agent.get('/buyer/me').expect(200)).body;
+    const verifiedAccount = (await account.agent.get('/buyer/me').expect(200))
+      .body;
     expect(verifiedAccount.phoneVerified).toBe(true);
     expect(verifiedAccount.shops).toEqual([
       { shopId: fixture.shop, shopName: 'Test Shop' },

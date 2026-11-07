@@ -125,7 +125,9 @@ export default function CreditFields({
           );
           setInvitation({ ...issued, name: customer.name });
         } catch (err) {
-          setError('Клиент создан, но приглашение не выдано: ' + errorText(err));
+          setError(
+            'Клиент создан, но приглашение не выдано: ' + errorText(err),
+          );
         }
       }
     } catch (err) {
@@ -144,7 +146,11 @@ export default function CreditFields({
         <span>Выберите покупателя или создайте нового</span>
       </div>
 
-      <div className="credit-customer-tabs" role="group" aria-label="Тип покупателя">
+      <div
+        className="credit-customer-tabs"
+        role="group"
+        aria-label="Тип покупателя"
+      >
         <button
           type="button"
           className={mode === 'existing' ? 'active' : ''}
@@ -178,21 +184,36 @@ export default function CreditFields({
               autoComplete="off"
             />
           </label>
-          {loading && <p className="muted" role="status">Ищем покупателей…</p>}
-          {!loading && customers.length === 0 && (
-            <p className="credit-customer-note">
-              Покупателей не найдено. Вы можете создать клиента и выдать QR-приглашение.
+          {loading && (
+            <p className="muted" role="status">
+              Ищем покупателей…
             </p>
           )}
-          <div className="credit-customer-list" role="group" aria-label="Покупатели магазина">
+          {!loading && customers.length === 0 && (
+            <p className="credit-customer-note">
+              Покупателей не найдено. Вы можете создать клиента и выдать
+              QR-приглашение.
+            </p>
+          )}
+          <div
+            className="credit-customer-list"
+            role="group"
+            aria-label="Покупатели магазина"
+          >
             {customers.map((customer) => (
               <button
                 type="button"
                 key={customer.id}
-                className={customerId === customer.id ? 'credit-customer-item selected' : 'credit-customer-item'}
+                className={
+                  customerId === customer.id
+                    ? 'credit-customer-item selected'
+                    : 'credit-customer-item'
+                }
                 disabled={disabled}
                 aria-pressed={customerId === customer.id}
-                onClick={() => onCustomerChange(eligible(customer) ? customer.id : '')}
+                onClick={() =>
+                  onCustomerChange(eligible(customer) ? customer.id : '')
+                }
               >
                 <span className="credit-customer-avatar" aria-hidden="true">
                   {customer.name.slice(0, 1).toUpperCase()}
@@ -200,7 +221,13 @@ export default function CreditFields({
                 <span className="credit-customer-details">
                   <strong>{customer.name}</strong>
                   <small>{customer.phone}</small>
-                  <small className={eligible(customer) ? 'credit-customer-ok' : 'credit-customer-warning'}>
+                  <small
+                    className={
+                      eligible(customer)
+                        ? 'credit-customer-ok'
+                        : 'credit-customer-warning'
+                    }
+                  >
                     {!customer.linked
                       ? 'Кабинет не подтверждён'
                       : !customer.creditApproved
@@ -215,7 +242,10 @@ export default function CreditFields({
             ))}
           </div>
           {selected && eligible(selected) && (
-            <p className="credit-customer-note credit-customer-success" role="status">
+            <p
+              className="credit-customer-note credit-customer-success"
+              role="status"
+            >
               Покупатель выбран. Доступный долг проверяется сервером при оплате.
             </p>
           )}
@@ -269,21 +299,34 @@ export default function CreditFields({
                   placeholder="Введите адрес"
                 />
               </label>
-              <button className="primary credit-customer-create" type="submit" disabled={busy || disabled}>
+              <button
+                className="primary credit-customer-create"
+                type="submit"
+                disabled={busy || disabled}
+              >
                 {busy ? 'Сохраняем…' : 'Создать и показать QR-приглашение'}
               </button>
             </form>
           )}
           {verifiedEnrollment && (
-            <div className="credit-customer-note credit-customer-success" role="status">
-              <strong>{verifiedEnrollment}</strong> уже подтвердил номер в MyStore.
-              Кабинет подключён автоматически, QR-приглашение не требуется.
-              Владелец магазина должен отдельно разрешить кредит и установить лимит.
-              <button type="button" onClick={() => {
-                setVerifiedEnrollment('');
-                setMode('existing');
-                setQuery('');
-              }}>К списку покупателей</button>
+            <div
+              className="credit-customer-note credit-customer-success"
+              role="status"
+            >
+              <strong>{verifiedEnrollment}</strong> уже подтвердил номер в
+              MyStore. Кабинет подключён автоматически, QR-приглашение не
+              требуется. Владелец магазина должен отдельно разрешить кредит и
+              установить лимит.
+              <button
+                type="button"
+                onClick={() => {
+                  setVerifiedEnrollment('');
+                  setMode('existing');
+                  setQuery('');
+                }}
+              >
+                К списку покупателей
+              </button>
             </div>
           )}
           {invitation && (
@@ -325,9 +368,15 @@ export default function CreditFields({
       </div>
       <div className="credit-customer-balance">
         <span>Остаток в долг</span>
-        <strong>{debtMinor === null ? 'Проверьте сумму' : formatSom(debtMinor)}</strong>
+        <strong>
+          {debtMinor === null ? 'Проверьте сумму' : formatSom(debtMinor)}
+        </strong>
       </div>
-      {error && <p role="alert" className="error">{error}</p>}
+      {error && (
+        <p role="alert" className="error">
+          {error}
+        </p>
+      )}
     </section>
   );
 }

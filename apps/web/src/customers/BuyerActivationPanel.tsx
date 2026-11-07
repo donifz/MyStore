@@ -24,7 +24,9 @@ export default function BuyerActivationPanel({
       await navigator.clipboard.writeText(link);
       setFeedback('Ссылка скопирована');
     } catch {
-      setFeedback('Не удалось скопировать автоматически — выделите ссылку ниже.');
+      setFeedback(
+        'Не удалось скопировать автоматически — выделите ссылку ниже.',
+      );
     }
   }
 
@@ -47,7 +49,10 @@ export default function BuyerActivationPanel({
   }
 
   return (
-    <section className="buyer-message buyer-invite-panel credit-invite-card" role="status">
+    <section
+      className="buyer-message buyer-invite-panel credit-invite-card"
+      role="status"
+    >
       <h3>Приглашение для {name}</h3>
       <p>
         Покажите QR или отправьте ссылку. Покупатель войдёт в общий кабинет
@@ -84,8 +89,8 @@ export default function BuyerActivationPanel({
         . После этого можно выдать новую.
       </small>
       <p className="muted">
-        Долг станет доступен после подтверждения приглашения и одобрения
-        кредита владельцем магазина.
+        Долг станет доступен после подтверждения приглашения и одобрения кредита
+        владельцем магазина.
       </p>
       {feedback && <p role="status">{feedback}</p>}
       <button type="button" onClick={onClose}>
