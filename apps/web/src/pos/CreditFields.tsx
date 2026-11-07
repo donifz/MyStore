@@ -367,13 +367,20 @@ export default function CreditFields({
                 <span className="credit-customer-details">
                   <strong>{customer.name}</strong>
                   <small>{customer.phone}</small>
-                  {(Number(customer.debtMinor) > 0 || Number(customer.balancePoints) > 0) && (
+                  {(Number(customer.debtMinor) > 0 ||
+                    Number(customer.balancePoints) > 0) && (
                     <span className="credit-customer-badges">
                       {Number(customer.debtMinor) > 0 && (
-                        <span className="credit-customer-debt"><PaymentIcon name="coins" size={13} /> Долг: {formatSom(Number(customer.debtMinor))}</span>
+                        <span className="credit-customer-debt">
+                          <PaymentIcon name="coins" size={13} /> Долг:{' '}
+                          {formatSom(Number(customer.debtMinor))}
+                        </span>
                       )}
                       {Number(customer.balancePoints) > 0 && (
-                        <span className="credit-customer-points"><PaymentIcon name="gift" size={13} /> Бонусы: {Number(customer.balancePoints)}</span>
+                        <span className="credit-customer-points">
+                          <PaymentIcon name="gift" size={13} /> Бонусы:{' '}
+                          {Number(customer.balancePoints)}
+                        </span>
                       )}
                     </span>
                   )}

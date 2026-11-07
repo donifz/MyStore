@@ -355,7 +355,9 @@ export default function PaymentBottomSheet({
                     <span className="pos-option-detail">
                       {redeemPoints > 0
                         ? '−' + formatSom(redeemPoints * 100)
-                        : selectedCustomerPoints > 0 ? 'Доступно: ' + selectedCustomerPoints : ''}
+                        : selectedCustomerPoints > 0
+                          ? 'Доступно: ' + selectedCustomerPoints
+                          : ''}
                     </span>
                     <span className="pos-option-chevron" aria-hidden="true">
                       <PaymentIcon name="chevron" size={18} />
@@ -395,7 +397,9 @@ export default function PaymentBottomSheet({
                         ? creditDebtMinor === null
                           ? 'Выбрано'
                           : formatSom(creditDebtMinor)
-                        : selectedCustomerDebt > 0 ? 'Долг: ' + formatSom(selectedCustomerDebt) : ''}
+                        : selectedCustomerDebt > 0
+                          ? 'Долг: ' + formatSom(selectedCustomerDebt)
+                          : ''}
                     </span>
                     <span className="pos-option-chevron" aria-hidden="true">
                       <PaymentIcon name="chevron" size={18} />
@@ -743,7 +747,9 @@ export default function PaymentBottomSheet({
                   onSelectedCustomer={(customer) => {
                     setSelectedCustomerName(customer.name);
                     setSelectedCustomerDebt(Number(customer.debtMinor || 0));
-                    setSelectedCustomerPoints(Number(customer.balancePoints || 0));
+                    setSelectedCustomerPoints(
+                      Number(customer.balancePoints || 0),
+                    );
                   }}
                   paid={creditPaidText}
                   onPaidChange={setCreditPaidText}
