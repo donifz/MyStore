@@ -138,6 +138,8 @@ export type FinancialSummary = {
   physicalUnits: number;
   reservedUnits: number;
   stockValueMinor: number;
+  stockRetailValueMinor: number;
+  stockedVariantsCount: number;
   lowStockCount: number;
   openOrders: number;
   issuedOrders: number;

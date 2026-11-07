@@ -50,11 +50,15 @@ export class ReportsService {
     );
     const [inventory] = await db.query(
       `SELECT
-        COALESCE(sum(physical),0) physical,
-        COALESCE(sum(reserved),0) reserved,
-        COALESCE(sum(stock_value_minor),0) stock_value,
-        count(*) FILTER (WHERE physical-reserved <= 5) low_stock
-       FROM stock_balances WHERE shop_id=$1`,
+        COALESCE(sum(b.physical),0) physical,
+        COALESCE(sum(b.reserved),0) reserved,
+        COALESCE(sum(b.stock_value_minor),0) stock_value,
+        COALESCE(sum(b.physical * v.sale_price_minor),0) retail_value,
+        count(*) FILTER (WHERE b.physical > 0) stocked_variants,
+        count(*) FILTER (WHERE b.physical-b.reserved <= 5) low_stock
+       FROM stock_balances b
+       JOIN variants v ON v.shop_id=b.shop_id AND v.id=b.variant_id
+       WHERE b.shop_id=$1`,
       [shop],
     );
     const [orders] = await db.query(
@@ -153,6 +157,8 @@ export class ReportsService {
       physicalUnits: Number(inventory.physical),
       reservedUnits: Number(inventory.reserved),
       stockValueMinor: Number(inventory.stock_value),
+      stockRetailValueMinor: Number(inventory.retail_value),
+      stockedVariantsCount: Number(inventory.stocked_variants),
       lowStockCount: Number(inventory.low_stock),
       openOrders: Number(orders.open_orders),
       issuedOrders: Number(orders.issued_orders),

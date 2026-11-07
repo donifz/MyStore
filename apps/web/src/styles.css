@@ -4022,6 +4022,51 @@ fieldset {
   width: 100%;
 }
 
+/* Current-stock summary is independent of the sales date range. */
+.reports-inventory-overview {
+  margin-bottom: 22px;
+}
+.reports-inventory-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.reports-inventory-heading h2 {
+  margin: 4px 0 0;
+}
+.reports-inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.reports-inventory-card {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+.reports-inventory-card strong {
+  font-size: clamp(20px, 2vw, 27px);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.reports-inventory-card .muted {
+  font-size: 12px;
+}
+@media (max-width: 1100px) {
+  .reports-inventory-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .reports-inventory-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* Visual analytics & charts in ReportsPage */
 .analytics-grid {
   display: grid;
