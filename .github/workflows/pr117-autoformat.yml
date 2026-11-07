@@ -1,0 +1,27 @@
+name: Format PR 117 only
+on:
+  push:
+    branches: [feat/pos-one-tap-shifts-20261107]
+permissions:
+  contents: write
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci
+      - name: Apply Prettier to scoped files
+        run: |
+          npx prettier --write apps/api/src/pos/shifts.controller.ts apps/api/src/pos/shifts.service.ts apps/api/test/shifts.e2e-spec.ts apps/web/src/pos/SalePage.tsx apps/web/src/pos/SalePage.test.tsx apps/web/src/pos/ShiftQuickModal.tsx apps/web/src/pos/shift-quick-modal.css
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add apps/api/src/pos/shifts.controller.ts apps/api/src/pos/shifts.service.ts apps/api/test/shifts.e2e-spec.ts apps/web/src/pos/SalePage.tsx apps/web/src/pos/SalePage.test.tsx apps/web/src/pos/ShiftQuickModal.tsx apps/web/src/pos/shift-quick-modal.css
+            git commit -m "style: format shift quick modal PR"
+            git push
+          fi
