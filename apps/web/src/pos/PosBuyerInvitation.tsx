@@ -78,8 +78,8 @@ export default function PosBuyerInvitation({
         .
       </small>
       <p>
-        После подключения кабинета владелец магазина должен разрешить кредит и
-        установить лимит.
+        Долг можно оформить без подтверждения кабинета. QR нужен покупателю
+        только для безопасного доступа к своему кабинету.
       </p>
       {feedback && <p role="status">{feedback}</p>}
       <button type="button" onClick={onClose}>
