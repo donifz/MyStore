@@ -206,9 +206,10 @@ export default function BuyerPortalPage() {
         if (!live) return;
         setLoyaltyEnabled(result.enabled);
         if (result.enabled) {
-          const wallets = await buyerApi<
-            { shopId: string; shopName: string; balancePoints: number }[]
-          >('loyalty/wallets');
+          const wallets =
+            await buyerApi<
+              { shopId: string; shopName: string; balancePoints: number }[]
+            >('loyalty/wallets');
           if (live) setLoyaltyWallets(wallets);
         }
       })
@@ -469,8 +470,8 @@ export default function BuyerPortalPage() {
                       </p>
                     ))}
                     <p className="muted">
-                      1 балл = 1 сом. Покажите QR кассиру.
-                      Код одноразовый, действует 2 минуты.
+                      1 балл = 1 сом. Покажите QR кассиру. Код одноразовый,
+                      действует 2 минуты.
                     </p>
                     <button
                       type="button"
@@ -487,7 +488,9 @@ export default function BuyerPortalPage() {
                     {loyaltyCode && (
                       <div className="buyer-invite-panel">
                         <BuyerInviteQr value={loyaltyCode} />
-                        <p className="muted">QR нельзя использовать повторно.</p>
+                        <p className="muted">
+                          QR нельзя использовать повторно.
+                        </p>
                       </div>
                     )}
                   </>

@@ -28,7 +28,14 @@ export class PosSalesService {
     return this.ops.execute(
       shopId,
       key,
-      { kind: 'pos-sale', actorId, shiftId, method, lines: normalized, rewards },
+      {
+        kind: 'pos-sale',
+        actorId,
+        shiftId,
+        method,
+        lines: normalized,
+        rewards,
+      },
       (tx) =>
         this.postInTransaction(
           tx,
@@ -88,7 +95,9 @@ export class PosSalesService {
       [shopId, sale.id, shiftId],
     );
     if (rewards && paidMinor !== undefined) {
-      throw new ForbiddenException('Bonuses cannot be combined with credit sales');
+      throw new ForbiddenException(
+        'Bonuses cannot be combined with credit sales',
+      );
     }
     const loyalty = rewards
       ? await this.loyalty.applyToSale(tx, {

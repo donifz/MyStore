@@ -27,7 +27,9 @@ export class LoyaltyService {
 
   ensureEnabled(): void {
     if (!loyaltyEnabled()) {
-      throw new ServiceUnavailableException('Бонусная программа пока недоступна');
+      throw new ServiceUnavailableException(
+        'Бонусная программа пока недоступна',
+      );
     }
   }
 
@@ -109,7 +111,9 @@ export class LoyaltyService {
       [hashToken(input.token)],
     );
     if (!card) {
-      throw new ConflictException('QR-код истёк, использован или не подтверждён');
+      throw new ConflictException(
+        'QR-код истёк, использован или не подтверждён',
+      );
     }
     const [customer] = await tx.query(
       `SELECT id FROM shop_customers

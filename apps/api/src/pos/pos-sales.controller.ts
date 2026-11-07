@@ -40,7 +40,10 @@ class PosSaleDto {
   @ValidateNested({ each: true })
   @Type(() => SaleLineDto)
   lines!: SaleLineDto[];
-  @IsOptional() @IsString() @Matches(/^[A-Za-z0-9_-]{43}$/) loyaltyToken?: string;
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Za-z0-9_-]{43}$/)
+  loyaltyToken?: string;
   @IsOptional() @IsInt() @Min(0) @Max(9007199254740991) redeemPoints?: number;
 }
 class PageQuery {

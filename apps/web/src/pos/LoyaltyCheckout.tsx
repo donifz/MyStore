@@ -24,8 +24,8 @@ export default function LoyaltyCheckout({
     <div className="pos-credit-enrollment">
       <strong>Бонусная карта покупателя</strong>
       <p className="muted">
-        Покупатель открывает «Мой QR» в кабинете MyStore. QR действителен
-        2 минуты и используется только один раз.
+        Покупатель открывает «Мой QR» в кабинете MyStore. QR действителен 2
+        минуты и используется только один раз.
       </p>
       <label>
         Код карты
@@ -72,8 +72,8 @@ export default function LoyaltyCheckout({
         />
       </label>
       <p className="muted">
-        1 балл = 1 сом. До {maxPoints} баллов за эту покупку.
-        Баланс и действительность QR проверяет сервер.
+        1 балл = 1 сом. До {maxPoints} баллов за эту покупку. Баланс и
+        действительность QR проверяет сервер.
       </p>
     </div>
   );

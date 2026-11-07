@@ -192,7 +192,10 @@ export default function ReportsPage() {
         ['Себестоимость проданного', money(data.costOfGoodsMinor)],
         ['Валовая прибыль', money(data.grossProfitMinor)],
         ['Скидка бонусами', money(data.loyaltyRedeemedMinor ?? 0)],
-        ['Валовая прибыль после бонусов', money(data.grossAfterLoyaltyMinor ?? data.grossProfitMinor)],
+        [
+          'Валовая прибыль после бонусов',
+          money(data.grossAfterLoyaltyMinor ?? data.grossProfitMinor),
+        ],
         [
           'Возвраты покупателей',
           `${money(data.returnsMinor)} (${data.returnsCount ?? 0})`,
