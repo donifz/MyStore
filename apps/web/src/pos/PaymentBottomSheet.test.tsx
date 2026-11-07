@@ -1,6 +1,8 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import PaymentBottomSheet, { type PaymentBottomSheetProps } from './PaymentBottomSheet';
+import PaymentBottomSheet, {
+  type PaymentBottomSheetProps,
+} from './PaymentBottomSheet';
 
 afterEach(() => {
   cleanup();
@@ -9,7 +11,9 @@ afterEach(() => {
 
 const shopId = '11111111-1111-4111-8111-111111111111';
 
-function props(overrides: Partial<PaymentBottomSheetProps> = {}): PaymentBottomSheetProps {
+function props(
+  overrides: Partial<PaymentBottomSheetProps> = {},
+): PaymentBottomSheetProps {
   return {
     open: true,
     onClose: vi.fn(),

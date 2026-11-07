@@ -251,8 +251,12 @@ export default function CreditFields({
                 <span className="credit-customer-details">
                   <strong>{customer.name}</strong>
                   <small>{customer.phone}</small>
-                  <small className={customer.linked ? 'credit-customer-ok' : ''}>
-                    {customer.linked ? 'Кабинет подтверждён' : 'Кабинет не подтверждён'}
+                  <small
+                    className={customer.linked ? 'credit-customer-ok' : ''}
+                  >
+                    {customer.linked
+                      ? 'Кабинет подтверждён'
+                      : 'Кабинет не подтверждён'}
                   </small>
                 </span>
                 <span className="credit-customer-radio" aria-hidden="true">
@@ -282,13 +286,11 @@ export default function CreditFields({
               }}
             />
           )}
-
         </div>
       ) : (
         <div className="credit-customer-new">
           {!invitation && !verifiedEnrollment && (
             <form onSubmit={(event) => void addCustomer(event)}>
-
               <label>
                 Имя покупателя
                 <input
@@ -340,9 +342,8 @@ export default function CreditFields({
               className="credit-customer-note credit-customer-success"
               role="status"
             >
-              <strong>{verifiedEnrollment}</strong> — покупатель создан и
-              выбран для продажи. Кабинет уже подтверждён, QR-приглашение не
-              требуется.
+              <strong>{verifiedEnrollment}</strong> — покупатель создан и выбран
+              для продажи. Кабинет уже подтверждён, QR-приглашение не требуется.
               <button
                 type="button"
                 onClick={() => {

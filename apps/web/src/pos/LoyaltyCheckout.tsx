@@ -57,7 +57,11 @@ export default function LoyaltyCheckout({
           }}
         />
       )}
-      {qrReady && <span className="pos-loyalty-ok" role="status">QR считан</span>}
+      {qrReady && (
+        <span className="pos-loyalty-ok" role="status">
+          QR считан
+        </span>
+      )}
       <label className="pos-loyalty-points">
         <span>Списать баллов</span>
         <input

@@ -142,7 +142,9 @@ export default function PaymentBottomSheet({
 
         {success ? (
           <div className="pos-sheet-success" role="status">
-            <div className="pos-sheet-success-icon" aria-hidden="true">✓</div>
+            <div className="pos-sheet-success-icon" aria-hidden="true">
+              ✓
+            </div>
             <h3>Продажа проведена</h3>
             <p className="muted">{success}</p>
             <button
@@ -160,9 +162,15 @@ export default function PaymentBottomSheet({
           <>
             <div className="pos-sheet-body pos-sheet-scroll">
               <fieldset className="pos-methods">
-                <legend className="pos-sheet-section-title">Способ оплаты</legend>
+                <legend className="pos-sheet-section-title">
+                  Способ оплаты
+                </legend>
                 <div className="pos-methods-grid">
-                  <label className={method === 'cash' ? 'pos-method selected' : 'pos-method'}>
+                  <label
+                    className={
+                      method === 'cash' ? 'pos-method selected' : 'pos-method'
+                    }
+                  >
                     <input
                       type="radio"
                       name="bottom-sheet-method"
@@ -171,13 +179,24 @@ export default function PaymentBottomSheet({
                       disabled={paymentPending}
                       onChange={() => setMethod('cash')}
                     />
-                    <svg className="pos-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+                    <svg
+                      className="pos-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.9"
+                      aria-hidden="true"
+                    >
                       <rect x="2.5" y="6" width="19" height="12" rx="2" />
                       <circle cx="12" cy="12" r="2.7" />
                     </svg>
                     <span>Наличные</span>
                   </label>
-                  <label className={method === 'card' ? 'pos-method selected' : 'pos-method'}>
+                  <label
+                    className={
+                      method === 'card' ? 'pos-method selected' : 'pos-method'
+                    }
+                  >
                     <input
                       type="radio"
                       name="bottom-sheet-method"
@@ -186,7 +205,14 @@ export default function PaymentBottomSheet({
                       disabled={paymentPending}
                       onChange={() => setMethod('card')}
                     />
-                    <svg className="pos-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+                    <svg
+                      className="pos-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.9"
+                      aria-hidden="true"
+                    >
                       <rect x="2.5" y="5.5" width="19" height="13" rx="2" />
                       <path d="M2.5 10h19M6.5 14.5h4" />
                     </svg>
@@ -204,12 +230,16 @@ export default function PaymentBottomSheet({
                     aria-expanded={bonusOpen}
                     onClick={() => setBonusOpen((value) => !value)}
                   >
-                    <span className="pos-option-icon" aria-hidden="true">✦</span>
+                    <span className="pos-option-icon" aria-hidden="true">
+                      ✦
+                    </span>
                     <strong>Бонусы / скидка</strong>
                     <span className="pos-option-detail">
                       {redeemPoints > 0 ? formatSom(redeemPoints * 100) : ''}
                     </span>
-                    <span className="pos-option-chevron" aria-hidden="true">{bonusOpen ? '⌃' : '⌄'}</span>
+                    <span className="pos-option-chevron" aria-hidden="true">
+                      {bonusOpen ? '⌃' : '⌄'}
+                    </span>
                   </button>
                   {bonusOpen && (
                     <LoyaltyCheckout
@@ -234,10 +264,16 @@ export default function PaymentBottomSheet({
                     aria-pressed={creditMode}
                     onClick={() => setCreditMode(!creditMode)}
                   >
-                    <span className="pos-option-icon" aria-hidden="true">◷</span>
+                    <span className="pos-option-icon" aria-hidden="true">
+                      ◷
+                    </span>
                     <strong>Продажа в долг</strong>
-                    <span className="pos-option-state">{creditMode ? 'Вкл.' : ''}</span>
-                    <span className="pos-option-chevron" aria-hidden="true">{creditMode ? '⌃' : '⌄'}</span>
+                    <span className="pos-option-state">
+                      {creditMode ? 'Вкл.' : ''}
+                    </span>
+                    <span className="pos-option-chevron" aria-hidden="true">
+                      {creditMode ? '⌃' : '⌄'}
+                    </span>
                   </button>
                   {creditMode && (
                     <CreditFields
@@ -281,9 +317,15 @@ export default function PaymentBottomSheet({
                     <div className="pos-quick-buttons">
                       <button
                         type="button"
-                        className={receivedMinor === totalMinor && totalMinor > 0 ? 'pos-quick-button selected' : 'pos-quick-button'}
+                        className={
+                          receivedMinor === totalMinor && totalMinor > 0
+                            ? 'pos-quick-button selected'
+                            : 'pos-quick-button'
+                        }
                         disabled={paymentPending || totalMinor <= 0}
-                        onClick={() => setReceived((totalMinor / 100).toString())}
+                        onClick={() =>
+                          setReceived((totalMinor / 100).toString())
+                        }
                       >
                         Без сдачи
                       </button>
@@ -291,11 +333,17 @@ export default function PaymentBottomSheet({
                         <button
                           type="button"
                           key={amount}
-                          className={receivedMinor === amount ? 'pos-quick-button selected' : 'pos-quick-button'}
+                          className={
+                            receivedMinor === amount
+                              ? 'pos-quick-button selected'
+                              : 'pos-quick-button'
+                          }
                           disabled={paymentPending}
                           onClick={() => setReceived((amount / 100).toString())}
                         >
-                          {wholeSom.format(amount / 100).replace(/\u00a0/g, ' ')}
+                          {wholeSom
+                            .format(amount / 100)
+                            .replace(/\u00a0/g, ' ')}
                         </button>
                       ))}
                     </div>
@@ -321,10 +369,16 @@ export default function PaymentBottomSheet({
                           type="button"
                           key={amount}
                           disabled={paymentPending}
-                          className={Number(creditPaidText) === amount ? 'pos-quick-button selected' : 'pos-quick-button'}
+                          className={
+                            Number(creditPaidText) === amount
+                              ? 'pos-quick-button selected'
+                              : 'pos-quick-button'
+                          }
                           onClick={() => setCreditPaidText(amount.toString())}
                         >
-                          {amount === 0 ? 'Без взноса' : wholeSom.format(amount)}
+                          {amount === 0
+                            ? 'Без взноса'
+                            : wholeSom.format(amount)}
                         </button>
                       ))}
                     </div>
@@ -332,9 +386,15 @@ export default function PaymentBottomSheet({
                 </div>
               )}
 
-              {receivedError && !creditMode && <p role="alert" className="error">{receivedError}</p>}
+              {receivedError && !creditMode && (
+                <p role="alert" className="error">
+                  {receivedError}
+                </p>
+              )}
               {isShort && !creditMode && (
-                <p role="alert" className="pos-sheet-warning">Не хватает средств для оплаты.</p>
+                <p role="alert" className="pos-sheet-warning">
+                  Не хватает средств для оплаты.
+                </p>
               )}
 
               <div className="pos-totals pos-sheet-totals">
@@ -342,22 +402,42 @@ export default function PaymentBottomSheet({
                   <span>К оплате</span>
                   <strong>{totalText}</strong>
                 </div>
-                <div className={!creditMode && isShort ? 'pos-total-tile short' : isChange ? 'pos-total-tile change' : 'pos-total-tile'}>
+                <div
+                  className={
+                    !creditMode && isShort
+                      ? 'pos-total-tile short'
+                      : isChange
+                        ? 'pos-total-tile change'
+                        : 'pos-total-tile'
+                  }
+                >
                   <span>{!creditMode && isShort ? 'Не хватает' : 'Сдача'}</span>
                   <strong>
                     {creditMode || changeMinor === null
                       ? '—'
-                      : formatSom(Number(changeMinor >= 0n ? changeMinor : -changeMinor))}
+                      : formatSom(
+                          Number(
+                            changeMinor >= 0n ? changeMinor : -changeMinor,
+                          ),
+                        )}
                   </strong>
                 </div>
               </div>
               {creditMode && (
                 <div className="pos-sheet-credit-total">
                   <span>В долг</span>
-                  <strong>{creditDebtMinor === null ? '—' : formatSom(creditDebtMinor)}</strong>
+                  <strong>
+                    {creditDebtMinor === null
+                      ? '—'
+                      : formatSom(creditDebtMinor)}
+                  </strong>
                 </div>
               )}
-              {error && <p role="alert" className="error">{error}</p>}
+              {error && (
+                <p role="alert" className="error">
+                  {error}
+                </p>
+              )}
               <button
                 type="button"
                 className="pos-submit pos-sheet-submit"

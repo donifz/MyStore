@@ -1,5 +1,11 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import CreditFields from './CreditFields';
 
 const shopId = '11111111-1111-4111-8111-111111111111';
@@ -11,15 +17,22 @@ afterEach(() => {
 });
 
 it('allows an unverified buyer to be selected for credit', async () => {
-  vi.stubGlobal('fetch', async () =>
-    new Response(
-      JSON.stringify({
-        items: [
-          { id: customerId, name: 'Нурлан', phone: '+996700123456', linked: false },
-        ],
-      }),
-      { status: 200, headers: { 'content-type': 'application/json' } },
-    ),
+  vi.stubGlobal(
+    'fetch',
+    async () =>
+      new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: customerId,
+              name: 'Нурлан',
+              phone: '+996700123456',
+              linked: false,
+            },
+          ],
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
   );
   const onCustomerChange = vi.fn();
   const onCustomerEligible = vi.fn();
@@ -82,7 +95,9 @@ it('immediately selects a newly created customer before QR activation', async ()
   fireEvent.change(screen.getByPlaceholderText('+996 700 123 456'), {
     target: { value: '0700123456' },
   });
-  fireEvent.click(screen.getByRole('button', { name: /Создать и показать QR/ }));
+  fireEvent.click(
+    screen.getByRole('button', { name: /Создать и показать QR/ }),
+  );
   await waitFor(() => {
     expect(onCustomerChange).toHaveBeenCalledWith(customerId);
     expect(onCustomerEligible).toHaveBeenCalledWith(true);
