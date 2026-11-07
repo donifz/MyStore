@@ -245,7 +245,7 @@ export default function PaymentBottomSheet({
                     }}
                   >
                     <span className="pos-option-icon" aria-hidden="true">
-                      <PaymentIcon name="gift" />
+                      <PaymentIcon name="sparkle" />
                     </span>
                     <strong>Бонусы / скидка</strong>
                     <span className="pos-option-detail">
@@ -498,7 +498,7 @@ export default function PaymentBottomSheet({
                   }
                 >
                   <PaymentIcon
-                    name={activePanel === 'credit' ? 'clock' : 'gift'}
+                    name={activePanel === 'credit' ? 'clock' : 'sparkle'}
                     size={22}
                   />
                 </span>
