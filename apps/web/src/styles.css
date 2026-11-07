@@ -8988,7 +8988,6 @@ fieldset {
   }
 }
 
-
 /* Desktop cashier station: one fixed-height workspace, three internal panes.
    Full-page scrolling is intentionally disabled while the POS is mounted. */
 @media (min-width: 821px) {

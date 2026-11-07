@@ -742,7 +742,6 @@
   }
 }
 
-
 /* Four premium actions in a single, resilient 2x2 grid on narrow devices. */
 .pos-sheet-drawer .pos-payment-option {
   min-height: 90px;
@@ -800,7 +799,6 @@
     padding: 8px;
   }
 }
-
 
 /* The same checkout component is embedded in the fixed-height desktop POS.
    Only the action area scrolls if screen height is limited; receipt, change,

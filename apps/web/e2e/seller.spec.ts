@@ -125,9 +125,7 @@ test('seller flow: receive, shift, lost response retry, return and close', async
   expect(
     Math.abs(checkoutFields[0]!.top - checkoutFields[1]!.top),
   ).toBeLessThan(2);
-  await mobileCheckout
-    .getByRole('button', { name: 'Закрыть оплату' })
-    .click();
+  await mobileCheckout.getByRole('button', { name: 'Закрыть оплату' }).click();
   await page.setViewportSize({ width: 1440, height: 1000 });
   await context.setOffline(true);
   await expect(

@@ -203,7 +203,9 @@ export default function PaymentBottomSheet({
 
   return (
     <div
-      className={embedded ? 'pos-sheet-root pos-sheet-embedded' : 'pos-sheet-root'}
+      className={
+        embedded ? 'pos-sheet-root pos-sheet-embedded' : 'pos-sheet-root'
+      }
       role={embedded ? 'region' : 'dialog'}
       aria-modal={embedded ? undefined : true}
       aria-label="Оплата чека"

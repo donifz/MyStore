@@ -625,7 +625,10 @@ function SaleWorkspace({
         <div className="pos-side">
           {/* DESKTOP PAYMENT: same controls, icons, buyer and bonus flows as mobile.
               The complete workspace uses internal scroll regions, not page scroll. */}
-          <aside className="pos-panel pos-payment pos-desktop-payment" aria-label="Оплата">
+          <aside
+            className="pos-panel pos-payment pos-desktop-payment"
+            aria-label="Оплата"
+          >
             <PaymentBottomSheet
               embedded
               open={!paymentSheetOpen}
@@ -634,7 +637,9 @@ function SaleWorkspace({
               setMethod={setMethod}
               shopId={shopId}
               creditMode={creditSalesEnabled && creditMode}
-              setCreditMode={creditSalesEnabled ? setCreditMode : () => undefined}
+              setCreditMode={
+                creditSalesEnabled ? setCreditMode : () => undefined
+              }
               creditCustomerId={creditCustomerId}
               setCreditCustomerId={setCreditCustomerId}
               setCreditCustomerEligible={setCreditCustomerEligible}
