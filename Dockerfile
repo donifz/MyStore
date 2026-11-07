@@ -1,4 +1,6 @@
 FROM node:24-alpine AS build
+# Railway passes this non-secret opt-in as a Docker build arg for the Vite bundle.
+ARG VITE_CREDIT_SALES_ENABLED=false
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY package.json package-lock.json ./
