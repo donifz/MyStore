@@ -199,6 +199,8 @@ export default function ReportsPage() {
           'Получено оплат',
           money(data.paymentsReceivedMinor - data.paymentsRefundedMinor),
         ],
+        ['Погашение долгов за период', money(data.creditRepaymentsMinor ?? 0)],
+        ['Остаток долгов покупателей', money(data.outstandingCreditMinor ?? 0)],
         ['Наличные', money(data.cashReceivedMinor)],
         ['Карта', money(data.cardReceivedMinor)],
 

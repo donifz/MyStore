@@ -16,6 +16,8 @@ export type ShiftView = {
   actorId: string;
   status: 'open' | 'closed';
   salesCashMinor: number;
+  repaymentsCashMinor: number;
+  repaymentsCardMinor: number;
   salesCardMinor: number;
   refundsCashMinor: number;
   refundsCardMinor: number;

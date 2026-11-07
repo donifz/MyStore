@@ -32,17 +32,31 @@ export class ShiftsService {
       "SELECT COALESCE(sum(amount_minor) FILTER(WHERE kind='sale' AND method='cash'),0) sc,COALESCE(sum(amount_minor) FILTER(WHERE kind='sale' AND method='card'),0) sd,COALESCE(sum(amount_minor) FILTER(WHERE kind='refund' AND method='cash'),0) rc,COALESCE(sum(amount_minor) FILTER(WHERE kind='refund' AND method='card'),0) rd FROM payment_records WHERE shop_id=$1 AND shift_id=$2",
       [row.shop_id, row.id],
     );
+    const [repayments] = await tx.query(
+      `SELECT COALESCE(sum(amount_minor) FILTER(WHERE method='cash'),0) AS cash,
+       COALESCE(sum(amount_minor) FILTER(WHERE method='card'),0) AS card
+       FROM credit_repayments WHERE shop_id=$1 AND shift_id=$2`,
+      [row.shop_id, row.id],
+    );
     const [cashTxs] = await tx.query(
       "SELECT COALESCE(sum(amount_minor) FILTER(WHERE type='in'),0) cin, COALESCE(sum(amount_minor) FILTER(WHERE type='out'),0) cout FROM cash_transactions WHERE shop_id=$1 AND shift_id=$2",
       [row.shop_id, row.id],
     );
     const cin = BigInt(cashTxs?.cin || 0);
     const cout = BigInt(cashTxs?.cout || 0);
+    const creditCash = BigInt(repayments?.cash || 0);
+    const creditCard = BigInt(repayments?.card || 0);
     const expected = row.closed_at
       ? BigInt(row.expected_cash_minor)
-      : BigInt(row.opening_cash_minor) + BigInt(sum.n) + cin - cout;
+      : BigInt(row.opening_cash_minor) +
+        BigInt(sum.n) +
+        creditCash +
+        cin -
+        cout;
     return {
       salesCashMinor: safeMoney(BigInt(totals.sc)),
+      repaymentsCashMinor: safeMoney(creditCash),
+      repaymentsCardMinor: safeMoney(creditCard),
       salesCardMinor: safeMoney(BigInt(totals.sd)),
       refundsCashMinor: safeMoney(BigInt(totals.rc)),
       refundsCardMinor: safeMoney(BigInt(totals.rd)),

@@ -48,6 +48,20 @@ export class ReportsService {
        FROM payment_records WHERE shop_id=$1 AND created_at >= $2 AND created_at < $3`,
       [shop, start, end],
     );
+    const [creditPayments] = await db.query(
+      `SELECT
+         COALESCE(sum(amount_minor),0) AS received,
+         COALESCE(sum(amount_minor) FILTER(WHERE method='cash'),0) AS cash,
+         COALESCE(sum(amount_minor) FILTER(WHERE method='card'),0) AS card
+       FROM credit_repayments
+       WHERE shop_id=$1 AND created_at >= $2 AND created_at < $3`,
+      [shop, start, end],
+    );
+    const [creditDebt] = await db.query(
+      `SELECT COALESCE(sum(total_minor-paid_minor),0) AS outstanding
+       FROM credit_sales WHERE shop_id=$1`,
+      [shop],
+    );
     const [inventory] = await db.query(
       `SELECT
         COALESCE(sum(b.physical),0) physical,
@@ -150,10 +164,13 @@ export class ReportsService {
       onlineSalesCount: Number(trade.online_sales_count),
       costOfGoodsMinor: cost,
       grossProfitMinor: revenue - cost,
-      paymentsReceivedMinor: Number(payments.received),
+      paymentsReceivedMinor:
+        Number(payments.received) + Number(creditPayments.received),
+      creditRepaymentsMinor: Number(creditPayments.received),
+      outstandingCreditMinor: Number(creditDebt.outstanding),
       paymentsRefundedMinor: Number(payments.refunded),
-      cashReceivedMinor: Number(payments.cash),
-      cardReceivedMinor: Number(payments.card),
+      cashReceivedMinor: Number(payments.cash) + Number(creditPayments.cash),
+      cardReceivedMinor: Number(payments.card) + Number(creditPayments.card),
       physicalUnits: Number(inventory.physical),
       reservedUnits: Number(inventory.reserved),
       stockValueMinor: Number(inventory.stock_value),

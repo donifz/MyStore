@@ -216,6 +216,14 @@ function ShiftWorkspace({
                 <strong>{formatSom(shift.salesCardMinor)}</strong>
               </div>
               <div className="panel">
+                Погашение долгов наличными
+                <strong>{formatSom(shift.repaymentsCashMinor ?? 0)}</strong>
+              </div>
+              <div className="panel">
+                Погашение долгов картой
+                <strong>{formatSom(shift.repaymentsCardMinor ?? 0)}</strong>
+              </div>
+              <div className="panel">
                 Возвраты наличными
                 <strong>{formatSom(shift.refundsCashMinor)}</strong>
               </div>

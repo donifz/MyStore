@@ -84,6 +84,11 @@ import {
 } from './customers/buyer-telegram.controller';
 import { BuyerInvitesService } from './customers/buyer-invites.service';
 import { CreditSalesService } from './pos/credit-sales.service';
+import { CreditRepaymentsService } from './pos/credit-repayments.service';
+import {
+  CreditRepaymentsController,
+  BuyerRepaymentsController,
+} from './pos/credit-repayments.controller';
 import {
   CreditSalesController,
   BuyerDebtsController,
@@ -126,6 +131,8 @@ export async function createApp(
       ShiftsController,
       PosSalesController,
       CreditSalesController,
+      CreditRepaymentsController,
+      BuyerRepaymentsController,
       BuyerDebtsController,
       ReturnsController,
       ReportsController,
@@ -168,6 +175,7 @@ export async function createApp(
       ShiftsService,
       PosSalesService,
       CreditSalesService,
+      CreditRepaymentsService,
       ReturnsService,
       SalesHistoryService,
       ReportsService,
