@@ -317,3 +317,138 @@
     min-height: 52px;
   }
 }
+
+/* Focused bonus/credit configuration above the payment sheet. */
+.pos-sheet-option-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 105;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.pos-sheet-option-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(15 28 24 / 53%);
+  backdrop-filter: blur(2px);
+}
+.pos-sheet-option-dialog {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 540px;
+  max-height: min(87dvh, 750px);
+  overflow: hidden;
+  border-radius: 24px 24px 0 0;
+  background: #fff;
+  box-shadow: 0 -18px 50px rgb(8 39 29 / 19%);
+  animation: sheetSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.pos-sheet-option-handle {
+  align-self: center;
+  margin-top: 10px;
+  width: 40px;
+  height: 5px;
+  border-radius: 20px;
+  background: #d8e0e5;
+}
+.pos-sheet-option-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 18px 12px;
+  border-bottom: 1px solid #e7edea;
+}
+.pos-sheet-option-title {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font-size: 17px;
+  color: #202c3c;
+}
+.option-graphic {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #e5f4eb;
+  color: #087b57;
+  font-size: 23px;
+}
+.option-graphic.credit {
+  color: #7045cb;
+  background: #eee7fe;
+}
+.pos-sheet-option-scroll {
+  padding: 16px 18px 22px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.pos-sheet-option-scroll .credit-customer-flow {
+  margin: 0;
+  padding: 0;
+}
+.pos-sheet-option-scroll .credit-customer-payment {
+  display: grid;
+}
+.pos-option-subtitle {
+  margin: 0 0 16px;
+  color: #596c64;
+  font-size: 13px;
+}
+.pos-sheet-option-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr);
+  gap: 9px;
+  flex: 0 0 auto;
+  padding: 12px 18px calc(14px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid #e5eee8;
+  background: #fff;
+}
+.pos-sheet-option-actions button {
+  min-height: 48px;
+  border-radius: 12px;
+  font-weight: 700;
+}
+.pos-sheet-option-cancel {
+  border: 1px solid #d5e0db;
+  color: #3b4f47;
+}
+.pos-sheet-option-apply {
+  border: 1px solid #137e5d;
+  background: #137e5d;
+  color: #fff;
+}
+.pos-sheet-option-apply:disabled {
+  opacity: .5;
+}
+.pos-sheet-drawer .pos-payment-option {
+  position: relative;
+}
+.pos-sheet-drawer .pos-option-credit:has(.pos-option-clear) .pos-option-trigger {
+  padding-right: 44px;
+}
+.pos-option-clear {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: #6b42c3;
+  font-size: 23px;
+  padding: 5px;
+}
+.pos-sheet-drawer .pos-option-credit:has(.pos-option-clear) .pos-option-chevron {
+  display: none;
+}
+@media (min-width: 700px) {
+  .pos-sheet-option-layer { align-items: center; }
+  .pos-sheet-option-dialog { border-radius: 22px; max-height: 82dvh; }
+}
