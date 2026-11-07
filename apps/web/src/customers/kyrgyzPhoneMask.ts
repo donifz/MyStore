@@ -5,23 +5,24 @@
  */
 export function formatKyrgyzPhoneInput(input: string): string {
   const digits = input.replace(/\D/g, '');
-  const local = (digits.startsWith('996')
-    ? digits.slice(3)
-    : digits.startsWith('0')
-      ? digits.slice(1)
-      : digits
-  ).slice(0, 9);
+  let subscriber = digits;
 
+  if (digits.startsWith('996')) {
+    subscriber = digits.slice(3);
+  } else if (digits.startsWith('0')) {
+    subscriber = digits.slice(1);
+  }
+
+  const local = subscriber.slice(0, 9);
   if (!local) return '';
 
-  return [
+  const parts = [
     '+996',
     local.slice(0, 3),
     local.slice(3, 6),
     local.slice(6, 9),
-  ]
-    .filter(Boolean)
-    .join(' ');
+  ];
+  return parts.filter(Boolean).join(' ');
 }
 
 /** HTML validation mirrors the server's +996 + nine digit rule. */
