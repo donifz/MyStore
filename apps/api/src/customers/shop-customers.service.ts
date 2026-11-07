@@ -35,7 +35,11 @@ export class ShopCustomersService {
     );
     const rows = await this.db.query(
       `SELECT id,display_name AS "name",phone_e164 AS phone,address,
-        created_at AS "createdAt",buyer_account_id IS NOT NULL AS "linked",credit_approved AS "creditApproved",credit_limit_minor AS "creditLimitMinor"
+        created_at AS "createdAt",buyer_account_id IS NOT NULL AS "linked",credit_approved AS "creditApproved",credit_limit_minor AS "creditLimitMinor",
+       COALESCE((SELECT SUM(cs.total_minor-cs.paid_minor) FROM credit_sales cs
+         WHERE cs.shop_id=shop_customers.shop_id AND cs.customer_id=shop_customers.id),0) AS "debtMinor",
+       COALESCE((SELECT lw.balance_points FROM loyalty_wallets lw
+         WHERE lw.shop_id=shop_customers.shop_id AND lw.customer_id=shop_customers.id),0) AS "balancePoints"
        FROM shop_customers WHERE ${where}
        ORDER BY created_at DESC,id DESC LIMIT $5 OFFSET $6`,
       [...args, pageSize, (page - 1) * pageSize],
@@ -76,7 +80,11 @@ export class ShopCustomersService {
       SELECT m.phone_e164 AS phone,
         COALESCE(local.display_name,m.display_name) AS name,
         local.id, local.buyer_account_id IS NOT NULL AS linked,
-        local.id IS NOT NULL AS "isLocal"
+        local.id IS NOT NULL AS "isLocal",
+        COALESCE((SELECT SUM(cs.total_minor-cs.paid_minor) FROM credit_sales cs
+          WHERE cs.shop_id=$1 AND cs.customer_id=local.id),0) AS "debtMinor",
+        COALESCE((SELECT lw.balance_points FROM loyalty_wallets lw
+          WHERE lw.shop_id=$1 AND lw.customer_id=local.id),0) AS "balancePoints"
       FROM matches m
       LEFT JOIN shop_customers local ON local.shop_id=$1 AND local.phone_e164=m.phone_e164
       ORDER BY (local.id IS NOT NULL) DESC, name ASC LIMIT 20`,
@@ -93,7 +101,7 @@ export class ShopCustomersService {
     nameInput: string,
   ) {
     const phone = normalizeKyrgyzPhone(phoneInput);
-    const name = nameInput.trim().replace(/\\s+/g, ' ');
+    const name = nameInput.trim().replace(/\s+/g, ' ');
     if (name.length < 2 || name.length > 120)
       throw new BadRequestException('Укажите имя (2–120 символов)');
     const [row] = await this.db.query(
