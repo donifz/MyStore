@@ -145,6 +145,10 @@ describe('buyer loyalty wallet and QR checkout', () => {
 
   it('rejects out-of-limit and unlinked attempts without changing stock', async () => {
     await sell(await qr()).expect(201);
+    await c.db.query(
+      'UPDATE loyalty_wallets SET balance_points=100 WHERE shop_id=$1 AND customer_id=$2',
+      [fixture.shop, customerId],
+    );
     await sell(await qr(), 100).expect(400);
     const token = await qr();
     await c.db.query(
