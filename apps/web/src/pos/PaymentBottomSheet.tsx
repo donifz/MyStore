@@ -378,9 +378,7 @@ export default function PaymentBottomSheet({
                           }
                           onClick={() => setCreditPaidText(amount.toString())}
                         >
-                          {amount === 0
-                            ? 'Без взноса'
-                            : formatQuickSom(amount)}
+                          {amount === 0 ? 'Без взноса' : formatQuickSom(amount)}
                         </button>
                       ))}
                     </div>
