@@ -57,6 +57,16 @@ export class ShopCustomersController {
     await this.access.requireMembership(req.userId, shopId, 'read');
     return this.customers.list(shopId, query.q, query.page, query.pageSize);
   }
+  @Get('directory')
+  async directory(
+    @Param('shopId', ParseUUIDPipe) shopId: string,
+    @Req() req: UserRequest,
+    @Query('q') query = '',
+  ) {
+    await this.access.requireMembership(req.userId, shopId, 'read');
+    return this.customers.directory(shopId, query);
+  }
+
   @Post()
   async create(
     @Param('shopId', ParseUUIDPipe) shopId: string,
