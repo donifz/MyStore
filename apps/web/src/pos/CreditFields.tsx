@@ -57,6 +57,7 @@ export default function CreditFields({
     expiresAt: string;
   } | null>(null);
   const [revision, setRevision] = useState(0);
+  const [verifiedEnrollment, setVerifiedEnrollment] = useState('');
 
   useEffect(() => {
     if (!enabled) return;
@@ -94,8 +95,9 @@ export default function CreditFields({
     setBusy(true);
     setError('');
     setInvitation(null);
+    setVerifiedEnrollment('');
     try {
-      const customer = await api<{ id: string; name: string }>(
+      const customer = await api<{ id: string; name: string; linked: boolean }>(
         `/shops/${shopId}/customers`,
         {
           method: 'POST',
@@ -113,14 +115,18 @@ export default function CreditFields({
       // invitation and the shop owner approves a separate credit limit.
       onCustomerChange('');
       setRevision((n) => n + 1);
-      try {
-        const issued = await api<{ token: string; expiresAt: string }>(
-          `/shops/${shopId}/customers/${customer.id}/invite`,
-          { method: 'POST', body: {} },
-        );
-        setInvitation({ ...issued, name: customer.name });
-      } catch (err) {
-        setError('Клиент создан, но приглашение не выдано: ' + errorText(err));
+      if (customer.linked) {
+        setVerifiedEnrollment(customer.name);
+      } else {
+        try {
+          const issued = await api<{ token: string; expiresAt: string }>(
+            `/shops/${shopId}/customers/${customer.id}/invite`,
+            { method: 'POST', body: {} },
+          );
+          setInvitation({ ...issued, name: customer.name });
+        } catch (err) {
+          setError('Клиент создан, но приглашение не выдано: ' + errorText(err));
+        }
       }
     } catch (err) {
       setError(errorText(err));
@@ -220,7 +226,7 @@ export default function CreditFields({
         </div>
       ) : (
         <div className="credit-customer-new">
-          {!invitation && (
+          {!invitation && !verifiedEnrollment && (
             <form onSubmit={(event) => void addCustomer(event)}>
               <p className="credit-customer-note">
                 Новый клиент получит приглашение в общий кабинет MyStore.
@@ -267,6 +273,18 @@ export default function CreditFields({
                 {busy ? 'Сохраняем…' : 'Создать и показать QR-приглашение'}
               </button>
             </form>
+          )}
+          {verifiedEnrollment && (
+            <div className="credit-customer-note credit-customer-success" role="status">
+              <strong>{verifiedEnrollment}</strong> уже подтвердил номер в MyStore.
+              Кабинет подключён автоматически, QR-приглашение не требуется.
+              Владелец магазина должен отдельно разрешить кредит и установить лимит.
+              <button type="button" onClick={() => {
+                setVerifiedEnrollment('');
+                setMode('existing');
+                setQuery('');
+              }}>К списку покупателей</button>
+            </div>
           )}
           {invitation && (
             <BuyerActivationPanel
