@@ -89,7 +89,9 @@ export default function PaymentBottomSheet({
   onNewReceipt,
 }: PaymentBottomSheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
-  const [activePanel, setActivePanel] = useState<'bonus' | 'credit' | null>(null);
+  const [activePanel, setActivePanel] = useState<'bonus' | 'credit' | null>(
+    null,
+  );
   const previousBonus = useRef({ token: '', points: 0 });
   const previousCredit = useRef({
     enabled: false,
@@ -249,7 +251,9 @@ export default function PaymentBottomSheet({
                     </span>
                     <strong>Бонусы / скидка</strong>
                     <span className="pos-option-detail">
-                      {redeemPoints > 0 ? '−' + formatSom(redeemPoints * 100) : ''}
+                      {redeemPoints > 0
+                        ? '−' + formatSom(redeemPoints * 100)
+                        : ''}
                     </span>
                     <span className="pos-option-chevron" aria-hidden="true">
                       <PaymentIcon name="chevron" size={18} />
@@ -503,7 +507,9 @@ export default function PaymentBottomSheet({
                   />
                 </span>
                 <strong>
-                  {activePanel === 'credit' ? 'Продажа в долг' : 'Бонусы / скидка'}
+                  {activePanel === 'credit'
+                    ? 'Продажа в долг'
+                    : 'Бонусы / скидка'}
                 </strong>
               </span>
               <button
@@ -518,22 +524,23 @@ export default function PaymentBottomSheet({
             <div className="pos-sheet-option-scroll">
               {activePanel === 'credit' ? (
                 <CreditFields
-                    shopId={shopId}
-                    enabled
-                    disabled={paymentPending}
-                    customerId={creditCustomerId}
-                    onCustomerChange={setCreditCustomerId}
-                    onCustomerEligible={setCreditCustomerEligible}
-                    paid={creditPaidText}
-                    onPaidChange={setCreditPaidText}
-                    dueOn={creditDueOn}
-                    onDueChange={setCreditDueOn}
-                    debtMinor={creditDebtMinor}
+                  shopId={shopId}
+                  enabled
+                  disabled={paymentPending}
+                  customerId={creditCustomerId}
+                  onCustomerChange={setCreditCustomerId}
+                  onCustomerEligible={setCreditCustomerEligible}
+                  paid={creditPaidText}
+                  onPaidChange={setCreditPaidText}
+                  dueOn={creditDueOn}
+                  onDueChange={setCreditDueOn}
+                  debtMinor={creditDebtMinor}
                 />
               ) : (
                 <>
                   <p className="pos-option-subtitle">
-                    Сканируйте QR подтверждённого покупателя, чтобы списать бонусы.
+                    Сканируйте QR подтверждённого покупателя, чтобы списать
+                    бонусы.
                   </p>
                   <LoyaltyCheckout
                     token={loyaltyToken}
