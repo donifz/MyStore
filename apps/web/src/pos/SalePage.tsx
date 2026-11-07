@@ -668,7 +668,8 @@ function SaleWorkspace({
                     <button
                       type="button"
                       className={
-                        receivedMinor !== null && BigInt(receivedMinor) === payableMinor
+                        receivedMinor !== null &&
+                        BigInt(receivedMinor) === payableMinor
                           ? 'pos-quick-button selected'
                           : 'pos-quick-button'
                       }
