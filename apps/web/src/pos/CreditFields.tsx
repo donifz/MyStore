@@ -10,10 +10,11 @@ import PaymentIcon from './PaymentIcon';
 import './credit-fields.css';
 
 type Customer = {
-  id: string;
+  id: string | null;
   name: string;
   phone: string;
   linked: boolean;
+  isLocal?: boolean;
 };
 
 export type CreditFieldsProps = {
@@ -80,9 +81,10 @@ export default function CreditFields({
     let active = true;
     const timer = window.setTimeout(() => {
       setLoading(true);
-      void api<{ items: Customer[] }>(
-        `/shops/${shopId}/customers?page=1&pageSize=100&q=${encodeURIComponent(query)}`,
-      )
+      const endpoint = query.trim().length >= 3
+        ? `/shops/${shopId}/customers/directory?q=${encodeURIComponent(query)}`
+        : `/shops/${shopId}/customers?page=1&pageSize=100&q=${encodeURIComponent(query)}`;
+      void api<{ items: Customer[] }>(endpoint)
         .then((page) => {
           if (!active) return;
           setCustomers(page.items);
@@ -102,6 +104,30 @@ export default function CreditFields({
   }, [shopId, enabled, query, revision]);
 
   const selected = customers.find((customer) => customer.id === customerId);
+
+  async function chooseCustomer(customer: Customer) {
+    if (busy || disabled) return;
+    setError('');
+    setExistingInvitation(null);
+    setBusy(true);
+    try {
+      const resolved = customer.id
+        ? customer
+        : await api<{ id: string; name: string; phone: string; linked: boolean }>(
+            `/shops/${shopId}/customers/resolve`,
+            { method: 'POST', body: { name: customer.name, phone: customer.phone } },
+          );
+      if (!resolved.id) throw new Error('Не удалось выбрать покупателя.');
+      onCustomerChange(resolved.id);
+      onCustomerEligible(true);
+      onSelectedCustomer?.({ id: resolved.id, name: resolved.name, phone: resolved.phone, linked: resolved.linked });
+      setRevision((n) => n + 1);
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setBusy(false);
+    }
+  }
   async function addCustomer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy || disabled) return;
@@ -121,13 +147,14 @@ export default function CreditFields({
           },
         },
       );
+      const createdPhone = newPhone;
       setNewName('');
       setNewPhone('');
       setNewAddress('');
       // Shop debt can be assigned without verifying the buyer portal account.
       onCustomerChange(customer.id);
       onCustomerEligible(true);
-      onSelectedCustomer?.({ id: customer.id, name: customer.name, phone: newPhone, linked: customer.linked });
+      onSelectedCustomer?.({ id: customer.id, name: customer.name, phone: createdPhone, linked: customer.linked });
       setRevision((n) => n + 1);
       if (customer.linked) {
         setVerifiedEnrollment(customer.name);
@@ -183,7 +210,7 @@ export default function CreditFields({
           <PaymentIcon name="user" size={18} />
           {customerId ? 'Изменить покупателя' : 'Выбрать покупателя'}
         </button>
-        {!customerOnly && <div className="credit-customer-payment">
+        <div className="credit-customer-payment">
           <label>
             Оплачено сейчас, сом
             <input inputMode="decimal" value={paid} disabled={disabled} onChange={(event) => onPaidChange(event.target.value)} placeholder="0" />
@@ -269,7 +296,7 @@ export default function CreditFields({
           <div
             className="credit-customer-list"
             role="group"
-            aria-label="Покупатели магазина"
+            aria-label="Найденные покупатели"
           >
             {customers.map((customer) => (
               <button
@@ -282,12 +309,7 @@ export default function CreditFields({
                 }
                 disabled={disabled}
                 aria-pressed={customerId === customer.id}
-                onClick={() => {
-                  onCustomerChange(customer.id);
-                  onCustomerEligible(true);
-                  onSelectedCustomer?.(customer);
-                  setExistingInvitation(null);
-                }}
+                onClick={() => void chooseCustomer(customer)}
               >
                 <span className="credit-customer-avatar" aria-hidden="true">
                   {customer.name.slice(0, 1).toUpperCase()}
@@ -300,7 +322,9 @@ export default function CreditFields({
                   >
                     {customer.linked
                       ? 'Кабинет подтверждён'
-                      : 'Кабинет не подтверждён'}
+                      : customer.isLocal === false
+                        ? 'Из общего каталога покупателей'
+                        : 'Кабинет не подтверждён'}
                   </small>
                 </span>
                 <span className="credit-customer-radio" aria-hidden="true">
@@ -419,7 +443,7 @@ export default function CreditFields({
         </div>
       )}
 
-      <div className="credit-customer-payment">
+      {!customerOnly && <div className="credit-customer-payment">
         <label>
           Оплачено сейчас, сом
           <input
