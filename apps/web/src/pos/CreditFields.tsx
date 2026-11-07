@@ -23,6 +23,7 @@ export type CreditFieldsProps = {
   disabled: boolean;
   customerId: string;
   onCustomerChange: (id: string) => void;
+  onCustomerEligible: (eligible: boolean) => void;
   paid: string;
   onPaidChange: (value: string) => void;
   dueOn: string;
@@ -36,6 +37,7 @@ export default function CreditFields({
   disabled,
   customerId,
   onCustomerChange,
+  onCustomerEligible,
   paid,
   onPaidChange,
   dueOn,
@@ -114,6 +116,7 @@ export default function CreditFields({
       // A new customer cannot be charged on credit until they accept the
       // invitation and the shop owner approves a separate credit limit.
       onCustomerChange('');
+      onCustomerEligible(false);
       setRevision((n) => n + 1);
       if (customer.linked) {
         setVerifiedEnrollment(customer.name);
@@ -165,7 +168,11 @@ export default function CreditFields({
           className={mode === 'new' ? 'active' : ''}
           aria-pressed={mode === 'new'}
           disabled={disabled}
-          onClick={() => setMode('new')}
+          onClick={() => {
+            setMode('new');
+            onCustomerChange('');
+            onCustomerEligible(false);
+          }}
         >
           + Новый клиент
         </button>
@@ -211,9 +218,10 @@ export default function CreditFields({
                 }
                 disabled={disabled}
                 aria-pressed={customerId === customer.id}
-                onClick={() =>
-                  onCustomerChange(eligible(customer) ? customer.id : '')
-                }
+                onClick={() => {
+                  onCustomerChange(customer.id);
+                  onCustomerEligible(eligible(customer));
+                }}
               >
                 <span className="credit-customer-avatar" aria-hidden="true">
                   {customer.name.slice(0, 1).toUpperCase()}
@@ -241,12 +249,16 @@ export default function CreditFields({
               </button>
             ))}
           </div>
-          {selected && eligible(selected) && (
+          {selected && (
             <p
-              className="credit-customer-note credit-customer-success"
+              className={eligible(selected) ? 'credit-customer-note credit-customer-success' : 'credit-customer-note'}
               role="status"
             >
-              Покупатель выбран. Доступный долг проверяется сервером при оплате.
+              {eligible(selected)
+                ? 'Покупатель выбран. Доступный долг проверяется сервером при оплате.'
+                : selected.linked
+                  ? 'Покупатель выбран, но кредит ещё не разрешён владельцем магазина.'
+                  : 'Покупатель выбран, но сначала нужно подтвердить кабинет по приглашению.'}
             </p>
           )}
           <p className="credit-customer-note">
