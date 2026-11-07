@@ -3,11 +3,20 @@
   max-height: min(94dvh, 940px);
 }
 .pos-sheet-drawer .pos-sheet-body {
+  /* A constrained CSS grid shrank overflow:hidden option cards to 2px rows
+     once the always-visible payment footer consumed most of the viewport. */
+  display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
   padding: 14px 16px 18px;
-  align-content: start;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: contain;
+}
+.pos-sheet-drawer .pos-sheet-body > * {
+  flex: 0 0 auto;
+  min-width: 0;
 }
 .pos-sheet-footer {
   display: grid;
