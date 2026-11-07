@@ -51,6 +51,49 @@ describe('shop customers and separate buyer accounts', () => {
       .expect(200);
   });
 
+  it('finds customers from other shops by name or phone and resolves one local identity safely', async () => {
+    await c.db.query(
+      `INSERT INTO shop_customers(shop_id,phone_e164,display_name,address,created_by)
+       VALUES($1,$2,$3,$4,$5)`,
+      [fixture.otherShop, '+996700888777', 'Алия Тестовая', 'Приватный адрес', fixture.owner],
+    );
+    const app = c.app.getHttpServer();
+    const directory = await request(app)
+      .get(shopRoot + '/directory?q=' + encodeURIComponent('Алия'))
+      .auth(c.cashier, { type: 'bearer' })
+      .expect(200);
+    expect(directory.body.items).toHaveLength(1);
+    expect(directory.body.items[0]).toMatchObject({
+      name: 'Алия Тестовая', phone: '+996700888777', id: null, isLocal: false,
+    });
+    expect(directory.body.items[0]).not.toHaveProperty('address');
+    expect(directory.body.items[0]).not.toHaveProperty('creditLimitMinor');
+    const resolved = await request(app)
+      .post(shopRoot + '/resolve')
+      .auth(c.cashier, { type: 'bearer' })
+      .send({ name: 'Алия Тестовая', phone: '+996700888777' })
+      .expect(201);
+    expect(resolved.body.id).toBeTruthy();
+    expect(resolved.body.linked).toBe(false);
+    const repeated = await request(app)
+      .post(shopRoot + '/resolve')
+      .auth(c.cashier, { type: 'bearer' })
+      .send({ name: 'Алия Тестовая', phone: '+996700888777' })
+      .expect(201);
+    expect(repeated.body.id).toBe(resolved.body.id);
+    const [count] = await c.db.query(
+      'SELECT count(*)::int AS count FROM shop_customers WHERE shop_id=$1 AND phone_e164=$2',
+      [fixture.shop, '+996700888777'],
+    );
+    expect(count.count).toBe(1);
+    const phoneSearch = await request(app)
+      .get(shopRoot + '/directory?q=700888777')
+      .auth(c.cashier, { type: 'bearer' })
+      .expect(200);
+    expect(phoneSearch.body.items[0].id).toBe(resolved.body.id);
+    await request(app).get(shopRoot + '/directory?q=Алия').expect(401);
+  });
+
   it('does not grant debts or shop membership by matching an unverified phone', async () => {
     const app = c.app.getHttpServer();
     await request(app)
