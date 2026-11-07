@@ -95,9 +95,7 @@ it('applies date presets and forwards period filter to sales and orders CSV link
   expect(stockOverview.textContent).toContain('1 000');
   expect(stockOverview.textContent).toContain('1 600');
   expect(stockOverview.textContent).toContain('600');
-  expect(stockOverview.textContent).toContain(
-    'не зависит от периода продаж',
-  );
+  expect(stockOverview.textContent).toContain('не зависит от периода продаж');
   expect(screen.getAllByText('Стоимость по продаже')).toHaveLength(1);
   expect(screen.getByText('Продажи и возвраты по дням')).toBeTruthy();
   expect(screen.getByText('Каналы продаж и оплата')).toBeTruthy();
