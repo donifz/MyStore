@@ -28,7 +28,7 @@ const paths: Record<PaymentIconName, ReactNode> = {
     </>
   ),
   sparkle: (
-    <path d="M12 2c1.5 6.5 3.5 8.5 10 10-6.5 1.5-8.5 3.5-10 10-1.5-6.5-3.5-8.5-10-10 6.5-1.5 8.5-3.5 10-10Z" />
+    <path d="M12 2c1.5 6.5 3.5 8.5 10 10-6.5 1.5-8.5 3.5-10 10-1.5-6.5-3.5-8.5-10-10 6.5-1.5 8.5-3.5 10-10Z" fill="currentColor" stroke="none" />
   ),
   clock: (
     <>
