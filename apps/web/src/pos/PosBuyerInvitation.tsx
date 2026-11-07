@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import BuyerInviteQr from '../customers/BuyerInviteQr';
+import PaymentIcon from './PaymentIcon';
 import { buyerInviteLink } from '../customers/buyerInviteLink';
 
 type Props = {
@@ -59,9 +60,11 @@ export default function PosBuyerInvitation({
         </div>
         <div className="credit-invite-actions">
           <button type="button" onClick={() => void copy()}>
+            <PaymentIcon name="copy" size={16} />
             Копировать
           </button>
           <button type="button" onClick={() => void share()}>
+            <PaymentIcon name="share" size={16} />
             Поделиться
           </button>
           <a href={link} target="_blank" rel="noopener noreferrer">

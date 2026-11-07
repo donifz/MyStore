@@ -79,20 +79,37 @@ it('keeps payment, quick cash, change and submit in a permanent footer', () => {
   expect(onSubmit).toHaveBeenCalledOnce();
 });
 
-it('shows compact loyalty controls and QR scanner only when expanded', () => {
+it('opens loyalty modal and applies without closing checkout', () => {
   render(<PaymentBottomSheet {...props()} />);
-  expect(screen.queryByRole('button', { name: 'Сканировать QR' })).toBeNull();
   const trigger = screen.getByRole('button', { name: /Бонусы \/ скидка/ });
-  expect(trigger.getAttribute('aria-expanded')).toBe('false');
+  expect(trigger.querySelector('svg')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Сканировать QR' })).toBeNull();
   fireEvent.click(trigger);
-  expect(trigger.getAttribute('aria-expanded')).toBe('true');
+  const option = screen.getByRole('dialog', { name: 'Бонусы / скидка' });
+  expect(option).toBeTruthy();
+  expect(option.querySelector('button.pos-sheet-option-apply')).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Сканировать QR' })).toBeTruthy();
   expect(screen.getByLabelText('Код карты покупателя')).toBeTruthy();
   expect(screen.getByLabelText('Списать баллов')).toBeTruthy();
-  expect(screen.getByText(/Только подтверждённый покупатель/)).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Применить' }));
+  expect(screen.queryByRole('dialog', { name: 'Бонусы / скидка' })).toBeNull();
+  expect(screen.getByRole('dialog', { name: 'Оплата чека' })).toBeTruthy();
 });
 
-it('has a collapsible credit section and up-front amount in the fixed footer', () => {
+it('cancels changes to loyalty and keeps checkout open', () => {
+  const setRedeemPoints = vi.fn();
+  const setLoyaltyToken = vi.fn();
+  render(
+    <PaymentBottomSheet {...props({ setRedeemPoints, setLoyaltyToken })} />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: /Бонусы \/ скидка/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Отмена' }));
+  expect(setRedeemPoints).toHaveBeenCalledWith(0);
+  expect(setLoyaltyToken).toHaveBeenCalledWith('');
+  expect(screen.queryByRole('dialog', { name: 'Бонусы / скидка' })).toBeNull();
+});
+
+it('opens credit modal and keeps checkout footer', () => {
   const setCreditPaidText = vi.fn();
   const { container } = render(
     <PaymentBottomSheet
@@ -106,12 +123,16 @@ it('has a collapsible credit section and up-front amount in the fixed footer', (
     />,
   );
   const credit = screen.getByRole('button', { name: /Продажа в долг/ });
-  expect(credit.getAttribute('aria-expanded')).toBe('true');
+  expect(credit.querySelector('svg')).toBeTruthy();
+  fireEvent.click(credit);
+  expect(screen.getByRole('dialog', { name: 'Продажа в долг' })).toBeTruthy();
   const footer = container.querySelector('.pos-sheet-footer');
   expect(footer?.textContent).toContain('В долг');
   expect(footer?.textContent).toContain('700,00 сом');
   expect(footer?.textContent).toContain('Оформить долг');
   expect(footer?.querySelector('input')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: /1\s000/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Отмена' }));
+  expect(screen.queryByRole('dialog', { name: 'Продажа в долг' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: '1 000' }));
   expect(setCreditPaidText).toHaveBeenCalledWith('1000');
 });

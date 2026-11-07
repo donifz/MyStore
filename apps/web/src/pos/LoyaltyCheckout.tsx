@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import CameraScanner from '../scanner/CameraScanner';
+import PaymentIcon from './PaymentIcon';
 
 type Props = {
   token: string;
@@ -32,6 +33,7 @@ export default function LoyaltyCheckout({
           disabled={disabled}
           onClick={() => setScanning((current) => !current)}
         >
+          <PaymentIcon name={scanning ? 'close' : 'qr'} size={18} />
           {scanning ? 'Закрыть камеру' : 'Сканировать QR'}
         </button>
         <label className="pos-loyalty-code">
@@ -59,6 +61,7 @@ export default function LoyaltyCheckout({
       )}
       {qrReady && (
         <span className="pos-loyalty-ok" role="status">
+          <PaymentIcon name="check" size={15} />
           QR считан
         </span>
       )}
