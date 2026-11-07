@@ -7,6 +7,8 @@ import './payment-bottom-sheet.css';
 const creditSalesEnabled =
   import.meta.env.DEV || import.meta.env.VITE_CREDIT_SALES_ENABLED === 'true';
 const wholeSom = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
+const formatQuickSom = (amount: number) =>
+  wholeSom.format(amount).replace(/[\u00a0\u202f]/g, ' ');
 
 export type PaymentBottomSheetProps = {
   open: boolean;
@@ -378,7 +380,7 @@ export default function PaymentBottomSheet({
                         >
                           {amount === 0
                             ? 'Без взноса'
-                            : wholeSom.format(amount).replace(/[\u00a0\u202f]/g, ' ')}
+                            : formatQuickSom(amount)}
                         </button>
                       ))}
                     </div>
