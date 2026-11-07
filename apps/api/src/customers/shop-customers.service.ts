@@ -81,6 +81,27 @@ export class ShopCustomersService {
     return { items: rows };
   }
 
+  /** A global identity only becomes a shop customer when a cashier selects it. */
+  async resolve(shopId: string, actorId: string, phoneInput: string, nameInput: string) {
+    const phone = normalizeKyrgyzPhone(phoneInput);
+    const name = nameInput.trim().replace(/\\s+/g, ' ');
+    if (name.length < 2 || name.length > 120)
+      throw new BadRequestException('Укажите имя (2–120 символов)');
+    const [row] = await this.db.query(
+      `INSERT INTO shop_customers
+       (shop_id,phone_e164,display_name,created_by,buyer_account_id)
+       VALUES($1,$2,$3,$4,
+         (SELECT id FROM buyer_accounts
+          WHERE phone_e164=$2 AND phone_verified_at IS NOT NULL))
+       ON CONFLICT (shop_id,phone_e164)
+       DO UPDATE SET updated_at=shop_customers.updated_at
+       RETURNING id,display_name AS "name",phone_e164 AS phone,
+         buyer_account_id IS NOT NULL AS linked`,
+      [shopId, phone, name, actorId],
+    );
+    return row;
+  }
+
   async create(
     shopId: string,
     actorId: string,
