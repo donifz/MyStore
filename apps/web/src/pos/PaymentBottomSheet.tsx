@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { formatSom } from '../api/money';
 import CreditFields from './CreditFields';
+import LoyaltyCheckout from './LoyaltyCheckout';
 
 const creditSalesEnabled =
   import.meta.env.DEV || import.meta.env.VITE_CREDIT_SALES_ENABLED === 'true';
@@ -19,6 +20,12 @@ export type PaymentBottomSheetProps = {
   creditDueOn: string;
   setCreditDueOn: (value: string) => void;
   creditDebtMinor: number | null;
+  loyaltyEnabled: boolean;
+  loyaltyToken: string;
+  setLoyaltyToken: (value: string) => void;
+  redeemPoints: number;
+  setRedeemPoints: (value: number) => void;
+  originalTotalMinor: number;
   method: 'cash' | 'card';
   setMethod: (m: 'cash' | 'card') => void;
   received: string;
@@ -53,6 +60,12 @@ export default function PaymentBottomSheet({
   creditDueOn,
   setCreditDueOn,
   creditDebtMinor,
+  loyaltyEnabled,
+  loyaltyToken,
+  setLoyaltyToken,
+  redeemPoints,
+  setRedeemPoints,
+  originalTotalMinor,
   received,
   setReceived,
   totalText,
@@ -218,6 +231,16 @@ export default function PaymentBottomSheet({
               onDueChange={setCreditDueOn}
               debtMinor={creditDebtMinor}
             />
+            {loyaltyEnabled && !creditMode && (
+              <LoyaltyCheckout
+                token={loyaltyToken}
+                setToken={setLoyaltyToken}
+                points={redeemPoints}
+                setPoints={setRedeemPoints}
+                totalMinor={originalTotalMinor}
+                disabled={isSubmitting || isSubmissionPending}
+              />
+            )}
             {!creditMode && method === 'cash' && (
               <div className="pos-sheet-cash-section">
                 <label className="pos-received">

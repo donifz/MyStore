@@ -57,6 +57,13 @@ export class ReportsService {
        WHERE shop_id=$1 AND created_at >= $2 AND created_at < $3`,
       [shop, start, end],
     );
+    const [bonusRedemptions] = await db.query(
+      `SELECT COALESCE(sum(points),0) AS spent
+       FROM loyalty_ledger
+       WHERE shop_id=$1 AND kind='redeemed'
+         AND created_at >= $2 AND created_at < $3`,
+      [shop, start, end],
+    );
     const [creditDebt] = await db.query(
       `SELECT COALESCE(sum(total_minor-paid_minor),0) AS outstanding
        FROM credit_sales WHERE shop_id=$1`,
@@ -164,6 +171,9 @@ export class ReportsService {
       onlineSalesCount: Number(trade.online_sales_count),
       costOfGoodsMinor: cost,
       grossProfitMinor: revenue - cost,
+      loyaltyRedeemedMinor: Number(bonusRedemptions.spent) * 100,
+      grossAfterLoyaltyMinor:
+        revenue - cost - Number(bonusRedemptions.spent) * 100,
       paymentsReceivedMinor:
         Number(payments.received) + Number(creditPayments.received),
       creditRepaymentsMinor: Number(creditPayments.received),

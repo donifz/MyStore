@@ -10,8 +10,11 @@ import CameraScanner from '../scanner/CameraScanner';
 import { useCurrentShift } from './use-current-shift';
 import PaymentBottomSheet from './PaymentBottomSheet';
 import CreditFields from './CreditFields';
+import LoyaltyCheckout from './LoyaltyCheckout';
 
 const POPULAR = '__popular__';
+const loyaltyEnabled =
+  import.meta.env.DEV || import.meta.env.VITE_LOYALTY_ENABLED === 'true';
 const creditSalesEnabled =
   import.meta.env.DEV || import.meta.env.VITE_CREDIT_SALES_ENABLED === 'true';
 const wholeSom = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
@@ -144,6 +147,8 @@ function SaleWorkspace({
     [catalogError, setCatalogError] = useState(''),
     [received, setReceived] = useState(''),
     [creditMode, setCreditMode] = useState(false),
+    [loyaltyToken, setLoyaltyToken] = useState(''),
+    [redeemPoints, setRedeemPoints] = useState(0),
     [creditCustomerId, setCreditCustomerId] = useState(''),
     [creditPaidText, setCreditPaidText] = useState('0'),
     [creditDueOn, setCreditDueOn] = useState(() =>
@@ -207,7 +212,18 @@ function SaleWorkspace({
     ),
     safe = sum <= BigInt(Number.MAX_SAFE_INTEGER);
   const totalMinor = safe ? Number(sum) : 0;
-  const totalText = safe ? formatSom(totalMinor) : 'Сумма превышена';
+  const validLoyalty =
+    !loyaltyToken ||
+    (/^[A-Za-z0-9_-]{43}$/.test(loyaltyToken) &&
+      Number.isSafeInteger(redeemPoints) &&
+      redeemPoints >= 0 &&
+      BigInt(redeemPoints) * 500n <= sum);
+  const bonusDiscountMinor =
+    loyaltyEnabled && !creditMode && loyaltyToken && validLoyalty
+      ? BigInt(redeemPoints) * 100n
+      : 0n;
+  const payableMinor = sum - bonusDiscountMinor;
+  const totalText = safe ? formatSom(Number(payableMinor)) : 'Сумма превышена';
   const itemCount = doc.draft.lines.reduce((n, l) => n + l.quantity, 0);
   const inCart = new Map(doc.draft.lines.map((l) => [l.id, l.quantity]));
 
@@ -216,6 +232,8 @@ function SaleWorkspace({
     doc.setError('');
     setReceived('');
     setCreditMode(false);
+    setLoyaltyToken('');
+    setRedeemPoints(0);
     setCreditCustomerId('');
     setCreditPaidText('0');
     setQuery('');
@@ -236,12 +254,16 @@ function SaleWorkspace({
       doc.setError('Сумма слишком велика.');
       return;
     }
+    if (!creditMode && !validLoyalty) {
+      doc.setError('Проверьте QR покупателя и число бонусных баллов.');
+      return;
+    }
     if (!creditMode && method === 'cash' && received.trim()) {
       if (receivedError || receivedMinor === null) {
         doc.setError('Укажите корректную полученную сумму.');
         return;
       }
-      if (BigInt(receivedMinor) < sum) {
+      if (BigInt(receivedMinor) < payableMinor) {
         doc.setError('Полученных наличных недостаточно для продажи.');
         return;
       }
@@ -270,6 +292,9 @@ function SaleWorkspace({
       {
         shiftId: active.id,
         method,
+        ...(!creditMode && loyaltyEnabled && loyaltyToken
+          ? { loyaltyToken, redeemPoints }
+          : {}),
         ...(creditMode
           ? {
               customerId: creditCustomerId,
@@ -332,7 +357,7 @@ function SaleWorkspace({
 
   const changeMinor =
     safe && paymentMethod === 'cash' && receivedMinor !== null
-      ? BigInt(receivedMinor) - sum
+      ? BigInt(receivedMinor) - payableMinor
       : null;
 
   const locked = doc.busy || doc.blocked || !!doc.draft.submission;
@@ -345,6 +370,7 @@ function SaleWorkspace({
     (!doc.draft.submission &&
       (!active ||
         !safe ||
+        (!creditMode && !validLoyalty) ||
         (creditMode &&
           (!creditCustomerId || creditDebtMinor === null || !creditDueOn)) ||
         (!creditMode &&
@@ -354,8 +380,8 @@ function SaleWorkspace({
   );
 
   const quickAmounts = useMemo(
-    () => quickCashAmounts(safe ? sum : 0n),
-    [safe, sum],
+    () => quickCashAmounts(safe ? payableMinor : 0n),
+    [safe, payableMinor],
   );
   const isCatalogOpen = query.trim().length > 0 || Boolean(category);
 
@@ -602,6 +628,16 @@ function SaleWorkspace({
                 Продажа в долг
               </label>
             )}
+            {loyaltyEnabled && !creditMode && (
+              <LoyaltyCheckout
+                token={loyaltyToken}
+                setToken={setLoyaltyToken}
+                points={redeemPoints}
+                setPoints={setRedeemPoints}
+                totalMinor={totalMinor}
+                disabled={locked}
+              />
+            )}
             <CreditFields
               shopId={shopId}
               enabled={creditSalesEnabled && creditMode}
@@ -790,10 +826,16 @@ function SaleWorkspace({
         creditDueOn={creditDueOn}
         setCreditDueOn={setCreditDueOn}
         creditDebtMinor={creditDebtMinor}
+        loyaltyEnabled={loyaltyEnabled && !creditMode}
+        loyaltyToken={loyaltyToken}
+        setLoyaltyToken={setLoyaltyToken}
+        redeemPoints={redeemPoints}
+        setRedeemPoints={setRedeemPoints}
+        originalTotalMinor={totalMinor}
         received={received}
         setReceived={setReceived}
         totalText={totalText}
-        totalMinor={totalMinor}
+        totalMinor={safe ? Number(payableMinor) : 0}
         changeMinor={changeMinor}
         receivedMinor={receivedMinor}
         receivedError={receivedError}
