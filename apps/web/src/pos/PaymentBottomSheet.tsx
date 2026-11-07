@@ -242,7 +242,10 @@ export default function PaymentBottomSheet({
         </div>
 
         {success ? (
-          <div className="pos-sheet-success" role="status">
+          <div
+            className="pos-sheet-success"
+            role={embedded ? undefined : 'status'}
+          >
             <div className="pos-sheet-success-icon" aria-hidden="true">
               <PaymentIcon name="check" size={26} />
             </div>
