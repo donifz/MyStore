@@ -121,8 +121,10 @@ export default function PaymentBottomSheet({
   }, [creditCustomerId]);
   function openCustomer(fromCredit = false) {
     previousCustomer.current = {
-      id: creditCustomerId, name: selectedCustomerName,
-      debt: selectedCustomerDebt, points: selectedCustomerPoints,
+      id: creditCustomerId,
+      name: selectedCustomerName,
+      debt: selectedCustomerDebt,
+      points: selectedCustomerPoints,
     };
     returnToCredit.current = fromCredit;
     setActivePanel('customer');
