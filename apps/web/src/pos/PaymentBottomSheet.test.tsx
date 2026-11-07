@@ -85,14 +85,14 @@ it('opens loyalty modal and applies without closing checkout', () => {
   expect(trigger.querySelector('svg')).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Сканировать QR' })).toBeNull();
   fireEvent.click(trigger);
-  const option = screen.getByRole('dialog', { name: 'Бонусы / скидка' });
+  const option = screen.getByRole('dialog', { name: 'Бонусы' });
   expect(option).toBeTruthy();
   expect(option.querySelector('button.pos-sheet-option-apply')).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Сканировать QR' })).toBeTruthy();
   expect(screen.getByLabelText('Код карты покупателя')).toBeTruthy();
   expect(screen.getByLabelText('Списать баллов')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Применить' }));
-  expect(screen.queryByRole('dialog', { name: 'Бонусы / скидка' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Применить бонусы' }));
+  expect(screen.queryByRole('dialog', { name: 'Бонусы' })).toBeNull();
   expect(screen.getByRole('dialog', { name: 'Оплата чека' })).toBeTruthy();
 });
 
@@ -106,7 +106,7 @@ it('cancels changes to loyalty and keeps checkout open', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Отмена' }));
   expect(setRedeemPoints).toHaveBeenCalledWith(0);
   expect(setLoyaltyToken).toHaveBeenCalledWith('');
-  expect(screen.queryByRole('dialog', { name: 'Бонусы / скидка' })).toBeNull();
+  expect(screen.queryByRole('dialog', { name: 'Бонусы' })).toBeNull();
 });
 
 it('opens credit modal and keeps checkout footer', () => {
@@ -135,4 +135,57 @@ it('opens credit modal and keeps checkout footer', () => {
   expect(screen.queryByRole('dialog', { name: 'Продажа в долг' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: '1 000' }));
   expect(setCreditPaidText).toHaveBeenCalledWith('1000');
+});
+
+it('separates buyer selection from bonus and credit and keeps recognizable icons', () => {
+  const { container } = render(<PaymentBottomSheet {...props()} />);
+  for (const name of ['Покупатель', 'Бонусы', 'Продажа в долг']) {
+    const button = screen.getByRole('button', { name: new RegExp(name) });
+    expect(button.querySelector('svg')).toBeTruthy();
+  }
+  expect(container.querySelector('.pos-option-discount svg')).toBeTruthy();
+  expect(container.querySelector('.pos-heading-icon svg')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: /Покупатель Не выбран/ }));
+  const customer = screen.getByRole('dialog', { name: 'Покупатель' });
+  expect(customer).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Новый клиент' })).toBeTruthy();
+  expect(screen.getByPlaceholderText('Имя или +996…')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Новый клиент' }));
+  expect(screen.getByPlaceholderText('+996 700 123 456')).toBeTruthy();
+  expect(screen.getByPlaceholderText('Введите адрес')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Отмена' }));
+  expect(screen.queryByRole('dialog', { name: 'Покупатель' })).toBeNull();
+  expect(screen.getByRole('dialog', { name: 'Оплата чека' })).toBeTruthy();
+});
+
+it('shows money received and checkout discount beside each other without auto discount', () => {
+  const setDiscount = vi.fn();
+  const setMode = vi.fn();
+  const { container } = render(
+    <PaymentBottomSheet
+      {...props({
+        checkoutOriginalMinor: 80000,
+        totalMinor: 75000,
+        totalText: '750,00 сом',
+        checkoutDiscountMinor: 5000,
+        checkoutDiscountText: '50',
+        setCheckoutDiscountText: setDiscount,
+        setCheckoutDiscountMode: setMode,
+        received: '750',
+        receivedMinor: 75000,
+        changeMinor: 0n,
+      })}
+    />,
+  );
+  const moneyRow = container.querySelector('.pos-checkout-money-row');
+  expect(moneyRow?.textContent).toContain('Получено от покупателя');
+  expect(moneyRow?.textContent).toContain('Скидка');
+  const input = screen.getByLabelText('Скидка при оплате');
+  expect((input as HTMLInputElement).value).toBe('50');
+  fireEvent.change(input, { target: { value: '80' } });
+  expect(setDiscount).toHaveBeenCalledWith('80');
+  fireEvent.click(screen.getByRole('button', { name: '%' }));
+  expect(setMode).toHaveBeenCalledWith('percent');
+  expect(container.querySelector('.pos-summary-discount')?.textContent).toContain('50,00 сом');
+  expect(container.querySelector('.pos-summary-due')?.textContent).toContain('750,00 сом');
 });
