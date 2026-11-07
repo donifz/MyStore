@@ -15,6 +15,8 @@ type Customer = {
   phone: string;
   linked: boolean;
   isLocal?: boolean;
+  debtMinor?: string | number;
+  balancePoints?: string | number;
 };
 
 export type CreditFieldsProps = {
@@ -38,6 +40,8 @@ export type CreditFieldsProps = {
     name: string;
     phone: string;
     linked: boolean;
+    debtMinor?: string | number;
+    balancePoints?: string | number;
   }) => void;
 };
 
@@ -361,6 +365,16 @@ export default function CreditFields({
                 <span className="credit-customer-details">
                   <strong>{customer.name}</strong>
                   <small>{customer.phone}</small>
+                  {(Number(customer.debtMinor) > 0 || Number(customer.balancePoints) > 0) && (
+                    <span className="credit-customer-badges">
+                      {Number(customer.debtMinor) > 0 && (
+                        <span className="credit-customer-debt"><PaymentIcon name="coins" size={13} /> Долг: {formatSom(Number(customer.debtMinor))}</span>
+                      )}
+                      {Number(customer.balancePoints) > 0 && (
+                        <span className="credit-customer-points"><PaymentIcon name="gift" size={13} /> Бонусы: {Number(customer.balancePoints)}</span>
+                      )}
+                    </span>
+                  )}
                   <small
                     className={customer.linked ? 'credit-customer-ok' : ''}
                   >
