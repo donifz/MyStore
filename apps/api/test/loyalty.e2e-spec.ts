@@ -83,6 +83,18 @@ describe('buyer loyalty wallet and QR checkout', () => {
       });
   }
 
+  it('does not issue or redeem loyalty QR for an unverified buyer', async () => {
+    const token = await qr();
+    await c.db.query(
+      'UPDATE buyer_accounts SET phone_verified_at=NULL WHERE id=$1',
+      [buyerId],
+    );
+    await expect(qr()).rejects.toThrow(
+      'Для бонусной карты подтвердите телефон',
+    );
+    await sell(token).expect(409);
+  });
+
   it('earns points on a paid sale and redeems them once with actual cash', async () => {
     const first = await sell(await qr()).expect(201);
     expect(first.body.totalMinor).toBe(30000);
