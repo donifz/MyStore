@@ -1,0 +1,29 @@
+name: Format premium POS branch
+on:
+  push:
+    branches: [feat/pos-checkout-premium-ui-20261108]
+permissions:
+  contents: write
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Format touched POS and customer files
+        run: |
+          npx prettier --write apps/api/src/customers/shop-customers.service.ts apps/api/src/customers/shop-customers.controller.ts apps/api/test/buyer-customers.e2e-spec.ts apps/web/src/pos/checkout-discount.ts apps/web/src/pos/checkout-discount.test.ts apps/web/src/pos/PaymentIcon.tsx apps/web/src/pos/CreditFields.tsx apps/web/src/pos/PaymentBottomSheet.tsx apps/web/src/pos/payment-bottom-sheet.css apps/web/src/pos/PaymentBottomSheet.test.tsx apps/web/src/pos/SalePage.tsx
+          npm run format:check
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add apps/api/src/customers apps/api/test/buyer-customers.e2e-spec.ts apps/web/src/pos
+            git commit -m "style(pos): apply repository Prettier rules"
+            git push
+          fi
