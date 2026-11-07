@@ -78,6 +78,44 @@ test('seller flow: receive, shift, lost response retry, return and close', async
     path: 'test-results/seller-pos.png',
     fullPage: true,
   });
+  // The desktop checkout must be visible without scrolling the document.
+  const desktopCheckout = page.getByRole('region', { name: 'Оплата чека' });
+  await expect(desktopCheckout).toBeVisible();
+  await expect(desktopCheckout.getByRole('button', { name: /Покупатель/ })).toBeVisible();
+  await expect(desktopCheckout.getByRole('button', { name: /Продажа в долг/ })).toBeVisible();
+  await expect(desktopCheckout.getByLabel('Скидка при оплате')).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollHeight <= window.innerHeight + 2,
+    ),
+  ).toBe(true);
+  // On mobile the action buttons form two non-collapsing columns and the
+  // payment form remains in a separate, permanently visible footer.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: /Оплатить —/ }).click();
+  const mobileCheckout = page.getByRole('dialog', { name: 'Оплата чека' });
+  await expect(mobileCheckout).toBeVisible();
+  const cards = mobileCheckout.locator('.pos-sheet-body .pos-payment-option');
+  const cardBoxes = await cards.evaluateAll((elements) =>
+    elements.map((el) => {
+      const box = el.getBoundingClientRect();
+      return { x: box.x, y: box.y, height: box.height };
+    }),
+  );
+  expect(cardBoxes.length).toBeGreaterThanOrEqual(2);
+  expect(cardBoxes.every((box) => box.height >= 76)).toBe(true);
+  expect(Math.abs(cardBoxes[0].y - cardBoxes[1].y)).toBeLessThan(2);
+  await expect(mobileCheckout.getByRole('button', { name: /Провести продажу/ })).toBeVisible();
+  const checkoutFields = await mobileCheckout.locator('.pos-checkout-money-row > label').evaluateAll((elements) =>
+    elements.map((el) => {
+      const field = el.querySelector('input')?.getBoundingClientRect();
+      return field ? { top: field.top, height: field.height } : null;
+    }),
+  );
+  expect(checkoutFields).toHaveLength(2);
+  expect(Math.abs(checkoutFields[0]!.top - checkoutFields[1]!.top)).toBeLessThan(2);
+  await mobileCheckout.getByRole('button', { name: 'Закрыть оплату' }).click();
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await context.setOffline(true);
   await expect(
     page.getByRole('button', { name: 'Провести продажу' }),
