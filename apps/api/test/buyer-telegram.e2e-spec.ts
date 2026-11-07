@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { createApp } from '../src/app';
 import { BuyerTelegramService } from '../src/customers/buyer-telegram.service';
-import { setup, teardown } from './helpers';
+import { setup, teardown, fixture } from './helpers';
 
 describe('Telegram verification of buyer phone ownership', () => {
   let c: Awaited<ReturnType<typeof setup>>;
@@ -98,6 +98,15 @@ describe('Telegram verification of buyer phone ownership', () => {
 
   it("requires correct bot secret and the user's own verified contact", async () => {
     const account = await buyer();
+    // Before verification matching customer records remain private.
+    await request(app())
+      .post(`/shops/${fixture.shop}/customers`)
+      .auth(c.cashier, { type: 'bearer' })
+      .send({ name: 'Telegram Customer', phone: '+996700123456' })
+      .expect(201);
+    expect(
+      (await account.agent.get('/buyer/me').expect(200)).body.shops,
+    ).toEqual([]);
     const issued = (
       await account.agent
         .post('/buyer/telegram/start')
@@ -136,9 +145,12 @@ describe('Telegram verification of buyer phone ownership', () => {
         contact: { phone_number: '+996700123456', user_id: 234567890 },
       }),
     ).expect(201);
-    expect(
-      (await account.agent.get('/buyer/me').expect(200)).body.phoneVerified,
-    ).toBe(true);
+    const verifiedAccount = (await account.agent.get('/buyer/me').expect(200))
+      .body;
+    expect(verifiedAccount.phoneVerified).toBe(true);
+    expect(verifiedAccount.shops).toEqual([
+      { shopId: fixture.shop, shopName: 'Test Shop' },
+    ]);
     const [buyerRow] = await c.db.query(
       'SELECT telegram_user_id FROM buyer_accounts LIMIT 1',
     );

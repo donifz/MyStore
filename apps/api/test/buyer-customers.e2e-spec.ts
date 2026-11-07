@@ -91,6 +91,78 @@ describe('shop customers and separate buyer accounts', () => {
     await buyer.get('/buyer/me').expect(401);
   });
 
+  it('does not auto-link an unverified phone, but discovers verified customers after login', async () => {
+    const app = c.app.getHttpServer();
+    const created = await request(app)
+      .post(shopRoot)
+      .auth(c.owner, { type: 'bearer' })
+      .send({ name: 'Verified Buyer', phone: '+996500123456' })
+      .expect(201);
+    expect(created.body.linked).toBe(false);
+
+    await request(app)
+      .post('/buyer/register')
+      .set('Origin', 'http://localhost:5173')
+      .send({
+        name: 'Verified Buyer',
+        phone: '+996500123456',
+        password: 'test-buyer-password-123',
+      })
+      .expect(201);
+    const agent = request.agent(app);
+    await agent
+      .post('/buyer/login')
+      .set('Origin', 'http://localhost:5173')
+      .send({
+        phone: '+996500123456',
+        password: 'test-buyer-password-123',
+      })
+      .expect(201);
+    expect((await agent.get('/buyer/me').expect(200)).body.shops).toEqual([]);
+
+    await c.db.query(
+      `UPDATE buyer_accounts SET phone_verified_at=now()
+       WHERE phone_e164='+996500123456'`,
+    );
+    await agent
+      .post('/buyer/login')
+      .set('Origin', 'http://localhost:5173')
+      .send({
+        phone: '+996500123456',
+        password: 'test-buyer-password-123',
+      })
+      .expect(201);
+    const me = await agent.get('/buyer/me').expect(200);
+    expect(me.body.shops).toEqual([
+      { shopId: fixture.shop, shopName: 'Test Shop' },
+    ]);
+    const [card] = await c.db.query(
+      'SELECT buyer_account_id FROM shop_customers WHERE id=$1',
+      [created.body.id],
+    );
+    expect(card.buyer_account_id).toBeTruthy();
+  });
+
+  it('automatically links a cashier-enrolled customer with an already verified buyer', async () => {
+    const [buyer] = await c.db.query(
+      `INSERT INTO buyer_accounts
+       (phone_e164,display_name,password_hash,phone_verified_at)
+       VALUES('+996501123456','Verified Buyer','hash',now())
+       RETURNING id`,
+    );
+    const created = await request(c.app.getHttpServer())
+      .post(shopRoot)
+      .auth(c.cashier, { type: 'bearer' })
+      .send({ name: 'Existing Buyer', phone: '+996501123456' })
+      .expect(201);
+    expect(created.body.linked).toBe(true);
+    const [row] = await c.db.query(
+      'SELECT buyer_account_id FROM shop_customers WHERE id=$1',
+      [created.body.id],
+    );
+    expect(row.buyer_account_id).toBe(buyer.id);
+  });
+
   it('rejects non-Kyrgyz numbers and unauthenticated customer records', async () => {
     await request(c.app.getHttpServer())
       .post('/buyer/register')

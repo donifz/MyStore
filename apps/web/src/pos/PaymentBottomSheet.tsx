@@ -15,6 +15,7 @@ export type PaymentBottomSheetProps = {
   setCreditMode: (value: boolean) => void;
   creditCustomerId: string;
   setCreditCustomerId: (value: string) => void;
+  setCreditCustomerEligible: (value: boolean) => void;
   creditPaidText: string;
   setCreditPaidText: (value: string) => void;
   creditDueOn: string;
@@ -55,6 +56,7 @@ export default function PaymentBottomSheet({
   setCreditMode,
   creditCustomerId,
   setCreditCustomerId,
+  setCreditCustomerEligible,
   creditPaidText,
   setCreditPaidText,
   creditDueOn,
@@ -225,6 +227,7 @@ export default function PaymentBottomSheet({
               disabled={isSubmitting || isSubmissionPending}
               customerId={creditCustomerId}
               onCustomerChange={setCreditCustomerId}
+              onCustomerEligible={setCreditCustomerEligible}
               paid={creditPaidText}
               onPaidChange={setCreditPaidText}
               dueOn={creditDueOn}

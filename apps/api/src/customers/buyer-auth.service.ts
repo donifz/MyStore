@@ -80,7 +80,7 @@ export class BuyerAuthService {
   async login(phoneInput: string, password: string) {
     const phone = normalizeKyrgyzPhone(phoneInput);
     const [row] = await this.db.query(
-      'SELECT id,password_hash FROM buyer_accounts WHERE phone_e164=$1',
+      'SELECT id,password_hash,phone_verified_at FROM buyer_accounts WHERE phone_e164=$1',
       [phone],
     );
     const valid = await checkPassword(
@@ -89,6 +89,16 @@ export class BuyerAuthService {
     );
     if (!row || !valid)
       throw new UnauthorizedException('Неверный номер или пароль');
+    // Reconcile cards created after the buyer verified the phone.
+    // An unverified account must NEVER claim a shop record by number alone.
+    if (row.phone_verified_at) {
+      await this.db.query(
+        `UPDATE shop_customers
+         SET buyer_account_id=$1,updated_at=now()
+         WHERE phone_e164=$2 AND buyer_account_id IS NULL`,
+        [row.id, phone],
+      );
+    }
     const token = randomBytes(32).toString('hex');
     await this.db.query(
       "INSERT INTO buyer_sessions(token_hash,buyer_id,expires_at) VALUES($1,$2,now()+interval '12 hours')",
@@ -113,8 +123,8 @@ export class BuyerAuthService {
       [buyerId],
     );
     if (!row) throw new UnauthorizedException();
-    // Only explicit single-use invitations can set buyer_account_id.
-    // Phone number matching alone NEVER grants shop access.
+    // A verified Telegram-own-contact phone or accepted one-time invitation
+    // may link customer cards. Unverified phone matches cannot grant access.
     const shops = await this.db.query(
       `SELECT s.id AS "shopId",s.name AS "shopName"
        FROM shop_customers sc JOIN shops s ON s.id=sc.shop_id

@@ -293,6 +293,14 @@ export class BuyerTelegramService {
         ? verifiedRows[0]
         : verifiedRows;
       if (!verified) return 'mismatch';
+      // A verified phone belongs to this buyer. Collect customer cards from
+      // all shops without exposing other people's or unverified records.
+      await tx.query(
+        `UPDATE shop_customers
+         SET buyer_account_id=$1,updated_at=now()
+         WHERE phone_e164=$2 AND buyer_account_id IS NULL`,
+        [challenge.buyer_id, phone],
+      );
       await tx.query(
         `UPDATE buyer_telegram_verifications
          SET used_at=now() WHERE id=$1`,

@@ -1,0 +1,277 @@
+/* Scoped to POS credit checkout. Other MyStore screens are untouched. */
+.credit-customer-flow {
+  display: grid;
+  gap: 16px;
+  padding: 0;
+  min-width: 0;
+}
+
+.credit-customer-flow label {
+  display: grid;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pos-ink, #17242b);
+}
+
+.credit-customer-flow input {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid #d4dfe0;
+  border-radius: 11px;
+  background: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  box-sizing: border-box;
+}
+
+.credit-customer-heading {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #edf7f2;
+}
+
+.credit-customer-heading strong {
+  color: #126c52;
+  font-size: 17px;
+}
+
+.credit-customer-heading span {
+  color: #4e6260;
+  font-size: 13px;
+}
+
+.credit-customer-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #dce6e2;
+  border-radius: 12px;
+  background: #f6f8f7;
+}
+
+.credit-customer-tabs button {
+  min-height: 44px;
+  padding: 8px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #41555a;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.credit-customer-tabs button.active {
+  background: #066c4f;
+  color: #fff;
+  box-shadow: 0 2px 5px rgb(6 108 79 / 12%);
+}
+
+.credit-customer-search,
+.credit-customer-new,
+.credit-customer-new form {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.credit-customer-list {
+  display: grid;
+  gap: 7px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.credit-customer-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #dfe7e7;
+  border-radius: 12px;
+  background: #fff;
+  text-align: left;
+  color: var(--pos-ink, #17242b);
+}
+
+.credit-customer-item.selected {
+  border-color: #087354;
+  background: #eef8f3;
+}
+
+.credit-customer-avatar {
+  display: grid;
+  flex: 0 0 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 50%;
+  background: #ddf0e6;
+  color: #087354;
+  font-weight: 700;
+}
+
+.credit-customer-details {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.credit-customer-details strong,
+.credit-customer-details small {
+  overflow-wrap: anywhere;
+}
+
+.credit-customer-details small {
+  color: #66757b;
+  font-size: 12px;
+}
+
+.credit-customer-details .credit-customer-warning {
+  color: #a16816;
+}
+
+.credit-customer-details .credit-customer-ok {
+  color: #087354;
+}
+
+.credit-customer-radio {
+  display: grid;
+  flex: 0 0 23px;
+  height: 23px;
+  place-items: center;
+  border: 2px solid #cbd7d5;
+  border-radius: 50%;
+  color: #fff;
+}
+
+.credit-customer-item.selected .credit-customer-radio {
+  border-color: #087354;
+  background: #087354;
+}
+
+.credit-customer-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f3f7f6;
+  color: #52636a;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.credit-customer-success {
+  background: #e6f5ec;
+  color: #096d4c;
+}
+
+.credit-customer-invite-button {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #b8dacb;
+  border-radius: 10px;
+  background: #e8f6ed;
+  color: #086c4f;
+  font-weight: 700;
+}
+
+.credit-customer-create {
+  width: 100%;
+  min-height: 48px;
+}
+
+.credit-customer-payment {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.credit-customer-balance {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #edf5f1;
+  color: #4b5d61;
+  font-size: 14px;
+}
+
+.credit-customer-balance strong {
+  color: #086c4d;
+  text-align: right;
+}
+
+.credit-customer-flow .credit-invite-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #c9e5d7;
+  border-radius: 12px;
+  background: #f2faf5;
+}
+
+.credit-invite-card h3 {
+  margin: 0;
+  color: #096b4e;
+  font-size: 17px;
+}
+
+.credit-invite-card p,
+.credit-invite-card small {
+  margin: 0;
+  color: #4e6363;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.credit-invite-content {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.credit-invite-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+
+.credit-invite-actions button,
+.credit-invite-actions a {
+  flex: 1 1 120px;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid #cbded6;
+  border-radius: 9px;
+  background: #fff;
+  color: #096b4e;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+}
+
+.credit-invite-link {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d5e5df;
+  border-radius: 9px;
+  background: #fff;
+  color: #41575c;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 440px) {
+  .credit-customer-payment {
+    grid-template-columns: 1fr;
+  }
+}
