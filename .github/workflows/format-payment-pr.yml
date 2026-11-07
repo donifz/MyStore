@@ -1,0 +1,31 @@
+name: Format payment PR
+on:
+  push:
+    branches: [feat/pos-payment-sheet-compact-qr-20261108]
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Prettier payment component
+        run: npx prettier --write apps/web/src/pos/PaymentBottomSheet.tsx
+      - name: Commit formatting once
+        run: |
+          git config user.name "mystore-ci-formatter"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src/pos/PaymentBottomSheet.tsx
+          if ! git diff --cached --quiet; then
+            git commit -m "style(pos): finalize locale amount formatter"
+            git push origin "HEAD:$GITHUB_REF_NAME"
+          fi
