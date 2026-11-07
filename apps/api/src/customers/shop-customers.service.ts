@@ -58,10 +58,14 @@ export class ShopCustomersService {
     const cleanAddress = address?.trim() || null;
     try {
       const [row] = await this.db.query(
-        `INSERT INTO shop_customers(shop_id,phone_e164,display_name,address,created_by)
-         VALUES($1,$2,$3,$4,$5)
+        `INSERT INTO shop_customers
+         (shop_id,phone_e164,display_name,address,created_by,buyer_account_id)
+         VALUES($1,$2,$3,$4,$5,
+           (SELECT id FROM buyer_accounts
+            WHERE phone_e164=$2 AND phone_verified_at IS NOT NULL))
          RETURNING id,display_name AS "name",phone_e164 AS phone,address,
-           created_at AS "createdAt"`,
+           created_at AS "createdAt",
+           buyer_account_id IS NOT NULL AS "linked"`,
         [shopId, phone, name, cleanAddress, actorId],
       );
       return row;
