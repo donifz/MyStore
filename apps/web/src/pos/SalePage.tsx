@@ -150,6 +150,7 @@ function SaleWorkspace({
     [loyaltyToken, setLoyaltyToken] = useState(''),
     [redeemPoints, setRedeemPoints] = useState(0),
     [creditCustomerId, setCreditCustomerId] = useState(''),
+    [creditCustomerEligible, setCreditCustomerEligible] = useState(false),
     [creditPaidText, setCreditPaidText] = useState('0'),
     [creditDueOn, setCreditDueOn] = useState(() =>
       new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
@@ -235,6 +236,7 @@ function SaleWorkspace({
     setLoyaltyToken('');
     setRedeemPoints(0);
     setCreditCustomerId('');
+    setCreditCustomerEligible(false);
     setCreditPaidText('0');
     setQuery('');
     setPaymentSheetOpen(false);
@@ -278,6 +280,7 @@ function SaleWorkspace({
     if (
       creditMode &&
       (!creditCustomerId ||
+        !creditCustomerEligible ||
         creditDebtMinor === null ||
         creditDebtMinor <= 0 ||
         !creditDueOn)
@@ -372,7 +375,10 @@ function SaleWorkspace({
         !safe ||
         (!creditMode && !validLoyalty) ||
         (creditMode &&
-          (!creditCustomerId || creditDebtMinor === null || !creditDueOn)) ||
+          (!creditCustomerId ||
+            !creditCustomerEligible ||
+            creditDebtMinor === null ||
+            !creditDueOn)) ||
         (!creditMode &&
           paymentMethod === 'cash' &&
           !!received.trim() &&
@@ -644,6 +650,7 @@ function SaleWorkspace({
               disabled={locked}
               customerId={creditCustomerId}
               onCustomerChange={setCreditCustomerId}
+              onCustomerEligible={setCreditCustomerEligible}
               paid={creditPaidText}
               onPaidChange={setCreditPaidText}
               dueOn={creditDueOn}
@@ -822,6 +829,7 @@ function SaleWorkspace({
         setCreditMode={creditSalesEnabled ? setCreditMode : () => undefined}
         creditCustomerId={creditCustomerId}
         setCreditCustomerId={setCreditCustomerId}
+        setCreditCustomerEligible={setCreditCustomerEligible}
         creditPaidText={creditPaidText}
         setCreditPaidText={setCreditPaidText}
         creditDueOn={creditDueOn}
