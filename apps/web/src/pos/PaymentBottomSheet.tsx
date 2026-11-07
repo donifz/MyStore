@@ -111,7 +111,19 @@ export default function PaymentBottomSheet({
   const [selectedCustomerDebt, setSelectedCustomerDebt] = useState(0);
   const [selectedCustomerPoints, setSelectedCustomerPoints] = useState(0);
   const returnToCredit = useRef(false);
+  const previousCustomer = useRef({ id: '', name: '', debt: 0, points: 0 });
+  useEffect(() => {
+    if (!creditCustomerId) {
+      setSelectedCustomerName('');
+      setSelectedCustomerDebt(0);
+      setSelectedCustomerPoints(0);
+    }
+  }, [creditCustomerId]);
   function openCustomer(fromCredit = false) {
+    previousCustomer.current = {
+      id: creditCustomerId, name: selectedCustomerName,
+      debt: selectedCustomerDebt, points: selectedCustomerPoints,
+    };
     returnToCredit.current = fromCredit;
     setActivePanel('customer');
   }
@@ -125,10 +137,19 @@ export default function PaymentBottomSheet({
     customerId: '',
     paid: '0',
     dueOn: '',
+    customerName: '',
+    debt: 0,
+    points: 0,
   });
 
   function cancelPanel() {
     if (activePanel === 'customer') {
+      const previous = previousCustomer.current;
+      setCreditCustomerId(previous.id);
+      setCreditCustomerEligible(Boolean(previous.id));
+      setSelectedCustomerName(previous.name);
+      setSelectedCustomerDebt(previous.debt);
+      setSelectedCustomerPoints(previous.points);
       setActivePanel(returnToCredit.current ? 'credit' : null);
       return;
     }
@@ -142,6 +163,9 @@ export default function PaymentBottomSheet({
       setCreditCustomerEligible(Boolean(previous.customerId));
       setCreditPaidText(previous.paid);
       setCreditDueOn(previous.dueOn);
+      setSelectedCustomerName(previous.customerName);
+      setSelectedCustomerDebt(previous.debt);
+      setSelectedCustomerPoints(previous.points);
     }
     setActivePanel(null);
   }
@@ -354,6 +378,9 @@ export default function PaymentBottomSheet({
                         customerId: creditCustomerId,
                         paid: creditPaidText,
                         dueOn: creditDueOn,
+                        customerName: selectedCustomerName,
+                        debt: selectedCustomerDebt,
+                        points: selectedCustomerPoints,
                       };
                       if (!creditMode) setCreditMode(true);
                       setActivePanel('credit');
