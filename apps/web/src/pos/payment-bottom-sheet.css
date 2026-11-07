@@ -431,7 +431,7 @@
 .pos-sheet-drawer .pos-payment-option {
   position: relative;
 }
-.pos-sheet-drawer .pos-option-credit:has(.pos-option-clear) .pos-option-trigger {
+.pos-option-credit:has(.pos-option-clear) .pos-option-trigger {
   padding-right: 44px;
 }
 .pos-option-clear {
@@ -445,7 +445,7 @@
   font-size: 23px;
   padding: 5px;
 }
-.pos-sheet-drawer .pos-option-credit:has(.pos-option-clear) .pos-option-chevron {
+.pos-option-credit:has(.pos-option-clear) .pos-option-chevron {
   display: none;
 }
 @media (min-width: 700px) {
