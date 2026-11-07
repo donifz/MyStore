@@ -26,7 +26,7 @@ export class ShopCustomersService {
       : null;
     const where = `shop_id=$1 AND (
       $2::text='' OR lower(display_name) LIKE '%' || lower($2) || '%'
-      OR phone_e164=$3 OR phone_e164 LIKE '%' || $4 || '%'
+      OR phone_e164=$3 OR ($4::text<>'' AND phone_e164 LIKE '%' || $4 || '%')
     )`;
     const args = [shopId, term, phone, term.replace(/\D/g, '')];
     const [count] = await this.db.query(
@@ -41,6 +41,44 @@ export class ShopCustomersService {
       [...args, pageSize, (page - 1) * pageSize],
     );
     return { items: rows, total: count.total, page, pageSize };
+  }
+
+  /**
+   * Cross-shop directory returns only identity, never cross-shop debt,
+   * addresses, bonuses, purchases or account verification secrets.
+   * Search is opt-in and requires a nontrivial query.
+   */
+  async directory(shopId: string, query: string) {
+    const term = query.trim();
+    if (term.length < 3) return { items: [] };
+    const digits = term.replace(/\D/g, '');
+    const phone = (() => {
+      try { return normalizeKyrgyzPhone(term); } catch { return null; }
+    })();
+    const rows = await this.db.query(
+      `WITH directory AS (
+        SELECT phone_e164, display_name, created_at FROM shop_customers
+        UNION ALL
+        SELECT phone_e164, display_name, created_at FROM buyer_accounts
+      ), matches AS (
+        SELECT DISTINCT ON (phone_e164)
+          phone_e164, display_name
+        FROM directory
+        WHERE lower(display_name) LIKE '%' || lower($2::text) || '%'
+          OR phone_e164=$3
+          OR ($4::text<>'' AND phone_e164 LIKE '%' || $4 || '%')
+        ORDER BY phone_e164, created_at DESC
+      )
+      SELECT m.phone_e164 AS phone,
+        COALESCE(local.display_name,m.display_name) AS name,
+        local.id, local.buyer_account_id IS NOT NULL AS linked,
+        local.id IS NOT NULL AS "isLocal"
+      FROM matches m
+      LEFT JOIN shop_customers local ON local.shop_id=$1 AND local.phone_e164=m.phone_e164
+      ORDER BY (local.id IS NOT NULL) DESC, name ASC LIMIT 20`,
+      [shopId, term, phone, digits],
+    );
+    return { items: rows };
   }
 
   async create(
