@@ -133,6 +133,6 @@ it('opens credit modal and keeps checkout footer', () => {
   expect(footer?.querySelector('input')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Отмена' }));
   expect(screen.queryByRole('dialog', { name: 'Продажа в долг' })).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: /1\\s000/ }));
+  fireEvent.click(screen.getByRole('button', { name: '1 000' }));
   expect(setCreditPaidText).toHaveBeenCalledWith('1000');
 });
