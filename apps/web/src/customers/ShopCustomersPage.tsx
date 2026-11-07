@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
 import { useSession } from '../auth/SessionProvider';
 import Pagination from '../components/Pagination';
+import BuyerActivationPanel from './BuyerActivationPanel';
 import {
   formatKyrgyzPhoneInput,
   KYRGYZ_PHONE_PATTERN,
@@ -77,15 +78,29 @@ export default function ShopCustomersPage() {
     setSaving(true);
     setCreateError('');
     try {
-      await api(`/shops/${shopId}/customers`, {
-        method: 'POST',
-        body: { name, phone, address },
-      });
+      const customer = await api<{ id: string; name: string }>(
+        `/shops/${shopId}/customers`,
+        {
+          method: 'POST',
+          body: { name, phone, address },
+        },
+      );
       setName('');
       setPhone('');
       setAddress('');
       setPage(1);
       setRevision((value) => value + 1);
+      try {
+        const issued = await api<{ token: string; expiresAt: string }>(
+          `/shops/${shopId}/customers/${customer.id}/invite`,
+          { method: 'POST', body: {} },
+        );
+        setInvitation({ ...issued, name: customer.name });
+      } catch (err) {
+        setCreateError(
+          'Клиент создан, но приглашение не удалось выдать: ' + errorText(err),
+        );
+      }
     } catch (err) {
       setCreateError(errorText(err));
     } finally {
@@ -205,33 +220,12 @@ export default function ShopCustomersPage() {
           </label>
         )}
         {invitation && (
-          <div className="buyer-message" role="status">
-            <strong>Приглашение для {invitation.name}</strong>
-            <p>
-              Передайте код покупателю лично. Он действителен 15 минут и только
-              один раз.
-            </p>
-            <code
-              style={{
-                overflowWrap: 'anywhere',
-                display: 'block',
-                margin: '12px 0',
-              }}
-            >
-              {invitation.token}
-            </code>
-            <button
-              type="button"
-              onClick={() => {
-                void navigator.clipboard.writeText(invitation.token);
-              }}
-            >
-              Скопировать код
-            </button>
-            <button type="button" onClick={() => setInvitation(null)}>
-              Скрыть код
-            </button>
-          </div>
+          <BuyerActivationPanel
+            name={invitation.name}
+            token={invitation.token}
+            expiresAt={invitation.expiresAt}
+            onClose={() => setInvitation(null)}
+          />
         )}
         <label className="search-label">
           Поиск по имени или номеру
