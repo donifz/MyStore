@@ -313,11 +313,13 @@ export default function ReportsPage() {
             <div className="reports-inventory-grid">
               <article className="panel reports-inventory-card">
                 <small>Количество товаров</small>
-                <strong>{data.physicalUnits.toLocaleString('ru-RU')} шт.</strong>
+                <strong>
+                  {data.physicalUnits.toLocaleString('ru-RU')} шт.
+                </strong>
                 <span className="muted">
-                  {data.stockedVariantsCount.toLocaleString('ru-RU')}{' '}
-                  товарных позиций ·{' '}
-                  {data.reservedUnits.toLocaleString('ru-RU')} шт. в резерве
+                  {data.stockedVariantsCount.toLocaleString('ru-RU')} товарных
+                  позиций · {data.reservedUnits.toLocaleString('ru-RU')} шт. в
+                  резерве
                 </span>
               </article>
               <article className="panel reports-inventory-card">
