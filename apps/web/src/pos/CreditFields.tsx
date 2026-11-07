@@ -28,6 +28,11 @@ export type CreditFieldsProps = {
   dueOn: string;
   onDueChange: (value: string) => void;
   debtMinor: number | null;
+  customerOnly?: boolean;
+  selectionOnly?: boolean;
+  selectedCustomerName?: string;
+  onOpenCustomer?: () => void;
+  onSelectedCustomer?: (customer: { id: string; name: string; phone: string; linked: boolean }) => void;
 };
 
 export default function CreditFields({
@@ -42,6 +47,11 @@ export default function CreditFields({
   dueOn,
   onDueChange,
   debtMinor,
+  customerOnly = false,
+  selectionOnly = false,
+  selectedCustomerName = '',
+  onOpenCustomer,
+  onSelectedCustomer,
 }: CreditFieldsProps) {
   const [mode, setMode] = useState<'existing' | 'new'>('existing');
   const [query, setQuery] = useState('');
@@ -117,6 +127,7 @@ export default function CreditFields({
       // Shop debt can be assigned without verifying the buyer portal account.
       onCustomerChange(customer.id);
       onCustomerEligible(true);
+      onSelectedCustomer?.({ id: customer.id, name: customer.name, phone: newPhone, linked: customer.linked });
       setRevision((n) => n + 1);
       if (customer.linked) {
         setVerifiedEnrollment(customer.name);
@@ -161,6 +172,35 @@ export default function CreditFields({
 
   if (!enabled) return null;
 
+  if (selectionOnly) {
+    return (
+      <section className="pos-credit-fields credit-customer-flow">
+        <div className="credit-customer-balance">
+          <span><PaymentIcon name="user" size={19} /> Покупатель</span>
+          <strong>{customerId ? selectedCustomerName || 'Выбран' : 'Не выбран'}</strong>
+        </div>
+        <button type="button" className="credit-customer-invite-button" disabled={disabled} onClick={onOpenCustomer}>
+          <PaymentIcon name="user" size={18} />
+          {customerId ? 'Изменить покупателя' : 'Выбрать покупателя'}
+        </button>
+        {!customerOnly && <div className="credit-customer-payment">
+          <label>
+            Оплачено сейчас, сом
+            <input inputMode="decimal" value={paid} disabled={disabled} onChange={(event) => onPaidChange(event.target.value)} placeholder="0" />
+          </label>
+          <label>
+            Вернуть до
+            <input type="date" value={dueOn} disabled={disabled} required onChange={(event) => onDueChange(event.target.value)} />
+          </label>
+        </div>
+        <div className="credit-customer-balance">
+          <span>Остаток в долг</span>
+          <strong>{debtMinor === null ? 'Проверьте сумму' : formatSom(debtMinor)}</strong>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="pos-credit-fields credit-customer-flow">
       <div className="credit-customer-heading">
@@ -180,7 +220,7 @@ export default function CreditFields({
           onClick={() => setMode('existing')}
         >
           <PaymentIcon name="user" size={17} />
-          Существующий
+          {customerOnly ? 'Найти клиента' : 'Существующий'}
         </button>
         <button
           type="button"
@@ -245,6 +285,7 @@ export default function CreditFields({
                 onClick={() => {
                   onCustomerChange(customer.id);
                   onCustomerEligible(true);
+                  onSelectedCustomer?.(customer);
                   setExistingInvitation(null);
                 }}
               >
@@ -399,13 +440,13 @@ export default function CreditFields({
             onChange={(event) => onDueChange(event.target.value)}
           />
         </label>
-      </div>
-      <div className="credit-customer-balance">
+      </div>}
+      {!customerOnly && <div className="credit-customer-balance">
         <span>Остаток в долг</span>
         <strong>
           {debtMinor === null ? 'Проверьте сумму' : formatSom(debtMinor)}
         </strong>
-      </div>
+      </div>}
       {error && (
         <p role="alert" className="error">
           {error}
