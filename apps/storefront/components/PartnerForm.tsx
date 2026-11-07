@@ -3,6 +3,10 @@ import { FormEvent, useEffect, useState } from 'react';
 import { Button, Input, Checkbox, Alert } from './ui';
 
 import { api, ApiError, errorText } from '../../web/src/api/client';
+import {
+  formatKyrgyzPhoneInput,
+  KYRGYZ_PHONE_PATTERN,
+} from '../../web/src/customers/kyrgyzPhoneMask';
 export default function PartnerPage() {
   const [name, setName] = useState(''),
     [email, setEmail] = useState(''),
@@ -111,11 +115,15 @@ export default function PartnerPage() {
                 label="Телефон"
                 required
                 type="tel"
-                minLength={7}
-                maxLength={30}
+                maxLength={32}
+                pattern={KYRGYZ_PHONE_PATTERN}
+                title="Номер Кыргызстана: +996 700 123 456"
                 autoComplete="tel"
+                placeholder="+996 700 123 456"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) =>
+                  setPhone(formatKyrgyzPhoneInput(e.target.value))
+                }
               />
               <Input
                 id="partner-city"
