@@ -140,6 +140,8 @@ export default function CreditFields({
         name: resolved.name,
         phone: resolved.phone,
         linked: resolved.linked,
+        debtMinor: customer.debtMinor,
+        balancePoints: customer.balancePoints,
       });
       setRevision((n) => n + 1);
     } catch (err) {
