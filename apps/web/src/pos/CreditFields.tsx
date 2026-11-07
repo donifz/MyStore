@@ -251,7 +251,11 @@ export default function CreditFields({
           </div>
           {selected && (
             <p
-              className={eligible(selected) ? 'credit-customer-note credit-customer-success' : 'credit-customer-note'}
+              className={
+                eligible(selected)
+                  ? 'credit-customer-note credit-customer-success'
+                  : 'credit-customer-note'
+              }
               role="status"
             >
               {eligible(selected)

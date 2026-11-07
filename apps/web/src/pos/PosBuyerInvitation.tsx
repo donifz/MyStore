@@ -78,8 +78,8 @@ export default function PosBuyerInvitation({
         .
       </small>
       <p>
-        После подключения кабинета владелец магазина должен разрешить кредит
-        и установить лимит.
+        После подключения кабинета владелец магазина должен разрешить кредит и
+        установить лимит.
       </p>
       {feedback && <p role="status">{feedback}</p>}
       <button type="button" onClick={onClose}>
