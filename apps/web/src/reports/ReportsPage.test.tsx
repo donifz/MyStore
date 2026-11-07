@@ -90,12 +90,13 @@ it('applies date presets and forwards period filter to sales and orders CSV link
   const stockOverview = screen.getByRole('region', {
     name: 'Товары на складе',
   });
-  expect(stockOverview.textContent).toContain('10 шт.');
-  expect(stockOverview.textContent).toContain('2 товарных позиций');
-  expect(stockOverview.textContent).toContain('1 000');
-  expect(stockOverview.textContent).toContain('1 600');
-  expect(stockOverview.textContent).toContain('600');
-  expect(stockOverview.textContent).toContain('не зависит от периода продаж');
+  const stockText = stockOverview.textContent?.replace(/\\u00a0/g, ' ');
+  expect(stockText).toContain('10 шт.');
+  expect(stockText).toContain('2 товарных позиций');
+  expect(stockText).toContain('1 000');
+  expect(stockText).toContain('1 600');
+  expect(stockText).toContain('600');
+  expect(stockText).toContain('не зависит от периода продаж');
   expect(screen.getAllByText('Стоимость по продаже')).toHaveLength(1);
   expect(screen.getByText('Продажи и возвраты по дням')).toBeTruthy();
   expect(screen.getByText('Каналы продаж и оплата')).toBeTruthy();
