@@ -668,13 +668,13 @@ function SaleWorkspace({
                     <button
                       type="button"
                       className={
-                        receivedMinor !== null && BigInt(receivedMinor) === sum
+                        receivedMinor !== null && BigInt(receivedMinor) === payableMinor
                           ? 'pos-quick-button selected'
                           : 'pos-quick-button'
                       }
-                      disabled={locked || !safe || sum === 0n}
+                      disabled={locked || !safe || payableMinor === 0n}
                       onClick={() =>
-                        setReceived((Number(sum) / 100).toString())
+                        setReceived((Number(payableMinor) / 100).toString())
                       }
                     >
                       Без сдачи
