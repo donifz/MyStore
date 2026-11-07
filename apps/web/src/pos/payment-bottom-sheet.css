@@ -1,0 +1,319 @@
+/* Mobile POS: scroll details, never the payment amount or primary action. */
+.pos-sheet-drawer {
+  max-height: min(94dvh, 940px);
+}
+.pos-sheet-drawer .pos-sheet-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 14px 16px 18px;
+  align-content: start;
+  overscroll-behavior: contain;
+}
+.pos-sheet-footer {
+  display: grid;
+  flex: 0 0 auto;
+  gap: 10px;
+  padding: 13px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid #e4eeea;
+  background: #fff;
+  box-shadow: 0 -8px 26px rgb(19 62 43 / 6%);
+  position: relative;
+  z-index: 1;
+}
+.pos-sheet-footer .pos-sheet-cash-section {
+  display: grid;
+  gap: 10px;
+}
+.pos-sheet-footer .pos-received {
+  font-weight: 650;
+  font-size: 13px;
+  color: #495d59;
+}
+.pos-sheet-footer .pos-received input {
+  min-height: 48px;
+  border-radius: 12px;
+  border: 1px solid #cfded8;
+  background: #fff;
+  padding: 9px 12px;
+  font-size: 19px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.pos-sheet-footer .pos-quick {
+  gap: 5px;
+}
+.pos-sheet-footer .pos-quick-buttons {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.pos-sheet-footer .pos-quick-button {
+  min-height: 42px;
+  padding: 6px 3px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 650;
+  min-width: 0;
+}
+.pos-sheet-footer .pos-sheet-totals {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+.pos-sheet-footer .pos-total-tile {
+  min-height: 60px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #f0f6f3;
+}
+.pos-sheet-footer .pos-total-tile strong {
+  font-size: clamp(15px, 4.3vw, 20px);
+}
+.pos-sheet-footer .pos-sheet-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 54px;
+  margin: 0;
+  padding: 12px 14px;
+  background: var(--pos-green, #157653);
+  border-radius: 14px;
+  font-size: clamp(14px, 4vw, 17px);
+  line-height: 1.25;
+  text-align: center;
+  box-shadow: 0 4px 14px rgb(10 110 71 / 13%);
+}
+.pos-sheet-footer .pos-sheet-submit span:first-child {
+  display: grid;
+  place-items: center;
+  flex: 0 0 23px;
+  width: 23px;
+  height: 23px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  font-size: 15px;
+}
+.pos-sheet-credit-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: #f3efff;
+  font-size: 13px;
+  color: #4f4374;
+}
+.pos-sheet-credit-total strong {
+  color: #5a31b9;
+  font-size: 16px;
+  white-space: nowrap;
+}
+.pos-sheet-warning {
+  margin: 0;
+  color: #a02b22;
+  font-size: 12px;
+  font-weight: 650;
+}
+.pos-sheet-drawer .pos-methods {
+  margin: 0;
+}
+.pos-sheet-drawer .pos-methods-grid {
+  gap: 8px;
+}
+.pos-sheet-drawer .pos-method {
+  min-height: 50px;
+  border-radius: 13px;
+}
+.pos-sheet-drawer .pos-payment-option {
+  overflow: hidden;
+  border: 1px solid #e0ebe6;
+  border-radius: 15px;
+  background: #f4faf7;
+}
+.pos-sheet-drawer .pos-option-credit {
+  background: #f8f6ff;
+  border-color: #ece5ff;
+}
+.pos-sheet-drawer .pos-option-trigger {
+  display: flex;
+  width: 100%;
+  min-height: 54px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: #26332f;
+  cursor: pointer;
+}
+.pos-sheet-drawer .pos-option-trigger strong {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 750;
+}
+.pos-sheet-drawer .pos-option-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 33px;
+  width: 33px;
+  height: 33px;
+  border-radius: 11px;
+  background: #e3f2e9;
+  color: #117554;
+  font-size: 21px;
+  font-weight: 700;
+}
+.pos-sheet-drawer .pos-option-credit .pos-option-icon {
+  color: #6b42c3;
+  background: #eee6ff;
+}
+.pos-option-detail {
+  font-size: 13px;
+  font-weight: 750;
+  color: #117554;
+  white-space: nowrap;
+}
+.pos-option-state {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b42c3;
+}
+.pos-option-chevron {
+  flex: 0 0 auto;
+  color: #576b65;
+  font-size: 19px;
+}
+.pos-sheet-drawer .pos-payment-option > .credit-customer-flow,
+.pos-sheet-drawer .pos-payment-option > .pos-loyalty-checkout {
+  margin: 0 10px 10px;
+  padding: 12px;
+  border: 1px solid rgb(25 99 67 / 9%);
+  border-radius: 12px;
+  background: #fff;
+}
+.pos-sheet-drawer .pos-payment-option > .credit-customer-flow {
+  gap: 12px;
+  border-color: #e1d8ff;
+}
+.pos-sheet-drawer .credit-customer-heading {
+  display: none;
+}
+.pos-sheet-drawer .credit-customer-payment {
+  display: block;
+}
+.pos-sheet-drawer .credit-customer-payment label:first-child {
+  display: none;
+}
+.pos-sheet-drawer .credit-customer-payment label:last-child {
+  display: grid;
+}
+.pos-sheet-drawer .credit-customer-flow .credit-customer-tabs button {
+  font-size: 13px;
+}
+.pos-sheet-drawer .credit-customer-flow .credit-customer-list {
+  max-height: 180px;
+}
+.pos-sheet-drawer .credit-customer-balance {
+  padding: 9px 10px;
+}
+.pos-sheet-drawer .pos-sheet-payment-hint {
+  margin: 0;
+  color: #60706a;
+  font-size: 12px;
+}
+.pos-loyalty-checkout {
+  display: grid;
+  gap: 11px;
+  min-width: 0;
+}
+.pos-loyalty-qr-row {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 8px;
+  align-items: stretch;
+}
+.pos-loyalty-scan {
+  min-height: 46px;
+  border: 1px solid #167856;
+  border-radius: 10px;
+  background: #edf8f2;
+  color: #116b4b;
+  font-size: 13px;
+  font-weight: 750;
+}
+.pos-loyalty-code {
+  min-width: 0;
+}
+.pos-loyalty-code input {
+  width: 100%;
+  height: 46px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid #d1dfd9;
+  border-radius: 10px;
+  font-size: 13px;
+}
+.pos-loyalty-points {
+  display: grid;
+  grid-template-columns: auto minmax(66px, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.pos-loyalty-points input {
+  min-width: 0;
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #d1dfd9;
+  border-radius: 10px;
+  padding: 8px;
+  font-size: 17px;
+  font-weight: 700;
+}
+.pos-loyalty-max {
+  font-size: 12px;
+  color: #156c50;
+  white-space: nowrap;
+}
+.pos-loyalty-hint {
+  display: block;
+  color: #65736d;
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+.pos-loyalty-ok {
+  color: #157653;
+  font-size: 12px;
+  font-weight: 700;
+}
+@media (max-width: 359px) {
+  .pos-sheet-drawer .pos-sheet-body {
+    padding: 10px 12px;
+    gap: 9px;
+  }
+  .pos-sheet-footer {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+  .pos-sheet-footer .pos-quick-button {
+    font-size: 11px;
+  }
+  .pos-loyalty-qr-row {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-height: 640px) {
+  .pos-sheet-drawer {
+    max-height: 97dvh;
+  }
+  .pos-sheet-footer {
+    gap: 6px;
+    padding-top: 8px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+  .pos-sheet-footer .pos-total-tile {
+    min-height: 52px;
+  }
+}
