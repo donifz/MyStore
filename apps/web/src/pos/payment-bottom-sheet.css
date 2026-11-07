@@ -914,3 +914,35 @@
     padding: 6px 10px;
   }
 }
+
+/* Keep cash and discount controls on the exact same baseline even when the
+   Russian cash label wraps to multiple lines on a narrow Android screen. */
+.pos-checkout-money-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+.pos-checkout-money-row > label {
+  display: grid;
+  grid-template-rows: 54px 48px;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+}
+.pos-checkout-money-row > label > span:first-child {
+  display: inline-flex;
+  min-height: 0;
+  align-items: flex-end;
+  gap: 5px;
+}
+.pos-sheet-footer .pos-checkout-money-row .pos-received input,
+.pos-sheet-footer .pos-checkout-money-row .pos-discount-control {
+  box-sizing: border-box;
+  height: 48px;
+  min-height: 48px;
+  margin: 0;
+}
+.pos-sheet-footer .pos-discount-control input {
+  min-height: 43px;
+  height: 43px;
+}
