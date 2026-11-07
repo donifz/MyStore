@@ -24,7 +24,7 @@
 "use strict";
 
 
-export namespace qrcodegen {
+namespace qrcodegen {
 	
 	type bit  = number;
 	type byte = number;
@@ -988,3 +988,5 @@ namespace qrcodegen.QrSegment {
 		
 	}
 }
+
+export { qrcodegen };
