@@ -16,12 +16,7 @@ export function formatKyrgyzPhoneInput(input: string): string {
   const local = subscriber.slice(0, 9);
   if (!local) return '';
 
-  const parts = [
-    '+996',
-    local.slice(0, 3),
-    local.slice(3, 6),
-    local.slice(6, 9),
-  ];
+  const parts = ['+996', local.slice(0, 3), local.slice(3, 6), local.slice(6, 9)];
   return parts.filter(Boolean).join(' ');
 }
 
