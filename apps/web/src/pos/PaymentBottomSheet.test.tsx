@@ -81,7 +81,7 @@ it('keeps payment, quick cash, change and submit in a permanent footer', () => {
 
 it('opens loyalty modal and applies without closing checkout', () => {
   render(<PaymentBottomSheet {...props()} />);
-  const trigger = screen.getByRole('button', { name: /Бонусы \/ скидка/ });
+  const trigger = screen.getByRole('button', { name: /^Бонусы(?:\s|$)/ });
   expect(trigger.querySelector('svg')).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Сканировать QR' })).toBeNull();
   fireEvent.click(trigger);
@@ -102,7 +102,7 @@ it('cancels changes to loyalty and keeps checkout open', () => {
   render(
     <PaymentBottomSheet {...props({ setRedeemPoints, setLoyaltyToken })} />,
   );
-  fireEvent.click(screen.getByRole('button', { name: /Бонусы \/ скидка/ }));
+  fireEvent.click(screen.getByRole('button', { name: /^Бонусы(?:\s|$)/ }));
   fireEvent.click(screen.getByRole('button', { name: 'Отмена' }));
   expect(setRedeemPoints).toHaveBeenCalledWith(0);
   expect(setLoyaltyToken).toHaveBeenCalledWith('');
