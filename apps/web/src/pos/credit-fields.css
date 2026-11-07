@@ -275,3 +275,31 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+.credit-customer-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 3px;
+}
+.credit-customer-badges > span {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  width: max-content;
+  max-width: 100%;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.credit-customer-debt {
+  background: #ffeaeb;
+  color: #ad2026;
+}
+.credit-customer-points {
+  background: #e6f6eb;
+  color: #08714b;
+}
