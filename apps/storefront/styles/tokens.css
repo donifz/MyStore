@@ -1,17 +1,19 @@
 :root {
-  --sf-background: #f6f8fa;
-  --sf-shop-sage: #5f7a4a;
-  --sf-shop-blue: #1c6277;
-  --sf-overlay: rgb(12 30 28 / 72%);
+  --sf-background: #f4f7fb;
+  --sf-shop-sage: #2563eb;
+  --sf-shop-blue: #0284c7;
+  --sf-overlay: rgb(15 23 42 / 72%);
   --sf-surface: #ffffff;
-  --sf-surface-alt: #f6f8fa;
+  --sf-surface-alt: #eef3f9;
   --sf-text: #0f172a;
-  --sf-muted: #475569;
+  --sf-muted: #526277;
   --sf-border: #e2e8f0;
-  --sf-primary: #007659;
-  --sf-primary-hover: #005c45;
-  --sf-primary-dark: #00523d;
-  --sf-primary-soft: #eaf5f0;
+  --sf-primary: #1d6bf3;
+  --sf-primary-hover: #1557d0;
+  --sf-primary-dark: #1043a6;
+  --sf-primary-soft: #eaf2ff;
+  --sf-success: #15803d;
+  --sf-success-soft: #dcfce7;
   --sf-danger: #b91c1c;
   --sf-danger-soft: #fef2f2;
   --sf-warning: #92400e;
@@ -27,7 +29,7 @@
   --sf-space-12: 48px;
   --sf-space-16: 64px;
   --sf-radius-input: 10px;
-  --sf-radius-card: 14px;
+  --sf-radius-card: 16px;
   --sf-radius-block: 22px;
   --sf-radius-pill: 999px;
   --sf-font:
@@ -41,15 +43,15 @@
   --sf-content: 1600px;
   --sf-control: 44px;
   --sf-shadow:
-    0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+    0 2px 6px -1px rgba(15, 23, 42, 0.04), 0 1px 3px -1px rgba(15, 23, 42, 0.03);
   --sf-shadow-card:
-    0 4px 16px -2px rgba(15, 23, 42, 0.05),
+    0 6px 20px -2px rgba(15, 23, 42, 0.06),
     0 2px 6px -1px rgba(15, 23, 42, 0.03);
   --sf-shadow-hover:
-    0 14px 30px -4px rgba(0, 118, 89, 0.14),
+    0 14px 30px -4px rgba(29, 107, 243, 0.16),
     0 6px 12px -2px rgba(15, 23, 42, 0.04);
-  --sf-glass: rgba(255, 255, 255, 0.88);
-  --sf-glass-blur: blur(12px);
+  --sf-glass: rgba(255, 255, 255, 0.92);
+  --sf-glass-blur: blur(14px);
   --sf-theme-accent: var(--sf-primary);
   --sf-theme-accent-soft: var(--sf-primary-soft);
 }

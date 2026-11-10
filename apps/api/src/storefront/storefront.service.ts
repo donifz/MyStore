@@ -36,6 +36,7 @@ export type PublicQuery = {
   district?: string;
   minPrice?: number;
   maxPrice?: number;
+  minRating?: number;
   q: string;
   page: number;
   pageSize: number;
@@ -43,6 +44,11 @@ export type PublicQuery = {
   category: string;
   inStock: string;
   sort: string;
+};
+export type ReviewInput = {
+  operationKey: string;
+  rating: number;
+  comment?: string;
 };
 const escaped = (q: string) => '%' + q.replace(/[\\%_]/g, '\\$&') + '%';
 const reservedSlugs = new Set([
@@ -301,7 +307,7 @@ export class StorefrontService {
       params,
     );
     const items = await this.db.query(
-      `SELECT s.name,s.slug,s.description,s.city,s.district,s.address,s.phone,s.hours,s.pickup_enabled AS "pickupEnabled",s.delivery_enabled AS "deliveryEnabled",(SELECT count(*)::int FROM variants v JOIN product_publications p ON p.variant_id=v.id WHERE v.shop_id=s.id AND v.published) AS "productCount",ARRAY(SELECT DISTINCT p.category FROM variants v JOIN product_publications p ON p.variant_id=v.id WHERE v.shop_id=s.id AND v.published AND p.category<>'' ORDER BY p.category LIMIT 3) AS categories FROM shops s WHERE ` +
+      `SELECT s.name,s.slug,s.description,s.city,s.district,s.address,s.phone,s.hours,s.pickup_enabled AS "pickupEnabled",s.delivery_enabled AS "deliveryEnabled",(SELECT count(*)::int FROM variants v JOIN product_publications p ON p.variant_id=v.id WHERE v.shop_id=s.id AND v.published) AS "productCount",COALESCE((SELECT round(avg(sr.rating)::numeric,1)::float FROM storefront_reviews sr WHERE sr.shop_id=s.id AND sr.variant_id IS NULL),0) AS "ratingAverage",(SELECT count(*)::int FROM storefront_reviews sr WHERE sr.shop_id=s.id AND sr.variant_id IS NULL) AS "ratingCount",ARRAY(SELECT DISTINCT p.category FROM variants v JOIN product_publications p ON p.variant_id=v.id WHERE v.shop_id=s.id AND v.published AND p.category<>'' ORDER BY p.category LIMIT 3) AS categories FROM shops s WHERE ` +
         where +
         ' ORDER BY s.name,s.slug LIMIT $5 OFFSET $6',
       [...params, pageSize, (page - 1) * pageSize],
@@ -310,7 +316,7 @@ export class StorefrontService {
   }
   async store(slug: string) {
     const [r] = await this.db.query(
-      `SELECT s.name,s.slug,s.theme_content->'hero' AS banner,s.description,s.city,s.address,s.phone,s.hours,s.district,s.pickup_enabled AS "pickupEnabled",s.delivery_enabled AS "deliveryEnabled",(NOT ss.is_current) AS historical FROM shop_slugs ss JOIN shops s ON s.id=ss.shop_id WHERE ss.slug=$1 AND s.published AND (NOT s.marketplace_blocked)`,
+      `SELECT s.name,s.slug,s.theme_content->'hero' AS banner,s.description,s.city,s.address,s.phone,s.hours,s.district,s.pickup_enabled AS "pickupEnabled",s.delivery_enabled AS "deliveryEnabled",(NOT ss.is_current) AS historical,(SELECT count(*)::int FROM variants v JOIN product_publications p ON p.variant_id=v.id WHERE v.shop_id=s.id AND v.published AND NOT v.archived) AS "productCount",COALESCE((SELECT round(avg(sr.rating)::numeric,1)::float FROM storefront_reviews sr WHERE sr.shop_id=s.id AND sr.variant_id IS NULL),0) AS "ratingAverage",(SELECT count(*)::int FROM storefront_reviews sr WHERE sr.shop_id=s.id AND sr.variant_id IS NULL) AS "ratingCount",ARRAY(SELECT DISTINCT p.category FROM variants v JOIN product_publications p ON p.variant_id=v.id WHERE v.shop_id=s.id AND v.published AND NOT v.archived AND p.category<>'' ORDER BY p.category LIMIT 8) AS categories FROM shop_slugs ss JOIN shops s ON s.id=ss.shop_id WHERE ss.slug=$1 AND s.published AND (NOT s.marketplace_blocked)`,
       [slug],
     );
     if (!r) throw new NotFoundException();
@@ -338,13 +344,29 @@ export class StorefrontService {
       platformCategory: r.platform_category,
       salePriceMinor: Number(r.sale_price_minor),
       available: Number(r.available),
+      ...(r.rating_count !== undefined
+        ? {
+            ratingAverage: Number(r.rating_average || 0),
+            ratingCount: Number(r.rating_count || 0),
+          }
+        : {}),
       store: {
         slug: r.slug,
         name: r.shop_name,
+        description: r.shop_description ?? '',
         city: r.city,
         district: r.district,
         pickupEnabled: r.pickup_enabled,
         deliveryEnabled: r.delivery_enabled,
+        ...(r.shop_product_count !== undefined
+          ? { productCount: Number(r.shop_product_count) }
+          : {}),
+        ...(r.shop_rating_count !== undefined
+          ? {
+              ratingAverage: Number(r.shop_rating_average || 0),
+              ratingCount: Number(r.shop_rating_count || 0),
+            }
+          : {}),
         ...(detail
           ? { phone: r.phone, address: r.address, hours: r.hours }
           : {}),
@@ -354,7 +376,7 @@ export class StorefrontService {
   private from =
     ' FROM variants v JOIN shops s ON s.id=v.shop_id JOIN product_publications p ON p.variant_id=v.id AND p.shop_id=s.id LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id LEFT JOIN shop_categories sc ON sc.shop_id=s.id AND sc.parent_id IS NULL AND sc.name=p.category LEFT JOIN platform_categories pc ON pc.code=sc.platform_category_code';
   private select =
-    `SELECT v.id,v.size,v.color,v.sku,v.parent_id,(p.photo_data IS NOT NULL) has_photo,cardinality(p.photo_album) photo_count,p.name,p.description,p.category,COALESCE(pc.name,p.category) AS platform_category,v.sale_price_minor,COALESCE(b.physical,0)-COALESCE(b.reserved,0) available,s.slug,s.name shop_name,s.city,s.phone,s.address,s.hours,s.district,s.pickup_enabled,s.delivery_enabled` +
+    `SELECT v.id,v.size,v.color,v.sku,v.parent_id,(p.photo_data IS NOT NULL) has_photo,cardinality(p.photo_album) photo_count,p.name,p.description,p.category,COALESCE(pc.name,p.category) AS platform_category,v.sale_price_minor,COALESCE(b.physical,0)-COALESCE(b.reserved,0) available,COALESCE((SELECT round(avg(sr.rating)::numeric,1)::float FROM storefront_reviews sr WHERE sr.variant_id=v.id),0) rating_average,(SELECT count(*)::int FROM storefront_reviews sr WHERE sr.variant_id=v.id) rating_count,s.slug,s.name shop_name,s.description shop_description,(SELECT count(*)::int FROM variants sv JOIN product_publications sp ON sp.variant_id=sv.id WHERE sv.shop_id=s.id AND sv.published AND NOT sv.archived) shop_product_count,COALESCE((SELECT round(avg(sr.rating)::numeric,1)::float FROM storefront_reviews sr WHERE sr.shop_id=s.id AND sr.variant_id IS NULL),0) shop_rating_average,(SELECT count(*)::int FROM storefront_reviews sr WHERE sr.shop_id=s.id AND sr.variant_id IS NULL) shop_rating_count,s.city,s.phone,s.address,s.hours,s.district,s.pickup_enabled,s.delivery_enabled` +
     this.from;
   private async canonicalSlug(slug: string) {
     const [row] = await this.db.query(
@@ -367,7 +389,9 @@ export class StorefrontService {
   async products(query: PublicQuery) {
     const { q, page, pageSize, store, category, inStock, sort } = query;
     const canonicalStore = store ? await this.canonicalSlug(store) : '';
-    const where = `s.published AND (NOT s.marketplace_blocked) AND v.published AND NOT v.archived AND (p.name ILIKE $1 OR s.name ILIKE $1 OR v.barcode ILIKE $1 OR v.sku ILIKE $1) AND ($2='' OR s.slug=$2) AND ($3='' OR (CASE WHEN $2='' THEN COALESCE(pc.name,p.category) ELSE p.category END)=$3) AND ($4=false OR COALESCE(b.physical,0)-COALESCE(b.reserved,0)>0) AND ($5='' OR s.city=$5) AND v.sale_price_minor BETWEEN $6 AND $7`;
+    const minRating =
+      query.minRating && query.minRating > 0 ? query.minRating : 0;
+    const where = `s.published AND (NOT s.marketplace_blocked) AND v.published AND NOT v.archived AND (p.name ILIKE $1 OR s.name ILIKE $1 OR v.barcode ILIKE $1 OR v.sku ILIKE $1) AND ($2='' OR s.slug=$2) AND ($3='' OR (CASE WHEN $2='' THEN COALESCE(pc.name,p.category) ELSE p.category END)=$3) AND ($4=false OR COALESCE(b.physical,0)-COALESCE(b.reserved,0)>0) AND ($5='' OR s.city=$5) AND v.sale_price_minor BETWEEN $6 AND $7 AND ($8=0 OR COALESCE((SELECT avg(sr.rating)::numeric FROM storefront_reviews sr WHERE sr.variant_id=v.id),0)>=$8)`;
     if (
       query.minPrice !== undefined &&
       query.maxPrice !== undefined &&
@@ -382,6 +406,7 @@ export class StorefrontService {
       query.city || '',
       query.minPrice ?? 0,
       query.maxPrice ?? Number.MAX_SAFE_INTEGER,
+      minRating,
     ];
     const rows = await this.db.query(
       this.select +
@@ -395,7 +420,7 @@ export class StorefrontService {
             : sort === 'newest'
               ? 'p.approved_at DESC, v.id ASC'
               : 'p.name ASC, v.id ASC') +
-        ' LIMIT $8 OFFSET $9',
+        ' LIMIT $9 OFFSET $10',
       [...params, pageSize, (page - 1) * pageSize],
     );
     const [count] = await this.db.query(
@@ -445,6 +470,140 @@ export class StorefrontService {
         salePriceMinor: Number(v.sale_price_minor),
         available: Number(v.available),
       })),
+    };
+  }
+  async storeReviews(slug: string) {
+    const canonicalStore = await this.canonicalSlug(slug);
+    const [shop] = await this.db.query(
+      'SELECT id FROM shops WHERE slug=$1 AND published AND (NOT marketplace_blocked)',
+      [canonicalStore],
+    );
+    if (!shop) throw new NotFoundException();
+    const [stats] = await this.db.query(
+      'SELECT COALESCE(round(avg(rating)::numeric,1)::float,0) AS "ratingAverage", count(*)::int AS "ratingCount" FROM storefront_reviews WHERE shop_id=$1 AND variant_id IS NULL',
+      [shop.id],
+    );
+    const items = await this.db.query(
+      'SELECT id, author_name AS "authorName", rating, comment, created_at AS "createdAt" FROM storefront_reviews WHERE shop_id=$1 AND variant_id IS NULL ORDER BY created_at DESC LIMIT 30',
+      [shop.id],
+    );
+    return {
+      ratingAverage: Number(stats?.ratingAverage || 0),
+      ratingCount: Number(stats?.ratingCount || 0),
+      items,
+    };
+  }
+  async createStoreReview(slug: string, buyerId: string, input: ReviewInput) {
+    const canonicalStore = await this.canonicalSlug(slug);
+    return this.db.transaction(async (tx) => {
+      const [shop] = await tx.query(
+        'SELECT id FROM shops WHERE slug=$1 AND published AND (NOT marketplace_blocked)',
+        [canonicalStore],
+      );
+      if (!shop) throw new NotFoundException();
+      return this.insertReview(tx, buyerId, shop.id, null, input);
+    });
+  }
+  async productReviews(slug: string, id: string) {
+    const canonicalStore = await this.canonicalSlug(slug);
+    const [variant] = await this.db.query(
+      'SELECT v.id FROM variants v JOIN shops s ON s.id=v.shop_id WHERE s.slug=$1 AND v.id=$2 AND s.published AND (NOT s.marketplace_blocked) AND v.published AND NOT v.archived',
+      [canonicalStore, id],
+    );
+    if (!variant) throw new NotFoundException();
+    const [stats] = await this.db.query(
+      'SELECT COALESCE(round(avg(rating)::numeric,1)::float,0) AS "ratingAverage", count(*)::int AS "ratingCount" FROM storefront_reviews WHERE variant_id=$1',
+      [id],
+    );
+    const items = await this.db.query(
+      'SELECT id, author_name AS "authorName", rating, comment, created_at AS "createdAt" FROM storefront_reviews WHERE variant_id=$1 ORDER BY created_at DESC LIMIT 30',
+      [id],
+    );
+    return {
+      ratingAverage: Number(stats?.ratingAverage || 0),
+      ratingCount: Number(stats?.ratingCount || 0),
+      items,
+    };
+  }
+  async createProductReview(
+    slug: string,
+    id: string,
+    buyerId: string,
+    input: ReviewInput,
+  ) {
+    const canonicalStore = await this.canonicalSlug(slug);
+    return this.db.transaction(async (tx) => {
+      const [variant] = await tx.query(
+        'SELECT v.id, s.id AS shop_id FROM variants v JOIN shops s ON s.id=v.shop_id WHERE s.slug=$1 AND v.id=$2 AND s.published AND (NOT s.marketplace_blocked) AND v.published AND NOT v.archived',
+        [canonicalStore, id],
+      );
+      if (!variant) throw new NotFoundException();
+      return this.insertReview(tx, buyerId, variant.shop_id, id, input);
+    });
+  }
+  // The author is always the signed-in buyer account; the client cannot
+  // choose a display name. Retries with the same operation key return the
+  // original review, and a buyer gets one review per shop or product.
+  private async insertReview(
+    tx: { query: (sql: string, params?: unknown[]) => Promise<any[]> },
+    buyerId: string,
+    shopId: string,
+    variantId: string | null,
+    input: ReviewInput,
+  ) {
+    if (!Number.isInteger(input.rating) || input.rating < 1 || input.rating > 5)
+      throw new BadRequestException('Выберите оценку от 1 до 5');
+    const [buyer] = await tx.query(
+      'SELECT display_name FROM buyer_accounts WHERE id=$1',
+      [buyerId],
+    );
+    if (!buyer) throw new NotFoundException();
+    const returning =
+      'id, author_name AS "authorName", rating, comment, created_at AS "createdAt", buyer_id, shop_id, variant_id';
+    let [review] = await tx.query(
+      `INSERT INTO storefront_reviews(shop_id, variant_id, buyer_id, operation_key, author_name, rating, comment)
+       VALUES($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT DO NOTHING
+       RETURNING ${returning}`,
+      [
+        shopId,
+        variantId,
+        buyerId,
+        input.operationKey,
+        String(buyer.display_name).slice(0, 120),
+        input.rating,
+        (input.comment || '').trim(),
+      ],
+    );
+    if (!review) {
+      [review] = await tx.query(
+        `SELECT ${returning} FROM storefront_reviews WHERE operation_key=$1`,
+        [input.operationKey],
+      );
+      if (
+        !review ||
+        review.buyer_id !== buyerId ||
+        review.shop_id !== shopId ||
+        (review.variant_id ?? null) !== variantId
+      )
+        throw new ConflictException('Вы уже оставили отзыв');
+    }
+    const [stats] = await tx.query(
+      variantId
+        ? 'SELECT COALESCE(round(avg(rating)::numeric,1)::float,0) AS "ratingAverage", count(*)::int AS "ratingCount" FROM storefront_reviews WHERE variant_id=$1'
+        : 'SELECT COALESCE(round(avg(rating)::numeric,1)::float,0) AS "ratingAverage", count(*)::int AS "ratingCount" FROM storefront_reviews WHERE shop_id=$1 AND variant_id IS NULL',
+      [variantId ?? shopId],
+    );
+    return {
+      review: {
+        id: review.id,
+        authorName: review.authorName,
+        rating: review.rating,
+        comment: review.comment,
+        createdAt: review.createdAt,
+      },
+      ratingAverage: Number(stats?.ratingAverage || 0),
+      ratingCount: Number(stats?.ratingCount || 0),
     };
   }
 }

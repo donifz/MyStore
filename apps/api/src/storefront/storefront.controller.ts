@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseUUIDPipe,
+  Post,
   Put,
   Query,
   Req,
@@ -16,8 +17,10 @@ import {
   IsBoolean,
   IsIn,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
+  Matches,
   Max,
   MaxLength,
   Min,
@@ -26,6 +29,7 @@ import { Response } from 'express';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { CaptureService } from '../catalog/capture.service';
 import { StorefrontService } from './storefront.service';
+import { BuyerAuthGuard, BuyerRequest } from '../customers/buyer-auth.guard';
 class PageQuery {
   @IsOptional() @IsString() @MaxLength(128) q = '';
   @Type(() => Number) @IsInt() @Min(1) @Max(1000000) page = 1;
@@ -49,9 +53,29 @@ class ProductQuery extends StoreQuery {
   @Min(0)
   @Max(1000000000000)
   maxPrice?: number;
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  @Max(5)
+  minRating?: number;
   @IsOptional() @IsString() @MaxLength(80) store = '';
   @IsIn(['true', 'false']) inStock = 'false';
   @IsIn(['name', 'price-asc', 'price-desc', 'newest']) sort = 'newest';
+}
+class CreateReviewDto {
+  @IsString()
+  @Matches(/^[a-zA-Z0-9_-]{8,64}$/)
+  operationKey!: string;
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  rating!: number;
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  comment = '';
 }
 class ProfileDto {
   @IsOptional() @IsString() @MaxLength(40) slug?: string;
@@ -120,6 +144,40 @@ export class PublicStorefrontController {
   ) {
     res.setHeader('Cache-Control', 'no-store');
     return this.service.product(slug, id);
+  }
+  @Get('stores/:slug/reviews') storeReviews(
+    @Param('slug') slug: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    res.setHeader('Cache-Control', 'no-store');
+    return this.service.storeReviews(slug);
+  }
+  @Post('stores/:slug/reviews')
+  @UseGuards(BuyerAuthGuard)
+  createStoreReview(
+    @Param('slug') slug: string,
+    @Body() body: CreateReviewDto,
+    @Req() req: BuyerRequest,
+  ) {
+    return this.service.createStoreReview(slug, req.buyerId, body);
+  }
+  @Get('stores/:slug/products/:id/reviews') productReviews(
+    @Param('slug') slug: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    res.setHeader('Cache-Control', 'no-store');
+    return this.service.productReviews(slug, id);
+  }
+  @Post('stores/:slug/products/:id/reviews')
+  @UseGuards(BuyerAuthGuard)
+  createProductReview(
+    @Param('slug') slug: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: CreateReviewDto,
+    @Req() req: BuyerRequest,
+  ) {
+    return this.service.createProductReview(slug, id, req.buyerId, body);
   }
 }
 @Controller('shops/:shopId/storefront')

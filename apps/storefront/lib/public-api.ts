@@ -1,10 +1,20 @@
 import { cache } from 'react';
+export type ReviewItem = {
+  id: string;
+  authorName: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  verifiedBuyer?: boolean;
+};
 export type Store = {
   banner?: StorefrontBanner | null;
   district?: string;
   pickupEnabled?: boolean;
   deliveryEnabled?: boolean;
   productCount?: number;
+  ratingAverage?: number;
+  ratingCount?: number;
   categories?: string[];
   slug: string;
   name: string;
@@ -30,6 +40,8 @@ export type Product = {
   sku?: string;
   photoUrl?: string;
   photoUrls?: string[];
+  ratingAverage?: number;
+  ratingCount?: number;
   id: string;
   name: string;
   description: string;
@@ -85,6 +97,8 @@ export function query(search: Search, store?: string) {
     if (/^\d{1,10}(\.\d{1,2})?$/.test(v))
       params.set(key, String(Math.round(Number(v) * 100)));
   }
+  const minRating = first('minRating');
+  if (/^[1-5](\.\d)?$/.test(minRating)) params.set('minRating', minRating);
   if (store) params.set('store', store);
   return {
     params,
@@ -92,6 +106,7 @@ export function query(search: Search, store?: string) {
     city: first('city'),
     minPrice: first('minPrice'),
     maxPrice: first('maxPrice'),
+    minRating,
     q: params.get('q')!,
     category: params.get('category')!,
     sort,
@@ -99,10 +114,12 @@ export function query(search: Search, store?: string) {
   };
 }
 export function formatSom(minor: number) {
+  const whole = minor % 100 === 0;
   return new Intl.NumberFormat('ru-KG', {
     style: 'currency',
     currency: 'KGS',
-    maximumFractionDigits: 2,
+    minimumFractionDigits: whole ? 0 : 2,
+    maximumFractionDigits: whole ? 0 : 2,
   }).format(minor / 100);
 }
 export function priceDecimal(minor: number) {

@@ -3,6 +3,7 @@ const { resolve } = require('node:path');
 process.env.PORT = '43100';
 const app = require('next')({
   dev: true,
+  webpack: true,
   dir: resolve(__dirname, '..'),
   hostname: '127.0.0.1',
   port: 43100,

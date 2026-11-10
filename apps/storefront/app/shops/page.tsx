@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import {
   publicApi,
   publicFilters,
@@ -6,7 +7,7 @@ import {
   Search,
 } from '../../lib/public-api';
 import StoreCard from '../../components/storefront/StoreCard';
-import MarketplaceHero from '../../components/storefront/MarketplaceHero';
+import Icon from '../../components/storefront/Icon';
 import {
   Input,
   Select,
@@ -18,6 +19,7 @@ import {
 import Pagination from '../../components/Pagination';
 import Refresh from '../../components/Refresh';
 import { metadata } from '../../lib/seo';
+
 export const dynamic = 'force-dynamic';
 export async function generateMetadata({
   searchParams,
@@ -31,6 +33,7 @@ export async function generateMetadata({
     Object.keys(await searchParams).length > 0,
   );
 }
+
 export default async function Stores({
   searchParams,
 }: {
@@ -68,19 +71,56 @@ export default async function Stores({
       </Alert>
     );
   }
+  const activeTab = value('city')
+    ? 'nearby'
+    : value('category')
+      ? 'popular'
+      : 'all';
   return (
-    <div className="sf-stack">
+    <div className="sf-stack sf-shops-page">
       <Refresh />
-      <MarketplaceHero shops />
-      <form action="/shops" className="sf-shop-search sf-panel">
-        <Input
-          id="shop-search"
-          label="Поиск магазина"
-          name="q"
-          defaultValue={value('q')}
-          placeholder="Название магазина"
-          maxLength={128}
-        />
+      <nav className="sf-breadcrumbs" aria-label="Хлебные крошки">
+        <Link href="/">Главная</Link>
+        <span>›</span>
+        <span>Магазины</span>
+      </nav>
+
+      <div className="sf-shops-page-head">
+        <h1>Магазины</h1>
+        <div className="sf-orders-filter-tabs" role="navigation">
+          <Link
+            href="/shops"
+            className={`sf-orders-tab-pill ${activeTab === 'all' ? 'sf-orders-tab-pill--active' : ''}`}
+          >
+            Все
+          </Link>
+          <Link
+            href="/shops?city=Ош"
+            className={`sf-orders-tab-pill ${activeTab === 'nearby' ? 'sf-orders-tab-pill--active' : ''}`}
+          >
+            Рядом
+          </Link>
+          <Link
+            href="/shops?category=Конструкторы"
+            className={`sf-orders-tab-pill ${activeTab === 'popular' ? 'sf-orders-tab-pill--active' : ''}`}
+          >
+            Популярные
+          </Link>
+        </div>
+      </div>
+
+      <form action="/shops" className="sf-shops-search-bar">
+        <div className="sf-shops-search-input-wrap">
+          <Icon name="search" width={18} height={18} />
+          <Input
+            id="shop-search"
+            label="Поиск магазина"
+            name="q"
+            defaultValue={value('q')}
+            placeholder="Поиск магазина..."
+            maxLength={128}
+          />
+        </div>
         <Select
           id="shop-city"
           label="Город"
@@ -125,13 +165,10 @@ export default async function Stores({
         </Select>
         <Button type="submit">Найти</Button>
       </form>
+
       <section id="shops" className="sf-stack">
-        <div className="sf-section-heading">
-          <h2>Выберите свой магазин</h2>
-          <span className="sf-muted">Найдено: {stores.total}</span>
-        </div>
         {stores.items.length ? (
-          <div className="sf-store-grid">
+          <div className="sf-store-list-grid">
             {stores.items.map((s) => (
               <StoreCard key={s.slug} store={s} />
             ))}

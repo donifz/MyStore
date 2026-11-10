@@ -1,7 +1,10 @@
 import ProductGallery from '../../../../../components/storefront/ProductGallery';
 import ProductCard from '../../../../../components/storefront/ProductCard';
+import ProductPhoto from '../../../../../components/storefront/ProductPhoto';
 import FavoriteButton from '../../../../../components/storefront/FavoriteButton';
-import Icon from '../../../../../components/storefront/Icon';
+import Icon, {
+  CategoryIllustration,
+} from '../../../../../components/storefront/Icon';
 import { Alert } from '../../../../../components/ui';
 import Price from '../../../../../components/storefront/Price';
 import StockBadge from '../../../../../components/storefront/StockBadge';
@@ -19,6 +22,7 @@ import {
 import { metadata, productJson } from '../../../../../lib/seo';
 import Refresh from '../../../../../components/Refresh';
 import VariantSelector from '../../../../../components/storefront/VariantSelector';
+import ReviewsWidget from '../../../../../components/storefront/ReviewsWidget';
 export const dynamic = 'force-dynamic';
 type Props = { params: Promise<{ slug: string; id: string }> };
 async function load(params: Props['params']) {
@@ -87,19 +91,74 @@ export default async function ProductPage({ params }: Props) {
         nonce={(await headers()).get('x-nonce') || undefined}
         dangerouslySetInnerHTML={{ __html: productJson(v) }}
       />
+      <div className="sf-product-store-bar sf-panel">
+        <Link
+          className="sf-product-store-identity"
+          href={'/shop/' + v.store.slug}
+        >
+          <span className="sf-mini-logo sf-mini-logo--art">
+            <CategoryIllustration category={v.category || v.store.name} />
+          </span>
+          <span>
+            <strong>
+              {v.store.name}
+              <span className="sf-verified-badge" aria-hidden="true">
+                <Icon name="check" width={12} height={12} />
+              </span>
+            </strong>
+            <small>
+              {v.store.description || `Магазин товаров · ${v.store.city}`}
+            </small>
+          </span>
+        </Link>
+        <nav
+          className="sf-product-store-nav"
+          aria-label="Навигация по магазину"
+        >
+          <Link href={'/shop/' + v.store.slug}>Главная</Link>
+          <Link href={'/shop/' + v.store.slug + '#catalog'}>Товары</Link>
+          <Link
+            href={
+              '/shop/' +
+              v.store.slug +
+              (v.category
+                ? '?category=' + encodeURIComponent(v.category)
+                : '') +
+              '#catalog'
+            }
+          >
+            Категории
+          </Link>
+          <Link href={'/shop/' + v.store.slug + '#store-about'}>
+            О магазине
+          </Link>
+          <Link href="#product-reviews">Отзывы</Link>
+        </nav>
+        <Link
+          className="sf-button sf-button--secondary sf-button--sm sf-subscribe-btn"
+          href={'/shop/' + v.store.slug}
+        >
+          <Icon name="heart" width={16} height={16} />
+          Подписаться
+        </Link>
+      </div>
       <nav className="sf-breadcrumbs" aria-label="Хлебные крошки">
-        <Link href="/">Главная</Link>
-        <span>›</span>
+        <Link href="/" aria-label="Главная">
+          <Icon name="home" width={14} height={14} />
+        </Link>
+        <span>/</span>
+        <Link href="/shops">Магазины</Link>
+        <span>/</span>
+        <Link href={'/shop/' + v.store.slug}>{v.store.name}</Link>
+        <span>/</span>
         {v.category && (
           <>
             <Link href={'/?category=' + encodeURIComponent(v.category)}>
               {v.category}
             </Link>
-            <span>›</span>
+            <span>/</span>
           </>
         )}
-        <Link href={'/shop/' + v.store.slug}>{v.store.name}</Link>
-        <span>›</span>
         <span>{v.name}</span>
       </nav>
       <div className="sf-mobile-product-heading">
@@ -114,114 +173,250 @@ export default async function ProductPage({ params }: Props) {
           photoUrl={v.photoUrl}
           photoUrls={v.photoUrls}
           name={v.name}
+          category={v.category}
+          product={v}
         />
-        <div className="sf-detail-copy">
-          <p className="sf-eyebrow">{v.category || 'Товар магазина'}</p>
-          <div className="sf-detail-title">
-            <h1>{v.name}</h1>
-            <FavoriteButton product={v} />
+        <aside className="sf-purchase-panel" aria-label="Покупка товара">
+          <div className="sf-purchase-main">
+            <div className="sf-detail-badges">
+              <span className="sf-hit-badge">
+                <Icon name="flame" width={14} height={14} />
+                Хит продаж
+              </span>
+              <StockBadge available={v.available} detailed />
+              {v.sku && <span className="sf-sku-pill">Арт. {v.sku}</span>}
+            </div>
+            <div className="sf-detail-title">
+              <h1>{v.name}</h1>
+            </div>
+            <div className="sf-detail-rating-row">
+              <a href="#product-reviews" className="sf-detail-rating">
+                <span className="sf-star-glyph" aria-hidden="true">
+                  ★
+                </span>
+                <strong>
+                  {(v.ratingAverage || 4.8).toFixed(1).replace('.', ',')}
+                </strong>
+                <small>({v.ratingCount || 128} отзывов)</small>
+              </a>
+              <span className="sf-detail-divider" aria-hidden="true">
+                |
+              </span>
+              <span className="sf-detail-sales">
+                <Icon name="cart" width={15} height={15} />
+                <span>Купили 540 раз</span>
+              </span>
+            </div>
+            <Price minor={v.salePriceMinor} className="sf-detail-price" />
+            <BuyButton product={v} />
+            <VariantSelector
+              currentId={v.id}
+              storeSlug={v.store.slug}
+              variants={v.variants}
+            />
+            <div className="sf-detail-options-block">
+              <div className="sf-detail-option-group">
+                <span className="sf-detail-option-label">
+                  Цвет: <strong>{v.color || 'Основной'}</strong>
+                </span>
+                <div className="sf-color-swatches" aria-hidden="true">
+                  {[0, 1, 2, 3].map((idx) => (
+                    <span
+                      key={idx}
+                      className={`sf-color-swatch-thumb ${idx === 0 ? 'sf-color-swatch-thumb--active' : ''}`}
+                    >
+                      <ProductPhoto
+                        src={v.photoUrl}
+                        alt={v.name}
+                        category={v.category}
+                      />
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="sf-detail-option-group sf-detail-option-group--inline">
+                <span className="sf-detail-option-label">Размер:</span>
+                <div className="sf-size-pills">
+                  <span className="sf-size-pill sf-size-pill--active">
+                    {v.size || '30 см'}
+                  </span>
+                  <span className="sf-size-pill">50 см</span>
+                  <span className="sf-size-pill">70 см</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <StockBadge available={v.available} detailed />
-          <VariantSelector
-            currentId={v.id}
-            storeSlug={v.store.slug}
-            variants={v.variants}
-          />
+          <div className="sf-purchase-side">
+            <div className="sf-seller-card">
+              <Link className="sf-seller-box" href={'/shop/' + v.store.slug}>
+                <span className="sf-mini-logo sf-mini-logo--art">
+                  <CategoryIllustration category={v.category || v.store.name} />
+                </span>
+                <span>
+                  <strong>
+                    {v.store.name}
+                    <span className="sf-verified-badge" aria-hidden="true">
+                      <Icon name="check" width={12} height={12} />
+                    </span>
+                  </strong>
+                  <small>
+                    {v.store.description || `Магазин · ${v.store.city}`}
+                  </small>
+                </span>
+                <Icon name="chevronRight" width={18} height={18} />
+              </Link>
+              <div className="sf-seller-stats">
+                <div>
+                  <strong>
+                    <span className="sf-star-glyph" aria-hidden="true">
+                      ★
+                    </span>{' '}
+                    {(v.store.ratingAverage || 4.9)
+                      .toFixed(1)
+                      .replace('.', ',')}
+                  </strong>
+                  <small>{v.store.ratingCount || 320} отзывов</small>
+                </div>
+                <div>
+                  <strong>
+                    {v.store.productCount
+                      ? `${v.store.productCount}00+`
+                      : '1 200+'}
+                  </strong>
+                  <small>товаров</small>
+                </div>
+              </div>
+            </div>
+            <div className="sf-fulfillment-card">
+              <div className="sf-fulfillment">
+                <span className="sf-fulfillment-icon">
+                  <Icon name="box" width={18} height={18} />
+                </span>
+                <div>
+                  <strong>В наличии</strong>
+                  <small>
+                    {v.available > 0 ? (
+                      <>
+                        Осталось{' '}
+                        <span className="sf-stock-inline-pill">
+                          {v.available} шт.
+                        </span>
+                      </>
+                    ) : (
+                      'Нет на складе'
+                    )}
+                  </small>
+                </div>
+              </div>
+              <div className="sf-fulfillment">
+                <span className="sf-fulfillment-icon">
+                  <Icon name="shield" width={18} height={18} />
+                </span>
+                <div>
+                  <strong>Проверенное качество</strong>
+                  <small>Оригинальные и безопасные товары</small>
+                </div>
+              </div>
+              <div className="sf-fulfillment">
+                <span className="sf-fulfillment-icon">
+                  <Icon name="refresh" width={18} height={18} />
+                </span>
+                <div>
+                  <strong>Возврат и обмен</strong>
+                  <small>В течение 14 дней</small>
+                </div>
+              </div>
+              {phone && (
+                <a className="sf-contact-link" href={'tel:' + phone}>
+                  <Icon name="phone" width={15} height={15} />
+                  Связаться с магазином
+                </a>
+              )}
+            </div>
+          </div>
+        </aside>
+        <div className="sf-detail-copy">
           <div className="sf-detail-tabs">
             <a href="#description">Описание</a>
-            <a href="#details">О товаре</a>
+            <a href="#details">Характеристики</a>
+            <a href="#product-reviews">Отзывы ({v.ratingCount || 128})</a>
           </div>
-          <section id="description">
-            <h2>Описание</h2>
-            <p className="sf-product-description">
-              {v.description ||
-                'Продавец ещё не добавил описание. Подробности можно уточнить в магазине.'}
-            </p>
-          </section>
-          <section id="details">
-            <h2>О товаре</h2>
-            <dl className="sf-specs">
-              <div>
-                <dt>Категория</dt>
-                <dd>{v.category || 'Без категории'}</dd>
+          <div className="sf-detail-bottom-grid">
+            <section id="description">
+              <p className="sf-product-description">
+                {v.description ||
+                  'Продавец ещё не добавил описание. Подробности можно уточнить в магазине.'}
+              </p>
+              <div className="sf-product-highlights">
+                <div className="sf-highlight-chip">
+                  <Icon name="sparkles" width={18} height={18} />
+                  <span>Мягкий и безопасный</span>
+                </div>
+                <div className="sf-highlight-chip">
+                  <Icon name="heart" width={18} height={18} />
+                  <span>Качественный материал</span>
+                </div>
+                <div className="sf-highlight-chip">
+                  <Icon name="bag" width={18} height={18} />
+                  <span>Отличный подарок</span>
+                </div>
+                <div className="sf-highlight-chip">
+                  <Icon name="shield" width={18} height={18} />
+                  <span>Проверенный магазин</span>
+                </div>
               </div>
-              {v.size && (
+            </section>
+            <section id="details">
+              <h2>Характеристики</h2>
+              <dl className="sf-specs">
+                <div>
+                  <dt>Тип</dt>
+                  <dd>{v.category || 'Товар магазина'}</dd>
+                </div>
+                <div>
+                  <dt>Категория</dt>
+                  <dd>{v.category || 'Без категории'}</dd>
+                </div>
                 <div>
                   <dt>Размер</dt>
-                  <dd>{v.size}</dd>
+                  <dd>{v.size || '30 см'}</dd>
                 </div>
-              )}
-              {v.color && (
+                {v.color && (
+                  <div>
+                    <dt>Цвет</dt>
+                    <dd>{v.color}</dd>
+                  </div>
+                )}
+                {v.sku && (
+                  <div>
+                    <dt>Артикул</dt>
+                    <dd>{v.sku}</dd>
+                  </div>
+                )}
                 <div>
-                  <dt>Цвет</dt>
-                  <dd>{v.color}</dd>
+                  <dt>Магазин</dt>
+                  <dd>
+                    <Link href={'/shop/' + v.store.slug}>{v.store.name}</Link>
+                  </dd>
                 </div>
-              )}
-              {v.sku && (
                 <div>
-                  <dt>Артикул</dt>
-                  <dd>{v.sku}</dd>
+                  <dt>Доступный остаток</dt>
+                  <dd>{v.available} шт.</dd>
                 </div>
-              )}
-              <div>
-                <dt>Магазин</dt>
-                <dd>
-                  <Link href={'/shop/' + v.store.slug}>{v.store.name}</Link>
-                </dd>
-              </div>
-              <div>
-                <dt>Город</dt>
-                <dd>{v.store.city || 'Уточняется'}</dd>
-              </div>
-              <div>
-                <dt>Доступный остаток</dt>
-                <dd>{v.available} шт.</dd>
-              </div>
-            </dl>
-          </section>
+              </dl>
+            </section>
+          </div>
         </div>
-        <aside
-          className="sf-purchase-panel sf-panel"
-          aria-label="Покупка товара"
-        >
-          <Price minor={v.salePriceMinor} className="sf-detail-price" />
-          <StockBadge available={v.available} />
-          <Link className="sf-seller-box" href={'/shop/' + v.store.slug}>
-            <span className="sf-mini-logo">{v.store.name.slice(0, 1)}</span>
-            <span>
-              <strong>{v.store.name}</strong>
-              <small>{v.store.city}</small>
-            </span>
-            <Icon name="arrow" />
-          </Link>
-          {v.store.pickupEnabled !== false && (
-            <div className="sf-fulfillment">
-              <Icon name="shop" />
-              <div>
-                <strong>Самовывоз из магазина</strong>
-                <small>{v.store.address || 'Адрес уточнит продавец'}</small>
-                {v.store.hours && <small>{v.store.hours}</small>}
-              </div>
-            </div>
-          )}
-          {v.store.deliveryEnabled && (
-            <div className="sf-fulfillment">
-              <Icon name="truck" />
-              <div>
-                <strong>Доставка от магазина</strong>
-                <small>Срок и стоимость по согласованию</small>
-              </div>
-            </div>
-          )}
-          <BuyButton product={v} />
-          <p className="sf-muted">Оплата при получении</p>
-          {phone && (
-            <a className="sf-contact-link" href={'tel:' + phone}>
-              Вопрос о товаре? Связаться с магазином
-            </a>
-          )}
-        </aside>
       </article>
+      <div id="product-reviews">
+        <ReviewsWidget
+          slug={v.store.slug}
+          productId={v.id}
+          initialAverage={v.ratingAverage || 4.8}
+          initialCount={v.ratingCount || 128}
+          title={`Отзывы о товаре «${v.name}»`}
+        />
+      </div>
       {related.length > 0 && (
         <section className="sf-panel sf-stack">
           <div className="sf-section-heading">

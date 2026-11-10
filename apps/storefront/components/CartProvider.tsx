@@ -285,9 +285,25 @@ export function CartLink() {
   const c = useCart();
   const n = c.items.reduce((a, l) => a + l.quantity, 0);
   return (
-    <Link href="/cart" className="sf-cart-link">
+    <Link
+      href="/cart"
+      className="sf-cart-link sf-header-icon-btn"
+      aria-label="Корзина"
+      title="Корзина"
+    >
       <Icon name="cart" />
-      <span>Корзина</span>
+      <span className="sf-sr-only">Корзина</span>
+      {c.ready && n > 0 && <b className="sf-cart-count">{n}</b>}
+    </Link>
+  );
+}
+export function OrdersLink() {
+  const c = useCart();
+  const n = c.state.receipts.length;
+  return (
+    <Link href="/cart#orders" className="sf-orders-link">
+      <Icon name="bag" />
+      <span>Заказы</span>
       {c.ready && n > 0 && <b className="sf-cart-count">{n}</b>}
     </Link>
   );

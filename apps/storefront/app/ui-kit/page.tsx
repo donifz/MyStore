@@ -11,14 +11,14 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 const colors = [
-  ['Фон', '--sf-background', '#F6F8F5'],
+  ['Фон', '--sf-background', '#F4F7FB'],
   ['Поверхность', '--sf-surface', '#FFFFFF'],
-  ['Текст', '--sf-text', '#202C3C'],
-  ['Вторичный текст', '--sf-muted', '#586777'],
-  ['Основной', '--sf-primary', '#176854'],
-  ['Мягкий акцент', '--sf-primary-soft', '#E8F2EC'],
-  ['Ошибка', '--sf-danger', '#A82E2E'],
-  ['Граница', '--sf-border', '#D9E2DC'],
+  ['Текст', '--sf-text', '#0F172A'],
+  ['Вторичный текст', '--sf-muted', '#526277'],
+  ['Основной', '--sf-primary', '#1D6BF3'],
+  ['Мягкий акцент', '--sf-primary-soft', '#EAF2FF'],
+  ['Ошибка', '--sf-danger', '#B91C1C'],
+  ['Граница', '--sf-border', '#E2E8F0'],
 ];
 const demoStore: Store = {
   slug: 'demo-store',

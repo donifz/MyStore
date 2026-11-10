@@ -9,9 +9,11 @@ import Icon from './storefront/Icon';
 export default function BuyButton({
   product,
   compact = false,
+  iconOnly = false,
 }: {
   product: Product;
   compact?: boolean;
+  iconOnly?: boolean;
 }) {
   const c = useCart(),
     router = useRouter(),
@@ -41,7 +43,7 @@ export default function BuyButton({
   function add(now = false) {
     if (c.add(product, false, quantity)) {
       setAdded(true);
-      if (now) router.push('/cart#checkout');
+      if (now) router.push('/checkout');
     }
   }
   return (
@@ -50,8 +52,8 @@ export default function BuyButton({
         compact ? 'sf-buy-actions sf-buy-actions--compact' : 'sf-buy-actions'
       }
     >
-      {!compact && product.available > 0 && (
-        <div className="sf-quantity-row">
+      <div className={compact ? 'sf-buy-compact-wrap' : 'sf-buy-primary-row'}>
+        {!compact && product.available > 0 && (
           <div className="sf-quantity">
             <button
               type="button"
@@ -85,29 +87,31 @@ export default function BuyButton({
               +
             </button>
           </div>
-          <small>Доступно {product.available} шт.</small>
-        </div>
-      )}
-      <Button
-        className="sf-full"
-        disabled={!c.ready || product.available < 1}
-        onClick={() => add()}
-      >
-        <Icon name="cart" />
-        {product.available < 1
-          ? 'Нет в наличии'
-          : added
-            ? 'Добавить ещё'
-            : 'В корзину'}
-      </Button>
+        )}
+        <Button
+          className={iconOnly ? 'sf-icon-cart-btn' : 'sf-full'}
+          aria-label={iconOnly ? 'В корзину' : undefined}
+          disabled={!c.ready || product.available < 1}
+          onClick={() => add()}
+        >
+          <Icon name="cart" width={18} height={18} />
+          {!iconOnly &&
+            (product.available < 1
+              ? 'Нет в наличии'
+              : added
+                ? 'Добавить ещё'
+                : 'В корзину')}
+        </Button>
+      </div>
       {!compact && (
         <Button
-          className="sf-full"
+          className="sf-full sf-buy-now-btn"
           variant="secondary"
           disabled={!c.ready || product.available < 1}
           onClick={() => add(true)}
         >
-          Купить сейчас <Icon name="arrow" />
+          <Icon name="bolt" width={18} height={18} />
+          Купить сейчас
         </Button>
       )}
       {(compact || added || inCart) && (

@@ -1,4 +1,7 @@
+import { existsSync } from 'node:fs';
 import { defineConfig } from '@playwright/test';
+const macChrome =
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 export default defineConfig({
   testDir: './e2e',
   workers: 1,
@@ -7,7 +10,9 @@ export default defineConfig({
     baseURL: 'http://127.0.0.1:43100',
     trace: 'retain-on-failure',
     launchOptions: {
-      executablePath: process.env.E2E_BROWSER_PATH,
+      executablePath:
+        process.env.E2E_BROWSER_PATH ||
+        (!process.env.CI && existsSync(macChrome) ? macChrome : undefined),
     },
   },
   webServer: {
