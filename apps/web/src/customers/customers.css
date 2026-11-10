@@ -118,8 +118,9 @@
 
 .buyer-phone-badge {
   font-size: 14px;
-  color: #64748b;
-  font-weight: 500;
+  color: #475569;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .buyer-status-pill {
@@ -215,17 +216,17 @@
   margin-top: 4px;
 }
 
-/* Hero Loyalty Card */
+/* Hero Loyalty Card with Embedded QR */
 .buyer-loyalty-hero {
   position: relative;
   background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%);
   color: #ffffff;
-  border-radius: 20px;
+  border-radius: 24px;
   padding: 28px 32px;
   margin-bottom: 24px;
   overflow: hidden;
   box-shadow:
-    0 12px 28px -6px rgba(6, 95, 70, 0.35),
+    0 14px 30px -6px rgba(6, 95, 70, 0.4),
     0 8px 12px -6px rgba(6, 95, 70, 0.2);
 }
 
@@ -233,11 +234,11 @@
   position: absolute;
   top: -50%;
   right: -20%;
-  width: 320px;
-  height: 320px;
+  width: 340px;
+  height: 340px;
   background: radial-gradient(
     circle,
-    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.18) 0%,
     transparent 70%
   );
   pointer-events: none;
@@ -247,7 +248,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .buyer-loyalty-badge {
@@ -266,24 +267,17 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.buyer-loyalty-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  gap: 20px;
-}
-
 .buyer-loyalty-balance-box {
   display: flex;
   flex-direction: column;
+  margin-bottom: 8px;
 }
 
 .buyer-loyalty-label {
   font-size: 13px;
   font-weight: 500;
   color: #a7f3d0;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .buyer-loyalty-points {
@@ -305,50 +299,126 @@
   font-size: 12px;
   color: #a7f3d0;
   margin-top: 4px;
+}
+
+/* Embedded QR Container */
+.buyer-hero-qr-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 18px 0 16px;
+}
+
+.buyer-hero-qr-box {
+  background: #ffffff;
+  color: #1e293b;
+  padding: 16px 18px 12px;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow:
+    0 10px 25px -5px rgba(0, 0, 0, 0.28),
+    0 6px 10px -4px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 250px;
+}
+
+.buyer-hero-qr-img {
+  width: 180px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.buyer-hero-qr-img svg {
+  width: 100%;
+  height: 100%;
+}
+
+.buyer-hero-qr-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px 4px 0;
+  border-top: 1px solid #f1f5f9;
+  font-size: 12px;
+}
+
+.buyer-qr-timer {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  color: #64748b;
+  font-weight: 600;
 }
 
-.buyer-loyalty-btn {
+.buyer-qr-refresh-link {
+  background: transparent;
+  border: none;
+  color: #176854;
+  font-size: 12px;
+  font-weight: 700;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  background: #ffffff;
-  color: #064e3b;
-  font-size: 14px;
-  font-weight: 700;
-  padding: 12px 22px;
-  border-radius: 12px;
-  border: none;
+  gap: 4px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 2px 6px;
+  border-radius: 6px;
   transition: all 0.15s ease;
 }
 
-.buyer-loyalty-btn:hover:not(:disabled) {
-  background: #ecfdf5;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+.buyer-qr-refresh-link:hover {
+  background: #f0fdf4;
 }
 
-.buyer-loyalty-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
+.buyer-hero-qr-hint {
+  font-size: 11px;
+  color: #64748b;
+  margin: 8px 0 0;
+  line-height: 1.3;
+}
+
+.buyer-hero-qr-placeholder {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #d1fae5;
+  font-size: 14px;
+}
+
+.buyer-loyalty-unverified-cta {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  padding: 16px;
+  margin: 18px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #fef3c7;
+  font-size: 13px;
 }
 
 .buyer-loyalty-wallets-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 18px;
-  padding-top: 16px;
+  margin-top: 14px;
+  padding-top: 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .buyer-wallet-pill {
   font-size: 12px;
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.18);
   padding: 4px 10px;
   border-radius: 8px;
   color: #d1fae5;
@@ -358,47 +428,10 @@
   color: #ffffff;
 }
 
-/* QR Code Modal / Display */
-.buyer-qr-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 24px;
-  margin-bottom: 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.08);
-  animation: fadeIn 0.2s ease-out;
-}
-
-.buyer-qr-wrapper {
-  background: #ffffff;
-  padding: 16px;
-  border: 2px solid #e2e8f0;
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  margin-bottom: 16px;
-}
-
-.buyer-qr-tag {
-  display: inline-block;
-  background: #fef3c7;
-  color: #92400e;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 4px 12px;
-  border-radius: 20px;
-  margin-bottom: 8px;
-}
-
-.buyer-qr-meta {
+.buyer-loyalty-error {
+  color: #fca5a5;
+  margin-top: 10px;
   font-size: 13px;
-  color: #64748b;
-  max-width: 380px;
-  margin: 0 auto 16px;
-  line-height: 1.5;
 }
 
 /* Stats Row */
@@ -604,7 +637,7 @@
   color: #059669;
 }
 
-/* Shop items */
+/* Shop chips */
 .buyer-shop-chip {
   display: inline-flex;
   align-items: center;
@@ -617,37 +650,6 @@
   font-size: 13px;
   font-weight: 600;
   margin: 4px 6px 4px 0;
-}
-
-/* Link shop form */
-.buyer-link-form {
-  display: grid;
-  gap: 12px;
-  margin-top: 14px;
-}
-
-.buyer-link-form label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #334155;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.buyer-link-form input {
-  padding: 10px 14px;
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
-  font-size: 14px;
-  font-family: inherit;
-  transition: border-color 0.15s ease;
-}
-
-.buyer-link-form input:focus {
-  outline: none;
-  border-color: #176854;
-  box-shadow: 0 0 0 3px rgba(23, 104, 84, 0.12);
 }
 
 /* Authentication card */
@@ -761,7 +763,7 @@
   border-color: #cbd5e1;
 }
 
-/* Retain previous class names for compatibility */
+/* Legacy and shared styles */
 .buyer-message {
   background: #fff8e6;
   border: 1px solid #f0d18a;
@@ -818,17 +820,6 @@
   overflow-wrap: anywhere;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @media (max-width: 840px) {
   .buyer-layout-grid {
     grid-template-columns: 1fr;
@@ -844,10 +835,19 @@
     align-items: flex-start;
   }
   .buyer-loyalty-hero {
-    padding: 22px 20px;
+    padding: 24px 18px;
+    border-radius: 20px;
   }
   .buyer-loyalty-points {
     font-size: 32px;
+  }
+  .buyer-hero-qr-box {
+    max-width: 100%;
+    padding: 16px;
+  }
+  .buyer-hero-qr-img {
+    width: 200px;
+    height: 200px;
   }
   .buyer-auth-card {
     padding: 24px 20px;

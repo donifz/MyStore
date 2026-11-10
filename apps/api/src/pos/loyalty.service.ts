@@ -102,7 +102,7 @@ export class LoyaltyService {
       throw new BadRequestException('Некорректное количество баллов');
     }
     const [card] = await tx.query(
-      `SELECT t.buyer_id
+      `SELECT t.buyer_id, b.phone_e164, b.display_name
        FROM buyer_loyalty_tokens t
        JOIN buyer_accounts b ON b.id=t.buyer_id
        WHERE t.token_hash=$1 AND t.used_at IS NULL
@@ -115,13 +115,39 @@ export class LoyaltyService {
         'QR-код истёк, использован или не подтверждён',
       );
     }
-    const [customer] = await tx.query(
+    let [customer] = await tx.query(
       `SELECT id FROM shop_customers
-       WHERE shop_id=$1 AND buyer_account_id=$2 LIMIT 1`,
-      [input.shopId, card.buyer_id],
+       WHERE shop_id=$1 AND (buyer_account_id=$2 OR phone_e164=$3)
+       LIMIT 1`,
+      [input.shopId, card.buyer_id, card.phone_e164],
     );
-    if (!customer) {
-      throw new ForbiddenException('Карта не привязана к этому магазину');
+    if (customer) {
+      await tx.query(
+        `UPDATE shop_customers
+         SET buyer_account_id=$2, updated_at=now()
+         WHERE id=$1 AND buyer_account_id IS DISTINCT FROM $2`,
+        [customer.id, card.buyer_id],
+      );
+    } else {
+      const [membership] = await tx.query(
+        `SELECT user_id FROM memberships WHERE shop_id=$1 ORDER BY CASE role WHEN 'owner' THEN 1 WHEN 'manager' THEN 2 ELSE 3 END LIMIT 1`,
+        [input.shopId],
+      );
+      const [created] = await tx.query(
+        `INSERT INTO shop_customers(shop_id, phone_e164, display_name, buyer_account_id, created_by)
+         VALUES($1, $2, $3, $4, $5)
+         ON CONFLICT (shop_id, phone_e164) DO UPDATE
+           SET buyer_account_id=EXCLUDED.buyer_account_id, updated_at=now()
+         RETURNING id`,
+        [
+          input.shopId,
+          card.phone_e164,
+          card.display_name || 'Покупатель',
+          card.buyer_id,
+          membership?.user_id,
+        ],
+      );
+      customer = created;
     }
     await tx.query(
       `INSERT INTO loyalty_wallets(shop_id,customer_id)

@@ -39,6 +39,12 @@ type BuyerAccount = {
   csrfToken: string;
 };
 
+function formatTimer(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
 async function buyerApi<T>(
   path: string,
   body?: unknown,
@@ -78,6 +84,7 @@ export default function BuyerPortalPage() {
   const [loyaltyCode, setLoyaltyCode] = useState('');
   const [loyaltyError, setLoyaltyError] = useState('');
   const [loyaltyBusy, setLoyaltyBusy] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number>(120);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<'login' | 'register'>('register');
   const [name, setName] = useState('');
@@ -91,7 +98,6 @@ export default function BuyerPortalPage() {
   );
   useEffect(() => {
     if (parseBuyerInviteFragment(window.location.hash)) {
-      // Remove the secret from browser history and address bar.
       window.history.replaceState(
         window.history.state,
         '',
@@ -223,7 +229,7 @@ export default function BuyerPortalPage() {
     };
   }, [account?.id, account?.shops.length]);
 
-  async function showLoyaltyQr() {
+  const showLoyaltyQr = useCallback(async () => {
     if (!account || loyaltyBusy) return;
     setLoyaltyBusy(true);
     setLoyaltyError('');
@@ -234,6 +240,7 @@ export default function BuyerPortalPage() {
         account.csrfToken,
       );
       setLoyaltyCode(code.token);
+      setTimeLeft(120);
     } catch (err) {
       setLoyaltyCode('');
       setLoyaltyError(
@@ -242,7 +249,40 @@ export default function BuyerPortalPage() {
     } finally {
       setLoyaltyBusy(false);
     }
-  }
+  }, [account, loyaltyBusy]);
+
+  // Auto-generate QR code immediately when verified
+  useEffect(() => {
+    if (
+      account?.phoneVerified &&
+      loyaltyEnabled &&
+      !loyaltyCode &&
+      !loyaltyBusy
+    ) {
+      void showLoyaltyQr();
+    }
+  }, [
+    account?.phoneVerified,
+    loyaltyEnabled,
+    loyaltyCode,
+    loyaltyBusy,
+    showLoyaltyQr,
+  ]);
+
+  // Countdown timer for single-use QR token
+  useEffect(() => {
+    if (!loyaltyCode) return;
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [loyaltyCode]);
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -263,16 +303,15 @@ export default function BuyerPortalPage() {
     }
   }
 
-  async function linkShop(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!account) return;
+  async function linkShop(token: string) {
+    if (!account || !token) return;
     setBusy(true);
     setError('');
     setNotice('');
     try {
       const linked = await buyerApi<{ shopName: string }>(
         'link-shop',
-        { token: inviteToken.trim() },
+        { token: token.trim() },
         account.csrfToken,
       );
       setInviteToken('');
@@ -306,6 +345,9 @@ export default function BuyerPortalPage() {
     0,
   );
   const initialLetter = (account?.name?.trim() || 'П')[0].toUpperCase();
+  const formattedPhone = account?.phone
+    ? formatKyrgyzPhoneInput(account.phone)
+    : '';
 
   return (
     <main className="buyer-page">
@@ -346,7 +388,7 @@ export default function BuyerPortalPage() {
                   <p className="eyebrow">Личный кабинет покупателя</p>
                   <h1>Здравствуйте, {account.name}!</h1>
                   <div className="buyer-profile-meta">
-                    <span className="buyer-phone-badge">{account.phone}</span>
+                    <span className="buyer-phone-badge">{formattedPhone}</span>
                     {account.phoneVerified ? (
                       <span className="buyer-status-pill verified">
                         <PaymentIcon name="check" size={14} />
@@ -363,14 +405,13 @@ export default function BuyerPortalPage() {
               </div>
             </section>
 
-            {/* Telegram verification warning & banner */}
+            {/* Telegram verification warning */}
             {!account.phoneVerified && (
               <div className="buyer-message" role="status">
                 <strong>Номер ещё не подтверждён</strong>
                 <p>
-                  Номер ещё не подтверждён через Telegram. Связать кабинет с
-                  конкретным магазином можно только по одноразовому коду,
-                  полученному лично у кассира. Знание телефона недостаточно.
+                  Для активации персонального QR-кода лояльности и начисления
+                  бонусов подтвердите свой номер через Telegram.
                 </p>
               </div>
             )}
@@ -425,7 +466,7 @@ export default function BuyerPortalPage() {
               </section>
             )}
 
-            {/* Hero Loyalty Card */}
+            {/* Hero Loyalty Card with Embedded QR Code */}
             {loyaltyEnabled && (
               <section className="buyer-loyalty-hero">
                 <div className="buyer-loyalty-sheen" aria-hidden="true" />
@@ -436,41 +477,63 @@ export default function BuyerPortalPage() {
                   </span>
                   <PaymentIcon name="wallet" size={24} />
                 </div>
-                <div className="buyer-loyalty-content">
-                  <div className="buyer-loyalty-balance-box">
-                    <span className="buyer-loyalty-label">Баланс бонусов</span>
-                    <div className="buyer-loyalty-points">
-                      {totalPoints.toLocaleString('ru-RU')}
-                      <small>баллов</small>
-                    </div>
-                    <span className="buyer-loyalty-rate">
-                      1 балл = 1 сом скидки · Покажите QR кассиру
-                    </span>
+
+                <div className="buyer-loyalty-balance-box">
+                  <span className="buyer-loyalty-label">Баланс бонусов</span>
+                  <div className="buyer-loyalty-points">
+                    {totalPoints.toLocaleString('ru-RU')}
+                    <small>баллов</small>
                   </div>
-                  <div>
-                    <button
-                      type="button"
-                      className="buyer-loyalty-btn"
-                      disabled={loyaltyBusy || !account.phoneVerified}
-                      onClick={() => void showLoyaltyQr()}
-                    >
-                      <PaymentIcon name="qr" size={18} />
-                      {loyaltyBusy ? 'Создаём QR…' : 'Показать мой QR'}
-                    </button>
-                  </div>
+                  <span className="buyer-loyalty-rate">
+                    1 балл = 1 сом скидки · Предъявите QR кассиру
+                  </span>
                 </div>
 
-                {!account.phoneVerified && (
-                  <p
-                    className="muted"
-                    style={{
-                      marginTop: '14px',
-                      color: '#fef3c7',
-                      fontSize: '13px',
-                    }}
-                  >
-                    Сначала подтвердите телефон через Telegram.
-                  </p>
+                {/* Embedded QR right in the green card */}
+                {account.phoneVerified ? (
+                  <div className="buyer-hero-qr-container">
+                    {loyaltyBusy && !loyaltyCode ? (
+                      <div className="buyer-hero-qr-placeholder">
+                        <PaymentIcon name="sparkle" size={28} />
+                        <span>Генерируем ваш QR-код…</span>
+                      </div>
+                    ) : loyaltyCode ? (
+                      <div className="buyer-hero-qr-box">
+                        <div className="buyer-hero-qr-img buyer-invite-panel">
+                          <BuyerInviteQr value={loyaltyCode} />
+                        </div>
+                        <div className="buyer-hero-qr-meta">
+                          <span className="buyer-qr-timer">
+                            <PaymentIcon name="clock" size={13} />
+                            {timeLeft > 0
+                              ? `Действует: ${formatTimer(timeLeft)}`
+                              : 'Код истёк'}
+                          </span>
+                          <button
+                            type="button"
+                            className="buyer-qr-refresh-link"
+                            disabled={loyaltyBusy}
+                            onClick={() => void showLoyaltyQr()}
+                          >
+                            <PaymentIcon name="sparkle" size={13} />
+                            Обновить QR
+                          </button>
+                        </div>
+                        <p className="buyer-hero-qr-hint">
+                          Покажите этот код кассиру любого магазина для
+                          начисления или списания бонусов
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="buyer-loyalty-unverified-cta">
+                    <PaymentIcon name="clock" size={22} />
+                    <p>
+                      Подтвердите телефон через Telegram, чтобы активировать
+                      персональный QR-код.
+                    </p>
+                  </div>
                 )}
 
                 {loyaltyWallets.length > 0 && (
@@ -483,6 +546,7 @@ export default function BuyerPortalPage() {
                     ))}
                   </div>
                 )}
+
                 {loyaltyError && (
                   <p
                     role="alert"
@@ -491,27 +555,6 @@ export default function BuyerPortalPage() {
                     {loyaltyError}
                   </p>
                 )}
-              </section>
-            )}
-
-            {/* QR Code Presentation Box */}
-            {loyaltyCode && (
-              <section className="buyer-qr-card">
-                <span className="buyer-qr-tag">Одноразовый QR-код</span>
-                <div className="buyer-qr-wrapper buyer-invite-panel">
-                  <BuyerInviteQr value={loyaltyCode} />
-                </div>
-                <p className="buyer-qr-meta">
-                  Код действует 2 минуты. Покажите экран кассиру перед оплатой.
-                  QR нельзя использовать повторно.
-                </p>
-                <button
-                  type="button"
-                  className="button secondary"
-                  onClick={() => setLoyaltyCode('')}
-                >
-                  Скрыть QR-код
-                </button>
               </section>
             )}
 
@@ -553,6 +596,30 @@ export default function BuyerPortalPage() {
                 </div>
               </div>
             </div>
+
+            {/* If an invite token was provided via QR link */}
+            {inviteToken && (
+              <section
+                className="panel buyer-tile"
+                style={{ marginBottom: '20px' }}
+              >
+                <p
+                  className="muted"
+                  style={{ color: '#065f46', marginBottom: '12px' }}
+                >
+                  Приглашение из ссылки получено. Нажмите «Подтвердить», чтобы
+                  привязать магазин к вашему кабинету.
+                </p>
+                <button
+                  type="button"
+                  className="button primary"
+                  disabled={busy}
+                  onClick={() => void linkShop(inviteToken)}
+                >
+                  Подтвердить привязку магазина
+                </button>
+              </section>
+            )}
 
             {/* Main Sections Grid */}
             <div className="buyer-layout-grid">
@@ -674,7 +741,7 @@ export default function BuyerPortalPage() {
                 </section>
               </div>
 
-              {/* Right Column: Connected Shops & Shop Linking */}
+              {/* Right Column: Connected Shops */}
               <div>
                 <section className="buyer-panel">
                   <div className="buyer-panel-head">
@@ -695,53 +762,10 @@ export default function BuyerPortalPage() {
                     </div>
                   ) : (
                     <p className="muted">
-                      Подключённые магазины появятся после безопасной привязки
-                      аккаунта.
+                      Подключённые магазины появятся после первой покупки или
+                      сканирования QR на кассе.
                     </p>
                   )}
-                </section>
-
-                <section className="buyer-panel">
-                  <div className="buyer-panel-head">
-                    <h2>
-                      <PaymentIcon name="user-plus" size={20} />
-                      Привязать магазин
-                    </h2>
-                  </div>
-
-                  {inviteToken && (
-                    <p className="muted" style={{ color: '#065f46' }}>
-                      Приглашение из QR-кода получено. Нажмите «Привязать
-                      магазин», чтобы подтвердить связь с вашим аккаунтом.
-                    </p>
-                  )}
-                  <p className="muted">
-                    Получите одноразовый код у кассира и введите его здесь. Код
-                    действует 15 минут.
-                  </p>
-
-                  <form
-                    onSubmit={(e) => void linkShop(e)}
-                    className="buyer-link-form"
-                  >
-                    <label>
-                      Код приглашения
-                      <input
-                        required
-                        value={inviteToken}
-                        onChange={(e) => setInviteToken(e.target.value)}
-                        placeholder="Код от кассира"
-                        maxLength={43}
-                      />
-                    </label>
-                    <button
-                      type="submit"
-                      className="button primary"
-                      disabled={busy || inviteToken.trim().length !== 43}
-                    >
-                      Привязать магазин
-                    </button>
-                  </form>
                 </section>
               </div>
             </div>

@@ -155,7 +155,7 @@ describe('buyer loyalty wallet and QR checkout', () => {
       .expect(409);
   });
 
-  it('rejects out-of-limit and unlinked attempts without changing stock', async () => {
+  it('rejects out-of-limit and auto-links unlinked customers on verified scan', async () => {
     await sell(await qr()).expect(201);
     await c.db.query(
       'UPDATE loyalty_wallets SET balance_points=100 WHERE shop_id=$1 AND customer_id=$2',
@@ -167,13 +167,16 @@ describe('buyer loyalty wallet and QR checkout', () => {
       'UPDATE shop_customers SET buyer_account_id=NULL WHERE shop_id=$1 AND id=$2',
       [fixture.shop, customerId],
     );
-    await sell(token, 0).expect(403);
-    const [stock] = await c.db.query(
-      'SELECT physical FROM stock_balances WHERE shop_id=$1 AND variant_id=$2',
-      [fixture.shop, variantId],
+    // Verified QR scan auto-links customer to the shop and awards points
+    const res = await sell(token, 0).expect(201);
+    expect(res.body.loyalty.earnedPoints).toBeGreaterThan(0);
+    const [linked] = await c.db.query(
+      'SELECT buyer_account_id FROM shop_customers WHERE shop_id=$1 AND id=$2',
+      [fixture.shop, customerId],
     );
-    expect(Number(stock.physical)).toBe(8);
+    expect(linked.buyer_account_id).toBe(buyerId);
     const wallets = await c.app.get(LoyaltyService).wallets(buyerId);
-    expect(wallets).toEqual([]);
+    expect(wallets).toHaveLength(1);
+    expect(wallets[0].shopId).toBe(fixture.shop);
   });
 });
