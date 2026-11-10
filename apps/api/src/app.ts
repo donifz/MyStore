@@ -202,7 +202,10 @@ export async function createApp(
     ],
   })
   class AppModule {}
-  const app = await NestFactory.create(AppModule, { logger: false });
+  const app = await NestFactory.create(AppModule, {
+    logger: false,
+    abortOnError: false,
+  });
   // Render's public ingress appends the connecting client address. Trust
   // only that final hop, never caller-supplied earlier forwarded addresses.
   // Direct/local deployments continue to ignore forwarded headers.

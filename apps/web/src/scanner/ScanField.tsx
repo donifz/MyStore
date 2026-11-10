@@ -17,6 +17,15 @@ export default function ScanField({
 
   useEffect(() => {
     if (disabled || camera) return;
+    const keepFocus = () => {
+      if (!disabled && !camera) {
+        requestAnimationFrame(() => {
+          input.current?.focus({ preventScroll: true });
+          setIsFocused(true);
+        });
+      }
+    };
+
     const handleGlobalClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
       if (!target) return;
@@ -27,20 +36,26 @@ export default function ScanField({
       ) {
         return;
       }
-      input.current?.focus({ preventScroll: true });
+      keepFocus();
     };
 
     const handleWindowFocus = () => {
-      if (!disabled && !camera) {
-        input.current?.focus({ preventScroll: true });
+      keepFocus();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        keepFocus();
       }
     };
 
     window.addEventListener('click', handleGlobalClick);
     window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       window.removeEventListener('click', handleGlobalClick);
       window.removeEventListener('focus', handleWindowFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [disabled, camera]);
 

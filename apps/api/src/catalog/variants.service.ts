@@ -389,20 +389,27 @@ export class VariantsService {
   ): Promise<(Variant & { lastPurchaseMinor?: number }) | null> {
     const [row] = await this.db.query(
       `SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.sale_price_minor,v.description,v.category,v.subcategory,v.published,v.attributes,(v.photo_data IS NOT NULL) has_photo,
+              COALESCE(b.physical,0) physical,COALESCE(b.stock_value_minor,0) stock_value_minor,
               (SELECT ROUND(m.value_minor::numeric / NULLIF(m.quantity, 0))::bigint
                FROM stock_movements m
                JOIN stock_documents d ON d.shop_id=m.shop_id AND d.id=m.document_id
                WHERE m.shop_id=v.shop_id AND m.variant_id=v.id AND d.kind='receiving' AND m.quantity > 0
                ORDER BY d.created_at DESC, m.id DESC LIMIT 1) last_purchase_minor
-       FROM variants v WHERE v.shop_id=$1 AND (v.barcode=$2 OR v.short_barcode=$2)`,
+       FROM variants v
+       LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id
+       WHERE v.shop_id=$1 AND (v.barcode=$2 OR v.short_barcode=$2)`,
       [shopId, barcode],
     );
     if (!row) return null;
     const dto = this.dto(row);
-    return includeLastPurchase &&
-      row.last_purchase_minor !== null &&
-      row.last_purchase_minor !== undefined
-      ? { ...dto, lastPurchaseMinor: Number(row.last_purchase_minor) }
+    const lastPurchase =
+      row.last_purchase_minor !== null && row.last_purchase_minor !== undefined
+        ? Number(row.last_purchase_minor)
+        : Number(row.physical) > 0 && Number(row.stock_value_minor) > 0
+          ? Math.round(Number(row.stock_value_minor) / Number(row.physical))
+          : undefined;
+    return includeLastPurchase && lastPurchase !== undefined
+      ? { ...dto, lastPurchaseMinor: lastPurchase }
       : dto;
   }
   async updateVariant(

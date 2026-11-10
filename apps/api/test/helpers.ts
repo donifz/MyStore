@@ -23,6 +23,10 @@ export async function approveTestProduct(db: DataSource, id: string) {
 export async function setup(
   factory: (db: DataSource) => Promise<INestApplication>,
 ) {
+  if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32) {
+    process.env.SESSION_SECRET =
+      'test-session-secret-must-be-at-least-32-chars-long';
+  }
   const url = process.env.TEST_DATABASE_URL;
   if (!url || !new URL(url).pathname.endsWith('_test'))
     throw new Error(

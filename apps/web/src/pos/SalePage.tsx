@@ -170,7 +170,7 @@ function SaleWorkspace({
       new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
     ),
     [camera, setCamera] = useState(false),
-    [showCost, setShowCost] = useState(false),
+    [showCost, setShowCost] = useState(true),
     [scannerFocused, setScannerFocused] = useState(true),
     [paymentSheetOpen, setPaymentSheetOpen] = useState(false),
     [shiftModalOpen, setShiftModalOpen] = useState(false),
@@ -223,6 +223,14 @@ function SaleWorkspace({
   }, [doc.success]);
 
   useEffect(() => {
+    const keepFocus = () => {
+      if (shiftModalOpen || paymentSheetOpen || camera) return;
+      requestAnimationFrame(() => {
+        scanInput.current?.focus({ preventScroll: true });
+        setScannerFocused(true);
+      });
+    };
+
     const handleGlobalClick = (event: MouseEvent) => {
       if (shiftModalOpen || paymentSheetOpen || camera) return;
       const target = event.target as HTMLElement | null;
@@ -234,20 +242,26 @@ function SaleWorkspace({
       ) {
         return;
       }
-      scanInput.current?.focus({ preventScroll: true });
+      keepFocus();
     };
 
     const handleWindowFocus = () => {
-      if (!shiftModalOpen && !paymentSheetOpen && !camera) {
-        scanInput.current?.focus({ preventScroll: true });
+      keepFocus();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        keepFocus();
       }
     };
 
     window.addEventListener('click', handleGlobalClick);
     window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       window.removeEventListener('click', handleGlobalClick);
       window.removeEventListener('focus', handleWindowFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [shiftModalOpen, paymentSheetOpen, camera]);
 
@@ -498,6 +512,7 @@ function SaleWorkspace({
             type="button"
             className="button secondary pos-new-receipt-btn"
             disabled={scanDisabled}
+            onMouseDown={(e) => e.preventDefault()}
             onClick={startNewReceipt}
           >
             <Icon name="receipt" />
@@ -573,6 +588,7 @@ function SaleWorkspace({
                 showCost ? 'Скрыть себестоимость' : 'Показать себестоимость'
               }
               title="Показать / скрыть закупочную цену товаров"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => setShowCost((open) => !open)}
             >
               <Icon name="eye" />
@@ -583,6 +599,7 @@ function SaleWorkspace({
               className="pos-tool"
               aria-label="Сканировать камерой"
               disabled={scanDisabled}
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => setCamera((open) => !open)}
             >
               <Icon name="camera" />
@@ -613,6 +630,7 @@ function SaleWorkspace({
                   category === chip.value ? 'pos-chip selected' : 'pos-chip'
                 }
                 aria-pressed={category === chip.value}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   setCategory(chip.value);
                   scanInput.current?.focus({ preventScroll: true });
@@ -649,6 +667,7 @@ function SaleWorkspace({
                   }
                   key={product.id}
                   disabled={locked || !doc.online || out}
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
                     void doc.addVariant(product);
                     if (query) setQuery('');
@@ -768,20 +787,40 @@ function SaleWorkspace({
               <h2 className="pos-panel-title">
                 Чек <span className="pos-count">{itemCount}</span>
               </h2>
-              {doc.draft.lines.length > 0 && (
+              <div className="pos-cart-head-actions">
                 <button
                   type="button"
-                  className="pos-clear"
-                  disabled={locked}
-                  onClick={() => {
-                    void doc.change([]);
-                    scanInput.current?.focus({ preventScroll: true });
-                  }}
+                  className={`pos-cart-cost-btn${showCost ? ' active' : ''}`}
+                  title={
+                    showCost ? 'Скрыть себестоимость' : 'Показать себестоимость'
+                  }
+                  aria-label={
+                    showCost ? 'Скрыть себестоимость' : 'Показать себестоимость'
+                  }
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setShowCost((open) => !open)}
                 >
-                  <Icon name="trash" />
-                  <span>Очистить</span>
+                  <Icon name="eye" />
+                  <span>Закупка</span>
                 </button>
-              )}
+                {doc.draft.lines.length > 0 && (
+                  <button
+                    type="button"
+                    className="pos-clear"
+                    disabled={locked}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      void doc.change([]);
+                      requestAnimationFrame(() => {
+                        scanInput.current?.focus({ preventScroll: true });
+                      });
+                    }}
+                  >
+                    <Icon name="trash" />
+                    <span>Очистить</span>
+                  </button>
+                )}
+              </div>
             </div>
             <DocumentEditor
               doc={doc}
@@ -789,6 +828,7 @@ function SaleWorkspace({
               shopId={shopId}
               cart
               photoFor={(id) => photos.current.get(id)}
+              showCost={showCost}
             />
           </section>
         </div>
