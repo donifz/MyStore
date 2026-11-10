@@ -106,7 +106,7 @@ export default async function Header() {
           </div>
         </div>
       </header>
-      <nav className="sf-home-mobile-nav" aria-label="Навигация на телефоне">
+      <nav className="sf-home-mobile-nav" aria-label="Мобильная навигация">
         <Link href="/">
           <Icon name="home" />
           <span>Главная</span>

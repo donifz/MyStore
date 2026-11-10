@@ -13,7 +13,7 @@ test('buyer submits a partner application without creating a login', async ({
     .click();
   await page.getByLabel('Название магазина').fill('Магазин у дома');
   await page.getByLabel('Email').fill('partner-browser@example.test');
-  await page.getByLabel('Телефон').fill('+996700123456');
+  await page.getByLabel('Телефон', { exact: true }).fill('+996700123456');
   await page.getByRole('main').getByLabel('Город', { exact: true }).fill('Ош');
   await page.getByLabel('Адрес').fill('Центр');
   await page.getByLabel('Категория бизнеса').selectOption('toys');

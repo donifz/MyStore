@@ -750,6 +750,33 @@ function MarketplaceCheckout({
                       ))}
                     </fieldset>
 
+                    <div className="sf-cart-shop-fulfillment">
+                      <label>
+                        <input
+                          type="radio"
+                          name={'method-' + slug}
+                          value="pickup"
+                          checked={method(slug) === 'pickup'}
+                          onChange={() =>
+                            setMethods((m) => ({ ...m, [slug]: 'pickup' }))
+                          }
+                        />
+                        <span>Самовывоз</span>
+                      </label>
+                      <label>
+                        <input
+                          type="radio"
+                          name={'method-' + slug}
+                          value="delivery"
+                          checked={method(slug) === 'delivery'}
+                          onChange={() =>
+                            setMethods((m) => ({ ...m, [slug]: 'delivery' }))
+                          }
+                        />
+                        <span>Доставка</span>
+                      </label>
+                    </div>
+
                     {errors[slug] && (
                       <Alert variant="error">{errors[slug]}</Alert>
                     )}
@@ -911,6 +938,21 @@ function MarketplaceCheckout({
                     id="cart-quick-phone"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
+                  />
+                  <label htmlFor="cart-quick-email">
+                    Email (необязательно)
+                  </label>
+                  <input
+                    id="cart-quick-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                  <label htmlFor="cart-quick-address">Адрес доставки</label>
+                  <input
+                    id="cart-quick-address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
                   />
                   <button
                     type="submit"
