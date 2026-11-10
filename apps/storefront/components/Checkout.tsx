@@ -30,6 +30,15 @@ async function post(path: string, body: unknown): Promise<Receipt> {
   return data;
 }
 
+const statusLabels: Record<string, string> = {
+  new: 'Ожидает подтверждения магазина',
+  confirmed: 'Подтверждён',
+  ready: 'Готов к выдаче',
+  issued: 'Выдан',
+  cancelled: 'Отменён',
+  expired: 'Срок подтверждения истёк',
+};
+
 const DEMO_CART_ITEMS: CartItem[] = [
   {
     id: '11111111-1111-4111-8111-111111111100',
@@ -533,6 +542,7 @@ function MarketplaceCheckout({
                 {c.state.receipts.map((r) => (
                   <div className="sf-order-receipt" key={r.id}>
                     <span>{r.storeName}</span>
+                    <span>{statusLabels[r.status] || r.status}</span>
                     <Price minor={r.totalMinor} />
                   </div>
                 ))}

@@ -4363,9 +4363,12 @@ fieldset {
   display: flex;
   gap: 10px;
   align-items: stretch;
+  min-width: 0;
+  width: 100%;
 }
 .pos-search {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   flex-direction: row;
   align-items: center;
   gap: 10px;
@@ -4382,7 +4385,9 @@ fieldset {
   box-shadow: 0 0 0 3px rgb(23 115 79 / 15%);
 }
 .pos-search input {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
+  width: 100%;
   border: 0;
   padding: 12px 0;
   font-size: 15px;
@@ -5123,9 +5128,22 @@ fieldset {
   .pos-panel {
     padding: 14px;
   }
+  .pos-search-row {
+    gap: 6px;
+  }
+  .pos-search {
+    padding: 0 8px;
+    gap: 6px;
+    min-height: 44px;
+  }
   .pos-tool {
-    min-width: 52px;
-    padding: 6px;
+    min-width: 44px;
+    padding: 6px 4px;
+    font-size: 11px;
+  }
+  .pos-tool .pos-icon {
+    width: 20px;
+    height: 20px;
   }
   .pos-product-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
