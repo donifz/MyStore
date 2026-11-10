@@ -186,21 +186,38 @@ export default function DocumentEditor({
                     </>
                   )}
                 </small>
-                <button
-                  type="button"
-                  className="pos-link-button"
-                  aria-label={'Скидка ' + l.name}
-                  aria-expanded={showDiscount}
-                  disabled={disabled}
-                  onClick={() =>
-                    setDiscountOpen((open) => ({
-                      ...open,
-                      [l.id]: !open[l.id],
-                    }))
-                  }
-                >
-                  {l.discountMinor ? 'Скидка применена' : 'Скидка'}
-                </button>
+                <div className="pos-cart-line-actions">
+                  <button
+                    type="button"
+                    className="pos-link-button"
+                    aria-label={'Скидка ' + l.name}
+                    aria-expanded={showDiscount}
+                    disabled={disabled}
+                    onClick={() =>
+                      setDiscountOpen((open) => ({
+                        ...open,
+                        [l.id]: !open[l.id],
+                      }))
+                    }
+                  >
+                    {l.discountMinor ? 'Скидка применена' : 'Скидка'}
+                  </button>
+                  <span
+                    className="pos-purchase-badge"
+                    title={
+                      l.lastPurchaseMinor !== undefined
+                        ? `Закупочная цена: ${formatSom(l.lastPurchaseMinor)}`
+                        : 'Закупочная цена не указана'
+                    }
+                  >
+                    Закуп:{' '}
+                    <strong>
+                      {l.lastPurchaseMinor !== undefined
+                        ? formatSom(l.lastPurchaseMinor)
+                        : '—'}
+                    </strong>
+                  </span>
+                </div>
               </div>
               <div className="pos-stepper">
                 <button

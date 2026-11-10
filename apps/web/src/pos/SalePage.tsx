@@ -41,6 +41,7 @@ function Icon({
     | 'search'
     | 'barcode'
     | 'camera'
+    | 'eye'
     | 'clock'
     | 'cash'
     | 'card'
@@ -61,6 +62,12 @@ function Icon({
       <>
         <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
         <circle cx="12" cy="13" r="3.5" />
+      </>
+    ),
+    eye: (
+      <>
+        <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" />
+        <circle cx="12" cy="12" r="3" />
       </>
     ),
     clock: (
@@ -163,6 +170,8 @@ function SaleWorkspace({
       new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
     ),
     [camera, setCamera] = useState(false),
+    [showCost, setShowCost] = useState(false),
+    [scannerFocused, setScannerFocused] = useState(true),
     [paymentSheetOpen, setPaymentSheetOpen] = useState(false),
     [shiftModalOpen, setShiftModalOpen] = useState(false),
     scanInput = useRef<HTMLInputElement>(null),
@@ -212,6 +221,25 @@ function SaleWorkspace({
       scanInput.current?.focus();
     }
   }, [doc.success]);
+
+  useEffect(() => {
+    const handleGlobalClick = (event: MouseEvent) => {
+      if (shiftModalOpen || paymentSheetOpen || camera) return;
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      if (
+        target.closest(
+          'input, textarea, select, [contenteditable="true"], .pos-stepper, .pos-cart-discount',
+        )
+      ) {
+        return;
+      }
+      scanInput.current?.focus({ preventScroll: true });
+    };
+
+    window.addEventListener('click', handleGlobalClick);
+    return () => window.removeEventListener('click', handleGlobalClick);
+  }, [shiftModalOpen, paymentSheetOpen, camera]);
 
   const active = shift.current && 'id' in shift.current ? shift.current : null;
   const sum = doc.draft.lines.reduce(
@@ -494,6 +522,8 @@ function SaleWorkspace({
                 aria-label="Сканировать штрихкод"
                 value={query}
                 disabled={scanDisabled}
+                onFocus={() => setScannerFocused(true)}
+                onBlur={() => setScannerFocused(false)}
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter') {
@@ -506,14 +536,37 @@ function SaleWorkspace({
             </label>
             <button
               type="button"
-              className="pos-tool"
+              className={`pos-tool pos-tool-scanner${scannerFocused ? ' active' : ''}`}
               aria-label="Фокус для сканера"
-              title="USB-сканер вводит код как клавиатура"
+              title="USB-сканер держит фокус для ввода штрихкодов"
               disabled={scanDisabled}
-              onClick={() => scanInput.current?.focus()}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                scanInput.current?.focus({ preventScroll: true });
+              }}
+              onClick={() => {
+                scanInput.current?.focus({ preventScroll: true });
+                setScannerFocused(true);
+              }}
             >
               <Icon name="barcode" />
               <span>Сканер</span>
+              <span
+                className={`pos-focus-dot${scannerFocused ? ' on' : ''}`}
+                aria-hidden="true"
+              />
+            </button>
+            <button
+              type="button"
+              className={`pos-tool${showCost ? ' active' : ''}`}
+              aria-label={
+                showCost ? 'Скрыть себестоимость' : 'Показать себестоимость'
+              }
+              title="Показать / скрыть закупочную цену товаров"
+              onClick={() => setShowCost((open) => !open)}
+            >
+              <Icon name="eye" />
+              <span>Закупка</span>
             </button>
             <button
               type="button"
@@ -586,6 +639,7 @@ function SaleWorkspace({
                   onClick={() => {
                     void doc.addVariant(product);
                     if (query) setQuery('');
+                    scanInput.current?.focus({ preventScroll: true });
                   }}
                 >
                   <ProductPhoto product={product} qty={qty} />
@@ -607,13 +661,29 @@ function SaleWorkspace({
                           ? 'Нет в наличии'
                           : `Доступно: ${product.available}`}
                     </small>
+                    {showCost && (
+                      <small className="pos-card-cost" title="Закупочная цена">
+                        Закуп:{' '}
+                        {product.lastPurchaseMinor !== undefined
+                          ? formatSom(product.lastPurchaseMinor)
+                          : '—'}
+                      </small>
+                    )}
                   </span>
                   <span className="pos-product-foot">
                     <span className="pos-product-price">
                       {formatSom(product.salePriceMinor)}
                     </span>
                     <span className="pos-product-add" aria-hidden="true">
-                      +
+                      <svg
+                        viewBox="0 0 16 16"
+                        width="14"
+                        height="14"
+                        fill="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2z" />
+                      </svg>
                     </span>
                   </span>
                 </button>

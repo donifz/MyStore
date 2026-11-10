@@ -1,4 +1,4 @@
-import { useCallback, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import CameraScanner from './CameraScanner';
 export default function ScanField({
   onScan,
@@ -10,9 +10,30 @@ export default function ScanField({
   onManualAdd?: () => void;
 }) {
   const [code, setCode] = useState(''),
+    [isFocused, setIsFocused] = useState(true),
     input = useRef<HTMLInputElement>(null),
     [camera, setCamera] = useState(false),
     inputId = useId();
+
+  useEffect(() => {
+    if (disabled || camera) return;
+    const handleGlobalClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      if (
+        target.closest(
+          'input, textarea, select, [contenteditable="true"], .receiving-product-sheet-root, .receiving-manual-picker',
+        )
+      ) {
+        return;
+      }
+      input.current?.focus({ preventScroll: true });
+    };
+
+    window.addEventListener('click', handleGlobalClick);
+    return () => window.removeEventListener('click', handleGlobalClick);
+  }, [disabled, camera]);
+
   const scan = useCallback(
     (value: string) => {
       onScan(value);
@@ -46,6 +67,8 @@ export default function ScanField({
             autoComplete="off"
             value={code}
             disabled={disabled}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
             onChange={(e) => setCode(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -60,11 +83,18 @@ export default function ScanField({
         </div>
         <button
           type="button"
-          className="scan-field-btn pos-tool"
+          className={`scan-field-btn pos-tool pos-tool-scanner${isFocused ? ' active' : ''}`}
           aria-label="Фокус для сканера"
-          title="USB-сканер вводит код как клавиатура"
+          title="USB-сканер держит фокус для ввода штрихкодов"
           disabled={disabled}
-          onClick={() => input.current?.focus()}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            input.current?.focus({ preventScroll: true });
+          }}
+          onClick={() => {
+            input.current?.focus({ preventScroll: true });
+            setIsFocused(true);
+          }}
         >
           <svg
             className="pos-icon scan-field-btn-icon"
@@ -78,6 +108,10 @@ export default function ScanField({
             <path d="M4 5v14M7 5v14M11 5v14M14 5v14M17 5v14M20 5v14" />
           </svg>
           <span>Сканер</span>
+          <span
+            className={`pos-focus-dot${isFocused ? ' on' : ''}`}
+            aria-hidden="true"
+          />
         </button>
         <button
           type="button"

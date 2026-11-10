@@ -160,7 +160,7 @@ export class VariantsService {
       params,
     );
     const rows = await this.db.query(
-      'SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.created_at,v.category,v.attributes,(v.photo_data IS NOT NULL) has_photo,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.stock_value_minor,0) stock_value_minor ' +
+      "SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.created_at,v.category,v.attributes,(v.photo_data IS NOT NULL) has_photo,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.stock_value_minor,0) stock_value_minor,(SELECT ROUND(m.value_minor::numeric / NULLIF(m.quantity, 0))::bigint FROM stock_movements m JOIN stock_documents d ON d.shop_id=m.shop_id AND d.id=m.document_id WHERE m.shop_id=v.shop_id AND m.variant_id=v.id AND d.kind='receiving' AND m.quantity > 0 ORDER BY d.created_at DESC, m.id DESC LIMIT 1) last_purchase_minor " +
         from +
         filter +
         (popular
@@ -197,6 +197,15 @@ export class VariantsService {
         physical: Number(r.physical),
         reserved: Number(r.reserved),
         available: Number(r.physical) - Number(r.reserved),
+        ...(r.last_purchase_minor != null
+          ? { lastPurchaseMinor: Number(r.last_purchase_minor) }
+          : r.physical > 0 && r.stock_value_minor > 0
+            ? {
+                lastPurchaseMinor: Math.round(
+                  Number(r.stock_value_minor) / Number(r.physical),
+                ),
+              }
+            : {}),
         ...(showCost ? { stockValueMinor: Number(r.stock_value_minor) } : {}),
       })),
       total: Number(count.count),

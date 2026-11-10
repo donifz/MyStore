@@ -155,11 +155,7 @@ export class VariantsController {
       shopId,
       'read',
     );
-    const variant = await this.variants.findByBarcode(
-      shopId,
-      query.code,
-      member.role !== 'cashier',
-    );
+    const variant = await this.variants.findByBarcode(shopId, query.code, true);
     if (!variant) throw new NotFoundException();
     return variant;
   }
