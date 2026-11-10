@@ -36,9 +36,10 @@ export default async function Catalog({
     if (slug) {
       store = await publicApi<Store>('/stores/' + encodeURIComponent(slug));
       try {
-        customAttributes = await publicApi<CustomAttribute[]>(
+        const raw = await publicApi<CustomAttribute[]>(
           '/stores/' + encodeURIComponent(slug) + '/custom-attributes',
         );
+        customAttributes = Array.isArray(raw) ? raw : [];
       } catch {}
     }
     products = await publicApi<Products>('/products?' + filter.params);

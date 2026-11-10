@@ -237,8 +237,18 @@ function SaleWorkspace({
       scanInput.current?.focus({ preventScroll: true });
     };
 
+    const handleWindowFocus = () => {
+      if (!shiftModalOpen && !paymentSheetOpen && !camera) {
+        scanInput.current?.focus({ preventScroll: true });
+      }
+    };
+
     window.addEventListener('click', handleGlobalClick);
-    return () => window.removeEventListener('click', handleGlobalClick);
+    window.addEventListener('focus', handleWindowFocus);
+    return () => {
+      window.removeEventListener('click', handleGlobalClick);
+      window.removeEventListener('focus', handleWindowFocus);
+    };
   }, [shiftModalOpen, paymentSheetOpen, camera]);
 
   const active = shift.current && 'id' in shift.current ? shift.current : null;
@@ -603,7 +613,10 @@ function SaleWorkspace({
                   category === chip.value ? 'pos-chip selected' : 'pos-chip'
                 }
                 aria-pressed={category === chip.value}
-                onClick={() => setCategory(chip.value)}
+                onClick={() => {
+                  setCategory(chip.value);
+                  scanInput.current?.focus({ preventScroll: true });
+                }}
               >
                 {chip.label}
               </button>
@@ -760,7 +773,10 @@ function SaleWorkspace({
                   type="button"
                   className="pos-clear"
                   disabled={locked}
-                  onClick={() => void doc.change([])}
+                  onClick={() => {
+                    void doc.change([]);
+                    scanInput.current?.focus({ preventScroll: true });
+                  }}
                 >
                   <Icon name="trash" />
                   <span>Очистить</span>

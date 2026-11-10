@@ -37,6 +37,9 @@ export default function CatalogFilters({
   search?: Search;
 }) {
   const isStore = Boolean(slug);
+  const safeCustomAttributes = Array.isArray(customAttributes)
+    ? customAttributes
+    : [];
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     categories: true,
@@ -305,7 +308,7 @@ export default function CatalogFilters({
         )}
       </div>
       {isStore &&
-        customAttributes.map((attr) => {
+        safeCustomAttributes.map((attr) => {
           const sectionKey = `attr_${attr.key}`;
           const isOpen = openSections[sectionKey] ?? true;
           const paramName = `attr_${attr.key}`;

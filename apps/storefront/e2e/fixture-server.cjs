@@ -2,7 +2,7 @@ const { createServer } = require('node:http');
 const { resolve } = require('node:path');
 process.env.PORT = '43100';
 const app = require('next')({
-  dev: true,
+  dev: process.env.NEXT_DEV === 'true',
   webpack: true,
   dir: resolve(__dirname, '..'),
   hostname: '127.0.0.1',
@@ -130,6 +130,8 @@ app
             pageSize: 24,
           }),
         );
+      if (url.pathname.endsWith('/custom-attributes'))
+        return res.end(JSON.stringify([]));
       if (url.pathname.includes('/products/'))
         return res.end(JSON.stringify(item));
       if (url.pathname.startsWith('/api/public/stores/'))

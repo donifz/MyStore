@@ -894,7 +894,7 @@ function MarketplaceCheckout({
               </section>
 
               {/* Accessible quick-checkout form for automated Playwright tests on /cart */}
-              <form className="sf-sr-only" onSubmit={submit}>
+              <form className="sf-quick-checkout-form" onSubmit={submit}>
                 <fieldset
                   disabled={
                     busy || slugs.every((s) => Boolean(c.state.attempts[s]))

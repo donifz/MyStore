@@ -165,7 +165,6 @@ export default async function ProductPage({ params }: Props) {
         <p className="sf-eyebrow">{v.category || 'Товар магазина'}</p>
         <div className="sf-detail-title">
           <h1>{v.name}</h1>
-          <FavoriteButton product={v} />
         </div>
       </div>
       <article className="sf-detail-layout">

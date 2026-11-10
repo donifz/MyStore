@@ -457,7 +457,7 @@ test('product layout stays readable in phone, desktop-site and desktop viewports
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/shops/shop-a/products/' + id);
     await expect(
-      page.getByRole('heading', { name: 'Керамическая чашка' }),
+      page.getByRole('heading', { name: 'Керамическая чашка', exact: true }),
     ).toBeVisible();
     await expect(
       page.getByRole('button', { name: 'В избранное: Керамическая чашка' }),

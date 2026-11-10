@@ -30,8 +30,18 @@ export default function ScanField({
       input.current?.focus({ preventScroll: true });
     };
 
+    const handleWindowFocus = () => {
+      if (!disabled && !camera) {
+        input.current?.focus({ preventScroll: true });
+      }
+    };
+
     window.addEventListener('click', handleGlobalClick);
-    return () => window.removeEventListener('click', handleGlobalClick);
+    window.addEventListener('focus', handleWindowFocus);
+    return () => {
+      window.removeEventListener('click', handleGlobalClick);
+      window.removeEventListener('focus', handleWindowFocus);
+    };
   }, [disabled, camera]);
 
   const scan = useCallback(
