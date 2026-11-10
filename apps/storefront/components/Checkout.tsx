@@ -30,6 +30,15 @@ async function post(path: string, body: unknown): Promise<Receipt> {
   return data;
 }
 
+const statusLabels: Record<string, string> = {
+  new: 'Ожидает подтверждения магазина',
+  confirmed: 'Подтверждён',
+  ready: 'Готов к выдаче',
+  issued: 'Выдан',
+  cancelled: 'Отменён',
+  expired: 'Срок подтверждения истёк',
+};
+
 const DEMO_CART_ITEMS: CartItem[] = [
   {
     id: '11111111-1111-4111-8111-111111111100',
@@ -533,6 +542,7 @@ function MarketplaceCheckout({
                 {c.state.receipts.map((r) => (
                   <div className="sf-order-receipt" key={r.id}>
                     <span>{r.storeName}</span>
+                    <span>{statusLabels[r.status] || r.status}</span>
                     <Price minor={r.totalMinor} />
                   </div>
                 ))}
@@ -750,6 +760,33 @@ function MarketplaceCheckout({
                       ))}
                     </fieldset>
 
+                    <div className="sf-cart-shop-fulfillment">
+                      <label>
+                        <input
+                          type="radio"
+                          name={'method-' + slug}
+                          value="pickup"
+                          checked={method(slug) === 'pickup'}
+                          onChange={() =>
+                            setMethods((m) => ({ ...m, [slug]: 'pickup' }))
+                          }
+                        />
+                        <span>Самовывоз</span>
+                      </label>
+                      <label>
+                        <input
+                          type="radio"
+                          name={'method-' + slug}
+                          value="delivery"
+                          checked={method(slug) === 'delivery'}
+                          onChange={() =>
+                            setMethods((m) => ({ ...m, [slug]: 'delivery' }))
+                          }
+                        />
+                        <span>Доставка</span>
+                      </label>
+                    </div>
+
                     {errors[slug] && (
                       <Alert variant="error">{errors[slug]}</Alert>
                     )}
@@ -894,7 +931,7 @@ function MarketplaceCheckout({
               </section>
 
               {/* Accessible quick-checkout form for automated Playwright tests on /cart */}
-              <form className="sf-sr-only" onSubmit={submit}>
+              <form className="sf-quick-checkout-form" onSubmit={submit}>
                 <fieldset
                   disabled={
                     busy || slugs.every((s) => Boolean(c.state.attempts[s]))
@@ -911,6 +948,21 @@ function MarketplaceCheckout({
                     id="cart-quick-phone"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
+                  />
+                  <label htmlFor="cart-quick-email">
+                    Email (необязательно)
+                  </label>
+                  <input
+                    id="cart-quick-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                  <label htmlFor="cart-quick-address">Адрес доставки</label>
+                  <input
+                    id="cart-quick-address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
                   />
                   <button
                     type="submit"

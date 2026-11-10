@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { query } from '../../lib/public-api';
+import { query, CustomAttribute, Search } from '../../lib/public-api';
 import { Input, Select, Checkbox, Button } from '../ui';
 import Icon from './Icon';
 
@@ -27,14 +27,21 @@ export default function CatalogFilters({
   filter: f,
   categories,
   slug,
+  customAttributes = [],
+  search = {},
 }: {
   filter: ReturnType<typeof query>;
   categories: string[];
   slug?: string;
+  customAttributes?: CustomAttribute[];
+  search?: Search;
 }) {
   const isStore = Boolean(slug);
+  const safeCustomAttributes = Array.isArray(customAttributes)
+    ? customAttributes
+    : [];
 
-  const [openSections, setOpenSections] = useState({
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     categories: true,
     price: true,
     stock: true,
@@ -63,7 +70,7 @@ export default function CatalogFilters({
   const rightPercent =
     ((sliderMaxVal - SLIDER_MIN) / (SLIDER_MAX - SLIDER_MIN)) * 100;
 
-  function toggleSection(key: keyof typeof openSections) {
+  function toggleSection(key: string) {
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
@@ -300,6 +307,101 @@ export default function CatalogFilters({
           />
         )}
       </div>
+      {isStore &&
+        safeCustomAttributes.map((attr) => {
+          const sectionKey = `attr_${attr.key}`;
+          const isOpen = openSections[sectionKey] ?? true;
+          const paramName = `attr_${attr.key}`;
+          const currentVal = search[paramName];
+          const activeValues = Array.isArray(currentVal)
+            ? currentVal
+            : currentVal
+              ? [currentVal]
+              : [];
+
+          return (
+            <div
+              key={attr.id}
+              className={`sf-filter-section ${!isOpen ? 'sf-filter-section--collapsed' : ''}`}
+            >
+              <button
+                type="button"
+                className="sf-filter-group-head sf-filter-group-toggle"
+                aria-expanded={isOpen}
+                onClick={() => toggleSection(sectionKey)}
+              >
+                <span className="sf-field__label">{attr.name}</span>
+                <Icon
+                  name="chevronDown"
+                  width={15}
+                  height={15}
+                  className={isOpen ? 'sf-chevron-up' : ''}
+                />
+              </button>
+              {isOpen && (
+                <div style={{ marginTop: '0.5rem' }}>
+                  {attr.type === 'select' && (
+                    <div className="sf-sidebar-cat-list">
+                      {attr.options.map((opt) => {
+                        const checked = activeValues.includes(opt);
+                        return (
+                          <label
+                            key={opt}
+                            className="sf-filter-checkbox-row"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                              padding: '0.25rem 0',
+                              fontSize: '0.875rem',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              name={paramName}
+                              value={opt}
+                              defaultChecked={checked}
+                              onChange={(e) => {
+                                const form = e.currentTarget.form;
+                                if (form) form.requestSubmit();
+                              }}
+                            />
+                            <span>{opt}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {attr.type === 'number' && (
+                    <Input
+                      id={`filter-attr-${attr.key}`}
+                      label={attr.name}
+                      type="number"
+                      name={paramName}
+                      defaultValue={
+                        typeof currentVal === 'string' ? currentVal : ''
+                      }
+                      placeholder="Значение"
+                    />
+                  )}
+                  {attr.type === 'string' && (
+                    <Input
+                      id={`filter-attr-${attr.key}`}
+                      label={attr.name}
+                      type="text"
+                      name={paramName}
+                      defaultValue={
+                        typeof currentVal === 'string' ? currentVal : ''
+                      }
+                      placeholder="Значение"
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       {!isStore && (
         <div
           className={`sf-filter-section ${!openSections.rating ? 'sf-filter-section--collapsed' : ''}`}

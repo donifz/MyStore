@@ -99,6 +99,8 @@ import {
   BuyerInvitesController,
   ShopBuyerInvitesController,
 } from './customers/buyer-invites.controller';
+import { ShopCustomAttributesController } from './catalog/shop-custom-attributes.controller';
+import { ShopCustomAttributesService } from './catalog/shop-custom-attributes.service';
 import { ShopCustomersController } from './customers/shop-customers.controller';
 import { ShopCustomersService } from './customers/shop-customers.service';
 import { FinancialAccessService } from './platform/financial-access.service';
@@ -152,8 +154,10 @@ export async function createApp(
       BuyerInvitesController,
       ShopBuyerInvitesController,
       ShopCustomersController,
+      ShopCustomAttributesController,
     ],
     providers: [
+      ShopCustomAttributesService,
       FinancialAccessService,
       PlatformAdminService,
       PartnerApplicationsService,
@@ -198,7 +202,10 @@ export async function createApp(
     ],
   })
   class AppModule {}
-  const app = await NestFactory.create(AppModule, { logger: false });
+  const app = await NestFactory.create(AppModule, {
+    logger: false,
+    abortOnError: false,
+  });
   // Render's public ingress appends the connecting client address. Trust
   // only that final hop, never caller-supplied earlier forwarded addresses.
   // Direct/local deployments continue to ignore forwarded headers.

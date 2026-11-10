@@ -54,6 +54,8 @@ export class VariantDto extends VariantFieldsDto {
   @ArrayMaxSize(8)
   @IsString({ each: true })
   photoDataUrls?: string[];
+  @IsOptional()
+  attributes?: Record<string, any>;
 }
 class ReplaceAlbumDto {
   @IsArray()
@@ -68,6 +70,8 @@ class EditVariantDto {
   @IsString() @MaxLength(80) category!: string;
   @IsOptional() @IsString() @MaxLength(80) subcategory = '';
   @IsBoolean() published!: boolean;
+  @IsOptional()
+  attributes?: Record<string, any>;
 }
 class BarcodeQuery {
   @IsString() @MinLength(1) @MaxLength(64) code!: string;
@@ -151,11 +155,7 @@ export class VariantsController {
       shopId,
       'read',
     );
-    const variant = await this.variants.findByBarcode(
-      shopId,
-      query.code,
-      member.role !== 'cashier',
-    );
+    const variant = await this.variants.findByBarcode(shopId, query.code, true);
     if (!variant) throw new NotFoundException();
     return variant;
   }

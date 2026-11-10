@@ -70,6 +70,7 @@ export default function DocumentEditor({
   parentId,
   cart = false,
   photoFor,
+  showCost = true,
 }: {
   doc: ReturnType<typeof useDocument>;
   receiving: boolean;
@@ -84,6 +85,7 @@ export default function DocumentEditor({
   /** Compact cashier cart: scanner lives in the catalogue search, lines use steppers. */
   cart?: boolean;
   photoFor?: (variantId: string) => string | undefined;
+  showCost?: boolean;
 }) {
   const lineDisabled = doc.busy || doc.blocked || !!doc.draft.submission;
   const disabled = lineDisabled || !!doc.productCreation;
@@ -186,21 +188,40 @@ export default function DocumentEditor({
                     </>
                   )}
                 </small>
-                <button
-                  type="button"
-                  className="pos-link-button"
-                  aria-label={'Скидка ' + l.name}
-                  aria-expanded={showDiscount}
-                  disabled={disabled}
-                  onClick={() =>
-                    setDiscountOpen((open) => ({
-                      ...open,
-                      [l.id]: !open[l.id],
-                    }))
-                  }
-                >
-                  {l.discountMinor ? 'Скидка применена' : 'Скидка'}
-                </button>
+                <div className="pos-cart-line-actions">
+                  <button
+                    type="button"
+                    className="pos-link-button"
+                    aria-label={'Скидка ' + l.name}
+                    aria-expanded={showDiscount}
+                    disabled={disabled}
+                    onClick={() =>
+                      setDiscountOpen((open) => ({
+                        ...open,
+                        [l.id]: !open[l.id],
+                      }))
+                    }
+                  >
+                    {l.discountMinor ? 'Скидка применена' : 'Скидка'}
+                  </button>
+                  {showCost && (
+                    <span
+                      className="pos-purchase-badge"
+                      title={
+                        l.lastPurchaseMinor !== undefined
+                          ? `Закупочная цена: ${formatSom(l.lastPurchaseMinor)}`
+                          : 'Закупочная цена не указана'
+                      }
+                    >
+                      Закуп:{' '}
+                      <strong>
+                        {l.lastPurchaseMinor !== undefined
+                          ? formatSom(l.lastPurchaseMinor)
+                          : '—'}
+                      </strong>
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="pos-stepper">
                 <button

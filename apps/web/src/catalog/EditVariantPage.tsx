@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
 import { formatSom, parseSom } from '../api/money';
-import { Variant } from '../api/types';
+import { Variant, ShopCustomAttribute } from '../api/types';
 import { useSession } from '../auth/SessionProvider';
 import { useResource } from '../storefront/use-resource';
 import type { CategoryNode } from './PhotoAssistant';
@@ -21,6 +21,8 @@ export default function EditVariantPage() {
     [category, setCategory] = useState(''),
     [subcategory, setSubcategory] = useState(''),
     [categories, setCategories] = useState<CategoryNode[]>([]),
+    [customAttrs, setCustomAttrs] = useState<ShopCustomAttribute[]>([]),
+    [customValues, setCustomValues] = useState<Record<string, string>>({}),
     [published, setPublished] = useState(true),
     [archived, setArchived] = useState(false),
     [archiveBusy, setArchiveBusy] = useState(false),
@@ -44,14 +46,25 @@ export default function EditVariantPage() {
       setPublished(r.data.published ?? true);
       setArchived(Boolean(r.data.archived));
       setPublicationStatus(r.data.publicationStatus);
+      if (r.data.attributes && typeof r.data.attributes === 'object') {
+        const strVals: Record<string, string> = {};
+        for (const [k, v] of Object.entries(r.data.attributes)) {
+          strVals[k] = String(v ?? '');
+        }
+        setCustomValues(strVals);
+      }
       setSaved(false);
     }
   }, [r.data]);
   useEffect(() => {
-    if (allowed && shopId)
+    if (allowed && shopId) {
       void api<CategoryNode[]>(`/shops/${shopId}/categories`)
         .then((value) => setCategories(Array.isArray(value) ? value : []))
         .catch((e) => setError(errorText(e)));
+      void api<ShopCustomAttribute[]>(`/shops/${shopId}/custom-attributes`)
+        .then((value) => setCustomAttrs(Array.isArray(value) ? value : []))
+        .catch(() => {});
+    }
   }, [allowed, shopId]);
   useEffect(() => {
     if (allowed && shopId && id) {
@@ -68,6 +81,13 @@ export default function EditVariantPage() {
     setError('');
     setSaved(false);
     try {
+      const cleanAttrs: Record<string, any> = {};
+      for (const [k, v] of Object.entries(customValues)) {
+        if (v !== '' && v !== undefined && v !== null) {
+          const def = customAttrs.find((a) => a.key === k);
+          cleanAttrs[k] = def?.type === 'number' ? Number(v) : v;
+        }
+      }
       const updated = await api<Variant>(`/shops/${shopId}/variants/${id}`, {
         method: 'PUT',
         body: {
@@ -77,6 +97,7 @@ export default function EditVariantPage() {
           category,
           subcategory,
           published,
+          attributes: cleanAttrs,
         },
       });
       setSavedPrice(updated.salePriceMinor);
@@ -220,6 +241,66 @@ export default function EditVariantPage() {
                       ))}
                   </select>
                 </label>
+                {customAttrs.length > 0 && (
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns:
+                        'repeat(auto-fill, minmax(200px, 1fr))',
+                      gap: '0.75rem',
+                      margin: '0.5rem 0',
+                    }}
+                  >
+                    {customAttrs.map((attr) => (
+                      <label key={attr.id}>
+                        {attr.name}
+                        {attr.type === 'select' ? (
+                          <select
+                            value={customValues[attr.key] || ''}
+                            onChange={(e) =>
+                              setCustomValues((prev) => ({
+                                ...prev,
+                                [attr.key]: e.target.value,
+                              }))
+                            }
+                          >
+                            <option value="">Не выбрано</option>
+                            {attr.options.map((opt) => (
+                              <option key={opt} value={opt}>
+                                {opt}
+                              </option>
+                            ))}
+                          </select>
+                        ) : attr.type === 'number' ? (
+                          <input
+                            type="number"
+                            value={customValues[attr.key] || ''}
+                            onChange={(e) =>
+                              setCustomValues((prev) => ({
+                                ...prev,
+                                [attr.key]: e.target.value,
+                              }))
+                            }
+                            placeholder="Число"
+                          />
+                        ) : (
+                          <input
+                            type="text"
+                            maxLength={100}
+                            value={customValues[attr.key] || ''}
+                            onChange={(e) =>
+                              setCustomValues((prev) => ({
+                                ...prev,
+                                [attr.key]: e.target.value,
+                              }))
+                            }
+                            placeholder="Значение"
+                          />
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                )}
                 <label>
                   Описание
                   <textarea

@@ -43,6 +43,7 @@ export type Variant = {
   barcode: string;
   shortBarcode: string;
   salePriceMinor: number;
+  attributes?: Record<string, any>;
   createdAt?: string;
 };
 @Injectable()
@@ -81,6 +82,10 @@ export class VariantsService {
       category: row.category,
       subcategory: row.subcategory ?? '',
       published: row.published,
+      attributes:
+        row.attributes && typeof row.attributes === 'object'
+          ? row.attributes
+          : {},
       ...(row.publication_status
         ? { publicationStatus: row.publication_status }
         : {}),
@@ -155,7 +160,7 @@ export class VariantsService {
       params,
     );
     const rows = await this.db.query(
-      'SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.created_at,v.category,(v.photo_data IS NOT NULL) has_photo,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.stock_value_minor,0) stock_value_minor ' +
+      "SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.created_at,v.category,v.attributes,(v.photo_data IS NOT NULL) has_photo,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.stock_value_minor,0) stock_value_minor,(SELECT ROUND(m.value_minor::numeric / NULLIF(m.quantity, 0))::bigint FROM stock_movements m JOIN stock_documents d ON d.shop_id=m.shop_id AND d.id=m.document_id WHERE m.shop_id=v.shop_id AND m.variant_id=v.id AND d.kind='receiving' AND m.quantity > 0 ORDER BY d.created_at DESC, m.id DESC LIMIT 1) last_purchase_minor " +
         from +
         filter +
         (popular
@@ -192,6 +197,15 @@ export class VariantsService {
         physical: Number(r.physical),
         reserved: Number(r.reserved),
         available: Number(r.physical) - Number(r.reserved),
+        ...(r.last_purchase_minor != null
+          ? { lastPurchaseMinor: Number(r.last_purchase_minor) }
+          : r.physical > 0 && r.stock_value_minor > 0
+            ? {
+                lastPurchaseMinor: Math.round(
+                  Number(r.stock_value_minor) / Number(r.physical),
+                ),
+              }
+            : {}),
         ...(showCost ? { stockValueMinor: Number(r.stock_value_minor) } : {}),
       })),
       total: Number(count.count),
@@ -241,7 +255,7 @@ export class VariantsService {
     // The DB generates and indexes a short code for every variant.
     try {
       const [row] = await tx.query(
-        'INSERT INTO variants(id,shop_id,name,barcode,sale_price_minor,category,subcategory,description,photo_data,size,color,photo_album,parent_id)VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)RETURNING *',
+        'INSERT INTO variants(id,shop_id,name,barcode,sale_price_minor,category,subcategory,description,photo_data,size,color,photo_album,parent_id,attributes)VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)RETURNING *',
         [
           randomUUID(),
           shopId,
@@ -256,6 +270,7 @@ export class VariantsService {
           input.color?.trim() ?? '',
           album,
           input.parentId ?? null,
+          JSON.stringify((input as any).attributes || {}),
         ],
       );
       await stageProduct(tx, row, actor);
@@ -373,21 +388,28 @@ export class VariantsService {
     includeLastPurchase = false,
   ): Promise<(Variant & { lastPurchaseMinor?: number }) | null> {
     const [row] = await this.db.query(
-      `SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.sale_price_minor,v.description,v.category,v.subcategory,v.published,(v.photo_data IS NOT NULL) has_photo,
+      `SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.sale_price_minor,v.description,v.category,v.subcategory,v.published,v.attributes,(v.photo_data IS NOT NULL) has_photo,
+              COALESCE(b.physical,0) physical,COALESCE(b.stock_value_minor,0) stock_value_minor,
               (SELECT ROUND(m.value_minor::numeric / NULLIF(m.quantity, 0))::bigint
                FROM stock_movements m
                JOIN stock_documents d ON d.shop_id=m.shop_id AND d.id=m.document_id
                WHERE m.shop_id=v.shop_id AND m.variant_id=v.id AND d.kind='receiving' AND m.quantity > 0
                ORDER BY d.created_at DESC, m.id DESC LIMIT 1) last_purchase_minor
-       FROM variants v WHERE v.shop_id=$1 AND (v.barcode=$2 OR v.short_barcode=$2)`,
+       FROM variants v
+       LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id
+       WHERE v.shop_id=$1 AND (v.barcode=$2 OR v.short_barcode=$2)`,
       [shopId, barcode],
     );
     if (!row) return null;
     const dto = this.dto(row);
-    return includeLastPurchase &&
-      row.last_purchase_minor !== null &&
-      row.last_purchase_minor !== undefined
-      ? { ...dto, lastPurchaseMinor: Number(row.last_purchase_minor) }
+    const lastPurchase =
+      row.last_purchase_minor !== null && row.last_purchase_minor !== undefined
+        ? Number(row.last_purchase_minor)
+        : Number(row.physical) > 0 && Number(row.stock_value_minor) > 0
+          ? Math.round(Number(row.stock_value_minor) / Number(row.physical))
+          : undefined;
+    return includeLastPurchase && lastPurchase !== undefined
+      ? { ...dto, lastPurchaseMinor: lastPurchase }
       : dto;
   }
   async updateVariant(
@@ -400,6 +422,7 @@ export class VariantsService {
       category: string;
       subcategory?: string;
       published: boolean;
+      attributes?: Record<string, any>;
     },
     actor: string,
   ) {
@@ -415,7 +438,7 @@ export class VariantsService {
       );
       if (!before) throw new NotFoundException();
       const [[row]] = await tx.query(
-        'UPDATE variants SET name=$3,sale_price_minor=$4,description=$5,category=$6,subcategory=$7,published=$8 WHERE shop_id=$1 AND id=$2 RETURNING *',
+        'UPDATE variants SET name=$3,sale_price_minor=$4,description=$5,category=$6,subcategory=$7,published=$8,attributes=$9 WHERE shop_id=$1 AND id=$2 RETURNING *',
         [
           shopId,
           id,
@@ -425,6 +448,7 @@ export class VariantsService {
           input.category.trim(),
           (input.subcategory ?? '').trim(),
           input.published,
+          JSON.stringify(input.attributes ?? before.attributes ?? {}),
         ],
       );
       const changed = ['name', 'description', 'category', 'subcategory'].some(
@@ -469,7 +493,7 @@ export class VariantsService {
   }
   async getById(shopId: string, id: string) {
     const [row] = await this.db.query(
-      "SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.description,v.category,v.subcategory,v.published,(v.photo_data IS NOT NULL) has_photo,cardinality(v.photo_album) photo_count,CASE WHEN EXISTS(SELECT 1 FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='pending') THEN 'pending' WHEN EXISTS(SELECT 1 FROM product_publications p WHERE p.variant_id=v.id) THEN 'approved' ELSE 'unpublished' END publication_status,(SELECT reason FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='rejected' AND r.decided_by IS NOT NULL ORDER BY r.decided_at DESC LIMIT 1) rejection_reason FROM variants v WHERE v.shop_id=$1 AND v.id=$2",
+      "SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.description,v.category,v.subcategory,v.published,v.attributes,(v.photo_data IS NOT NULL) has_photo,cardinality(v.photo_album) photo_count,CASE WHEN EXISTS(SELECT 1 FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='pending') THEN 'pending' WHEN EXISTS(SELECT 1 FROM product_publications p WHERE p.variant_id=v.id) THEN 'approved' ELSE 'unpublished' END publication_status,(SELECT reason FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='rejected' AND r.decided_by IS NOT NULL ORDER BY r.decided_at DESC LIMIT 1) rejection_reason FROM variants v WHERE v.shop_id=$1 AND v.id=$2",
       [shopId, id],
     );
     if (!row) throw new NotFoundException();

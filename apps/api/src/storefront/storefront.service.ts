@@ -44,6 +44,7 @@ export type PublicQuery = {
   category: string;
   inStock: string;
   sort: string;
+  attributes?: Record<string, string | string[]>;
 };
 export type ReviewInput = {
   operationKey: string;
@@ -342,6 +343,8 @@ export class StorefrontService {
       description: r.description,
       category: r.category,
       platformCategory: r.platform_category,
+      attributes:
+        r.attributes && typeof r.attributes === 'object' ? r.attributes : {},
       salePriceMinor: Number(r.sale_price_minor),
       available: Number(r.available),
       ...(r.rating_count !== undefined
@@ -376,7 +379,7 @@ export class StorefrontService {
   private from =
     ' FROM variants v JOIN shops s ON s.id=v.shop_id JOIN product_publications p ON p.variant_id=v.id AND p.shop_id=s.id LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id LEFT JOIN shop_categories sc ON sc.shop_id=s.id AND sc.parent_id IS NULL AND sc.name=p.category LEFT JOIN platform_categories pc ON pc.code=sc.platform_category_code';
   private select =
-    `SELECT v.id,v.size,v.color,v.sku,v.parent_id,(p.photo_data IS NOT NULL) has_photo,cardinality(p.photo_album) photo_count,p.name,p.description,p.category,COALESCE(pc.name,p.category) AS platform_category,v.sale_price_minor,COALESCE(b.physical,0)-COALESCE(b.reserved,0) available,COALESCE((SELECT round(avg(sr.rating)::numeric,1)::float FROM storefront_reviews sr WHERE sr.variant_id=v.id),0) rating_average,(SELECT count(*)::int FROM storefront_reviews sr WHERE sr.variant_id=v.id) rating_count,s.slug,s.name shop_name,s.description shop_description,(SELECT count(*)::int FROM variants sv JOIN product_publications sp ON sp.variant_id=sv.id WHERE sv.shop_id=s.id AND sv.published AND NOT sv.archived) shop_product_count,COALESCE((SELECT round(avg(sr.rating)::numeric,1)::float FROM storefront_reviews sr WHERE sr.shop_id=s.id AND sr.variant_id IS NULL),0) shop_rating_average,(SELECT count(*)::int FROM storefront_reviews sr WHERE sr.shop_id=s.id AND sr.variant_id IS NULL) shop_rating_count,s.city,s.phone,s.address,s.hours,s.district,s.pickup_enabled,s.delivery_enabled` +
+    `SELECT v.id,v.size,v.color,v.sku,v.parent_id,v.attributes,(p.photo_data IS NOT NULL) has_photo,cardinality(p.photo_album) photo_count,p.name,p.description,p.category,COALESCE(pc.name,p.category) AS platform_category,v.sale_price_minor,COALESCE(b.physical,0)-COALESCE(b.reserved,0) available,COALESCE((SELECT round(avg(sr.rating)::numeric,1)::float FROM storefront_reviews sr WHERE sr.variant_id=v.id),0) rating_average,(SELECT count(*)::int FROM storefront_reviews sr WHERE sr.variant_id=v.id) rating_count,s.slug,s.name shop_name,s.description shop_description,(SELECT count(*)::int FROM variants sv JOIN product_publications sp ON sp.variant_id=sv.id WHERE sv.shop_id=s.id AND sv.published AND NOT sv.archived) shop_product_count,COALESCE((SELECT round(avg(sr.rating)::numeric,1)::float FROM storefront_reviews sr WHERE sr.shop_id=s.id AND sr.variant_id IS NULL),0) shop_rating_average,(SELECT count(*)::int FROM storefront_reviews sr WHERE sr.shop_id=s.id AND sr.variant_id IS NULL) shop_rating_count,s.city,s.phone,s.address,s.hours,s.district,s.pickup_enabled,s.delivery_enabled` +
     this.from;
   private async canonicalSlug(slug: string) {
     const [row] = await this.db.query(
@@ -398,7 +401,7 @@ export class StorefrontService {
       query.minPrice > query.maxPrice
     )
       throw new BadRequestException('Invalid price range');
-    const params = [
+    const params: any[] = [
       escaped(q),
       canonicalStore,
       category,
@@ -408,10 +411,27 @@ export class StorefrontService {
       query.maxPrice ?? Number.MAX_SAFE_INTEGER,
       minRating,
     ];
+    let extraWhere = '';
+    if (query.attributes && typeof query.attributes === 'object') {
+      for (const [k, v] of Object.entries(query.attributes)) {
+        if (!k || v === undefined || v === '') continue;
+        const vals = Array.isArray(v) ? v : [v];
+        if (vals.length === 1) {
+          params.push(k, vals[0]);
+          extraWhere += ` AND v.attributes->>$${params.length - 1} = $${params.length}`;
+        } else if (vals.length > 1) {
+          params.push(k, vals);
+          extraWhere += ` AND v.attributes->>$${params.length - 1} = ANY($${params.length}::text[])`;
+        }
+      }
+    }
+    const fullWhere = where + extraWhere;
+    const limitIdx = params.length + 1;
+    const offsetIdx = params.length + 2;
     const rows = await this.db.query(
       this.select +
         ' WHERE ' +
-        where +
+        fullWhere +
         ' ORDER BY ' +
         (sort === 'price-asc'
           ? 'v.sale_price_minor ASC, p.name ASC, v.id ASC'
@@ -420,11 +440,11 @@ export class StorefrontService {
             : sort === 'newest'
               ? 'p.approved_at DESC, v.id ASC'
               : 'p.name ASC, v.id ASC') +
-        ' LIMIT $9 OFFSET $10',
+        ` LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
       [...params, pageSize, (page - 1) * pageSize],
     );
     const [count] = await this.db.query(
-      'SELECT count(*)::int total' + this.from + ' WHERE ' + where,
+      'SELECT count(*)::int total' + this.from + ' WHERE ' + fullWhere,
       params,
     );
     const cats = await this.db.query(

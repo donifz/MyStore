@@ -271,6 +271,9 @@ describe('public storefront', () => {
       description: '',
       category: '',
       platformCategory: '',
+      attributes: {},
+      ratingAverage: 0,
+      ratingCount: 0,
       salePriceMinor: 15000,
       available: 3,
       variants: [
@@ -287,6 +290,7 @@ describe('public storefront', () => {
       store: {
         slug: shop.slug,
         name: 'Test Shop',
+        description: 'Товары для дома',
         city: 'Ош',
         district: '',
         pickupEnabled: true,
@@ -294,6 +298,9 @@ describe('public storefront', () => {
         phone: profile.phone,
         address: 'Центр',
         hours: '10:00–19:00',
+        productCount: 1,
+        ratingAverage: 0,
+        ratingCount: 0,
       },
     });
     expect(r.headers['cache-control']).toBe('no-store');

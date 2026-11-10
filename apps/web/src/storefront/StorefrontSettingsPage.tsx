@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { api, ApiError, errorText } from '../api/client';
 import { useSession } from '../auth/SessionProvider';
 import { StoreProfile, StorefrontBanner } from './types';
+import { ShopCustomAttribute, CustomAttributeType } from '../api/types';
 import { useResource } from './use-resource';
 import BusinessHoursEditor from './BusinessHoursEditor';
 import BannerEditor from './BannerEditor';
@@ -23,7 +24,14 @@ export default function StorefrontSettingsPage() {
     [bannerSaved, setBannerSaved] = useState(false),
     [error, setError] = useState(''),
     [saved, setSaved] = useState(false),
-    [dirty, setDirty] = useState(false);
+    [dirty, setDirty] = useState(false),
+    [customAttrs, setCustomAttrs] = useState<ShopCustomAttribute[]>([]),
+    [newAttrName, setNewAttrName] = useState(''),
+    [newAttrType, setNewAttrType] = useState<CustomAttributeType>('select'),
+    [newAttrOptions, setNewAttrOptions] = useState(''),
+    [attrBusy, setAttrBusy] = useState(false),
+    [attrError, setAttrError] = useState(''),
+    [attrSuccess, setAttrSuccess] = useState('');
   useEffect(() => {
     setForm(resource.data);
     setBannerDraft(resource.data?.banner ?? null);
@@ -32,6 +40,13 @@ export default function StorefrontSettingsPage() {
     setSaved(false);
     setDirty(false);
   }, [resource.data]);
+  useEffect(() => {
+    if (owner && shopId) {
+      void api<ShopCustomAttribute[]>(`/shops/${shopId}/custom-attributes`)
+        .then((items) => setCustomAttrs(items || []))
+        .catch(() => {});
+    }
+  }, [owner, shopId]);
   if (!owner) return <p role="alert">Настройка витрины доступна владельцу.</p>;
   if (!form)
     return (
@@ -312,6 +327,213 @@ export default function StorefrontSettingsPage() {
           </fieldset>
         </form>
       </section>
+
+      <section className="panel" style={{ marginTop: '1.5rem' }}>
+        <h2>Свойства товаров и фильтры витрины</h2>
+        <p className="muted">
+          Добавьте свойства магазина (например, Бренд, Возраст, Материал). Они
+          будут доступны в дополнительных полях при создании товаров и
+          отобразятся в фильтрах каталога вашей витрины.
+        </p>
+
+        {attrError && (
+          <p role="alert" className="error">
+            {attrError}
+          </p>
+        )}
+        {attrSuccess && (
+          <p role="status" className="success">
+            {attrSuccess}
+          </p>
+        )}
+
+        {customAttrs.length > 0 ? (
+          <div className="table-wrap" style={{ marginTop: '1rem' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Название</th>
+                  <th>Ключ</th>
+                  <th>Тип</th>
+                  <th>Варианты</th>
+                  <th>Действие</th>
+                </tr>
+              </thead>
+              <tbody>
+                {customAttrs.map((attr) => (
+                  <tr key={attr.id}>
+                    <td>
+                      <strong>{attr.name}</strong>
+                    </td>
+                    <td>
+                      <code>{attr.key}</code>
+                    </td>
+                    <td>
+                      {attr.type === 'select'
+                        ? 'Выпадающий список'
+                        : attr.type === 'number'
+                          ? 'Число'
+                          : 'Текст'}
+                    </td>
+                    <td>
+                      {attr.type === 'select' ? attr.options.join(', ') : '—'}
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="danger"
+                        disabled={attrBusy}
+                        onClick={() =>
+                          void handleDeleteAttr(attr.id, attr.name)
+                        }
+                        style={{
+                          padding: '0.25rem 0.5rem',
+                          fontSize: '0.8rem',
+                        }}
+                      >
+                        Удалить
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="muted" style={{ marginTop: '0.5rem' }}>
+            Пока нет дополнительных свойств. Добавьте первое свойство ниже.
+          </p>
+        )}
+
+        <form
+          onSubmit={(e) => void handleAddAttr(e)}
+          style={{
+            marginTop: '1.25rem',
+            padding: '1rem',
+            border: '1px solid var(--border, #e2e8f0)',
+            borderRadius: '8px',
+            background: 'var(--surface-subtle, #f8fafc)',
+          }}
+        >
+          <h3 style={{ margin: '0 0 0.75rem', fontSize: '1rem' }}>
+            + Добавить свойство товара
+          </h3>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+              gap: '0.75rem',
+            }}
+          >
+            <label>
+              Название свойства
+              <input
+                required
+                maxLength={80}
+                value={newAttrName}
+                onChange={(e) => setNewAttrName(e.target.value)}
+                placeholder="Например, Бренд или Возраст"
+              />
+            </label>
+            <label>
+              Тип свойства
+              <select
+                value={newAttrType}
+                onChange={(e) =>
+                  setNewAttrType(e.target.value as CustomAttributeType)
+                }
+              >
+                <option value="select">Список вариантов (select)</option>
+                <option value="number">Число (number)</option>
+                <option value="string">Текст (string)</option>
+              </select>
+            </label>
+            {newAttrType === 'select' && (
+              <label style={{ gridColumn: '1 / -1' }}>
+                Варианты через запятую
+                <input
+                  value={newAttrOptions}
+                  onChange={(e) => setNewAttrOptions(e.target.value)}
+                  placeholder="Например: LEGO, Barbie, Hot Wheels"
+                />
+              </label>
+            )}
+          </div>
+          <div style={{ marginTop: '0.75rem' }}>
+            <button
+              type="submit"
+              className="primary"
+              disabled={attrBusy || !newAttrName.trim()}
+            >
+              {attrBusy ? 'Сохранение…' : 'Добавить свойство'}
+            </button>
+          </div>
+        </form>
+      </section>
     </>
   );
+
+  async function handleAddAttr(e: FormEvent) {
+    e.preventDefault();
+    if (!shopId) return;
+    const name = newAttrName.trim();
+    if (!name) {
+      setAttrError('Укажите название свойства');
+      return;
+    }
+    setAttrBusy(true);
+    setAttrError('');
+    setAttrSuccess('');
+    try {
+      const options =
+        newAttrType === 'select'
+          ? newAttrOptions
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [];
+      if (newAttrType === 'select' && options.length === 0) {
+        throw new Error('Укажите хотя бы один вариант через запятую');
+      }
+      const created = await api<ShopCustomAttribute>(
+        `/shops/${shopId}/custom-attributes`,
+        {
+          method: 'POST',
+          body: {
+            name,
+            type: newAttrType,
+            options,
+            filterable: true,
+          },
+        },
+      );
+      setCustomAttrs((prev) => [...prev, created]);
+      setNewAttrName('');
+      setNewAttrOptions('');
+      setAttrSuccess(`Свойство «${created.name}» успешно добавлено.`);
+    } catch (err) {
+      setAttrError(errorText(err));
+    } finally {
+      setAttrBusy(false);
+    }
+  }
+
+  async function handleDeleteAttr(id: string, name: string) {
+    if (!shopId) return;
+    if (!window.confirm(`Удалить свойство «${name}»?`)) return;
+    setAttrBusy(true);
+    setAttrError('');
+    setAttrSuccess('');
+    try {
+      await api(`/shops/${shopId}/custom-attributes/${id}`, {
+        method: 'DELETE',
+      });
+      setCustomAttrs((prev) => prev.filter((a) => a.id !== id));
+      setAttrSuccess(`Свойство «${name}» удалено.`);
+    } catch (err) {
+      setAttrError(errorText(err));
+    } finally {
+      setAttrBusy(false);
+    }
+  }
 }

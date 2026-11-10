@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 const id = '11111111-1111-4111-8111-111111111111';
 const secondId = '22222222-2222-4222-8222-222222222222';
-for (const width of [320, 390, 768, 980, 1024, 1200, 1440]) {
+for (const width of [320, 390, 768, 980, 1024, 1185, 1200, 1440]) {
   test(`catalog has a usable grid without overflow at ${width}px`, async ({
     page,
   }) => {
@@ -17,6 +17,16 @@ for (const width of [320, 390, 768, 980, 1024, 1200, 1440]) {
       );
     expect(columns).toBe(
       width <= 350 ? 1 : width < 1100 ? 2 : width < 1380 ? 3 : 4,
+    );
+    const docScrollWidth = await page.evaluate(
+      () => document.documentElement.scrollWidth,
+    );
+    const winInnerWidth = await page.evaluate(() => window.innerWidth);
+    const docClientWidth = await page.evaluate(
+      () => document.documentElement.clientWidth,
+    );
+    console.log(
+      `WIDTH ${width}px -> scrollWidth: ${docScrollWidth}, innerWidth: ${winInnerWidth}, clientWidth: ${docClientWidth}`,
     );
     expect(
       await page.evaluate(
@@ -457,7 +467,7 @@ test('product layout stays readable in phone, desktop-site and desktop viewports
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/shops/shop-a/products/' + id);
     await expect(
-      page.getByRole('heading', { name: 'Керамическая чашка' }),
+      page.getByRole('heading', { name: 'Керамическая чашка', exact: true }),
     ).toBeVisible();
     await expect(
       page.getByRole('button', { name: 'В избранное: Керамическая чашка' }),

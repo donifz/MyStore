@@ -25,9 +25,10 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { CaptureService } from '../catalog/capture.service';
+import { ShopCustomAttributesService } from '../catalog/shop-custom-attributes.service';
 import { StorefrontService } from './storefront.service';
 import { BuyerAuthGuard, BuyerRequest } from '../customers/buyer-auth.guard';
 class PageQuery {
@@ -100,6 +101,7 @@ export class PublicStorefrontController {
   constructor(
     private readonly service: StorefrontService,
     private readonly capture: CaptureService,
+    private readonly customAttributes: ShopCustomAttributesService,
   ) {}
   @Get('stores/:slug/products/:id/photo') async photo(
     @Param('slug') slug: string,
@@ -130,12 +132,42 @@ export class PublicStorefrontController {
     res.setHeader('Cache-Control', 'no-store');
     return this.service.store(slug);
   }
-  @Get('products') products(
-    @Query() q: ProductQuery,
+  @Get('stores/:slug/custom-attributes') async storeCustomAttributes(
+    @Param('slug') slug: string,
     @Res({ passthrough: true }) res: Response,
   ) {
     res.setHeader('Cache-Control', 'no-store');
-    return this.service.products(q);
+    return this.customAttributes.listStorefront(slug);
+  }
+  @Get('products') products(
+    @Query() q: ProductQuery,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    res.setHeader('Cache-Control', 'no-store');
+    const attributes: Record<string, string | string[]> = {};
+    const rawQuery = (req.query || {}) as Record<string, any>;
+    for (const [k, v] of Object.entries(rawQuery)) {
+      if (k.startsWith('attr_')) {
+        const attrKey = k.slice(5);
+        if (attrKey) attributes[attrKey] = v;
+      }
+    }
+    if (rawQuery.attrs) {
+      try {
+        const parsed =
+          typeof rawQuery.attrs === 'string'
+            ? JSON.parse(rawQuery.attrs)
+            : rawQuery.attrs;
+        if (typeof parsed === 'object' && parsed !== null) {
+          Object.assign(attributes, parsed);
+        }
+      } catch {}
+    }
+    return this.service.products({
+      ...q,
+      attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
+    });
   }
   @Get('stores/:slug/products/:id') product(
     @Param('slug') slug: string,

@@ -39,6 +39,7 @@ import { CreditRepayments1760000000035 } from './migrations/1760000000035-Credit
 import { BuyerTelegramVerification1760000000036 } from './migrations/1760000000036-BuyerTelegramVerification';
 import { LoyaltyWallets1760000000037 } from './migrations/1760000000037-LoyaltyWallets';
 import { StorefrontReviews1760000000038 } from './migrations/1760000000038-StorefrontReviews';
+import { ShopCustomAttributes1760000000039 } from './migrations/1760000000039-ShopCustomAttributes';
 export const DATABASE = Symbol('DATABASE');
 export function buildDataSource(url: string) {
   return new DataSource({
@@ -85,6 +86,7 @@ export function buildDataSource(url: string) {
       BuyerTelegramVerification1760000000036,
       LoyaltyWallets1760000000037,
       StorefrontReviews1760000000038,
+      ShopCustomAttributes1760000000039,
     ],
   });
 }
