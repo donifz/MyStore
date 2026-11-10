@@ -6,6 +6,10 @@ import type { RequestHandler } from 'express';
 describe('public Next handler boundary', () => {
   let app: Awaited<ReturnType<typeof createApp>>;
   beforeAll(async () => {
+    if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32) {
+      process.env.SESSION_SECRET =
+        'test-session-secret-must-be-at-least-32-chars-long';
+    }
     const handler: RequestHandler = (req, res) => {
       res
         .status(req.path.includes('missing') ? 404 : 200)
