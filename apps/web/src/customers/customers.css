@@ -1,87 +1,799 @@
 .buyer-page {
   min-height: 100vh;
   background: #f4f6f9;
-  color: #202c3c;
+  color: #1e293b;
+  font-family: inherit;
 }
+
 .buyer-topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px max(20px, calc((100vw - 1120px) / 2));
-  background: #fff;
-  border-bottom: 1px solid #d9e0e7;
+  padding: 16px max(20px, calc((100vw - 1120px) / 2));
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
+
 .buyer-brand {
-  font-size: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 22px;
   font-weight: 800;
   color: #176854;
+  text-decoration: none;
+  letter-spacing: -0.02em;
 }
+
+.buyer-topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.buyer-topbar-link {
+  font-size: 14px;
+  font-weight: 500;
+  color: #475569;
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+.buyer-topbar-link:hover {
+  color: #176854;
+  background: #f0fdf4;
+}
+
 .buyer-container {
-  max-width: 1120px;
-  margin: 32px auto;
+  max-width: 1080px;
+  margin: 28px auto 48px;
   padding: 0 20px;
 }
-.buyer-heading {
+
+/* Profile header card */
+.buyer-profile-card {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 24px 28px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.04);
+  margin-bottom: 24px;
+}
+
+.buyer-profile-info {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.buyer-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #176854 0%, #10b981 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(23, 104, 84, 0.25);
+  flex-shrink: 0;
+}
+
+.buyer-profile-details .eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #176854;
+  margin: 0 0 2px;
+}
+
+.buyer-profile-details h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 4px;
+  letter-spacing: -0.01em;
+}
+
+.buyer-profile-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.buyer-phone-badge {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.buyer-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.buyer-status-pill.verified {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.buyer-status-pill.unverified {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.buyer-logout-btn {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-weight: 500;
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.buyer-logout-btn:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+/* Telegram verification alert */
+.buyer-telegram-card {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 16px;
+  padding: 22px 24px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
+}
+
+.buyer-telegram-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.buyer-telegram-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #229ed9;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(34, 158, 217, 0.25);
+}
+
+.buyer-telegram-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #065f46;
+  margin: 0 0 6px;
+}
+
+.buyer-telegram-header p {
+  font-size: 14px;
+  color: #166534;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.buyer-telegram-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+/* Hero Loyalty Card */
+.buyer-loyalty-hero {
+  position: relative;
+  background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%);
+  color: #ffffff;
+  border-radius: 20px;
+  padding: 28px 32px;
+  margin-bottom: 24px;
+  overflow: hidden;
+  box-shadow:
+    0 12px 28px -6px rgba(6, 95, 70, 0.35),
+    0 8px 12px -6px rgba(6, 95, 70, 0.2);
+}
+
+.buyer-loyalty-sheen {
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.15) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.buyer-loyalty-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.buyer-loyalty-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  padding: 4px 12px;
+  border-radius: 20px;
+  color: #d1fae5;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.buyer-loyalty-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.buyer-loyalty-balance-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.buyer-loyalty-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #a7f3d0;
+  margin-bottom: 4px;
+}
+
+.buyer-loyalty-points {
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: #ffffff;
+}
+
+.buyer-loyalty-points small {
+  font-size: 18px;
+  font-weight: 500;
+  color: #d1fae5;
+  margin-left: 6px;
+}
+
+.buyer-loyalty-rate {
+  font-size: 12px;
+  color: #a7f3d0;
+  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.buyer-loyalty-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  color: #064e3b;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px 22px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.15s ease;
+}
+
+.buyer-loyalty-btn:hover:not(:disabled) {
+  background: #ecfdf5;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.buyer-loyalty-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.buyer-loyalty-wallets-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.buyer-wallet-pill {
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.15);
+  padding: 4px 10px;
+  border-radius: 8px;
+  color: #d1fae5;
+}
+
+.buyer-wallet-pill strong {
+  color: #ffffff;
+}
+
+/* QR Code Modal / Display */
+.buyer-qr-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.08);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.buyer-qr-wrapper {
+  background: #ffffff;
+  padding: 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin-bottom: 16px;
+}
+
+.buyer-qr-tag {
+  display: inline-block;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-bottom: 8px;
+}
+
+.buyer-qr-meta {
+  font-size: 13px;
+  color: #64748b;
+  max-width: 380px;
+  margin: 0 auto 16px;
+  line-height: 1.5;
+}
+
+/* Stats Row */
+.buyer-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.buyer-stat-tile {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.02);
+  transition: transform 0.15s ease;
+}
+
+.buyer-stat-tile:hover {
+  transform: translateY(-2px);
+}
+
+.buyer-stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.buyer-stat-icon.emerald {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.buyer-stat-icon.blue {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.buyer-stat-icon.amber {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.buyer-stat-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.buyer-stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+.buyer-stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* Two-column layout */
+.buyer-layout-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 24px;
   align-items: flex-start;
 }
-.buyer-auth {
-  max-width: 480px;
-  margin: 30px auto;
-  padding: 28px;
+
+.buyer-panel {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.03);
+  margin-bottom: 24px;
 }
-.buyer-auth form {
+
+.buyer-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.buyer-panel-head h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Debt items */
+.buyer-debt-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.buyer-debt-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.buyer-debt-shop {
+  font-weight: 700;
+  font-size: 15px;
+  color: #0f172a;
+}
+
+.buyer-debt-amount {
+  font-weight: 800;
+  font-size: 16px;
+  color: #b91c1c;
+}
+
+.buyer-progress-track {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.buyer-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.buyer-debt-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.buyer-due-badge {
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+/* Repayment rows */
+.buyer-repayment-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 14px;
+}
+
+.buyer-repayment-item:last-child {
+  border-bottom: none;
+}
+
+.buyer-repayment-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.buyer-repayment-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.buyer-repayment-amount {
+  font-weight: 700;
+  color: #059669;
+}
+
+/* Shop items */
+.buyer-shop-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 4px 6px 4px 0;
+}
+
+/* Link shop form */
+.buyer-link-form {
   display: grid;
   gap: 12px;
-  margin: 24px 0 12px;
+  margin-top: 14px;
 }
-.buyer-auth form label {
-  margin-bottom: 0;
+
+.buyer-link-form label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
-.buyer-message {
-  background: #fff8e6;
-  border: 1px solid #f0d18a;
+
+.buyer-link-form input {
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
   border-radius: 10px;
-  padding: 18px;
-  margin: 22px 0;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.15s ease;
 }
-.buyer-message p {
-  margin-bottom: 0;
+
+.buyer-link-form input:focus {
+  outline: none;
+  border-color: #176854;
+  box-shadow: 0 0 0 3px rgba(23, 104, 84, 0.12);
 }
-.buyer-grid {
+
+/* Authentication card */
+.buyer-auth-card {
+  max-width: 440px;
+  margin: 40px auto;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 36px 32px;
+  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.08);
+}
+
+.buyer-auth-head {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.buyer-auth-head .eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #176854;
+  margin-bottom: 6px;
+}
+
+.buyer-auth-head h1 {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+
+.buyer-auth-head .muted {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.buyer-auth-form {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
   margin: 20px 0;
 }
+
+.buyer-auth-form label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.buyer-auth-form input {
+  padding: 12px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 15px;
+  transition: all 0.15s ease;
+}
+
+.buyer-auth-form input:focus {
+  outline: none;
+  border-color: #176854;
+  box-shadow: 0 0 0 3px rgba(23, 104, 84, 0.12);
+}
+
+.buyer-submit-btn {
+  background: #176854;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 13px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 10px rgba(23, 104, 84, 0.25);
+}
+
+.buyer-submit-btn:hover:not(:disabled) {
+  background: #0f5442;
+  transform: translateY(-1px);
+}
+
+.buyer-submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.buyer-toggle-btn {
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 10px;
+  transition: all 0.15s ease;
+}
+
+.buyer-toggle-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+/* Retain previous class names for compatibility */
+.buyer-message {
+  background: #fff8e6;
+  border: 1px solid #f0d18a;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin: 18px 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.buyer-message p {
+  margin-bottom: 0;
+}
+
 .buyer-tile {
   padding: 20px;
 }
+
 .customer-page .customer-form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
 }
+
 .customer-page .customer-form-grid label {
   margin-bottom: 6px;
 }
+
 .customer-page .panel {
   margin-bottom: 16px;
 }
-@media (max-width: 600px) {
-  .buyer-heading {
-    flex-direction: column;
-  }
-  .buyer-container {
-    margin: 18px auto;
-  }
-  .buyer-auth {
-    padding: 18px;
-    margin: 12px auto;
-  }
-}
+
 .pos-credit-enrollment {
   display: grid;
   gap: 12px;
@@ -89,16 +801,56 @@
   border: 1px solid #d9e0e7;
   border-radius: 10px;
 }
+
 .buyer-invite-panel {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 10px;
 }
+
 .buyer-invite-panel svg {
   max-width: 100%;
   height: auto;
 }
+
 .buyer-invite-panel a {
   overflow-wrap: anywhere;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 840px) {
+  .buyer-layout-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .buyer-profile-card {
+    padding: 20px;
+  }
+  .buyer-profile-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .buyer-loyalty-hero {
+    padding: 22px 20px;
+  }
+  .buyer-loyalty-points {
+    font-size: 32px;
+  }
+  .buyer-auth-card {
+    padding: 24px 20px;
+    margin: 16px auto;
+  }
 }

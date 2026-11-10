@@ -6,6 +6,8 @@ import {
 } from './kyrgyzPhoneMask';
 import { parseBuyerInviteFragment } from './buyerInviteLink';
 import BuyerInviteQr from './BuyerInviteQr';
+import PaymentIcon from '../pos/PaymentIcon';
+import { formatSom } from '../api/money';
 
 type BuyerDebt = {
   saleId: string;
@@ -298,29 +300,70 @@ export default function BuyerPortalPage() {
     }
   }
 
+  const totalDebtMinor = debts.reduce((sum, d) => sum + d.debtMinor, 0);
+  const totalPoints = loyaltyWallets.reduce(
+    (sum, w) => sum + w.balancePoints,
+    0,
+  );
+  const initialLetter = (account?.name?.trim() || 'П')[0].toUpperCase();
+
   return (
     <main className="buyer-page">
       <header className="buyer-topbar">
         <Link to="/" className="buyer-brand">
+          <PaymentIcon name="sparkle" size={20} />
           MyStore
         </Link>
-        <Link to="/shops">Каталог магазинов</Link>
+        <nav className="buyer-topbar-nav">
+          <Link to="/shops" className="buyer-topbar-link">
+            Каталог магазинов
+          </Link>
+          {account && (
+            <button
+              type="button"
+              className="buyer-logout-btn"
+              disabled={busy}
+              onClick={() => void logout()}
+            >
+              Выйти
+            </button>
+          )}
+        </nav>
       </header>
+
       <div className="buyer-container">
         {loading ? (
           <p role="status">Загружаем кабинет…</p>
         ) : account ? (
           <>
-            <div className="buyer-heading">
-              <div>
-                <p className="eyebrow">Личный кабинет покупателя</p>
-                <h1>Здравствуйте, {account.name}!</h1>
-                <p className="muted">{account.phone}</p>
+            {/* User Profile Header */}
+            <section className="buyer-profile-card">
+              <div className="buyer-profile-info">
+                <div className="buyer-avatar" aria-hidden="true">
+                  {initialLetter}
+                </div>
+                <div className="buyer-profile-details">
+                  <p className="eyebrow">Личный кабинет покупателя</p>
+                  <h1>Здравствуйте, {account.name}!</h1>
+                  <div className="buyer-profile-meta">
+                    <span className="buyer-phone-badge">{account.phone}</span>
+                    {account.phoneVerified ? (
+                      <span className="buyer-status-pill verified">
+                        <PaymentIcon name="check" size={14} />
+                        Телефон подтверждён
+                      </span>
+                    ) : (
+                      <span className="buyer-status-pill unverified">
+                        <PaymentIcon name="clock" size={14} />
+                        Требуется подтверждение
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
-              <button disabled={busy} onClick={() => void logout()}>
-                Выйти
-              </button>
-            </div>
+            </section>
+
+            {/* Telegram verification warning & banner */}
             {!account.phoneVerified && (
               <div className="buyer-message" role="status">
                 <strong>Номер ещё не подтверждён</strong>
@@ -331,195 +374,399 @@ export default function BuyerPortalPage() {
                 </p>
               </div>
             )}
+
             {!account.phoneVerified && telegramEnabled && (
-              <section className="panel buyer-tile">
-                <h2>Подтвердить телефон через Telegram</h2>
-                <p className="muted">
-                  Нажмите кнопку, затем в боте Telegram поделитесь своим
-                  контактом. Номер контакта должен совпадать с номером кабинета.
-                  Ссылка действует 10 минут.
-                </p>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void prepareTelegram()}
-                >
-                  Получить ссылку для подтверждения
-                </button>
-                {telegramLink && (
-                  <p>
+              <section className="buyer-telegram-card">
+                <div className="buyer-telegram-header">
+                  <div className="buyer-telegram-icon" aria-hidden="true">
+                    <PaymentIcon name="sparkle" size={22} />
+                  </div>
+                  <div>
+                    <h2>Подтвердить телефон через Telegram</h2>
+                    <p>
+                      Нажмите кнопку, затем в боте Telegram поделитесь своим
+                      контактом. Номер контакта должен совпадать с номером
+                      кабинета. Ссылка действует 10 минут.
+                    </p>
+                  </div>
+                </div>
+                <div className="buyer-telegram-actions">
+                  <button
+                    type="button"
+                    className="button primary"
+                    disabled={busy}
+                    onClick={() => void prepareTelegram()}
+                  >
+                    Получить ссылку для подтверждения
+                  </button>
+                  {telegramLink && (
                     <a
                       href={telegramLink}
+                      className="button secondary"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
                       Открыть Telegram-бота
                     </a>
-                  </p>
-                )}
+                  )}
+                  <button
+                    type="button"
+                    className="button"
+                    onClick={() => void refresh()}
+                  >
+                    Проверить статус номера
+                  </button>
+                </div>
                 {telegramError && (
                   <p role="alert" className="error">
                     {telegramError}
                   </p>
                 )}
-                <button type="button" onClick={() => void refresh()}>
-                  Проверить статус номера
-                </button>
               </section>
             )}
-            <section className="panel buyer-tile">
-              <h2>Привязать магазин</h2>
-              {inviteToken && (
-                <p className="muted">
-                  Приглашение из QR-кода получено. Нажмите «Привязать магазин»,
-                  чтобы подтвердить связь с вашим аккаунтом.
-                </p>
-              )}
-              <p className="muted">
-                Получите одноразовый код у кассира и введите его здесь. Код
-                действует 15 минут.
-              </p>
-              <form onSubmit={(e) => void linkShop(e)}>
-                <label>
-                  Код приглашения
-                  <input
-                    required
-                    value={inviteToken}
-                    onChange={(e) => setInviteToken(e.target.value)}
-                    placeholder="Код от кассира"
-                    maxLength={43}
-                  />
-                </label>
-                <button
-                  type="submit"
-                  className="primary"
-                  disabled={busy || inviteToken.trim().length !== 43}
-                >
-                  Привязать магазин
-                </button>
-              </form>
-            </section>
-            <div className="buyer-grid">
-              <section className="panel buyer-tile">
-                <h2>Мои магазины</h2>
-                <p className="muted">
-                  {account.shops.length
-                    ? account.shops.map((s) => s.shopName).join(', ')
-                    : 'Подключённые магазины появятся после безопасной привязки аккаунта.'}
-                </p>
-              </section>
-              <section className="panel buyer-tile">
-                <h2>Мои долги</h2>
-                <p className="muted">
-                  Всего осталось:{' '}
-                  <strong>
-                    {(
-                      debts.reduce((sum, debt) => sum + debt.debtMinor, 0) / 100
-                    ).toLocaleString('ru-RU')}{' '}
-                    сом
-                  </strong>
-                </p>
-                {debtsError && (
-                  <p role="alert" className="error">
-                    {debtsError}
-                  </p>
-                )}
-                {!debts.length && !debtsError && (
-                  <p className="muted">Задолженностей нет.</p>
-                )}
-                {debts.map((debt) => (
-                  <div key={debt.saleId} className="buyer-debt-row">
-                    <strong>{debt.shopName}</strong>
-                    <span>
-                      {(debt.debtMinor / 100).toLocaleString('ru-RU')} сом
+
+            {/* Hero Loyalty Card */}
+            {loyaltyEnabled && (
+              <section className="buyer-loyalty-hero">
+                <div className="buyer-loyalty-sheen" aria-hidden="true" />
+                <div className="buyer-loyalty-top">
+                  <span className="buyer-loyalty-badge">
+                    <PaymentIcon name="sparkle" size={14} />
+                    MyStore Club
+                  </span>
+                  <PaymentIcon name="wallet" size={24} />
+                </div>
+                <div className="buyer-loyalty-content">
+                  <div className="buyer-loyalty-balance-box">
+                    <span className="buyer-loyalty-label">Баланс бонусов</span>
+                    <div className="buyer-loyalty-points">
+                      {totalPoints.toLocaleString('ru-RU')}
+                      <small>баллов</small>
+                    </div>
+                    <span className="buyer-loyalty-rate">
+                      1 балл = 1 сом скидки · Покажите QR кассиру
                     </span>
-                    <small>Погасить до: {debt.dueOn}</small>
                   </div>
-                ))}
-              </section>
-              <section className="panel buyer-tile">
-                <h2>История погашений</h2>
-                {!repayments.length && (
-                  <p className="muted">Платежей пока нет.</p>
-                )}
-                {repayments.map((payment) => (
-                  <p key={payment.id}>
-                    <strong>{payment.shopName}</strong> ·{' '}
-                    {(payment.amountMinor / 100).toLocaleString('ru-RU')} сом
-                    <small>
-                      {' '}
-                      ·{' '}
-                      {new Date(payment.createdAt).toLocaleDateString('ru-KG')}
-                    </small>
-                  </p>
-                ))}
-              </section>
-              <section className="panel buyer-tile">
-                <h2>Мои бонусы</h2>
-                {loyaltyEnabled ? (
-                  <>
-                    {!loyaltyWallets.length && (
-                      <p className="muted">
-                        Баллы появятся после привязки магазина и покупок.
-                      </p>
-                    )}
-                    {loyaltyWallets.map((wallet) => (
-                      <p key={wallet.shopId}>
-                        <strong>{wallet.shopName}</strong> ·{' '}
-                        {wallet.balancePoints} баллов
-                      </p>
-                    ))}
-                    <p className="muted">
-                      1 балл = 1 сом. Покажите QR кассиру. Код одноразовый,
-                      действует 2 минуты.
-                    </p>
+                  <div>
                     <button
                       type="button"
+                      className="buyer-loyalty-btn"
                       disabled={loyaltyBusy || !account.phoneVerified}
                       onClick={() => void showLoyaltyQr()}
                     >
+                      <PaymentIcon name="qr" size={18} />
                       {loyaltyBusy ? 'Создаём QR…' : 'Показать мой QR'}
                     </button>
-                    {!account.phoneVerified && (
-                      <p className="muted">
-                        Сначала подтвердите телефон через Telegram.
-                      </p>
-                    )}
-                    {loyaltyCode && (
-                      <div className="buyer-invite-panel">
-                        <BuyerInviteQr value={loyaltyCode} />
-                        <p className="muted">
-                          QR нельзя использовать повторно.
-                        </p>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <p className="muted">
-                    Бонусная программа пока не подключена.
+                  </div>
+                </div>
+
+                {!account.phoneVerified && (
+                  <p
+                    className="muted"
+                    style={{
+                      marginTop: '14px',
+                      color: '#fef3c7',
+                      fontSize: '13px',
+                    }}
+                  >
+                    Сначала подтвердите телефон через Telegram.
                   </p>
                 )}
-                {loyaltyError && <p role="alert">{loyaltyError}</p>}
+
+                {loyaltyWallets.length > 0 && (
+                  <div className="buyer-loyalty-wallets-list">
+                    {loyaltyWallets.map((wallet) => (
+                      <span className="buyer-wallet-pill" key={wallet.shopId}>
+                        {wallet.shopName}:{' '}
+                        <strong>{wallet.balancePoints} баллов</strong>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {loyaltyError && (
+                  <p
+                    role="alert"
+                    style={{ color: '#fca5a5', marginTop: '10px' }}
+                  >
+                    {loyaltyError}
+                  </p>
+                )}
               </section>
+            )}
+
+            {/* QR Code Presentation Box */}
+            {loyaltyCode && (
+              <section className="buyer-qr-card">
+                <span className="buyer-qr-tag">Одноразовый QR-код</span>
+                <div className="buyer-qr-wrapper buyer-invite-panel">
+                  <BuyerInviteQr value={loyaltyCode} />
+                </div>
+                <p className="buyer-qr-meta">
+                  Код действует 2 минуты. Покажите экран кассиру перед оплатой.
+                  QR нельзя использовать повторно.
+                </p>
+                <button
+                  type="button"
+                  className="button secondary"
+                  onClick={() => setLoyaltyCode('')}
+                >
+                  Скрыть QR-код
+                </button>
+              </section>
+            )}
+
+            {/* Quick Stats Overview */}
+            <div className="buyer-stats-grid">
+              <div className="buyer-stat-tile">
+                <div className="buyer-stat-icon emerald">
+                  <PaymentIcon name="tag" size={22} />
+                </div>
+                <div className="buyer-stat-body">
+                  <span className="buyer-stat-label">Подключено магазинов</span>
+                  <span className="buyer-stat-value">
+                    {account.shops.length}
+                  </span>
+                </div>
+              </div>
+
+              <div className="buyer-stat-tile">
+                <div className="buyer-stat-icon amber">
+                  <PaymentIcon name="clock" size={22} />
+                </div>
+                <div className="buyer-stat-body">
+                  <span className="buyer-stat-label">Остаток долга</span>
+                  <span className="buyer-stat-value">
+                    {totalDebtMinor === 0
+                      ? '0,00 сом'
+                      : formatSom(totalDebtMinor)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="buyer-stat-tile">
+                <div className="buyer-stat-icon blue">
+                  <PaymentIcon name="check" size={22} />
+                </div>
+                <div className="buyer-stat-body">
+                  <span className="buyer-stat-label">Погашений</span>
+                  <span className="buyer-stat-value">{repayments.length}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Main Sections Grid */}
+            <div className="buyer-layout-grid">
+              {/* Left Column: Debts & Repayments */}
+              <div>
+                <section className="buyer-panel">
+                  <div className="buyer-panel-head">
+                    <h2>
+                      <PaymentIcon name="clock" size={20} />
+                      Мои долги
+                    </h2>
+                    <span className="muted">
+                      Всего осталось:{' '}
+                      <strong>{formatSom(totalDebtMinor)}</strong>
+                    </span>
+                  </div>
+
+                  {debtsError && (
+                    <p role="alert" className="error">
+                      {debtsError}
+                    </p>
+                  )}
+
+                  {!debts.length && !debtsError && (
+                    <p className="muted">Задолженностей нет.</p>
+                  )}
+
+                  {debts.map((debt) => {
+                    const percentPaid =
+                      debt.totalMinor > 0
+                        ? Math.min(
+                            100,
+                            Math.max(
+                              0,
+                              Math.round(
+                                (debt.paidMinor / debt.totalMinor) * 100,
+                              ),
+                            ),
+                          )
+                        : 100;
+
+                    return (
+                      <div key={debt.saleId} className="buyer-debt-card">
+                        <div className="buyer-debt-card-top">
+                          <strong className="buyer-debt-shop">
+                            {debt.shopName}
+                          </strong>
+                          <span className="buyer-debt-amount">
+                            {formatSom(debt.debtMinor)}
+                          </span>
+                        </div>
+
+                        <div
+                          className="buyer-progress-track"
+                          title={`Выплачено ${percentPaid}%`}
+                        >
+                          <div
+                            className="buyer-progress-fill"
+                            style={{ width: `${percentPaid}%` }}
+                          />
+                        </div>
+
+                        <div className="buyer-debt-meta">
+                          <span>
+                            Оплачено {formatSom(debt.paidMinor)} из{' '}
+                            {formatSom(debt.totalMinor)}
+                          </span>
+                          <span className="buyer-due-badge">
+                            Погасить до: {debt.dueOn}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </section>
+
+                <section className="buyer-panel">
+                  <div className="buyer-panel-head">
+                    <h2>
+                      <PaymentIcon name="card" size={20} />
+                      История погашений
+                    </h2>
+                  </div>
+
+                  {!repayments.length && (
+                    <p className="muted">Платежей пока нет.</p>
+                  )}
+
+                  {repayments.map((payment) => (
+                    <div key={payment.id} className="buyer-repayment-item">
+                      <div className="buyer-repayment-info">
+                        <div
+                          className="buyer-repayment-icon"
+                          title={
+                            payment.method === 'card'
+                              ? 'Безналичная оплата'
+                              : 'Наличный платёж'
+                          }
+                        >
+                          <PaymentIcon
+                            name={payment.method === 'card' ? 'card' : 'cash'}
+                            size={16}
+                          />
+                        </div>
+                        <div>
+                          <strong>{payment.shopName}</strong>
+                          <div style={{ fontSize: '12px', color: '#64748b' }}>
+                            {new Date(payment.createdAt).toLocaleDateString(
+                              'ru-KG',
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <span className="buyer-repayment-amount">
+                        +{formatSom(payment.amountMinor)}
+                      </span>
+                    </div>
+                  ))}
+                </section>
+              </div>
+
+              {/* Right Column: Connected Shops & Shop Linking */}
+              <div>
+                <section className="buyer-panel">
+                  <div className="buyer-panel-head">
+                    <h2>
+                      <PaymentIcon name="tag" size={20} />
+                      Мои магазины
+                    </h2>
+                  </div>
+
+                  {account.shops.length > 0 ? (
+                    <div>
+                      {account.shops.map((s) => (
+                        <span key={s.shopId} className="buyer-shop-chip">
+                          <PaymentIcon name="check" size={14} />
+                          {s.shopName}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="muted">
+                      Подключённые магазины появятся после безопасной привязки
+                      аккаунта.
+                    </p>
+                  )}
+                </section>
+
+                <section className="buyer-panel">
+                  <div className="buyer-panel-head">
+                    <h2>
+                      <PaymentIcon name="user-plus" size={20} />
+                      Привязать магазин
+                    </h2>
+                  </div>
+
+                  {inviteToken && (
+                    <p className="muted" style={{ color: '#065f46' }}>
+                      Приглашение из QR-кода получено. Нажмите «Привязать
+                      магазин», чтобы подтвердить связь с вашим аккаунтом.
+                    </p>
+                  )}
+                  <p className="muted">
+                    Получите одноразовый код у кассира и введите его здесь. Код
+                    действует 15 минут.
+                  </p>
+
+                  <form
+                    onSubmit={(e) => void linkShop(e)}
+                    className="buyer-link-form"
+                  >
+                    <label>
+                      Код приглашения
+                      <input
+                        required
+                        value={inviteToken}
+                        onChange={(e) => setInviteToken(e.target.value)}
+                        placeholder="Код от кассира"
+                        maxLength={43}
+                      />
+                    </label>
+                    <button
+                      type="submit"
+                      className="button primary"
+                      disabled={busy || inviteToken.trim().length !== 43}
+                    >
+                      Привязать магазин
+                    </button>
+                  </form>
+                </section>
+              </div>
             </div>
           </>
         ) : (
-          <section className="panel buyer-auth">
-            <p className="eyebrow">MyStore · Покупателям</p>
-            <h1>
-              {mode === 'register' ? 'Создать аккаунт' : 'Войти в кабинет'}
-            </h1>
-            {inviteToken && (
-              <div className="buyer-message" role="status">
-                Приглашение магазина получено. Войдите или зарегистрируйтесь со
-                своим номером и подтвердите привязку.
-              </div>
-            )}
-            <p className="muted">
-              Один кабинет для покупок в магазинах MyStore. Вход по номеру
-              Кыргызстана и паролю.
-            </p>
-            <form onSubmit={(e) => void submit(e)}>
+          /* Authentication Screen */
+          <section className="buyer-auth-card">
+            <div className="buyer-auth-head">
+              <p className="eyebrow">MyStore · Покупателям</p>
+              <h1>
+                {mode === 'register' ? 'Создать аккаунт' : 'Войти в кабинет'}
+              </h1>
+              {inviteToken && (
+                <div className="buyer-message" role="status">
+                  Приглашение магазина получено. Войдите или зарегистрируйтесь
+                  со своим номером и подтвердите привязку.
+                </div>
+              )}
+              <p className="muted">
+                Один кабинет для покупок в магазинах MyStore. Вход по номеру
+                Кыргызстана и паролю.
+              </p>
+            </div>
+
+            <form onSubmit={(e) => void submit(e)} className="buyer-auth-form">
               {mode === 'register' && (
                 <label>
                   Ваше имя
@@ -571,7 +818,11 @@ export default function BuyerPortalPage() {
                 </p>
               )}
               {notice && <p role="status">{notice}</p>}
-              <button type="submit" className="primary" disabled={busy}>
+              <button
+                type="submit"
+                className="buyer-submit-btn"
+                disabled={busy}
+              >
                 {busy
                   ? 'Сохраняем…'
                   : mode === 'register'
@@ -579,8 +830,10 @@ export default function BuyerPortalPage() {
                     : 'Войти'}
               </button>
             </form>
+
             <button
               type="button"
+              className="buyer-toggle-btn"
               onClick={() => {
                 setError('');
                 setMode(mode === 'register' ? 'login' : 'register');
@@ -590,7 +843,14 @@ export default function BuyerPortalPage() {
                 ? 'Уже есть аккаунт? Войти'
                 : 'Нет аккаунта? Регистрация'}
             </button>
-            <p className="muted">
+            <p
+              className="muted"
+              style={{
+                fontSize: '12px',
+                textAlign: 'center',
+                marginTop: '16px',
+              }}
+            >
               Ввод номера без подтверждения не предоставляет доступ к чужим
               покупкам или персональным данным.
             </p>
