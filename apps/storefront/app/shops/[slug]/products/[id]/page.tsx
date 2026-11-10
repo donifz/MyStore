@@ -178,10 +178,6 @@ export default async function ProductPage({ params }: Props) {
         <aside className="sf-purchase-panel" aria-label="Покупка товара">
           <div className="sf-purchase-main">
             <div className="sf-detail-badges">
-              <span className="sf-hit-badge">
-                <Icon name="flame" width={14} height={14} />
-                Хит продаж
-              </span>
               <StockBadge available={v.available} detailed />
               {v.sku && <span className="sf-sku-pill">Арт. {v.sku}</span>}
             </div>
@@ -189,22 +185,36 @@ export default async function ProductPage({ params }: Props) {
               <h1>{v.name}</h1>
             </div>
             <div className="sf-detail-rating-row">
-              <a href="#product-reviews" className="sf-detail-rating">
-                <span className="sf-star-glyph" aria-hidden="true">
-                  ★
-                </span>
-                <strong>
-                  {(v.ratingAverage || 4.8).toFixed(1).replace('.', ',')}
-                </strong>
-                <small>({v.ratingCount || 128} отзывов)</small>
-              </a>
-              <span className="sf-detail-divider" aria-hidden="true">
-                |
-              </span>
-              <span className="sf-detail-sales">
-                <Icon name="cart" width={15} height={15} />
-                <span>Купили 540 раз</span>
-              </span>
+              {v.ratingCount && v.ratingCount > 0 && v.ratingAverage ? (
+                <a href="#product-reviews" className="sf-detail-rating">
+                  <span className="sf-star-glyph" aria-hidden="true">
+                    ★
+                  </span>
+                  <strong>
+                    {v.ratingAverage.toFixed(1).replace('.', ',')}
+                  </strong>
+                  <small>
+                    ({v.ratingCount}{' '}
+                    {v.ratingCount === 1
+                      ? 'отзыв'
+                      : v.ratingCount < 5
+                        ? 'отзыва'
+                        : 'отзывов'}
+                    )
+                  </small>
+                </a>
+              ) : (
+                <a
+                  href="#product-reviews"
+                  className="sf-detail-rating sf-detail-rating--new"
+                >
+                  <span className="sf-star-glyph" aria-hidden="true">
+                    ★
+                  </span>
+                  <span>Пока нет отзывов</span>
+                  <small>Оставить отзыв</small>
+                </a>
+              )}
             </div>
             <Price minor={v.salePriceMinor} className="sf-detail-price" />
             <BuyButton product={v} />
@@ -213,37 +223,6 @@ export default async function ProductPage({ params }: Props) {
               storeSlug={v.store.slug}
               variants={v.variants}
             />
-            <div className="sf-detail-options-block">
-              <div className="sf-detail-option-group">
-                <span className="sf-detail-option-label">
-                  Цвет: <strong>{v.color || 'Основной'}</strong>
-                </span>
-                <div className="sf-color-swatches" aria-hidden="true">
-                  {[0, 1, 2, 3].map((idx) => (
-                    <span
-                      key={idx}
-                      className={`sf-color-swatch-thumb ${idx === 0 ? 'sf-color-swatch-thumb--active' : ''}`}
-                    >
-                      <ProductPhoto
-                        src={v.photoUrl}
-                        alt={v.name}
-                        category={v.category}
-                      />
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className="sf-detail-option-group sf-detail-option-group--inline">
-                <span className="sf-detail-option-label">Размер:</span>
-                <div className="sf-size-pills">
-                  <span className="sf-size-pill sf-size-pill--active">
-                    {v.size || '30 см'}
-                  </span>
-                  <span className="sf-size-pill">50 см</span>
-                  <span className="sf-size-pill">70 см</span>
-                </div>
-              </div>
-            </div>
           </div>
           <div className="sf-purchase-side">
             <div className="sf-seller-card">
@@ -270,19 +249,21 @@ export default async function ProductPage({ params }: Props) {
                     <span className="sf-star-glyph" aria-hidden="true">
                       ★
                     </span>{' '}
-                    {(v.store.ratingAverage || 4.9)
-                      .toFixed(1)
-                      .replace('.', ',')}
+                    {v.store.ratingCount &&
+                    v.store.ratingCount > 0 &&
+                    v.store.ratingAverage
+                      ? v.store.ratingAverage.toFixed(1).replace('.', ',')
+                      : '5,0'}
                   </strong>
-                  <small>{v.store.ratingCount || 320} отзывов</small>
+                  <small>
+                    {v.store.ratingCount && v.store.ratingCount > 0
+                      ? `${v.store.ratingCount} отзывов`
+                      : 'Рейтинг магазина'}
+                  </small>
                 </div>
                 <div>
-                  <strong>
-                    {v.store.productCount
-                      ? `${v.store.productCount}00+`
-                      : '1 200+'}
-                  </strong>
-                  <small>товаров</small>
+                  <strong>{v.store.productCount ?? 1}</strong>
+                  <small>товаров в магазине</small>
                 </div>
               </div>
             </div>
@@ -338,7 +319,10 @@ export default async function ProductPage({ params }: Props) {
           <div className="sf-detail-tabs">
             <a href="#description">Описание</a>
             <a href="#details">Характеристики</a>
-            <a href="#product-reviews">Отзывы ({v.ratingCount || 128})</a>
+            <a href="#product-reviews">
+              Отзывы{' '}
+              {v.ratingCount && v.ratingCount > 0 ? `(${v.ratingCount})` : ''}
+            </a>
           </div>
           <div className="sf-detail-bottom-grid">
             <section id="description">
@@ -348,20 +332,20 @@ export default async function ProductPage({ params }: Props) {
               </p>
               <div className="sf-product-highlights">
                 <div className="sf-highlight-chip">
-                  <Icon name="sparkles" width={18} height={18} />
-                  <span>Мягкий и безопасный</span>
+                  <Icon name="shield" width={18} height={18} />
+                  <span>Проверенное качество</span>
                 </div>
                 <div className="sf-highlight-chip">
-                  <Icon name="heart" width={18} height={18} />
-                  <span>Качественный материал</span>
+                  <Icon name="refresh" width={18} height={18} />
+                  <span>14 дней на возврат</span>
                 </div>
                 <div className="sf-highlight-chip">
                   <Icon name="bag" width={18} height={18} />
-                  <span>Отличный подарок</span>
+                  <span>Самовывоз и доставка</span>
                 </div>
                 <div className="sf-highlight-chip">
-                  <Icon name="shield" width={18} height={18} />
-                  <span>Проверенный магазин</span>
+                  <Icon name="award" width={18} height={18} />
+                  <span>Оригинальный товар</span>
                 </div>
               </div>
             </section>
@@ -376,10 +360,12 @@ export default async function ProductPage({ params }: Props) {
                   <dt>Категория</dt>
                   <dd>{v.category || 'Без категории'}</dd>
                 </div>
-                <div>
-                  <dt>Размер</dt>
-                  <dd>{v.size || '30 см'}</dd>
-                </div>
+                {v.size && (
+                  <div>
+                    <dt>Размер</dt>
+                    <dd>{v.size}</dd>
+                  </div>
+                )}
                 {v.color && (
                   <div>
                     <dt>Цвет</dt>
@@ -411,8 +397,8 @@ export default async function ProductPage({ params }: Props) {
         <ReviewsWidget
           slug={v.store.slug}
           productId={v.id}
-          initialAverage={v.ratingAverage || 4.8}
-          initialCount={v.ratingCount || 128}
+          initialAverage={v.ratingAverage}
+          initialCount={v.ratingCount}
           title={`Отзывы о товаре «${v.name}»`}
         />
       </div>

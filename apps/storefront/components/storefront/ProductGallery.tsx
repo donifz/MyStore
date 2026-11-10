@@ -28,6 +28,7 @@ export default function ProductGallery({
     .slice(0, 8);
   const photoKey = sourcePhotos.join('|');
   const [uniquePhotos, setUniquePhotos] = useState<string[] | null>(null);
+
   useEffect(() => {
     let cancelled = false;
     setUniquePhotos(null);
@@ -47,43 +48,32 @@ export default function ProductGallery({
       cancelled = true;
     };
   }, [photoKey]);
-  const photos = uniquePhotos ?? sourcePhotos.slice(0, 1);
-  const totalSlides = photos.length > 1 ? photos.length : 5;
+
+  const photos = uniquePhotos ?? (sourcePhotos.length > 0 ? sourcePhotos : []);
+  const hasMultiplePhotos = photos.length > 1;
+  const totalSlides = photos.length > 0 ? photos.length : 1;
   const currentIndex = Math.min(active, Math.max(0, totalSlides - 1));
-  const photo = photos[Math.min(currentIndex, Math.max(0, photos.length - 1))];
+  const photo = photos.length > 0 ? photos[currentIndex] : undefined;
 
   return (
-    <div className="sf-gallery sf-gallery--with-thumbs">
-      <div className="sf-gallery-thumbnails" aria-label="Фотографии товара">
-        {photos.length > 1
-          ? photos.map((url, index) => (
-              <button
-                key={url}
-                type="button"
-                aria-label={`Фото ${index + 1} из ${photos.length}`}
-                aria-pressed={index === currentIndex}
-                onClick={() => setActive(index)}
-              >
-                <img src={url} alt={`Фото ${index + 1}`} />
-              </button>
-            ))
-          : [0, 1, 2, 3, 4].map((index) => (
-              <button
-                key={index}
-                type="button"
-                aria-label={`Вид ${index + 1} из 5`}
-                aria-pressed={index === currentIndex}
-                onClick={() => setActive(index)}
-                className="sf-gallery-thumb-art"
-              >
-                {photo ? (
-                  <img src={photo} alt={`${name} — вид ${index + 1}`} />
-                ) : (
-                  <ProductPhoto alt={name} category={category} />
-                )}
-              </button>
-            ))}
-      </div>
+    <div
+      className={`sf-gallery ${hasMultiplePhotos ? 'sf-gallery--with-thumbs' : ''}`}
+    >
+      {hasMultiplePhotos && (
+        <div className="sf-gallery-thumbnails" aria-label="Фотографии товара">
+          {photos.map((url, index) => (
+            <button
+              key={url}
+              type="button"
+              aria-label={`Фото ${index + 1} из ${photos.length}`}
+              aria-pressed={index === currentIndex}
+              onClick={() => setActive(index)}
+            >
+              <img src={url} alt={`Фото ${index + 1}`} />
+            </button>
+          ))}
+        </div>
+      )}
       <div className="sf-gallery-stage">
         {product && <FavoriteButton product={product} />}
         {photo ? (
@@ -100,27 +90,31 @@ export default function ProductGallery({
             <ProductPhoto alt={name} category={category} loading="eager" />
           </div>
         )}
-        <button
-          type="button"
-          className="sf-gallery-nav sf-gallery-nav--prev"
-          aria-label="Предыдущее фото"
-          onClick={() =>
-            setActive((currentIndex - 1 + totalSlides) % totalSlides)
-          }
-        >
-          <Icon name="chevronLeft" width={20} height={20} />
-        </button>
-        <button
-          type="button"
-          className="sf-gallery-nav sf-gallery-nav--next"
-          aria-label="Следующее фото"
-          onClick={() => setActive((currentIndex + 1) % totalSlides)}
-        >
-          <Icon name="chevronRight" width={20} height={20} />
-        </button>
-        <span className="sf-gallery-counter" aria-hidden="true">
-          {currentIndex + 1}/{totalSlides}
-        </span>
+        {hasMultiplePhotos && (
+          <>
+            <button
+              type="button"
+              className="sf-gallery-nav sf-gallery-nav--prev"
+              aria-label="Предыдущее фото"
+              onClick={() =>
+                setActive((currentIndex - 1 + totalSlides) % totalSlides)
+              }
+            >
+              <Icon name="chevronLeft" width={20} height={20} />
+            </button>
+            <button
+              type="button"
+              className="sf-gallery-nav sf-gallery-nav--next"
+              aria-label="Следующее фото"
+              onClick={() => setActive((currentIndex + 1) % totalSlides)}
+            >
+              <Icon name="chevronRight" width={20} height={20} />
+            </button>
+            <span className="sf-gallery-counter" aria-hidden="true">
+              {currentIndex + 1}/{totalSlides}
+            </span>
+          </>
+        )}
       </div>
       {photo && (
         <dialog
