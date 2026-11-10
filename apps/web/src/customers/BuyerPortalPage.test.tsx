@@ -1,11 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import BuyerPortalPage from './BuyerPortalPage';
@@ -17,8 +11,8 @@ afterEach(() => {
 
 const mockAccount = {
   id: 'buyer-1',
-  phone: '+996 700 123 456',
-  name: 'Азамат',
+  phone: '+996700123456',
+  name: 'Дооронбек',
   phoneVerified: true,
   shops: [{ shopId: 'shop-1', shopName: 'ТехноМир' }],
   createdAt: '2026-01-01T00:00:00.000Z',
@@ -86,7 +80,7 @@ it('renders auth form when user is not signed in', async () => {
   expect(screen.queryByLabelText('Ваше имя')).toBeNull();
 });
 
-it('renders authenticated dashboard with loyalty card, debts and repayments', async () => {
+it('renders authenticated dashboard with embedded QR card, debts and repayments', async () => {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string) => {
@@ -145,22 +139,20 @@ it('renders authenticated dashboard with loyalty card, debts and repayments', as
     </MemoryRouter>,
   );
 
-  expect(await screen.findByText('Здравствуйте, Азамат!')).toBeTruthy();
+  expect(await screen.findByText('Здравствуйте, Дооронбек!')).toBeTruthy();
   expect(screen.getByText('Телефон подтверждён')).toBeTruthy();
+  expect(screen.getByText('+996 700 123 456')).toBeTruthy();
   expect(await screen.findByText('850')).toBeTruthy();
   expect(await screen.findAllByText('ТехноМир')).toHaveLength(3);
   expect(screen.getAllByText('1 200,00 сом')).toHaveLength(3);
   expect(screen.getByText('Погасить до: 2026-12-01')).toBeTruthy();
 
-  // Test QR button
-  const user = userEvent.setup();
-  await user.click(screen.getByRole('button', { name: 'Показать мой QR' }));
-  expect(await screen.findByText('Одноразовый QR-код')).toBeTruthy();
-  expect(screen.getByText(/действует 2 минуты/i)).toBeTruthy();
+  // Verify that the QR code is embedded directly into the card without clicking
+  expect(await screen.findByText(/Действует:/)).toBeTruthy();
+  expect(screen.getByRole('button', { name: /Обновить QR/ })).toBeTruthy();
 
-  // Close QR
-  await user.click(screen.getByRole('button', { name: 'Скрыть QR-код' }));
-  await waitFor(() => {
-    expect(screen.queryByText('Одноразовый QR-код')).toBeNull();
-  });
+  // Test Refresh QR button
+  const user = userEvent.setup();
+  await user.click(screen.getByRole('button', { name: /Обновить QR/ }));
+  expect(await screen.findByText(/Действует:/)).toBeTruthy();
 });
