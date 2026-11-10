@@ -225,7 +225,27 @@ function SaleWorkspace({
   useEffect(() => {
     const keepFocus = () => {
       if (shiftModalOpen || paymentSheetOpen || camera) return;
+      const active = document.activeElement;
+      if (
+        active &&
+        (active.tagName === 'INPUT' ||
+          active.tagName === 'TEXTAREA' ||
+          active.tagName === 'SELECT' ||
+          active.getAttribute('contenteditable') === 'true')
+      ) {
+        return;
+      }
       requestAnimationFrame(() => {
+        const currentActive = document.activeElement;
+        if (
+          currentActive &&
+          (currentActive.tagName === 'INPUT' ||
+            currentActive.tagName === 'TEXTAREA' ||
+            currentActive.tagName === 'SELECT' ||
+            currentActive.getAttribute('contenteditable') === 'true')
+        ) {
+          return;
+        }
         scanInput.current?.focus({ preventScroll: true });
         setScannerFocused(true);
       });
@@ -237,7 +257,7 @@ function SaleWorkspace({
       if (!target) return;
       if (
         target.closest(
-          'input, textarea, select, [contenteditable="true"], .pos-stepper, .pos-cart-discount',
+          'input, textarea, select, [contenteditable="true"], .pos-stepper, .pos-cart-discount, .pos-sheet-root, [role="dialog"]',
         )
       ) {
         return;
@@ -245,7 +265,8 @@ function SaleWorkspace({
       keepFocus();
     };
 
-    const handleWindowFocus = () => {
+    const handleWindowFocus = (event: FocusEvent) => {
+      if (event.target !== window && event.target !== document) return;
       keepFocus();
     };
 

@@ -19,7 +19,27 @@ export default function ScanField({
     if (disabled || camera) return;
     const keepFocus = () => {
       if (!disabled && !camera) {
+        const active = document.activeElement;
+        if (
+          active &&
+          (active.tagName === 'INPUT' ||
+            active.tagName === 'TEXTAREA' ||
+            active.tagName === 'SELECT' ||
+            active.getAttribute('contenteditable') === 'true')
+        ) {
+          return;
+        }
         requestAnimationFrame(() => {
+          const currentActive = document.activeElement;
+          if (
+            currentActive &&
+            (currentActive.tagName === 'INPUT' ||
+              currentActive.tagName === 'TEXTAREA' ||
+              currentActive.tagName === 'SELECT' ||
+              currentActive.getAttribute('contenteditable') === 'true')
+          ) {
+            return;
+          }
           input.current?.focus({ preventScroll: true });
           setIsFocused(true);
         });
@@ -31,7 +51,7 @@ export default function ScanField({
       if (!target) return;
       if (
         target.closest(
-          'input, textarea, select, [contenteditable="true"], .receiving-product-sheet-root, .receiving-manual-picker',
+          'input, textarea, select, [contenteditable="true"], .receiving-product-sheet-root, .receiving-manual-picker, .receiving-confirm-sheet-root, .pos-sheet-root, [role="dialog"]',
         )
       ) {
         return;
@@ -39,7 +59,8 @@ export default function ScanField({
       keepFocus();
     };
 
-    const handleWindowFocus = () => {
+    const handleWindowFocus = (event: FocusEvent) => {
+      if (event.target !== window && event.target !== document) return;
       keepFocus();
     };
 
