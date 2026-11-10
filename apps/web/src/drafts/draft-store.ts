@@ -87,7 +87,7 @@ function validate(d: any, scope: DraftScope): asserts d is Draft {
               ? ['unitCostText', 'lastPurchaseMinor']
               : []),
             ...(scope.kind === 'sale'
-              ? ['discountMinor', 'discountReason']
+              ? ['discountMinor', 'discountReason', 'lastPurchaseMinor']
               : []),
           ].includes(k),
       )
