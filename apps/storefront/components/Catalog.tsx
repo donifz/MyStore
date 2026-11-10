@@ -10,6 +10,7 @@ import {
   Search,
   Page,
   query,
+  CustomAttribute,
 } from '../lib/public-api';
 import Pagination from './Pagination';
 import Refresh from './Refresh';
@@ -30,9 +31,16 @@ export default async function Catalog({
   const initialHome = !slug && Object.keys(search).length === 0;
   const filter = query(initialHome ? { inStock: 'true' } : search, slug);
   let products: Products, store: Store | undefined;
+  let customAttributes: CustomAttribute[] = [];
   try {
-    if (slug)
+    if (slug) {
       store = await publicApi<Store>('/stores/' + encodeURIComponent(slug));
+      try {
+        customAttributes = await publicApi<CustomAttribute[]>(
+          '/stores/' + encodeURIComponent(slug) + '/custom-attributes',
+        );
+      } catch {}
+    }
     products = await publicApi<Products>('/products?' + filter.params);
   } catch (e) {
     if (slug && e instanceof PublicApiError && e.status === 404) notFound();
@@ -75,6 +83,8 @@ export default async function Catalog({
           filter={filter}
           categories={products.categories}
           slug={slug}
+          customAttributes={customAttributes}
+          search={search}
         />
       </CollapsibleFilters>
     </aside>

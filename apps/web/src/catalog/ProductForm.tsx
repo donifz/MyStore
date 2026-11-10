@@ -1,5 +1,6 @@
 import {
   useCallback,
+  useEffect,
   useId,
   useRef,
   useState,
@@ -8,7 +9,11 @@ import {
 } from 'react';
 import { api, ApiError, errorText } from '../api/client';
 import { parseSom, formatSom } from '../api/money';
-import type { Variant } from '../api/types';
+import type {
+  Variant,
+  ShopCustomAttribute,
+  CustomAttributeType,
+} from '../api/types';
 import PhotoAssistant, { type CategoryNode } from './PhotoAssistant';
 import { usePhotoCropQueue } from './use-photo-crop-queue';
 import SquareCameraCapture from './SquareCameraCapture';
@@ -82,7 +87,15 @@ export default function ProductForm({
     [barcodeBusy, setBarcodeBusy] = useState(false),
     [hint, setHint] = useState(''),
     [error, setError] = useState(''),
-    [saved, setSaved] = useState<Variant | null>(null);
+    [saved, setSaved] = useState<Variant | null>(null),
+    [customAttrs, setCustomAttrs] = useState<ShopCustomAttribute[]>([]),
+    [customValues, setCustomValues] = useState<Record<string, string>>({}),
+    [newAttrOpen, setNewAttrOpen] = useState(false),
+    [newAttrName, setNewAttrName] = useState(''),
+    [newAttrType, setNewAttrType] = useState<CustomAttributeType>('string'),
+    [newAttrOptions, setNewAttrOptions] = useState(''),
+    [newAttrBusy, setNewAttrBusy] = useState(false),
+    [newAttrError, setNewAttrError] = useState('');
   const submitting = useRef(false),
     photoRevision = useRef(0),
     lookupRevision = useRef(0),
@@ -91,6 +104,62 @@ export default function ProductForm({
     cameraInputRef = useRef<HTMLInputElement>(null),
     galleryInputRef = useRef<HTMLInputElement>(null),
     id = useId();
+
+  useEffect(() => {
+    let active = true;
+    void api<ShopCustomAttribute[]>(`/shops/${shopId}/custom-attributes`)
+      .then((items) => {
+        if (active) setCustomAttrs(items || []);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [shopId]);
+
+  async function handleCreateAttr(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const trimmed = newAttrName.trim();
+    if (!trimmed) {
+      setNewAttrError('Укажите название свойства');
+      return;
+    }
+    setNewAttrBusy(true);
+    setNewAttrError('');
+    try {
+      const options =
+        newAttrType === 'select'
+          ? newAttrOptions
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [];
+      if (newAttrType === 'select' && options.length === 0) {
+        throw new Error('Укажите хотя бы один вариант через запятую');
+      }
+      const created = await api<ShopCustomAttribute>(
+        `/shops/${shopId}/custom-attributes`,
+        {
+          method: 'POST',
+          body: {
+            name: trimmed,
+            type: newAttrType,
+            options,
+            filterable: true,
+          },
+        },
+      );
+      setCustomAttrs((prev) => [...prev, created]);
+      setNewAttrName('');
+      setNewAttrOptions('');
+      setNewAttrOpen(false);
+    } catch (err) {
+      setNewAttrError(errorText(err));
+    } finally {
+      setNewAttrBusy(false);
+    }
+  }
   const updateCategories = useCallback(
     (value: CategoryNode[]) => setCategories(Array.isArray(value) ? value : []),
     [],
@@ -177,6 +246,13 @@ export default function ProductForm({
       if (!variant) {
         if (!name.trim()) throw new Error('Укажите название товара.');
         try {
+          const cleanAttrs: Record<string, any> = {};
+          for (const [k, v] of Object.entries(customValues)) {
+            if (v !== '' && v !== undefined && v !== null) {
+              const def = customAttrs.find((a) => a.key === k);
+              cleanAttrs[k] = def?.type === 'number' ? Number(v) : v;
+            }
+          }
           variant = await api<Variant>(`/shops/${shopId}/variants`, {
             method: 'POST',
             key: productCreationKey.current,
@@ -192,6 +268,9 @@ export default function ProductForm({
                 ? { description: description.trim() }
                 : {}),
               ...(photos.length ? { photoDataUrls: photos } : {}),
+              ...(Object.keys(cleanAttrs).length
+                ? { attributes: cleanAttrs }
+                : {}),
             },
           });
           setSaved(variant);
@@ -603,6 +682,224 @@ export default function ProductForm({
                         placeholder="Например, чёрный"
                       />
                     </label>
+                  </div>
+                  {customAttrs.length > 0 && (
+                    <div className="product-form-custom-attributes">
+                      <div
+                        className="product-form-fields"
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns:
+                            'repeat(auto-fill, minmax(180px, 1fr))',
+                          gap: '0.75rem',
+                        }}
+                      >
+                        {customAttrs.map((attr) => (
+                          <label key={attr.id}>
+                            {attr.name}
+                            {attr.type === 'select' ? (
+                              <select
+                                value={customValues[attr.key] || ''}
+                                onChange={(e) =>
+                                  setCustomValues((prev) => ({
+                                    ...prev,
+                                    [attr.key]: e.target.value,
+                                  }))
+                                }
+                              >
+                                <option value="">Не выбрано</option>
+                                {attr.options.map((opt) => (
+                                  <option key={opt} value={opt}>
+                                    {opt}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : attr.type === 'number' ? (
+                              <input
+                                type="number"
+                                value={customValues[attr.key] || ''}
+                                onChange={(e) =>
+                                  setCustomValues((prev) => ({
+                                    ...prev,
+                                    [attr.key]: e.target.value,
+                                  }))
+                                }
+                                placeholder="Число"
+                              />
+                            ) : (
+                              <input
+                                type="text"
+                                maxLength={100}
+                                value={customValues[attr.key] || ''}
+                                onChange={(e) =>
+                                  setCustomValues((prev) => ({
+                                    ...prev,
+                                    [attr.key]: e.target.value,
+                                  }))
+                                }
+                                placeholder="Значение"
+                              />
+                            )}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div
+                    className="product-form-add-attr"
+                    style={{ margin: '0.5rem 0' }}
+                  >
+                    {!newAttrOpen ? (
+                      <button
+                        type="button"
+                        className="button-link"
+                        style={{
+                          fontSize: '0.85rem',
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--primary, #2563eb)',
+                          cursor: 'pointer',
+                          padding: 0,
+                          textAlign: 'left',
+                        }}
+                        onClick={() => setNewAttrOpen(true)}
+                      >
+                        + Добавить новое свойство в магазин
+                      </button>
+                    ) : (
+                      <div
+                        className="panel"
+                        style={{
+                          padding: '0.75rem',
+                          border: '1px solid var(--border, #e2e8f0)',
+                          borderRadius: '8px',
+                          background: 'var(--surface-subtle, #f8fafc)',
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '0.5rem',
+                          }}
+                        >
+                          <strong style={{ fontSize: '0.85rem' }}>
+                            Новое свойство товара
+                          </strong>
+                          <button
+                            type="button"
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              fontSize: '1rem',
+                            }}
+                            onClick={() => {
+                              setNewAttrOpen(false);
+                              setNewAttrError('');
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns:
+                              'repeat(auto-fill, minmax(180px, 1fr))',
+                            gap: '0.5rem',
+                          }}
+                        >
+                          <label style={{ fontSize: '0.8rem' }}>
+                            Название (напр. Бренд, Возраст)
+                            <input
+                              type="text"
+                              maxLength={80}
+                              value={newAttrName}
+                              onChange={(e) => setNewAttrName(e.target.value)}
+                              placeholder="Название"
+                            />
+                          </label>
+                          <label style={{ fontSize: '0.8rem' }}>
+                            Тип поля
+                            <select
+                              value={newAttrType}
+                              onChange={(e) =>
+                                setNewAttrType(
+                                  e.target.value as CustomAttributeType,
+                                )
+                              }
+                            >
+                              <option value="select">
+                                Список вариантов (select)
+                              </option>
+                              <option value="number">Число (number)</option>
+                              <option value="string">Текст (string)</option>
+                            </select>
+                          </label>
+                          {newAttrType === 'select' && (
+                            <label
+                              style={{
+                                fontSize: '0.8rem',
+                                gridColumn: '1 / -1',
+                              }}
+                            >
+                              Варианты через запятую (напр. LEGO, Barbie, Hot
+                              Wheels)
+                              <input
+                                type="text"
+                                value={newAttrOptions}
+                                onChange={(e) =>
+                                  setNewAttrOptions(e.target.value)
+                                }
+                                placeholder="Вариант 1, Вариант 2, ..."
+                              />
+                            </label>
+                          )}
+                        </div>
+                        {newAttrError && (
+                          <p
+                            role="alert"
+                            className="error"
+                            style={{ fontSize: '0.8rem', margin: '0.5rem 0 0' }}
+                          >
+                            {newAttrError}
+                          </p>
+                        )}
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: '0.5rem',
+                            marginTop: '0.5rem',
+                          }}
+                        >
+                          <button
+                            type="button"
+                            className="primary"
+                            disabled={newAttrBusy || !newAttrName.trim()}
+                            onClick={handleCreateAttr}
+                            style={{
+                              fontSize: '0.8rem',
+                              padding: '0.35rem 0.75rem',
+                            }}
+                          >
+                            {newAttrBusy ? 'Создание…' : 'Добавить свойство'}
+                          </button>
+                          <button
+                            type="button"
+                            className="secondary"
+                            onClick={() => setNewAttrOpen(false)}
+                            style={{
+                              fontSize: '0.8rem',
+                              padding: '0.35rem 0.75rem',
+                            }}
+                          >
+                            Отмена
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <label htmlFor={id + '-description'}>Описание</label>
                   <textarea

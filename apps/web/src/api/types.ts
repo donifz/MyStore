@@ -49,7 +49,19 @@ export type Variant = {
   available?: number;
   stockValueMinor?: number;
   lastPurchaseMinor?: number;
+  attributes?: Record<string, any>;
   createdAt?: string;
+};
+export type CustomAttributeType = 'string' | 'number' | 'select';
+export type ShopCustomAttribute = {
+  id: string;
+  shopId: string;
+  name: string;
+  key: string;
+  type: CustomAttributeType;
+  options: string[];
+  filterable: boolean;
+  createdAt: string;
 };
 export type Page<T> = {
   items: T[];

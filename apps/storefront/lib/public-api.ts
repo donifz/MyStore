@@ -42,6 +42,7 @@ export type Product = {
   photoUrls?: string[];
   ratingAverage?: number;
   ratingCount?: number;
+  attributes?: Record<string, string | number>;
   id: string;
   name: string;
   description: string;
@@ -50,6 +51,15 @@ export type Product = {
   available: number;
   store: Store;
   variants?: ProductVariant[];
+};
+export type CustomAttribute = {
+  id: string;
+  shopId: string;
+  name: string;
+  key: string;
+  type: 'string' | 'number' | 'select';
+  options: string[];
+  filterable: boolean;
 };
 export type Page<T> = {
   items: T[];
@@ -100,6 +110,13 @@ export function query(search: Search, store?: string) {
   const minRating = first('minRating');
   if (/^[1-5](\.\d)?$/.test(minRating)) params.set('minRating', minRating);
   if (store) params.set('store', store);
+  for (const [key, val] of Object.entries(search)) {
+    if (key.startsWith('attr_')) {
+      const v =
+        typeof val === 'string' ? val : Array.isArray(val) ? val[0] || '' : '';
+      if (v) params.set(key, v);
+    }
+  }
   return {
     params,
     page,
