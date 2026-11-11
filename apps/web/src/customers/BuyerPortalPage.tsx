@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
 import {
   formatKyrgyzPhoneInput,
   KYRGYZ_PHONE_PATTERN,
@@ -8,6 +7,63 @@ import { parseBuyerInviteFragment } from './buyerInviteLink';
 import BuyerInviteQr from './BuyerInviteQr';
 import PaymentIcon from '../pos/PaymentIcon';
 import { formatSom } from '../api/money';
+
+type NavIconName =
+  | 'bag'
+  | 'home'
+  | 'box'
+  | 'grid'
+  | 'star'
+  | 'flame'
+  | 'heart'
+  | 'cart'
+  | 'user';
+
+const NAV_ICON_PATHS: Record<NavIconName, string> = {
+  bag: 'M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z M3 6h18 M16 10a4 4 0 0 1-8 0',
+  home: 'm3 10 9-7 9 7v11h-7v-7h-4v7H3Z',
+  box: 'm3 6 9-4 9 4v12l-9 4-9-4Z m0-12 9 4 9-4 M12 10v12',
+  grid: 'M3 3h7v7H3Z M14 3h7v7h-7Z M14 14h7v7h-7Z M3 14h7v7H3Z',
+  star: 'm12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z',
+  flame:
+    'M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5Z',
+  heart:
+    'M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z',
+  cart: 'M3 3h2l3 12h10l3-9H6 M9 20h.01 M18 20h.01',
+  user: 'M20 21v-2a7 7 0 0 0-14 0v2 M17 7a5 5 0 1 1-10 0 5 5 0 0 1 10 0',
+};
+
+function NavIcon({ name, size = 18 }: { name: NavIconName; size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.9}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {NAV_ICON_PATHS[name].split(' M').map((segment, index) => (
+        <path key={segment} d={index === 0 ? segment : 'M' + segment} />
+      ))}
+    </svg>
+  );
+}
+
+function formatDueDate(value: string): string {
+  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(value.trim());
+  if (isoMatch) {
+    return `${isoMatch[3]}.${isoMatch[2]}.${isoMatch[1]}`;
+  }
+  const parsed = new Date(value);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toLocaleDateString('ru-KG');
+  }
+  return value;
+}
 
 type BuyerDebt = {
   saleId: string;
@@ -340,40 +396,93 @@ export default function BuyerPortalPage() {
   }
 
   const totalDebtMinor = debts.reduce((sum, d) => sum + d.debtMinor, 0);
-  const totalPoints = loyaltyWallets.reduce(
-    (sum, w) => sum + w.balancePoints,
-    0,
-  );
-  const initialLetter = (account?.name?.trim() || 'П')[0].toUpperCase();
   const formattedPhone = account?.phone
     ? formatKyrgyzPhoneInput(account.phone)
     : '';
 
   return (
-    <main className="buyer-page">
+    <div className="buyer-page">
       <header className="buyer-topbar">
-        <Link to="/" className="buyer-brand">
-          <PaymentIcon name="sparkle" size={20} />
-          MyStore
-        </Link>
-        <nav className="buyer-topbar-nav">
-          <Link to="/shops" className="buyer-topbar-link">
-            Каталог магазинов
-          </Link>
-          {account && (
-            <button
-              type="button"
-              className="buyer-logout-btn"
-              disabled={busy}
-              onClick={() => void logout()}
+        <div className="buyer-topbar__inner">
+          <a href="/" className="buyer-brand">
+            <span className="buyer-brand__mark" aria-hidden="true">
+              <NavIcon name="bag" size={20} />
+            </span>
+            <span>MyStore</span>
+          </a>
+
+          <nav className="buyer-top-nav" aria-label="Разделы витрины">
+            <a href="/" className="buyer-top-nav__item">
+              <NavIcon name="home" size={16} />
+              <span>Главная</span>
+            </a>
+            <a href="/shops" className="buyer-top-nav__item">
+              <NavIcon name="box" size={16} />
+              <span>Магазины</span>
+            </a>
+            <a href="/catalog" className="buyer-top-nav__item">
+              <NavIcon name="grid" size={16} />
+              <span>Каталог</span>
+            </a>
+            <a href="/?sort=price-asc#catalog" className="buyer-top-nav__item">
+              <NavIcon name="star" size={16} />
+              <span>Акции</span>
+            </a>
+            <a href="/?sort=newest#catalog" className="buyer-top-nav__item">
+              <NavIcon name="flame" size={16} />
+              <span>Новинки</span>
+            </a>
+          </nav>
+
+          <div className="buyer-topbar-actions">
+            <a
+              href="/favorites"
+              className="buyer-header-icon-btn"
+              aria-label="Избранное"
+              title="Избранное"
             >
-              Выйти
-            </button>
-          )}
-        </nav>
+              <NavIcon name="heart" size={19} />
+            </a>
+            <a
+              href="/orders"
+              className="buyer-header-icon-btn"
+              aria-label="Заказы"
+              title="Мои заказы"
+            >
+              <NavIcon name="box" size={19} />
+            </a>
+            <a
+              href="/cart"
+              className="buyer-header-icon-btn"
+              aria-label="Корзина"
+              title="Корзина"
+            >
+              <NavIcon name="cart" size={19} />
+            </a>
+            <a
+              href="/buyer"
+              className="buyer-header-icon-btn buyer-header-icon-btn--active"
+              aria-label="Профиль"
+              aria-current="page"
+              title="Профиль"
+            >
+              <NavIcon name="user" size={19} />
+            </a>
+            {account && (
+              <button
+                type="button"
+                className="buyer-logout-btn"
+                disabled={busy}
+                onClick={() => void logout()}
+              >
+                Выйти
+              </button>
+            )}
+          </div>
+        </div>
       </header>
 
-      <div className="buyer-container">
+      <main className="buyer-container">
         {loading ? (
           <p role="status">Загружаем кабинет…</p>
         ) : account ? (
@@ -381,9 +490,6 @@ export default function BuyerPortalPage() {
             {/* User Profile Header */}
             <section className="buyer-profile-card">
               <div className="buyer-profile-info">
-                <div className="buyer-avatar" aria-hidden="true">
-                  {initialLetter}
-                </div>
                 <div className="buyer-profile-details">
                   <p className="eyebrow">Личный кабинет покупателя</p>
                   <h1>Здравствуйте, {account.name}!</h1>
@@ -470,26 +576,7 @@ export default function BuyerPortalPage() {
             {loyaltyEnabled && (
               <section className="buyer-loyalty-hero">
                 <div className="buyer-loyalty-sheen" aria-hidden="true" />
-                <div className="buyer-loyalty-top">
-                  <span className="buyer-loyalty-badge">
-                    <PaymentIcon name="sparkle" size={14} />
-                    MyStore Club
-                  </span>
-                  <PaymentIcon name="wallet" size={24} />
-                </div>
 
-                <div className="buyer-loyalty-balance-box">
-                  <span className="buyer-loyalty-label">Баланс бонусов</span>
-                  <div className="buyer-loyalty-points">
-                    {totalPoints.toLocaleString('ru-RU')}
-                    <small>баллов</small>
-                  </div>
-                  <span className="buyer-loyalty-rate">
-                    1 балл = 1 сом скидки · Предъявите QR кассиру
-                  </span>
-                </div>
-
-                {/* Embedded QR right in the green card */}
                 {account.phoneVerified ? (
                   <div className="buyer-hero-qr-container">
                     {loyaltyBusy && !loyaltyCode ? (
@@ -548,10 +635,7 @@ export default function BuyerPortalPage() {
                 )}
 
                 {loyaltyError && (
-                  <p
-                    role="alert"
-                    style={{ color: '#fca5a5', marginTop: '10px' }}
-                  >
+                  <p role="alert" className="buyer-loyalty-error">
                     {loyaltyError}
                   </p>
                 )}
@@ -560,18 +644,6 @@ export default function BuyerPortalPage() {
 
             {/* Quick Stats Overview */}
             <div className="buyer-stats-grid">
-              <div className="buyer-stat-tile">
-                <div className="buyer-stat-icon emerald">
-                  <PaymentIcon name="tag" size={22} />
-                </div>
-                <div className="buyer-stat-body">
-                  <span className="buyer-stat-label">Подключено магазинов</span>
-                  <span className="buyer-stat-value">
-                    {account.shops.length}
-                  </span>
-                </div>
-              </div>
-
               <div className="buyer-stat-tile">
                 <div className="buyer-stat-icon amber">
                   <PaymentIcon name="clock" size={22} />
@@ -605,7 +677,7 @@ export default function BuyerPortalPage() {
               >
                 <p
                   className="muted"
-                  style={{ color: '#065f46', marginBottom: '12px' }}
+                  style={{ color: '#1d4ed8', marginBottom: '12px' }}
                 >
                   Приглашение из ссылки получено. Нажмите «Подтвердить», чтобы
                   привязать магазин к вашему кабинету.
@@ -688,7 +760,7 @@ export default function BuyerPortalPage() {
                             {formatSom(debt.totalMinor)}
                           </span>
                           <span className="buyer-due-badge">
-                            Погасить до: {debt.dueOn}
+                            Погасить до: {formatDueDate(debt.dueOn)}
                           </span>
                         </div>
                       </div>
@@ -886,7 +958,30 @@ export default function BuyerPortalPage() {
           </p>
         )}
         {notice && account && <p role="status">{notice}</p>}
-      </div>
-    </main>
+      </main>
+
+      <nav className="buyer-mobile-nav" aria-label="Мобильная навигация">
+        <a href="/">
+          <NavIcon name="home" size={20} />
+          <span>Главная</span>
+        </a>
+        <a href="/catalog">
+          <NavIcon name="grid" size={20} />
+          <span>Каталог</span>
+        </a>
+        <a href="/cart">
+          <NavIcon name="cart" size={20} />
+          <span>Корзина</span>
+        </a>
+        <a href="/orders">
+          <NavIcon name="box" size={20} />
+          <span>Заказы</span>
+        </a>
+        <a href="/buyer" aria-current="page">
+          <NavIcon name="user" size={20} />
+          <span>Профиль</span>
+        </a>
+      </nav>
+    </div>
   );
 }
