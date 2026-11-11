@@ -282,7 +282,7 @@ export default function ReviewsWidget({
 
         <div className="sf-review-form-fields">
           <textarea
-            className="sf-textarea sf-review-comment-input"
+            className="sf-input sf-textarea sf-review-comment-input"
             rows={3}
             placeholder="Поделитесь впечатлениями: качество, доставка, соответствие описанию..."
             maxLength={2000}

@@ -75,8 +75,8 @@ export default async function Header() {
             <a
               href="/buyer"
               className="sf-header-icon-btn"
-              aria-label="Кабинет покупателя"
-              title="Кабинет покупателя и бонусы"
+              aria-label="Профиль"
+              title="Профиль"
             >
               <Icon name="user" />
             </a>

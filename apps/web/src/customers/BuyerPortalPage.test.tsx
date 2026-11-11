@@ -27,7 +27,7 @@ const mockDebts = [
     totalMinor: 250000,
     paidMinor: 130000,
     debtMinor: 120000,
-    dueOn: '2026-12-01',
+    dueOn: '2026-11-24T00:00:00.000Z',
   },
 ];
 
@@ -142,10 +142,24 @@ it('renders authenticated dashboard with embedded QR card, debts and repayments'
   expect(await screen.findByText('Здравствуйте, Дооронбек!')).toBeTruthy();
   expect(screen.getByText('Телефон подтверждён')).toBeTruthy();
   expect(screen.getByText('+996 700 123 456')).toBeTruthy();
-  expect(await screen.findByText('850')).toBeTruthy();
+  expect(await screen.findByText('850 баллов')).toBeTruthy();
   expect(await screen.findAllByText('ТехноМир')).toHaveLength(3);
   expect(screen.getAllByText('1 200,00 сом')).toHaveLength(3);
-  expect(screen.getByText('Погасить до: 2026-12-01')).toBeTruthy();
+  expect(screen.getByText('Погасить до: 24.11.2026')).toBeTruthy();
+  expect(screen.queryByText('MYSTORE CLUB')).toBeNull();
+  expect(screen.queryByText('Подключено магазинов')).toBeNull();
+  expect(screen.queryByText('Д')).toBeNull();
+  expect(
+    screen.getByRole('navigation', { name: 'Разделы витрины' }),
+  ).toBeTruthy();
+  expect(
+    screen.getAllByRole('link', { name: 'Главная' })[0].getAttribute('href'),
+  ).toBe('/');
+  expect(
+    screen
+      .getAllByRole('link', { name: 'Профиль' })[0]
+      .getAttribute('aria-current'),
+  ).toBe('page');
 
   // Verify that the QR code is embedded directly into the card without clicking
   expect(await screen.findByText(/Действует:/)).toBeTruthy();

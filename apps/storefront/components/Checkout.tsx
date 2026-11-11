@@ -39,39 +39,6 @@ const statusLabels: Record<string, string> = {
   expired: 'Срок подтверждения истёк',
 };
 
-const DEMO_CART_ITEMS: CartItem[] = [
-  {
-    id: '11111111-1111-4111-8111-111111111100',
-    name: 'Плюшевый мишка',
-    price: 129000,
-    quantity: 1,
-    storeSlug: 'mir-igrushek',
-    storeName: 'Мир игрушек',
-    pickupEnabled: true,
-    deliveryEnabled: true,
-  },
-  {
-    id: '11111111-1111-4111-8111-111111111107',
-    name: 'Машинка на управлении',
-    price: 199000,
-    quantity: 1,
-    storeSlug: 'mir-igrushek',
-    storeName: 'Мир игрушек',
-    pickupEnabled: true,
-    deliveryEnabled: true,
-  },
-  {
-    id: '11111111-1111-4111-8111-111111111108',
-    name: 'Конструктор (300 деталей)',
-    price: 249000,
-    quantity: 1,
-    storeSlug: 'mir-igrushek',
-    storeName: 'Мир игрушек',
-    pickupEnabled: true,
-    deliveryEnabled: true,
-  },
-];
-
 const CART_RECOMMENDATIONS = [
   {
     id: '11111111-1111-4111-8111-111111111109',
@@ -152,25 +119,9 @@ function MarketplaceCheckout({
     [payment, setPayment] = useState<'cash' | 'qr' | 'card'>('cash'),
     [methods, setMethods] = useState<Record<string, 'pickup' | 'delivery'>>({}),
     [stores, setStores] = useState<Record<string, Store>>({}),
-    [lastOrderedItems, setLastOrderedItems] =
-      useState<CartItem[]>(DEMO_CART_ITEMS),
+    [lastOrderedItems, setLastOrderedItems] = useState<CartItem[]>([]),
     [_recommended, setRecommended] = useState<Product[]>([]);
   const sending = useRef(false);
-  const seeded = useRef(false);
-
-  useEffect(() => {
-    if (!c.ready || seeded.current) return;
-    seeded.current = true;
-    if (
-      typeof window !== 'undefined' &&
-      window.location.port === '3001' &&
-      !localStorage.getItem('mystore-marketplace-cart-v2') &&
-      c.items.length === 0 &&
-      c.state.receipts.length === 0
-    ) {
-      c.save({ items: DEMO_CART_ITEMS, attempts: {}, receipts: [] });
-    }
-  }, [c]);
 
   const slugs = [...new Set(c.items.map((l) => l.storeSlug))];
   const signature = slugs.join('|');
@@ -484,7 +435,9 @@ function MarketplaceCheckout({
                     Номер заказа:{' '}
                     <strong>
                       №
-                      {latestReceipt.id.length > 8 ? '38472' : latestReceipt.id}
+                      {latestReceipt.id.length > 8
+                        ? latestReceipt.id.slice(0, 8).toUpperCase()
+                        : latestReceipt.id}
                     </strong>
                   </span>
                   <Icon name="copy" width={15} height={15} />
@@ -512,10 +465,9 @@ function MarketplaceCheckout({
                   <Icon name="truck" width={22} height={22} />
                 </span>
                 <div>
-                  <strong>Ожидаемая доставка</strong>
-                  <small>12–14 мая, в течение 2 дней</small>
+                  <strong>Сроки получения</strong>
+                  <small>Уточнит магазин после подтверждения заказа</small>
                 </div>
-                <span className="sf-order-date-pill">12–14 мая</span>
               </div>
 
               <h4 className="sf-order-comp-title">
@@ -1137,9 +1089,9 @@ function MarketplaceCheckout({
                     <span className="sf-co-option-copy">
                       <strong>Самовывоз из магазина</strong>
                       <small>
-                        {primaryStore?.city || 'Ош'},{' '}
-                        {primaryStore?.address ||
-                          'ТЦ «Берекет», 2 этаж, бутик 24'}
+                        {[primaryStore?.city, primaryStore?.address]
+                          .filter(Boolean)
+                          .join(', ') || 'Адрес уточняется в магазине'}
                       </small>
                     </span>
                     <span className="sf-co-pill sf-co-pill--free">
