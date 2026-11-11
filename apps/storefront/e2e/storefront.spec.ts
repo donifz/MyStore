@@ -604,3 +604,56 @@ test('orders pages do not show hardcoded mock orders and link to buyer cabinet',
   await expect(page.getByRole('main')).not.toContainText('Плюшевый мишка');
   await expect(page.getByRole('main')).not.toContainText('Берекет');
 });
+
+test('catalog category strips scroll cleanly, avoid fake counts/ratings, and keep mobile icon cart compact', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 440, height: 956 });
+  await page.goto('/');
+  await expect(page.locator('.sf-filter-count')).toHaveCount(0);
+  const quickStrip = page.getByRole('navigation', {
+    name: 'Быстрый выбор категории',
+  });
+  await expect(quickStrip).toBeVisible();
+  await expect(quickStrip.locator('.sf-quick-chip--more')).toHaveCount(0);
+  await expect(quickStrip).not.toContainText('1 товаров');
+
+  await page.goto('/shop/shop-a');
+  const storeTiles = page.getByRole('navigation', {
+    name: 'Категории магазина',
+  });
+  await expect(storeTiles).toBeVisible();
+  await expect(storeTiles.locator('.sf-store-cat-tile--more')).toHaveCount(0);
+  await expect(
+    storeTiles.getByRole('link', { name: 'Все товары' }),
+  ).toBeVisible();
+  const tilesLayout = await storeTiles.evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return { display: cs.display, overflowX: cs.overflowX };
+  });
+  expect(tilesLayout.display).toBe('flex');
+  expect(['auto', 'scroll']).toContain(tilesLayout.overflowX);
+
+  const phoneLink = page.locator('.sf-store-phone-link');
+  await expect(phoneLink).toBeVisible();
+  const phoneColor = await phoneLink.evaluate(
+    (el) => getComputedStyle(el).color,
+  );
+  expect(phoneColor).toBe('rgb(71, 85, 105)');
+
+  const iconCartBtn = page
+    .locator('.sf-product-grid--store .sf-icon-cart-btn')
+    .first();
+  await expect(iconCartBtn).toBeVisible();
+  const btnWidth = await iconCartBtn.evaluate(
+    (el) => el.getBoundingClientRect().width,
+  );
+  expect(btnWidth).toBeLessThanOrEqual(52);
+
+  await page.goto(
+    '/shops/shop-a/products/11111111-1111-4111-8111-111111111111',
+  );
+  const sellerStats = page.locator('.sf-seller-stats');
+  await expect(sellerStats).not.toContainText('5,0');
+  await expect(sellerStats).toContainText('Пока нет отзывов');
+});
