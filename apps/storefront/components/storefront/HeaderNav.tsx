@@ -142,7 +142,7 @@ export function MobileNav() {
       </Link>
       <a href="/buyer">
         <Icon name="user" />
-        <span>Кабинет</span>
+        <span>Профиль</span>
       </a>
     </nav>
   );
