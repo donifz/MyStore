@@ -76,7 +76,7 @@ export default function BuyButton({
               aria-label="В корзине, перейти в корзину"
               title="В корзине · перейти"
             >
-              <Icon name="check" width={18} height={18} />
+              <Icon name="cart" width={18} height={18} />
             </Link>
           ) : (
             <Button
