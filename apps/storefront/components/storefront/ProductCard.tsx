@@ -49,7 +49,7 @@ export default function ProductCard({
           <Link href={href}>{p.name}</Link>
         </h3>
         <div className="sf-card-meta-row">
-          {hasRating ? (
+          {hasRating && (
             <span
               className="sf-card-rating"
               aria-label={`Рейтинг ${ratingScore}`}
@@ -60,8 +60,6 @@ export default function ProductCard({
               <strong>{ratingScore}</strong>
               <small>({p.ratingCount})</small>
             </span>
-          ) : (
-            <span className="sf-card-rating-empty" aria-hidden="true" />
           )}
           <StockBadge available={p.available} />
         </div>

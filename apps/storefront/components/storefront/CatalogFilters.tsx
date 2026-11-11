@@ -115,7 +115,7 @@ export default function CatalogFilters({
               >
                 <Icon name="grid" width={16} height={16} />
                 <span className="sf-sidebar-cat-name">Все товары</span>
-                <small className="sf-sidebar-cat-count">(624)</small>
+                <small className="sf-sidebar-cat-count">624</small>
               </Link>
               {STORE_SIDEBAR_CATS.map((item) => (
                 <Link
@@ -125,7 +125,7 @@ export default function CatalogFilters({
                 >
                   <Icon name={item.icon} width={16} height={16} />
                   <span className="sf-sidebar-cat-name">{item.name}</span>
-                  <small className="sf-sidebar-cat-count">({item.count})</small>
+                  <small className="sf-sidebar-cat-count">{item.count}</small>
                 </Link>
               ))}
               <Link

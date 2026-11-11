@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { publicFilters } from '../../lib/public-api';
 import { CartLink } from '../CartProvider';
+import { MobileNav, TopNav } from './HeaderNav';
 import Icon from './Icon';
 
 export default async function Header() {
@@ -23,31 +24,7 @@ export default async function Header() {
               <strong>MyStore</strong>
             </span>
           </Link>
-          <nav className="sf-top-nav" aria-label="Разделы витрины">
-            <Link
-              href="/"
-              className="sf-top-nav__item sf-top-nav__item--active"
-            >
-              <Icon name="home" width={16} height={16} />
-              <span>Главная</span>
-            </Link>
-            <Link href="/shops" className="sf-top-nav__item sf-shops-nav">
-              <Icon name="box" width={16} height={16} />
-              <span>Магазины</span>
-            </Link>
-            <Link href="/catalog" className="sf-top-nav__item">
-              <Icon name="grid" width={16} height={16} />
-              <span>Каталог</span>
-            </Link>
-            <Link href="/?sort=price-asc#catalog" className="sf-top-nav__item">
-              <Icon name="star" width={16} height={16} />
-              <span>Акции</span>
-            </Link>
-            <Link href="/?sort=newest#catalog" className="sf-top-nav__item">
-              <Icon name="flame" width={16} height={16} />
-              <span>Новинки</span>
-            </Link>
-          </nav>
+          <TopNav />
           <form action="/" className="sf-global-search" role="search">
             <label className="sf-city sf-sr-only">
               <select name="city" aria-label="Выберите город">
@@ -106,25 +83,7 @@ export default async function Header() {
           </div>
         </div>
       </header>
-      <nav className="sf-home-mobile-nav" aria-label="Мобильная навигация">
-        <Link href="/">
-          <Icon name="home" />
-          <span>Главная</span>
-        </Link>
-        <Link href="/catalog">
-          <Icon name="grid" />
-          <span>Каталог</span>
-        </Link>
-        <CartLink />
-        <Link href="/orders">
-          <Icon name="box" />
-          <span>Заказы</span>
-        </Link>
-        <a href="/buyer">
-          <Icon name="user" />
-          <span>Кабинет</span>
-        </a>
-      </nav>
+      <MobileNav />
     </>
   );
 }

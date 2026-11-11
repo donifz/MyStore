@@ -6,6 +6,7 @@ import { Button, Alert } from './ui';
 import type { Product } from '../lib/public-api';
 import { useCart } from './CartProvider';
 import Icon from './storefront/Icon';
+
 export default function BuyButton({
   product,
   compact = false,
@@ -18,16 +19,22 @@ export default function BuyButton({
   const c = useCart(),
     router = useRouter(),
     [added, setAdded] = useState(false),
-    [quantity, setQuantity] = useState(1);
-  const inCart =
-    c.ready &&
-    c.items.some(
-      (item) => item.id === product.id && item.storeSlug === product.store.slug,
-    );
+    [quantity, setQuantity] = useState(1),
+    [localError, setLocalError] = useState('');
+
+  const cartItem = c.ready
+    ? c.items.find(
+        (item) =>
+          item.id === product.id && item.storeSlug === product.store.slug,
+      )
+    : undefined;
+  const inCartQty = cartItem?.quantity ?? 0;
+  const inCart = inCartQty > 0;
   const pending = Boolean(
     c.checkoutKey || c.state.attempts[product.store.slug],
   );
-  if (pending)
+
+  if (pending) {
     return (
       <div
         className={
@@ -37,23 +44,83 @@ export default function BuyButton({
         <Link className="sf-button sf-button--secondary" href="/cart">
           Проверить заказ
         </Link>
-        {compact && <div className="sf-card-buy-status" />}
       </div>
     );
+  }
+
   function add(now = false) {
+    setLocalError('');
+    if (inCartQty + quantity > product.available) {
+      setLocalError('Выбрано больше, чем есть в наличии.');
+      return;
+    }
     if (c.add(product, false, quantity)) {
       setAdded(true);
       if (now) router.push('/checkout');
+    } else if (!compact && c.error) {
+      setLocalError(c.error);
     }
   }
+
+  if (compact) {
+    return (
+      <div className="sf-buy-actions sf-buy-actions--compact">
+        {inCart ? (
+          <div
+            className="sf-card-stepper"
+            role="group"
+            aria-label={`Количество ${product.name} в корзине`}
+          >
+            <button
+              type="button"
+              className="sf-card-stepper-btn"
+              aria-label="Уменьшить количество"
+              onClick={() => {
+                if (inCartQty <= 1) c.remove(product.id);
+                else c.quantity(product.id, inCartQty - 1);
+              }}
+            >
+              −
+            </button>
+            <span className="sf-card-stepper-val" aria-live="polite">
+              {inCartQty}
+            </span>
+            <button
+              type="button"
+              className="sf-card-stepper-btn"
+              aria-label="Увеличить количество"
+              disabled={inCartQty >= product.available}
+              onClick={() => {
+                if (inCartQty < product.available) {
+                  c.quantity(product.id, inCartQty + 1);
+                }
+              }}
+            >
+              +
+            </button>
+          </div>
+        ) : (
+          <div className="sf-buy-compact-wrap">
+            <Button
+              className={iconOnly ? 'sf-icon-cart-btn' : 'sf-full'}
+              aria-label={iconOnly ? 'В корзину' : undefined}
+              disabled={!c.ready || product.available < 1}
+              onClick={() => add()}
+            >
+              <Icon name="cart" width={18} height={18} />
+              {!iconOnly &&
+                (product.available < 1 ? 'Нет в наличии' : 'В корзину')}
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={
-        compact ? 'sf-buy-actions sf-buy-actions--compact' : 'sf-buy-actions'
-      }
-    >
-      <div className={compact ? 'sf-buy-compact-wrap' : 'sf-buy-primary-row'}>
-        {!compact && product.available > 0 && (
+    <div className="sf-buy-actions">
+      <div className="sf-buy-primary-row">
+        {product.available > 0 && (
           <div className="sf-quantity">
             <button
               type="button"
@@ -103,30 +170,23 @@ export default function BuyButton({
                 : 'В корзину')}
         </Button>
       </div>
-      {!compact && (
-        <Button
-          className="sf-full sf-buy-now-btn"
-          variant="secondary"
-          disabled={!c.ready || product.available < 1}
-          onClick={() => add(true)}
-        >
-          <Icon name="bolt" width={18} height={18} />
-          Купить сейчас
-        </Button>
-      )}
-      {(compact || added || inCart) && (
-        <div
-          role="status"
-          className={compact ? 'sf-card-buy-status' : undefined}
-        >
-          {(added || inCart) && (
-            <Link className="sf-added" href="/cart">
-              Добавлено · Перейти в корзину
-            </Link>
-          )}
+      <Button
+        className="sf-full sf-buy-now-btn"
+        variant="secondary"
+        disabled={!c.ready || product.available < 1}
+        onClick={() => add(true)}
+      >
+        <Icon name="bolt" width={18} height={18} />
+        Купить сейчас
+      </Button>
+      {(added || inCart) && (
+        <div role="status">
+          <Link className="sf-added" href="/cart">
+            Добавлено · Перейти в корзину
+          </Link>
         </div>
       )}
-      {c.error && <Alert variant="error">{c.error}</Alert>}
+      {localError && <Alert variant="error">{localError}</Alert>}
     </div>
   );
 }

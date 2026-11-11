@@ -271,6 +271,7 @@ select.sf-input:focus,
 }
 .sf-badge {
   display: inline-flex;
+  align-items: center;
   gap: var(--sf-space-1);
   padding: var(--sf-space-1) var(--sf-space-2);
   border-radius: var(--sf-radius-pill);
@@ -3829,14 +3830,20 @@ select.sf-input:focus,
 .sf-card-meta-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 6px;
+  justify-content: flex-start;
+  gap: 8px;
   min-height: 24px;
   min-width: 0;
 }
+.sf-card-meta-row .sf-card-rating + .sf-stock {
+  margin-left: auto;
+}
 .sf-card-meta-row .sf-stock {
+  display: inline-flex;
+  align-items: center;
   font-size: 11px;
-  padding: 2px 8px;
+  line-height: 1;
+  padding: 4px 8px;
   min-width: 0;
   white-space: nowrap;
 }
@@ -4698,7 +4705,11 @@ select.sf-input:focus,
 }
 
 .sf-page .sf-top-nav__item--active svg,
-.sf-top-nav__item--active svg,
+.sf-top-nav__item--active svg {
+  color: #ffffff;
+  background: transparent;
+}
+
 .sf-page .sf-top-nav__item--active:hover,
 .sf-top-nav__item--active:hover {
   color: #ffffff;
@@ -5476,12 +5487,27 @@ select.sf-input:focus,
   .sf-card-footer-row {
     flex-direction: column;
     align-items: stretch;
-    gap: 6px;
+    height: auto !important;
+    min-height: 0 !important;
+    gap: 8px;
+  }
+  .sf-page .sf-card-footer-row .sf-price {
+    height: auto !important;
   }
   .sf-page .sf-card-footer-row .sf-buy-actions--compact,
-  .sf-page .sf-card-footer-row .sf-buy-actions--compact > .sf-button {
+  .sf-page .sf-card-footer-row .sf-buy-actions--compact .sf-buy-compact-wrap,
+  .sf-page .sf-card-footer-row .sf-buy-actions--compact > .sf-button,
+  .sf-page
+    .sf-card-footer-row
+    .sf-buy-actions--compact
+    .sf-buy-compact-wrap
+    > .sf-button,
+  .sf-page .sf-card-footer-row .sf-buy-actions--compact .sf-card-stepper {
     width: 100% !important;
     align-items: stretch;
+  }
+  .sf-page .sf-card-footer-row .sf-buy-actions--compact .sf-card-stepper {
+    justify-content: space-between;
   }
 }
 
@@ -6093,12 +6119,14 @@ select.sf-input:focus,
   background: transparent !important;
   border: 0;
   border-bottom: 3px solid transparent;
-  border-radius: 0;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 .sf-page .sf-store-hero-bar .sf-store-tab--active {
   color: var(--sf-primary) !important;
   border-bottom-color: var(--sf-primary) !important;
+  box-shadow: none !important;
   font-weight: 750;
 }
 
@@ -6231,6 +6259,8 @@ select.sf-input:focus,
   margin-left: auto;
   color: #64748b;
   font-size: 12.5px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .sf-store-nav-cat--active .sf-sidebar-cat-count {
@@ -8118,6 +8148,11 @@ select.sf-input:focus,
     background: transparent !important;
     border: 0 !important;
   }
+  .sf-page .sf-home-mobile-nav a[aria-current='page'],
+  .sf-home-mobile-nav a[aria-current='page'],
+  .sf-page .sf-home-mobile-nav .sf-cart-link[aria-current='page'] {
+    color: var(--sf-primary);
+  }
   .sf-home-mobile-nav .sf-cart-link .sf-sr-only {
     position: static !important;
     width: auto !important;
@@ -9000,4 +9035,64 @@ button.sf-sidebar-more-link {
   margin: 0;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.sf-buy-compact-wrap {
+  display: inline-flex;
+  align-items: center;
+}
+
+.sf-card-stepper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+  height: 44px;
+  min-height: 44px;
+  padding: 2px;
+  box-sizing: border-box;
+  border-radius: 12px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+}
+
+.sf-card-stepper-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: #ffffff;
+  color: var(--sf-primary);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.sf-card-stepper-btn:hover:not(:disabled) {
+  background: var(--sf-primary);
+  color: #ffffff;
+}
+
+.sf-card-stepper-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.sf-card-stepper-val {
+  min-width: 24px;
+  padding: 0 4px;
+  text-align: center;
+  font-size: 13.5px;
+  font-weight: 750;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
 }

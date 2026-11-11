@@ -560,3 +560,23 @@ test('buyer can reach partner form through the footer', async ({ page }) => {
     page.getByRole('heading', { name: 'Стать партнёром', exact: true }),
   ).toBeVisible();
 });
+
+test('top navigation highlights the active section route and sort tab', async ({
+  page,
+}) => {
+  const nav = page.getByRole('navigation', { name: 'Разделы витрины' });
+  const cases = [
+    { url: '/', active: 'Главная' },
+    { url: '/shops', active: 'Магазины' },
+    { url: '/catalog', active: 'Каталог' },
+    { url: '/?sort=price-asc#catalog', active: 'Акции' },
+    { url: '/?sort=newest#catalog', active: 'Новинки' },
+  ];
+  for (const c of cases) {
+    await page.goto(c.url);
+    const activeLinks = nav.locator('.sf-top-nav__item--active');
+    await expect(activeLinks).toHaveCount(1);
+    await expect(activeLinks).toHaveText(c.active);
+    await expect(activeLinks).toHaveAttribute('aria-current', 'page');
+  }
+});

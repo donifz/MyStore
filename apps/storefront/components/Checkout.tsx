@@ -218,7 +218,7 @@ function MarketplaceCheckout({
     );
   }
 
-  async function process(slug: string, retry = false) {
+  async function processStore(slug: string, retry = false) {
     const initial = c.latest();
     const original = initial.attempts[slug];
     let body = original;
@@ -313,7 +313,7 @@ function MarketplaceCheckout({
         const targets = slug
           ? [slug]
           : [...new Set(current.items.map((l) => l.storeSlug))];
-        for (const s of targets) await process(s, Boolean(slug));
+        for (const s of targets) await processStore(s, Boolean(slug));
       });
     } catch (e) {
       setErrors((old) => ({
