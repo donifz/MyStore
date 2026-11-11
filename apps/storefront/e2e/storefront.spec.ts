@@ -67,7 +67,7 @@ test('shows a placeholder instead of a broken image when the photo is corrupt', 
   await expect(card.locator('img')).toHaveCount(0);
 });
 
-test('home shows available products first and stores after the catalogue', async ({
+test('home shows stores showcase above available products', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -80,9 +80,15 @@ test('home shows available products first and stores after the catalogue', async
   await expect(
     page.getByRole('link', { name: 'Сбросить', exact: true }),
   ).toHaveAttribute('href', '/?inStock=false#catalog');
+  await expect(
+    page.getByRole('heading', { name: 'Магазины рядом' }),
+  ).toBeVisible();
+  await expect(
+    page.locator('.sf-stores-strip .sf-home-store-card'),
+  ).toHaveCount(1);
   const catalog = await page.locator('#catalog').boundingBox();
   const stores = await page.locator('.sf-stores-strip').boundingBox();
-  expect(stores!.y).toBeGreaterThan(catalog!.y);
+  expect(stores!.y).toBeLessThan(catalog!.y);
   await page
     .getByRole('navigation', { name: 'Наличие товаров' })
     .getByRole('link', { name: 'Все товары' })
