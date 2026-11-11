@@ -22,6 +22,16 @@ import StorefrontBanner from './storefront/StorefrontBanner';
 import StoreHeroSection from './storefront/StoreHeroSection';
 import ReviewsWidget from './storefront/ReviewsWidget';
 import { CartLink } from './CartProvider';
+
+function pluralizeProducts(n: number): string {
+  const abs = Math.abs(n) % 100;
+  const mod10 = abs % 10;
+  if (abs > 10 && abs < 20) return `${n} товаров`;
+  if (mod10 === 1) return `${n} товар`;
+  if (mod10 >= 2 && mod10 <= 4) return `${n} товара`;
+  return `${n} товаров`;
+}
+
 export default async function Catalog({
   search,
   slug,
@@ -76,8 +86,15 @@ export default async function Catalog({
     filter.minPrice,
     filter.maxPrice,
     filter.minRating,
-    filter.inStock,
+    !initialHome && filter.inStock,
   ].filter(Boolean).length;
+  const allLoadedInPage =
+    !filter.category &&
+    !filter.q &&
+    !filter.minPrice &&
+    !filter.maxPrice &&
+    !filter.minRating &&
+    products.total <= products.items.length;
   const filtersPanel = (
     <aside className="sf-catalog-sidebar">
       <CollapsibleFilters activeCount={activeFilterCount}>
@@ -129,13 +146,21 @@ export default async function Catalog({
               </span>
               <span className="sf-quick-chip__text">
                 <strong>Все товары</strong>
-                <small>{products.total} товаров</small>
+                <small>
+                  {!filter.category
+                    ? pluralizeProducts(products.total)
+                    : 'Весь каталог'}
+                </small>
               </span>
             </Link>
             {products.categories.map((c) => {
               const catCount =
-                products.items.filter((item) => item.category === c).length ||
-                products.total;
+                filter.category === c
+                  ? products.total
+                  : allLoadedInPage
+                    ? products.items.filter((item) => item.category === c)
+                        .length
+                    : null;
               return (
                 <Link
                   key={c}
@@ -151,18 +176,15 @@ export default async function Catalog({
                   </span>
                   <span className="sf-quick-chip__text">
                     <strong>{c}</strong>
-                    <small>{catCount} товаров</small>
+                    <small>
+                      {catCount !== null
+                        ? pluralizeProducts(catCount)
+                        : 'Открыть категорию'}
+                    </small>
                   </span>
                 </Link>
               );
             })}
-            <Link
-              href={slug ? `/shop/${slug}#catalog` : '/#catalog'}
-              className="sf-quick-chip sf-quick-chip--more"
-            >
-              <span>Ещё</span>
-              <Icon name="chevronDown" width={16} height={16} />
-            </Link>
           </div>
         )}
         <div className="sf-catalog-layout">
@@ -178,7 +200,7 @@ export default async function Catalog({
                       : 'Все товары'}
                 </h2>
                 <span className="sf-count-pill">
-                  Найдено {products.total} товаров
+                  Найдено {pluralizeProducts(products.total)}
                 </span>
               </div>
               <div className="sf-results-toolbar">
@@ -233,23 +255,23 @@ export default async function Catalog({
                 </div>
               </div>
             </div>
-            {store && (
+            {store && products.categories.length > 0 && (
               <div
                 className="sf-store-category-tiles"
                 role="navigation"
                 aria-label="Категории магазина"
               >
-                {[
-                  'Конструкторы',
-                  'Робототехника',
-                  'Развивающие',
-                  'Настольные игры',
-                  'Машинки',
-                  'Куклы',
-                ].map((tileCat, idx) => {
-                  const isActive =
-                    filter.category === tileCat ||
-                    (!filter.category && idx === 0);
+                <Link
+                  href={`/shop/${slug}#catalog`}
+                  className={`sf-store-cat-tile ${!filter.category ? 'sf-store-cat-tile--active' : ''}`}
+                >
+                  <span className="sf-store-cat-tile__icon">
+                    <Icon name="grid" width={26} height={26} />
+                  </span>
+                  <strong>Все товары</strong>
+                </Link>
+                {products.categories.map((tileCat) => {
+                  const isActive = filter.category === tileCat;
                   return (
                     <Link
                       key={tileCat}
@@ -263,15 +285,6 @@ export default async function Catalog({
                     </Link>
                   );
                 })}
-                <Link
-                  href={`/shop/${slug}#catalog`}
-                  className="sf-store-cat-tile sf-store-cat-tile--more"
-                >
-                  <span className="sf-store-cat-tile__icon">
-                    <Icon name="grid" width={26} height={26} />
-                  </span>
-                  <strong>Ещё</strong>
-                </Link>
               </div>
             )}
             {products.items.length ? (

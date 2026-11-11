@@ -63,7 +63,11 @@ export default function StoreHeroSection({
           url,
         });
         return;
-      } catch {}
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') {
+          return;
+        }
+      }
     }
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       try {

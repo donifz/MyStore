@@ -245,21 +245,24 @@ export default async function ProductPage({ params }: Props) {
               </Link>
               <div className="sf-seller-stats">
                 <div>
-                  <strong>
-                    <span className="sf-star-glyph" aria-hidden="true">
-                      ★
-                    </span>{' '}
-                    {v.store.ratingCount &&
-                    v.store.ratingCount > 0 &&
-                    v.store.ratingAverage
-                      ? v.store.ratingAverage.toFixed(1).replace('.', ',')
-                      : '5,0'}
-                  </strong>
-                  <small>
-                    {v.store.ratingCount && v.store.ratingCount > 0
-                      ? `${v.store.ratingCount} отзывов`
-                      : 'Рейтинг магазина'}
-                  </small>
+                  {v.store.ratingCount &&
+                  v.store.ratingCount > 0 &&
+                  v.store.ratingAverage ? (
+                    <>
+                      <strong>
+                        <span className="sf-star-glyph" aria-hidden="true">
+                          ★
+                        </span>{' '}
+                        {v.store.ratingAverage.toFixed(1).replace('.', ',')}
+                      </strong>
+                      <small>{v.store.ratingCount} отзывов</small>
+                    </>
+                  ) : (
+                    <>
+                      <strong>—</strong>
+                      <small>Пока нет отзывов</small>
+                    </>
+                  )}
                 </div>
                 <div>
                   <strong>{v.store.productCount ?? 1}</strong>
