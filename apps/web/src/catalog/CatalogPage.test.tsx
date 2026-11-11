@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 const shop = '11111111-1111-4111-8111-111111111111';
@@ -8,7 +8,7 @@ afterEach(() => {
   localStorage.clear();
   vi.unstubAllGlobals();
 });
-function server(role = 'cashier') {
+function server(role = 'cashier', variantItems?: Record<string, unknown>[]) {
   let calls: string[] = [];
   vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
     calls.push((init?.method || 'GET') + ' ' + url);
@@ -31,7 +31,7 @@ function server(role = 'cashier') {
             }
           : url.includes('/variants')
             ? {
-                items: [
+                items: variantItems ?? [
                   {
                     id: 'variant',
                     name: 'Рюкзак',
@@ -43,7 +43,7 @@ function server(role = 'cashier') {
                     createdAt: '2026-11-05T09:30:00.000Z',
                   },
                 ],
-                total: 1,
+                total: variantItems?.length ?? 1,
                 page: 1,
                 pageSize: 25,
               }
@@ -68,6 +68,7 @@ it('cashier sees stock but cannot create or read procurement cost', async () => 
   await screen.findByText('Рюкзак');
   expect(screen.queryByRole('link', { name: 'Добавить товар' })).toBeNull();
   expect(screen.queryByText('Закупочная стоимость')).toBeNull();
+  expect(screen.queryByRole('columnheader', { name: 'Закупочная' })).toBeNull();
 });
 it('foreign shop URL never loads foreign catalog', async () => {
   const calls = server();
@@ -170,4 +171,51 @@ it('displays the product creation date returned by the catalog API', async () =>
   await screen.findByText('Рюкзак');
   expect(screen.getByRole('columnheader', { name: 'Добавлен' })).toBeTruthy();
   expect(screen.getByText(/05\.11\.2026/)).toBeTruthy();
+});
+
+it('shows purchase price for non-cashiers and product photo with default fallback', async () => {
+  server('owner', [
+    {
+      id: 'v1',
+      name: 'Рюкзак',
+      barcode: '00123',
+      salePriceMinor: 15000,
+      lastPurchaseMinor: 10000,
+      photoUrl: '/api/v1/shops/' + shop + '/variants/v1/photo',
+      physical: 10,
+      reserved: 0,
+      available: 10,
+      createdAt: '2026-11-05T09:30:00.000Z',
+    },
+    {
+      id: 'v2',
+      name: 'Пенал',
+      barcode: '00124',
+      salePriceMinor: 5000,
+      physical: 4,
+      reserved: 0,
+      available: 4,
+      createdAt: '2026-11-05T10:00:00.000Z',
+    },
+  ]);
+  const app = await import('../App');
+  render(
+    <MemoryRouter initialEntries={['/seller/' + shop + '/products']}>
+      <app.default />
+    </MemoryRouter>,
+  );
+  await screen.findByText('Рюкзак');
+  expect(screen.getByRole('columnheader', { name: 'Закупочная' })).toBeTruthy();
+  expect(screen.getByText('100,00 сом')).toBeTruthy();
+  expect(screen.getByText('—')).toBeTruthy();
+
+  const img = screen.getByRole('img', { name: 'Рюкзак' }) as HTMLImageElement;
+  expect(img.getAttribute('src')).toBe(
+    '/api/v1/shops/' + shop + '/variants/v1/photo',
+  );
+  expect(screen.getAllByLabelText('Фото по умолчанию')).toHaveLength(1);
+
+  fireEvent.error(img);
+  expect(screen.queryByRole('img', { name: 'Рюкзак' })).toBeNull();
+  expect(screen.getAllByLabelText('Фото по умолчанию')).toHaveLength(2);
 });
