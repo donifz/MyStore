@@ -2,16 +2,54 @@ import { FormEvent, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
 import { formatSom, parseSom } from '../api/money';
-import { Variant, ShopCustomAttribute } from '../api/types';
+import { Variant, ShopCustomAttribute, hasShopPermission } from '../api/types';
 import { useSession } from '../auth/SessionProvider';
+import { AdminStatus } from '../platform/AdminKit';
 import { useResource } from '../storefront/use-resource';
-import type { CategoryNode } from './PhotoAssistant';
+import BarcodeLabel from './BarcodeLabel';
 import EditProductPhotos from './EditProductPhotos';
+import type { CategoryNode } from './PhotoAssistant';
+import ProductThumb from './ProductThumb';
+
+type DetailTab = 'main' | 'photos' | 'variants' | 'stock' | 'storefront';
+
+function previewMinor(value: string): number | null {
+  try {
+    return parseSom(value);
+  } catch {
+    return null;
+  }
+}
+
+function formatPercent(value: number) {
+  return (
+    (value > 0 ? '+' : '') +
+    new Intl.NumberFormat('ru-RU', {
+      maximumFractionDigits: 1,
+    }).format(value) +
+    '%'
+  );
+}
+
+function publicationMeta(status?: Variant['publicationStatus']) {
+  if (status === 'approved') {
+    return { label: 'Одобрен на витрине', tone: 'green' as const };
+  }
+  if (status === 'pending') {
+    return { label: 'Ожидает проверки', tone: 'amber' as const };
+  }
+  return { label: 'Не опубликован', tone: 'neutral' as const };
+}
+
 export default function EditVariantPage() {
   const { shopId, id } = useParams(),
     s = useSession();
-  const allowed =
-    s.user?.shops.find((x) => x.id === shopId)?.role !== 'cashier';
+  const membership = s.user?.shops.find((x) => x.id === shopId);
+  const allowed = membership?.role !== 'cashier';
+  const canViewCost =
+    allowed &&
+    (membership?.role !== 'cashier' ||
+      hasShopPermission(membership, 'reports'));
   const r = useResource<Variant>(
       allowed ? `/shops/${shopId}/variants/${id}` : null,
     ),
@@ -34,28 +72,41 @@ export default function EditVariantPage() {
     [saved, setSaved] = useState(false),
     [savedPrice, setSavedPrice] = useState(0),
     [publicationStatus, setPublicationStatus] =
-      useState<Variant['publicationStatus']>();
+      useState<Variant['publicationStatus']>(),
+    [activeTab, setActiveTab] = useState<DetailTab>('main'),
+    [photoOverride, setPhotoOverride] = useState<Variant | null>(null),
+    [barcodeDialogOpen, setBarcodeDialogOpen] = useState(false),
+    [syncedData, setSyncedData] = useState<Variant | null>(null);
+
   useEffect(() => {
-    if (r.data) {
-      setName(r.data.name);
-      const minor = BigInt(r.data.salePriceMinor);
-      setPrice(`${minor / 100n}.${String(minor % 100n).padStart(2, '0')}`);
-      setDescription(r.data.description ?? '');
-      setCategory(r.data.category ?? '');
-      setSubcategory(r.data.subcategory ?? '');
-      setPublished(r.data.published ?? true);
-      setArchived(Boolean(r.data.archived));
-      setPublicationStatus(r.data.publicationStatus);
-      if (r.data.attributes && typeof r.data.attributes === 'object') {
-        const strVals: Record<string, string> = {};
-        for (const [k, v] of Object.entries(r.data.attributes)) {
-          strVals[k] = String(v ?? '');
-        }
-        setCustomValues(strVals);
+    setPhotoOverride(null);
+    setActiveTab('main');
+    setBarcodeDialogOpen(false);
+  }, [id]);
+
+  if (r.data && r.data !== syncedData) {
+    setSyncedData(r.data);
+    setName(r.data.name);
+    const minor = BigInt(r.data.salePriceMinor);
+    setPrice(`${minor / 100n}.${String(minor % 100n).padStart(2, '0')}`);
+    setDescription(r.data.description ?? '');
+    setCategory(r.data.category ?? '');
+    setSubcategory(r.data.subcategory ?? '');
+    setPublished(r.data.published ?? true);
+    setArchived(Boolean(r.data.archived));
+    setPublicationStatus(r.data.publicationStatus);
+    if (r.data.attributes && typeof r.data.attributes === 'object') {
+      const strVals: Record<string, string> = {};
+      for (const [k, v] of Object.entries(r.data.attributes)) {
+        strVals[k] = String(v ?? '');
       }
-      setSaved(false);
+      setCustomValues(strVals);
+    } else {
+      setCustomValues({});
     }
-  }, [r.data]);
+    setSaved(false);
+  }
+
   useEffect(() => {
     if (allowed && shopId) {
       void api<CategoryNode[]>(`/shops/${shopId}/categories`)
@@ -66,6 +117,7 @@ export default function EditVariantPage() {
         .catch(() => {});
     }
   }, [allowed, shopId]);
+
   useEffect(() => {
     if (allowed && shopId && id) {
       setGroupLoading(true);
@@ -75,13 +127,18 @@ export default function EditVariantPage() {
         .finally(() => setGroupLoading(false));
     }
   }, [allowed, shopId, id]);
-  async function submit(e: FormEvent) {
-    e.preventDefault();
+
+  async function saveChanges() {
+    if (!name.trim()) {
+      setError('Укажите название товара.');
+      setActiveTab('main');
+      return;
+    }
     setBusy(true);
     setError('');
     setSaved(false);
     try {
-      const cleanAttrs: Record<string, any> = {};
+      const cleanAttrs: Record<string, string | number> = {};
       for (const [k, v] of Object.entries(customValues)) {
         if (v !== '' && v !== undefined && v !== null) {
           const def = customAttrs.find((a) => a.key === k);
@@ -109,6 +166,12 @@ export default function EditVariantPage() {
       setBusy(false);
     }
   }
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    await saveChanges();
+  }
+
   async function handleArchiveToggle() {
     if (!shopId || !id) return;
     setArchiveBusy(true);
@@ -124,8 +187,8 @@ export default function EditVariantPage() {
         `/shops/${shopId}/variants/${id}/variants`,
       );
       setGroupVariants(group);
-    } catch (e: any) {
-      if (e?.status === 409) {
+    } catch (e: unknown) {
+      if ((e as { status?: number })?.status === 409) {
         setArchiveError(
           'Нельзя архивировать товар с активными резервами в онлайн-заказах.',
         );
@@ -136,355 +199,761 @@ export default function EditVariantPage() {
       setArchiveBusy(false);
     }
   }
+
   if (!allowed)
     return <p role="alert">Недостаточно прав для изменения товара.</p>;
+
+  const activeVariant =
+    r.data && photoOverride
+      ? {
+          ...r.data,
+          photoUrl: photoOverride.photoUrl,
+          photoUrls: photoOverride.photoUrls,
+          publicationStatus:
+            photoOverride.publicationStatus ?? publicationStatus,
+        }
+      : r.data;
   const rootId = r.data ? r.data.parentId || r.data.id : id;
+  const currentPub = publicationMeta(
+    photoOverride?.publicationStatus ?? publicationStatus,
+  );
+  const heroPhoto = activeVariant?.photoUrl || activeVariant?.photoUrls?.[0];
+  const photoCount =
+    activeVariant?.photoUrls?.length ?? (activeVariant?.photoUrl ? 1 : 0);
+
+  const liveSaleMinor = r.data
+    ? (previewMinor(price) ?? r.data.salePriceMinor)
+    : null;
+  const purchaseMinor =
+    canViewCost && r.data?.lastPurchaseMinor !== undefined
+      ? r.data.lastPurchaseMinor
+      : undefined;
+  const profitMinor =
+    liveSaleMinor !== null && purchaseMinor !== undefined
+      ? liveSaleMinor - purchaseMinor
+      : undefined;
+  const markupPct =
+    profitMinor !== undefined && purchaseMinor && purchaseMinor > 0
+      ? (profitMinor / purchaseMinor) * 100
+      : undefined;
+  const marginPct =
+    profitMinor !== undefined && liveSaleMinor && liveSaleMinor > 0
+      ? (profitMinor / liveSaleMinor) * 100
+      : undefined;
+
+  const availableCount = r.data?.available ?? 0;
+  const physicalCount = r.data?.physical ?? 0;
+  const reservedCount = r.data?.reserved ?? 0;
+  const categoryTrail = [category, subcategory].filter(Boolean).join(' → ');
+
   return (
-    <>
-      <Link className="back-link" to={`/seller/${shopId}/products`}>
-        ← Товары
-      </Link>
-      <div className="page-heading">
-        <div>
-          <p className="eyebrow">Карточка товара</p>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              flexWrap: 'wrap',
-            }}
-          >
-            <h1>{name || 'Редактировать товар'}</h1>
-            {r.data && (
-              <span
-                className={`status-pill ${
-                  archived ? 'status-archived' : 'status-active'
-                }`}
-              >
-                {archived ? 'В архиве' : 'Активен'}
-              </span>
-            )}
+    <div className="product-detail-page">
+      <div className="product-detail-topbar">
+        <Link className="back-link" to={`/seller/${shopId}/products`}>
+          ← Назад к товарам
+        </Link>
+        {r.data && (
+          <div className="product-detail-actions">
+            <button
+              type="button"
+              className="button secondary"
+              onClick={() => setBarcodeDialogOpen(true)}
+            >
+              Этикетка
+            </button>
+            <button
+              type="button"
+              className="button secondary"
+              disabled={archiveBusy}
+              onClick={handleArchiveToggle}
+            >
+              {archiveBusy ? 'Обработка…' : archived ? 'Из архива' : 'В архив'}
+            </button>
+            <button
+              type="button"
+              className="primary product-detail-save-btn"
+              disabled={busy || archiveBusy}
+              onClick={() => void saveChanges()}
+            >
+              {busy ? 'Сохранение…' : 'Сохранить изменения'}
+            </button>
           </div>
-        </div>
+        )}
       </div>
+
       {r.error && (
         <p role="alert" className="error">
           {errorText(new Error(r.error))}
         </p>
       )}
       {!r.data && !r.error && <p role="status">Загрузка…</p>}
-      {r.data && (
+
+      {r.data && activeVariant && (
         <>
-          <section className="panel form-panel">
-            <form onSubmit={submit} onChange={() => setSaved(false)}>
-              <fieldset disabled={busy || archiveBusy}>
-                <label>
-                  Название
-                  <input
-                    required
-                    maxLength={200}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </label>
-                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                  <p className="code">Штрихкод: {r.data.barcode}</p>
-                  {r.data.sku && <p className="code">Артикул: {r.data.sku}</p>}
-                  {r.data.size && (
-                    <p className="muted">Размер: {r.data.size}</p>
-                  )}
-                  {r.data.color && (
-                    <p className="muted">Цвет: {r.data.color}</p>
-                  )}
+          <section
+            className="admin-kit-card product-detail-hero"
+            aria-label="Сводка товара"
+          >
+            <div className="product-detail-hero__main">
+              <button
+                type="button"
+                className="product-detail-thumb-btn"
+                aria-label="Перейти к фотографиям товара"
+                onClick={() => setActiveTab('photos')}
+              >
+                <ProductThumb
+                  photoUrl={heroPhoto}
+                  name={name || r.data.name}
+                  className="product-detail-thumb"
+                  iconSize={26}
+                />
+                <span className="product-detail-thumb-badge" aria-hidden="true">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                    <circle cx="12" cy="13" r="3" />
+                  </svg>
+                </span>
+              </button>
+
+              <div className="product-detail-hero__info">
+                <div className="product-detail-title-row">
+                  <h1>{name || 'Редактировать товар'}</h1>
+                  <AdminStatus tone={archived ? 'neutral' : 'green'}>
+                    {archived ? 'В архиве' : 'Активен'}
+                  </AdminStatus>
+                  <AdminStatus tone={currentPub.tone}>
+                    {currentPub.label}
+                  </AdminStatus>
                 </div>
-                <label>
-                  Цена продажи, сом
-                  <input
-                    required
-                    inputMode="decimal"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                  />
-                </label>
-                <label>
-                  Категория
-                  <select
-                    value={category}
-                    onChange={(e) => {
-                      setCategory(e.target.value);
-                      setSubcategory('');
-                    }}
+                <p className="product-detail-meta">
+                  {categoryTrail && <span>{categoryTrail}</span>}
+                  <span>#{r.data.shortBarcode || r.data.barcode}</span>
+                  {r.data.sku && <span>Арт. {r.data.sku}</span>}
+                  <span>Штрихкод {r.data.barcode}</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="product-detail-kpis">
+              <div className="product-detail-kpi">
+                <span>Цена продажи</span>
+                <strong>
+                  {liveSaleMinor !== null
+                    ? formatSom(liveSaleMinor)
+                    : formatSom(r.data.salePriceMinor)}
+                </strong>
+              </div>
+              {canViewCost && (
+                <div className="product-detail-kpi">
+                  <span>Закупочная</span>
+                  <strong>
+                    {purchaseMinor !== undefined
+                      ? formatSom(purchaseMinor)
+                      : '—'}
+                  </strong>
+                </div>
+              )}
+              {canViewCost && (
+                <div className="product-detail-kpi">
+                  <span>Наценка</span>
+                  <strong
+                    className={
+                      markupPct !== undefined && markupPct > 0
+                        ? 'product-detail-kpi__accent'
+                        : undefined
+                    }
                   >
-                    <option value="">Без категории</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.name}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Подкатегория
-                  <select
-                    value={subcategory}
-                    onChange={(e) => setSubcategory(e.target.value)}
-                    disabled={!category}
-                  >
-                    <option value="">Без подкатегории</option>
-                    {categories
-                      .find((c) => c.name === category)
-                      ?.children.map((c) => (
-                        <option key={c.id} value={c.name}>
-                          {c.name}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-                {customAttrs.length > 0 && (
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns:
-                        'repeat(auto-fill, minmax(200px, 1fr))',
-                      gap: '0.75rem',
-                      margin: '0.5rem 0',
-                    }}
-                  >
-                    {customAttrs.map((attr) => (
-                      <label key={attr.id}>
-                        {attr.name}
-                        {attr.type === 'select' ? (
+                    {markupPct !== undefined ? formatPercent(markupPct) : '—'}
+                  </strong>
+                </div>
+              )}
+              <div className="product-detail-kpi">
+                <span>Доступно</span>
+                <strong>
+                  {availableCount} шт.
+                  <small className="product-detail-kpi__note">
+                    резерв {reservedCount}
+                  </small>
+                </strong>
+              </div>
+            </div>
+          </section>
+
+          <nav
+            className="product-detail-tabs"
+            role="tablist"
+            aria-label="Разделы карточки товара"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'main'}
+              className={`product-detail-tab${activeTab === 'main' ? ' is-active' : ''}`}
+              onClick={() => setActiveTab('main')}
+            >
+              Основное и цены
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'photos'}
+              className={`product-detail-tab${activeTab === 'photos' ? ' is-active' : ''}`}
+              onClick={() => setActiveTab('photos')}
+            >
+              Фотографии ({photoCount})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'variants'}
+              className={`product-detail-tab${activeTab === 'variants' ? ' is-active' : ''}`}
+              onClick={() => setActiveTab('variants')}
+            >
+              Разновидности ({groupVariants.length})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'stock'}
+              className={`product-detail-tab${activeTab === 'stock' ? ' is-active' : ''}`}
+              onClick={() => setActiveTab('stock')}
+            >
+              Склад и штрихкод
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'storefront'}
+              className={`product-detail-tab${activeTab === 'storefront' ? ' is-active' : ''}`}
+              onClick={() => setActiveTab('storefront')}
+            >
+              Витрина и архив
+            </button>
+          </nav>
+
+          {saved && (
+            <p role="status" className="success product-detail-banner">
+              Товар обновлён. Цена: {formatSom(savedPrice)}
+            </p>
+          )}
+          {error && (
+            <p role="alert" className="error product-detail-banner">
+              {error}
+            </p>
+          )}
+          {archiveError && (
+            <p role="alert" className="error product-detail-banner">
+              {archiveError}
+            </p>
+          )}
+
+          {activeTab === 'main' && (
+            <section
+              className="admin-kit-card product-detail-sheet"
+              role="tabpanel"
+              aria-label="Основное и цены"
+            >
+              <form
+                id="edit-variant-form"
+                onSubmit={submit}
+                onChange={() => setSaved(false)}
+              >
+                <fieldset
+                  disabled={busy || archiveBusy}
+                  className="product-detail-fieldset"
+                >
+                  <div className="product-detail-section">
+                    <h2 className="product-detail-section__title">
+                      Основная информация
+                    </h2>
+                    <div className="product-detail-form-grid">
+                      <div className="product-detail-col">
+                        <label>
+                          Название товара
+                          <input
+                            required
+                            maxLength={200}
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                          />
+                        </label>
+                        <label>
+                          Описание для покупателей
+                          <textarea
+                            rows={4}
+                            maxLength={2000}
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                          />
+                        </label>
+                      </div>
+                      <div className="product-detail-col">
+                        <label>
+                          Категория
                           <select
-                            value={customValues[attr.key] || ''}
-                            onChange={(e) =>
-                              setCustomValues((prev) => ({
-                                ...prev,
-                                [attr.key]: e.target.value,
-                              }))
-                            }
+                            value={category}
+                            onChange={(e) => {
+                              setCategory(e.target.value);
+                              setSubcategory('');
+                            }}
                           >
-                            <option value="">Не выбрано</option>
-                            {attr.options.map((opt) => (
-                              <option key={opt} value={opt}>
-                                {opt}
+                            <option value="">Без категории</option>
+                            {categories.map((c) => (
+                              <option key={c.id} value={c.name}>
+                                {c.name}
                               </option>
                             ))}
                           </select>
-                        ) : attr.type === 'number' ? (
+                        </label>
+                        <label>
+                          Подкатегория
+                          <select
+                            value={subcategory}
+                            onChange={(e) => setSubcategory(e.target.value)}
+                            disabled={!category}
+                          >
+                            <option value="">Без подкатегории</option>
+                            {categories
+                              .find((c) => c.name === category)
+                              ?.children.map((c) => (
+                                <option key={c.id} value={c.name}>
+                                  {c.name}
+                                </option>
+                              ))}
+                          </select>
+                        </label>
+                        <label className="checkbox checkbox-label product-detail-switch">
                           <input
-                            type="number"
-                            value={customValues[attr.key] || ''}
-                            onChange={(e) =>
-                              setCustomValues((prev) => ({
-                                ...prev,
-                                [attr.key]: e.target.value,
-                              }))
-                            }
-                            placeholder="Число"
+                            type="checkbox"
+                            checked={published}
+                            onChange={(e) => setPublished(e.target.checked)}
                           />
-                        ) : (
-                          <input
-                            type="text"
-                            maxLength={100}
-                            value={customValues[attr.key] || ''}
-                            onChange={(e) =>
-                              setCustomValues((prev) => ({
-                                ...prev,
-                                [attr.key]: e.target.value,
-                              }))
-                            }
-                            placeholder="Значение"
-                          />
-                        )}
-                      </label>
-                    ))}
+                          Показывать на витрине
+                        </label>
+                      </div>
+                    </div>
                   </div>
-                )}
-                <label>
-                  Описание
-                  <textarea
-                    rows={5}
-                    maxLength={2000}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                  />
-                </label>
-                <label className="checkbox checkbox-label">
+
+                  <div className="product-detail-section">
+                    <h2 className="product-detail-section__title">
+                      Ценообразование
+                    </h2>
+                    <div className="product-detail-pricing-grid">
+                      <label>
+                        Цена продажи, сом
+                        <input
+                          required
+                          inputMode="decimal"
+                          value={price}
+                          onChange={(e) => setPrice(e.target.value)}
+                        />
+                      </label>
+                      {canViewCost && (
+                        <div className="product-detail-readonly-box">
+                          <span className="product-detail-readonly-box__label">
+                            Закупочная цена
+                          </span>
+                          <strong>
+                            {purchaseMinor !== undefined
+                              ? formatSom(purchaseMinor)
+                              : 'Не указана'}
+                          </strong>
+                          <small className="muted">По последней приёмке</small>
+                        </div>
+                      )}
+                      {canViewCost && (
+                        <div
+                          className={`product-detail-readonly-box${profitMinor !== undefined && profitMinor > 0 ? ' is-positive' : ''}`}
+                        >
+                          <span className="product-detail-readonly-box__label">
+                            Чистая прибыль с 1 шт.
+                          </span>
+                          <strong>
+                            {profitMinor !== undefined ? (
+                              <>
+                                {profitMinor > 0 ? '+' : ''}
+                                {formatSom(profitMinor)}
+                                {marginPct !== undefined && (
+                                  <span className="product-detail-margin-note">
+                                    {' '}
+                                    · маржа {formatPercent(marginPct)}
+                                  </span>
+                                )}
+                              </>
+                            ) : (
+                              '—'
+                            )}
+                          </strong>
+                          <small className="muted">
+                            {profitMinor !== undefined
+                              ? 'Разница между ценой продажи и закупкой'
+                              : 'Появится после первой приёмки'}
+                          </small>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="product-detail-section">
+                    <h2 className="product-detail-section__title">
+                      Характеристики товара
+                    </h2>
+                    <div className="product-detail-specs-strip">
+                      <div>
+                        <span>Штрихкод</span>
+                        <strong className="code">{r.data.barcode}</strong>
+                      </div>
+                      {r.data.sku && (
+                        <div>
+                          <span>Артикул</span>
+                          <strong className="code">{r.data.sku}</strong>
+                        </div>
+                      )}
+                      <div>
+                        <span>Размер</span>
+                        <strong>{r.data.size || '—'}</strong>
+                      </div>
+                      <div>
+                        <span>Цвет</span>
+                        <strong>{r.data.color || '—'}</strong>
+                      </div>
+                    </div>
+
+                    {customAttrs.length > 0 && (
+                      <div className="product-detail-attrs-grid">
+                        {customAttrs.map((attr) => (
+                          <label key={attr.id}>
+                            {attr.name}
+                            {attr.type === 'select' ? (
+                              <select
+                                value={customValues[attr.key] || ''}
+                                onChange={(e) =>
+                                  setCustomValues((prev) => ({
+                                    ...prev,
+                                    [attr.key]: e.target.value,
+                                  }))
+                                }
+                              >
+                                <option value="">Не выбрано</option>
+                                {attr.options.map((opt) => (
+                                  <option key={opt} value={opt}>
+                                    {opt}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : attr.type === 'number' ? (
+                              <input
+                                type="number"
+                                value={customValues[attr.key] || ''}
+                                onChange={(e) =>
+                                  setCustomValues((prev) => ({
+                                    ...prev,
+                                    [attr.key]: e.target.value,
+                                  }))
+                                }
+                                placeholder="Число"
+                              />
+                            ) : (
+                              <input
+                                type="text"
+                                maxLength={100}
+                                value={customValues[attr.key] || ''}
+                                onChange={(e) =>
+                                  setCustomValues((prev) => ({
+                                    ...prev,
+                                    [attr.key]: e.target.value,
+                                  }))
+                                }
+                                placeholder="Значение"
+                              />
+                            )}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </fieldset>
+              </form>
+            </section>
+          )}
+
+          {activeTab === 'photos' && shopId && (
+            <div role="tabpanel" aria-label="Фотографии">
+              <EditProductPhotos
+                shopId={shopId}
+                variant={activeVariant}
+                onSaved={(updated) => setPhotoOverride(updated)}
+              />
+            </div>
+          )}
+
+          {activeTab === 'variants' && (
+            <section
+              className="admin-kit-card"
+              role="tabpanel"
+              aria-label="Разновидности"
+            >
+              <div className="admin-kit-card-head">
+                <div>
+                  <h2>Разновидности (размеры / цвета)</h2>
+                  <p className="muted">
+                    Связанные товары с независимыми ценами, штрихкодами и
+                    остатками
+                  </p>
+                </div>
+                <Link
+                  to={`/seller/${shopId}/products/new?parentId=${rootId}`}
+                  className="button secondary"
+                >
+                  + Добавить размер / цвет
+                </Link>
+              </div>
+              {groupLoading && <p>Загрузка разновидностей…</p>}
+              {!groupLoading && groupVariants.length === 0 && (
+                <p className="admin-kit-empty">
+                  У товара пока нет связанных размеров или цветов.
+                </p>
+              )}
+              {!groupLoading && groupVariants.length > 0 && (
+                <div className="admin-kit-scroll">
+                  <table className="admin-kit-table">
+                    <thead>
+                      <tr>
+                        <th>Название</th>
+                        <th>Размер</th>
+                        <th>Цвет</th>
+                        <th>Штрихкод</th>
+                        <th>Цена</th>
+                        <th>Остаток</th>
+                        <th>Статус</th>
+                        <th>Действие</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {groupVariants.map((gv) => (
+                        <tr
+                          key={gv.id}
+                          style={
+                            gv.id === id
+                              ? { backgroundColor: 'rgba(0, 118, 89, 0.05)' }
+                              : undefined
+                          }
+                        >
+                          <td>
+                            <strong>
+                              {gv.name}
+                              {gv.id === id && (
+                                <span className="muted"> (текущий)</span>
+                              )}
+                            </strong>
+                          </td>
+                          <td>{gv.size || '—'}</td>
+                          <td>{gv.color || '—'}</td>
+                          <td>
+                            <small className="code">{gv.barcode}</small>
+                          </td>
+                          <td>{formatSom(gv.salePriceMinor)}</td>
+                          <td>
+                            <span
+                              className={
+                                'stock ' + (gv.available ? '' : 'empty')
+                              }
+                            >
+                              {gv.available ?? 0} шт.
+                            </span>
+                          </td>
+                          <td>
+                            <AdminStatus
+                              tone={gv.archived ? 'neutral' : 'green'}
+                            >
+                              {gv.archived ? 'В архиве' : 'Активен'}
+                            </AdminStatus>
+                          </td>
+                          <td>
+                            {gv.id !== id ? (
+                              <Link
+                                to={`/seller/${shopId}/products/${gv.id}/edit`}
+                              >
+                                Открыть
+                              </Link>
+                            ) : (
+                              <span className="muted">Открыт</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          )}
+
+          {activeTab === 'stock' && (
+            <div
+              className="product-detail-stock-grid"
+              role="tabpanel"
+              aria-label="Склад и штрихкод"
+            >
+              <section className="admin-kit-card">
+                <div className="admin-kit-card-head">
+                  <div>
+                    <h2>Остатки на складе</h2>
+                    <p className="muted">
+                      Актуальное количество по данным складского учёта
+                    </p>
+                  </div>
+                  <Link
+                    to={`/seller/${shopId}/receiving`}
+                    className="button secondary"
+                  >
+                    Оприходовать товар
+                  </Link>
+                </div>
+                <div className="product-detail-stock-tiles">
+                  <div className="product-detail-stock-tile is-accent">
+                    <span>Доступно к продаже</span>
+                    <strong>{availableCount} шт.</strong>
+                  </div>
+                  <div className="product-detail-stock-tile">
+                    <span>На складе (физ.)</span>
+                    <strong>{physicalCount} шт.</strong>
+                  </div>
+                  <div className="product-detail-stock-tile">
+                    <span>В резерве заказов</span>
+                    <strong>{reservedCount} шт.</strong>
+                  </div>
+                </div>
+              </section>
+
+              <section className="admin-kit-card">
+                <div className="admin-kit-card-head">
+                  <div>
+                    <h2>Штрихкод и печать этикетки</h2>
+                    <p className="muted">
+                      Используйте короткий код или EAN-13 для печати ценников
+                    </p>
+                  </div>
+                </div>
+                <BarcodeLabel product={r.data} />
+              </section>
+            </div>
+          )}
+
+          {activeTab === 'storefront' && (
+            <div
+              className="product-detail-storefront-grid"
+              role="tabpanel"
+              aria-label="Витрина и архив"
+            >
+              <section className="admin-kit-card">
+                <div className="admin-kit-card-head">
+                  <div>
+                    <h2>Публикация на витрине</h2>
+                    <p className="muted">
+                      Новая карточка и изменения названия, описания и категории
+                      проходят проверку. Цена и наличие обновляются сразу после
+                      сохранения.
+                    </p>
+                  </div>
+                  <AdminStatus tone={currentPub.tone}>
+                    {currentPub.label}
+                  </AdminStatus>
+                </div>
+                <label className="checkbox checkbox-label product-detail-switch">
                   <input
                     type="checkbox"
                     checked={published}
-                    onChange={(e) => setPublished(e.target.checked)}
+                    onChange={(e) => {
+                      setPublished(e.target.checked);
+                      setSaved(false);
+                    }}
                   />
                   Показывать на витрине
                 </label>
-                <p className="muted">
-                  Новая карточка и изменения названия, описания и категории
-                  проходят проверку. Цена и наличие обновляются сразу после
-                  сохранения.
-                </p>
-                <p>
+                <p style={{ marginTop: '0.75rem' }}>
                   Публичная карточка:{' '}
-                  {publicationStatus === 'pending'
+                  {(photoOverride?.publicationStatus ?? publicationStatus) ===
+                  'pending'
                     ? 'ожидает проверки'
-                    : publicationStatus === 'approved'
+                    : (photoOverride?.publicationStatus ??
+                          publicationStatus) === 'approved'
                       ? 'одобрена'
                       : 'ещё не опубликована'}
                   .
                 </p>
                 {r.data.rejectionReason && (
-                  <p>Последний отказ: {r.data.rejectionReason}</p>
-                )}
-                {saved && (
-                  <p role="status" className="success">
-                    Товар обновлён. Цена: {formatSom(savedPrice)}
+                  <p className="error" style={{ marginTop: '0.5rem' }}>
+                    Последний отказ: {r.data.rejectionReason}
                   </p>
                 )}
-                {error && (
-                  <p role="alert" className="error">
-                    {error}
-                  </p>
-                )}
-                <div
-                  style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}
-                >
-                  <button className="primary">
-                    {busy ? 'Сохранение…' : 'Сохранить изменения'}
-                  </button>
+              </section>
+
+              <section className="admin-kit-card">
+                <div className="admin-kit-card-head">
+                  <div>
+                    <h2>Управление архивом</h2>
+                    <p className="muted">
+                      {archived
+                        ? 'Товар находится в архиве: он скрыт из активного каталога, не продаётся на кассе POS и не отображается на витрине.'
+                        : 'Архивированный товар скрывается из каталога и витрины, его нельзя продать или принять на склад. Если у товара есть активные резервы покупателей, архивация будет заблокирована.'}
+                    </p>
+                  </div>
                 </div>
-              </fieldset>
-            </form>
-          </section>
-
-          {/* Group variants section */}
-          <section className="panel" style={{ marginTop: '1.5rem' }}>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '0.75rem',
-              }}
-            >
-              <div>
-                <h2>Разновидности (размеры / цвета)</h2>
-                <p className="muted">
-                  Связанные товары с независимыми ценами, штрихкодами и
-                  остатками
-                </p>
-              </div>
-              <Link
-                to={`/seller/${shopId}/products/new?parentId=${rootId}`}
-                className="button secondary"
-              >
-                + Добавить размер / цвет
-              </Link>
+                <button
+                  type="button"
+                  className={`button ${archived ? 'primary' : 'secondary'}`}
+                  disabled={archiveBusy}
+                  onClick={handleArchiveToggle}
+                >
+                  {archiveBusy
+                    ? 'Обработка…'
+                    : archived
+                      ? 'Вернуть товар из архива'
+                      : 'Перенести товар в архив'}
+                </button>
+              </section>
             </div>
-            {groupLoading && <p>Загрузка разновидностей…</p>}
-            {!groupLoading && groupVariants.length > 0 && (
-              <div className="table-wrap" style={{ marginTop: '1rem' }}>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Название</th>
-                      <th>Размер</th>
-                      <th>Цвет</th>
-                      <th>Штрихкод</th>
-                      <th>Цена</th>
-                      <th>Остаток</th>
-                      <th>Статус</th>
-                      <th>Действие</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {groupVariants.map((gv) => (
-                      <tr
-                        key={gv.id}
-                        style={
-                          gv.id === id
-                            ? { backgroundColor: 'rgba(0, 118, 89, 0.05)' }
-                            : undefined
-                        }
-                      >
-                        <td>
-                          <strong>{gv.name}</strong>
-                          {gv.id === id && (
-                            <span className="muted"> (текущий)</span>
-                          )}
-                        </td>
-                        <td>{gv.size || '—'}</td>
-                        <td>{gv.color || '—'}</td>
-                        <td>
-                          <small className="code">{gv.barcode}</small>
-                        </td>
-                        <td>{formatSom(gv.salePriceMinor)}</td>
-                        <td>
-                          <span
-                            className={'stock ' + (gv.available ? '' : 'empty')}
-                          >
-                            {gv.available} шт.
-                          </span>
-                        </td>
-                        <td>
-                          <span
-                            className={`status-pill ${gv.archived ? 'status-archived' : 'status-active'}`}
-                          >
-                            {gv.archived ? 'В архиве' : 'Активен'}
-                          </span>
-                        </td>
-                        <td>
-                          {gv.id !== id ? (
-                            <Link
-                              to={`/seller/${shopId}/products/${gv.id}/edit`}
-                            >
-                              Открыть
-                            </Link>
-                          ) : (
-                            <span className="muted">Открыт</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-
-          {/* Archive / unarchive management section */}
-          <section className="panel" style={{ marginTop: '1.5rem' }}>
-            <h2>Управление архивом</h2>
-            <p className="muted">
-              {archived
-                ? 'Товар находится в архиве: он скрыт из активного каталога, не продаётся на кассе POS и не отображается на витрине.'
-                : 'Архивированный товар скрывается из каталога и витрины, его нельзя продать или принять на склад. Если у товара есть активные резервы покупателей, архивация будет заблокирована.'}
-            </p>
-            {archiveError && (
-              <p role="alert" className="error" style={{ marginTop: '0.5rem' }}>
-                {archiveError}
-              </p>
-            )}
-            <div style={{ marginTop: '1rem' }}>
-              <button
-                type="button"
-                className={`button ${archived ? 'primary' : 'secondary'}`}
-                disabled={archiveBusy}
-                onClick={handleArchiveToggle}
-              >
-                {archiveBusy
-                  ? 'Обработка…'
-                  : archived
-                    ? 'Вернуть товар из архива'
-                    : 'Перенести товар в архив'}
-              </button>
-            </div>
-          </section>
+          )}
         </>
       )}
-      {r.data && shopId && (
-        <EditProductPhotos shopId={shopId} variant={r.data} />
+
+      {barcodeDialogOpen && r.data && (
+        <div
+          className="barcode-dialog-backdrop"
+          role="presentation"
+          onClick={() => setBarcodeDialogOpen(false)}
+        >
+          <section
+            className="barcode-dialog panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Этикетка: ${r.data.name}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="barcode-dialog-heading">
+              <h2>Этикетка товара</h2>
+              <button
+                type="button"
+                aria-label="Закрыть"
+                onClick={() => setBarcodeDialogOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <BarcodeLabel product={r.data} />
+          </section>
+        </div>
       )}
-    </>
+    </div>
   );
 }

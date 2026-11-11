@@ -491,12 +491,22 @@ export class VariantsService {
       });
     });
   }
-  async getById(shopId: string, id: string) {
+  async getById(shopId: string, id: string, showCost = false) {
     const [row] = await this.db.query(
-      "SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.description,v.category,v.subcategory,v.published,v.attributes,(v.photo_data IS NOT NULL) has_photo,cardinality(v.photo_album) photo_count,CASE WHEN EXISTS(SELECT 1 FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='pending') THEN 'pending' WHEN EXISTS(SELECT 1 FROM product_publications p WHERE p.variant_id=v.id) THEN 'approved' ELSE 'unpublished' END publication_status,(SELECT reason FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='rejected' AND r.decided_by IS NOT NULL ORDER BY r.decided_at DESC LIMIT 1) rejection_reason FROM variants v WHERE v.shop_id=$1 AND v.id=$2",
+      "SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.created_at,v.description,v.category,v.subcategory,v.published,v.attributes,(v.photo_data IS NOT NULL) has_photo,cardinality(v.photo_album) photo_count,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.physical,0)-COALESCE(b.reserved,0) available,(SELECT ROUND(m.value_minor::numeric / NULLIF(m.quantity, 0))::bigint FROM stock_movements m JOIN stock_documents d ON d.shop_id=m.shop_id AND d.id=m.document_id WHERE m.shop_id=v.shop_id AND m.variant_id=v.id AND d.kind='receiving' AND m.quantity > 0 ORDER BY d.created_at DESC, m.id DESC LIMIT 1) last_purchase_minor,CASE WHEN EXISTS(SELECT 1 FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='pending') THEN 'pending' WHEN EXISTS(SELECT 1 FROM product_publications p WHERE p.variant_id=v.id) THEN 'approved' ELSE 'unpublished' END publication_status,(SELECT reason FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='rejected' AND r.decided_by IS NOT NULL ORDER BY r.decided_at DESC LIMIT 1) rejection_reason FROM variants v LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id WHERE v.shop_id=$1 AND v.id=$2",
       [shopId, id],
     );
     if (!row) throw new NotFoundException();
-    return this.dto(row);
+    return {
+      ...this.dto(row),
+      physical: Number(row.physical),
+      reserved: Number(row.reserved),
+      available: Number(row.available),
+      ...(showCost &&
+      row.last_purchase_minor !== null &&
+      row.last_purchase_minor !== undefined
+        ? { lastPurchaseMinor: Number(row.last_purchase_minor) }
+        : {}),
+    };
   }
 }

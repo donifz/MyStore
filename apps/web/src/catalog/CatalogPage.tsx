@@ -7,6 +7,8 @@ import { formatSom } from '../api/money';
 import { formatDate } from '../api/money';
 import { useSession } from '../auth/SessionProvider';
 import BarcodeLabel from './BarcodeLabel';
+import ProductThumb from './ProductThumb';
+
 export default function CatalogPage() {
   const { shopId } = useParams(),
     session = useSession(),
@@ -157,6 +159,7 @@ export default function CatalogPage() {
               <tr>
                 <th>Товар</th>
                 <th>Добавлен</th>
+                {role !== 'cashier' && <th>Закупочная</th>}
                 <th>Цена</th>
                 <th>Доступно</th>
                 <th>Резерв</th>
@@ -167,30 +170,44 @@ export default function CatalogPage() {
               {data?.items.map((v) => (
                 <tr key={v.id}>
                   <td>
-                    {role !== 'cashier' ? (
-                      <Link to={v.id + '/edit'}>
-                        <strong>{v.name}</strong>
-                      </Link>
-                    ) : (
-                      <strong>{v.name}</strong>
-                    )}
-                    {(v.size || v.color) && (
-                      <span className="muted">
-                        {' '}
-                        ({[v.size, v.color].filter(Boolean).join(', ')})
-                      </span>
-                    )}
-                    {v.archived && (
-                      <span
-                        className="status-pill status-archived"
-                        style={{ marginLeft: '0.5rem' }}
-                      >
-                        В архиве
-                      </span>
-                    )}
-                    <small className="code">{v.barcode}</small>
+                    <div className="catalog-product-cell">
+                      <ProductThumb photoUrl={v.photoUrl} name={v.name} />
+                      <div className="catalog-product-info">
+                        <div className="catalog-product-title">
+                          {role !== 'cashier' ? (
+                            <Link to={v.id + '/edit'}>
+                              <strong>{v.name}</strong>
+                            </Link>
+                          ) : (
+                            <strong>{v.name}</strong>
+                          )}
+                          {(v.size || v.color) && (
+                            <span className="muted">
+                              {' '}
+                              ({[v.size, v.color].filter(Boolean).join(', ')})
+                            </span>
+                          )}
+                          {v.archived && (
+                            <span
+                              className="status-pill status-archived"
+                              style={{ marginLeft: '0.5rem' }}
+                            >
+                              В архиве
+                            </span>
+                          )}
+                        </div>
+                        <small className="code">{v.barcode}</small>
+                      </div>
+                    </div>
                   </td>
                   <td>{v.createdAt ? formatDate(v.createdAt) : '—'}</td>
+                  {role !== 'cashier' && (
+                    <td>
+                      {v.lastPurchaseMinor !== undefined
+                        ? formatSom(v.lastPurchaseMinor)
+                        : '—'}
+                    </td>
+                  )}
                   <td>{formatSom(v.salePriceMinor)}</td>
                   <td>
                     <span
