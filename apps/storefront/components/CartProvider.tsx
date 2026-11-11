@@ -8,6 +8,7 @@ import {
   ReactNode,
 } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import type { Product } from '../lib/public-api';
 import Icon from './storefront/Icon';
 export type CartItem = {
@@ -283,13 +284,16 @@ export default function CartProvider({ children }: { children: ReactNode }) {
 }
 export function CartLink() {
   const c = useCart();
+  const pathname = usePathname() || '/';
   const n = c.items.reduce((a, l) => a + l.quantity, 0);
+  const isCart = pathname === '/cart' || pathname === '/checkout';
   return (
     <Link
       href="/cart"
       className="sf-cart-link sf-header-icon-btn"
       aria-label="Корзина"
       title="Корзина"
+      aria-current={isCart ? 'page' : undefined}
     >
       <Icon name="cart" />
       <span className="sf-sr-only">Корзина</span>
