@@ -194,4 +194,3 @@ export default function OrderDetailClient({ id }: { id: string }) {
     </div>
   );
 }
-
