@@ -63,56 +63,35 @@ export default function BuyButton({
   }
 
   if (compact) {
+    const compactBtnClass = iconOnly
+      ? 'sf-icon-cart-btn'
+      : 'sf-full sf-icon-cart-btn';
     return (
       <div className="sf-buy-actions sf-buy-actions--compact">
-        {inCart ? (
-          <div
-            className="sf-card-stepper"
-            role="group"
-            aria-label={`Количество ${product.name} в корзине`}
-          >
-            <button
-              type="button"
-              className="sf-card-stepper-btn"
-              aria-label="Уменьшить количество"
-              onClick={() => {
-                if (inCartQty <= 1) c.remove(product.id);
-                else c.quantity(product.id, inCartQty - 1);
-              }}
+        <div className="sf-buy-compact-wrap">
+          {inCart ? (
+            <Link
+              href="/cart"
+              className={`sf-button ${compactBtnClass} sf-icon-cart-btn--in-cart`}
+              aria-label="В корзине, перейти в корзину"
+              title="В корзине · перейти"
             >
-              −
-            </button>
-            <span className="sf-card-stepper-val" aria-live="polite">
-              {inCartQty}
-            </span>
-            <button
-              type="button"
-              className="sf-card-stepper-btn"
-              aria-label="Увеличить количество"
-              disabled={inCartQty >= product.available}
-              onClick={() => {
-                if (inCartQty < product.available) {
-                  c.quantity(product.id, inCartQty + 1);
-                }
-              }}
-            >
-              +
-            </button>
-          </div>
-        ) : (
-          <div className="sf-buy-compact-wrap">
+              <Icon name="check" width={18} height={18} />
+            </Link>
+          ) : (
             <Button
-              className={iconOnly ? 'sf-icon-cart-btn' : 'sf-full'}
-              aria-label={iconOnly ? 'В корзину' : undefined}
+              className={compactBtnClass}
+              aria-label={
+                product.available < 1 ? 'Товар закончился' : 'В корзину'
+              }
+              title={product.available < 1 ? 'Товар закончился' : 'В корзину'}
               disabled={!c.ready || product.available < 1}
               onClick={() => add()}
             >
               <Icon name="cart" width={18} height={18} />
-              {!iconOnly &&
-                (product.available < 1 ? 'Нет в наличии' : 'В корзину')}
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     );
   }

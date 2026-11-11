@@ -78,7 +78,7 @@ export default function ProductCard({
           <div className="sf-card-price-stack">
             <Price minor={p.salePriceMinor} />
           </div>
-          <BuyButton product={p} compact iconOnly={storeView} />
+          <BuyButton product={p} compact iconOnly />
         </div>
       </div>
     </article>

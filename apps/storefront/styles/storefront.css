@@ -5518,9 +5518,12 @@ select.sf-input:focus,
     gap: 8px;
   }
   .sf-card-footer-row:has(.sf-icon-cart-btn) {
-    height: auto !important;
-    min-height: 36px !important;
+    height: 46px !important;
+    min-height: 46px !important;
     gap: 8px;
+  }
+  .sf-page .sf-card-footer-row:has(.sf-icon-cart-btn) .sf-price {
+    font-size: 16px !important;
   }
   .sf-page .sf-card-footer-row .sf-price {
     height: auto !important;
@@ -5543,7 +5546,7 @@ select.sf-input:focus,
     > .sf-button:not(.sf-icon-cart-btn),
   .sf-page .sf-card-footer-row .sf-buy-actions--compact .sf-card-stepper {
     width: 100% !important;
-    align-items: stretch;
+    align-items: center;
   }
   .sf-page .sf-card-footer-row .sf-buy-actions--compact .sf-card-stepper {
     justify-content: space-between;
@@ -6474,15 +6477,47 @@ select.sf-input:focus,
 }
 
 .sf-page .sf-card-footer-row .sf-buy-actions--compact .sf-icon-cart-btn,
+.sf-page .sf-card-footer-row .sf-buy-actions--compact .sf-icon-cart-btn:hover,
+.sf-page .sf-card-footer-row .sf-buy-actions--compact .sf-icon-cart-btn:active,
 .sf-icon-cart-btn {
-  width: 46px !important;
-  min-width: 46px !important;
-  height: 36px !important;
-  min-height: 36px !important;
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
   padding: 0 !important;
-  border-radius: 10px !important;
-  display: inline-grid !important;
-  place-items: center !important;
+  border-radius: 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  flex-shrink: 0;
+}
+
+.sf-icon-cart-btn svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+.sf-page
+  .sf-card-footer-row
+  .sf-buy-actions--compact
+  .sf-icon-cart-btn--in-cart,
+.sf-icon-cart-btn--in-cart {
+  background: #ecfdf5 !important;
+  color: #059669 !important;
+  border: 1px solid #a7f3d0 !important;
+  box-shadow: none !important;
+}
+
+.sf-page
+  .sf-card-footer-row
+  .sf-buy-actions--compact
+  .sf-icon-cart-btn--in-cart:hover,
+.sf-icon-cart-btn--in-cart:hover {
+  background: #d1fae5 !important;
+  color: #047857 !important;
+  border-color: #6ee7b7 !important;
 }
 
 .sf-sort-pill__prefix {
