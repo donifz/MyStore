@@ -9204,7 +9204,7 @@ button.sf-sidebar-more-link {
 }
 .sf-stores-showcase__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 .sf-home-store-card {
@@ -9230,8 +9230,12 @@ button.sf-sidebar-more-link {
 }
 .sf-home-store-card__cover {
   position: relative;
-  height: 64px;
+  height: 92px;
   background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+}
+.sf-home-store-card__cover--has-banner {
+  background: #f8fafc;
 }
 .sf-home-store-card__cover--1 {
   background: linear-gradient(135deg, #312e81 0%, #4338ca 100%);
@@ -9429,8 +9433,7 @@ button.sf-sidebar-more-link {
     max-width: calc(100vw - 64px);
     scroll-snap-align: start;
   }
-  .sf-home-store-card:only-child {
-    flex: 1 1 100%;
-    max-width: 100%;
+  .sf-home-store-card__cover {
+    height: 80px;
   }
 }

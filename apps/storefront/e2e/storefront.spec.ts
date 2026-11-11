@@ -86,6 +86,14 @@ test('home shows stores showcase above available products', async ({
   await expect(
     page.locator('.sf-stores-strip .sf-home-store-card'),
   ).toHaveCount(1);
+  await expect(
+    page.locator('.sf-home-store-card__cover-img').first(),
+  ).toBeVisible();
+  const storeCardBox = await page
+    .locator('.sf-home-store-card')
+    .first()
+    .boundingBox();
+  expect(storeCardBox!.width).toBeLessThan(450);
   const catalog = await page.locator('#catalog').boundingBox();
   const stores = await page.locator('.sf-stores-strip').boundingBox();
   expect(stores!.y).toBeLessThan(catalog!.y);

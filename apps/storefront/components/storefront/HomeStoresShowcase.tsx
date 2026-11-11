@@ -50,14 +50,13 @@ export default function HomeStoresShowcase({ stores }: { stores: Store[] }) {
               className="sf-home-store-card"
             >
               <div
-                className={`sf-home-store-card__cover sf-home-store-card__cover--${index % 3}`}
+                className={`sf-home-store-card__cover sf-home-store-card__cover--${index % 3}${s.banner?.imageDataUrl ? ' sf-home-store-card__cover--has-banner' : ''}`}
               >
                 {s.banner?.imageDataUrl ? (
                   <img
                     src={s.banner.imageDataUrl}
-                    alt=""
+                    alt={`Баннер магазина ${s.name}`}
                     className="sf-home-store-card__cover-img"
-                    loading="lazy"
                   />
                 ) : (
                   <div
