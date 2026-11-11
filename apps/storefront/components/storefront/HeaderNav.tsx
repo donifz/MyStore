@@ -117,28 +117,31 @@ export function TopNav() {
  */
 export function MobileNav() {
   const pathname = usePathname() || '/';
-  const isHome = pathname === '/';
-  const isCatalog =
-    pathname === '/catalog' ||
-    pathname.startsWith('/catalog/') ||
-    pathname.startsWith('/shops') ||
-    pathname.startsWith('/shop/');
-  const isOrders = pathname === '/orders' || pathname.startsWith('/orders/');
+  const activeSection = getActiveTopNavKey(pathname, '');
 
   return (
     <nav className="sf-home-mobile-nav" aria-label="Мобильная навигация">
-      <Link href="/" aria-current={isHome ? 'page' : undefined}>
+      <Link
+        href="/"
+        aria-current={activeSection === 'home' ? 'page' : undefined}
+      >
         <Icon name="home" />
         <span>Главная</span>
       </Link>
-      <Link href="/catalog" aria-current={isCatalog ? 'page' : undefined}>
+      <Link
+        href="/catalog"
+        aria-current={activeSection === 'catalog' ? 'page' : undefined}
+      >
         <Icon name="grid" />
         <span>Каталог</span>
       </Link>
       <CartLink />
-      <Link href="/orders" aria-current={isOrders ? 'page' : undefined}>
-        <Icon name="box" />
-        <span>Заказы</span>
+      <Link
+        href="/shops"
+        aria-current={activeSection === 'shops' ? 'page' : undefined}
+      >
+        <Icon name="shop" />
+        <span>Магазины</span>
       </Link>
       <a href="/buyer">
         <Icon name="user" />

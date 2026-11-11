@@ -632,6 +632,15 @@ test('catalog category strips scroll cleanly, avoid fake counts/ratings, and kee
   await expect(quickStrip.locator('.sf-quick-chip--more')).toHaveCount(0);
   await expect(quickStrip).not.toContainText('1 товаров');
 
+  const mobileNav = page.getByRole('navigation', {
+    name: 'Мобильная навигация',
+  });
+  await expect(mobileNav).toBeVisible();
+  await expect(mobileNav.getByRole('link', { name: 'Заказы' })).toHaveCount(0);
+  await expect(
+    mobileNav.getByRole('link', { name: 'Магазины', exact: true }),
+  ).toHaveAttribute('href', '/shops');
+
   await page.goto('/shop/shop-a');
   const storeTiles = page.getByRole('navigation', {
     name: 'Категории магазина',
