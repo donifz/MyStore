@@ -307,6 +307,25 @@ const seen = [];
     const robots = await get('/robots.txt');
     assert(robots.html.includes('Disallow: /seller'));
     assert(robots.html.includes('Disallow: /api'));
+    for (const storefrontPath of [
+      '/cart',
+      '/catalog',
+      '/checkout',
+      '/orders',
+    ]) {
+      const page = await get(storefrontPath);
+      assert.equal(
+        page.response.status,
+        200,
+        `Storefront gateway must serve ${storefrontPath}`,
+      );
+      assert(page.doc.querySelector('header'));
+    }
+    const profileRedirect = await fetch(base + '/profile', {
+      redirect: 'manual',
+    });
+    assert.equal(profileRedirect.status, 307);
+    assert.equal(profileRedirect.headers.get('location'), '/buyer');
     console.log(
       'SSR HTTP tests passed: anonymous HTML, metadata, safe JSON-LD, fresh stock, hidden404, pagination, bounded queries, outage, sitemap/robots',
     );
