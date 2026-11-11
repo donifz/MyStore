@@ -108,6 +108,33 @@ import {
   OwnerFinancialAccessController,
   AdminFinancialAccessController,
 } from './platform/financial-access.controller';
+const STOREFRONT_EXACT_PATHS = new Set([
+  '/',
+  '/catalog',
+  '/cart',
+  '/checkout',
+  '/favorites',
+  '/orders',
+  '/partner',
+  '/partner/activate',
+  '/privacy',
+  '/profile',
+  '/shops',
+  '/terms',
+  '/ui-kit',
+]);
+
+function isStorefrontDocumentPath(path: string): boolean {
+  const normalized =
+    path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path;
+  return (
+    STOREFRONT_EXACT_PATHS.has(normalized) ||
+    /^\/orders\/[^/]+$/.test(normalized) ||
+    /^\/shops\/[^/]+(?:\/products\/[^/]+)?$/.test(normalized) ||
+    /^\/shop\/[^/]+(?:\/products\/[^/]+)?$/.test(normalized)
+  );
+}
+
 export async function createApp(
   db: DataSource,
   publicHandler?: express.RequestHandler,
@@ -324,17 +351,7 @@ export async function createApp(
           req.path === '/robots.txt' ||
           req.path === '/sitemap.xml' ||
           (['GET', 'HEAD'].includes(req.method) &&
-            (req.path === '/' ||
-              req.path === '/partner' ||
-              req.path === '/partner/activate' ||
-              req.path === '/terms' ||
-              req.path === '/privacy' ||
-              req.path === '/cart' ||
-              req.path === '/favorites' ||
-              req.path === '/ui-kit' ||
-              req.path === '/shops' ||
-              /^\/shops\/[^/]+(?:\/products\/[^/]+)?\/?$/.test(req.path) ||
-              /^\/shop\/[^/]+(?:\/products\/[^/]+)?\/?$/.test(req.path)))
+            isStorefrontDocumentPath(req.path))
         ) {
           req.headers['content-security-policy'] = String(
             res.getHeader('Content-Security-Policy'),
