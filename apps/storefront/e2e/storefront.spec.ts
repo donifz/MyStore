@@ -67,7 +67,7 @@ test('shows a placeholder instead of a broken image when the photo is corrupt', 
   await expect(card.locator('img')).toHaveCount(0);
 });
 
-test('home shows available products first and stores after the catalogue', async ({
+test('home shows stores showcase above available products', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -80,9 +80,23 @@ test('home shows available products first and stores after the catalogue', async
   await expect(
     page.getByRole('link', { name: 'Сбросить', exact: true }),
   ).toHaveAttribute('href', '/?inStock=false#catalog');
+  await expect(
+    page.getByRole('heading', { name: 'Магазины рядом' }),
+  ).toBeVisible();
+  await expect(
+    page.locator('.sf-stores-strip .sf-home-store-card'),
+  ).toHaveCount(1);
+  await expect(
+    page.locator('.sf-home-store-card__cover-img').first(),
+  ).toBeVisible();
+  const storeCardBox = await page
+    .locator('.sf-home-store-card')
+    .first()
+    .boundingBox();
+  expect(storeCardBox!.width).toBeLessThan(450);
   const catalog = await page.locator('#catalog').boundingBox();
   const stores = await page.locator('.sf-stores-strip').boundingBox();
-  expect(stores!.y).toBeGreaterThan(catalog!.y);
+  expect(stores!.y).toBeLessThan(catalog!.y);
   await page
     .getByRole('navigation', { name: 'Наличие товаров' })
     .getByRole('link', { name: 'Все товары' })
@@ -617,6 +631,15 @@ test('catalog category strips scroll cleanly, avoid fake counts/ratings, and kee
   await expect(quickStrip).toBeVisible();
   await expect(quickStrip.locator('.sf-quick-chip--more')).toHaveCount(0);
   await expect(quickStrip).not.toContainText('1 товаров');
+
+  const mobileNav = page.getByRole('navigation', {
+    name: 'Мобильная навигация',
+  });
+  await expect(mobileNav).toBeVisible();
+  await expect(mobileNav.getByRole('link', { name: 'Заказы' })).toHaveCount(0);
+  await expect(
+    mobileNav.getByRole('link', { name: 'Магазины', exact: true }),
+  ).toHaveAttribute('href', '/shops');
 
   await page.goto('/shop/shop-a');
   const storeTiles = page.getByRole('navigation', {

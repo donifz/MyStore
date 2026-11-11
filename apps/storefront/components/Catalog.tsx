@@ -10,6 +10,7 @@ import {
   Search,
   Page,
   query,
+  pluralizeProducts,
   CustomAttribute,
 } from '../lib/public-api';
 import Pagination from './Pagination';
@@ -20,17 +21,9 @@ import CatalogFilters from './storefront/CatalogFilters';
 import CollapsibleFilters from './storefront/CollapsibleFilters';
 import StorefrontBanner from './storefront/StorefrontBanner';
 import StoreHeroSection from './storefront/StoreHeroSection';
+import HomeStoresShowcase from './storefront/HomeStoresShowcase';
 import ReviewsWidget from './storefront/ReviewsWidget';
 import { CartLink } from './CartProvider';
-
-function pluralizeProducts(n: number): string {
-  const abs = Math.abs(n) % 100;
-  const mod10 = abs % 10;
-  if (abs > 10 && abs < 20) return `${n} товаров`;
-  if (mod10 === 1) return `${n} товар`;
-  if (mod10 >= 2 && mod10 <= 4) return `${n} товара`;
-  return `${n} товаров`;
-}
 
 export default async function Catalog({
   search,
@@ -130,6 +123,7 @@ export default async function Catalog({
           <StorefrontBanner banner={store.banner} />
         </StoreHeroSection>
       )}
+      {!store && stores.length > 0 && <HomeStoresShowcase stores={stores} />}
       <section id="catalog" className="sf-stack">
         {!store && products.categories.length > 0 && (
           <div
@@ -379,34 +373,6 @@ export default async function Catalog({
             title={`Отзывы о магазине «${store.name}»`}
           />
         </div>
-      )}
-      {!store && stores.length > 0 && (
-        <section className="sf-stores-strip sf-panel">
-          <div className="sf-section-heading">
-            <h2>Магазины рядом</h2>
-            <Link href="/shops">
-              Все магазины <span aria-hidden="true">→</span>
-            </Link>
-          </div>
-          <div className="sf-stores-strip-grid">
-            {stores.map((s) => (
-              <Link href={'/shop/' + s.slug} key={s.slug}>
-                <span className="sf-mini-logo">{s.name.slice(0, 1)}</span>
-                <span>
-                  <strong>{s.name}</strong>
-                  <small>
-                    <span className="sf-star-glyph" aria-hidden="true">
-                      ★
-                    </span>{' '}
-                    {(s.ratingAverage || 4.8).toFixed(1).replace('.', ',')} ·{' '}
-                    {s.city} · {s.productCount ?? 0} товаров
-                  </small>
-                </span>
-                <Icon name="arrow" />
-              </Link>
-            ))}
-          </div>
-        </section>
       )}
     </div>
   );

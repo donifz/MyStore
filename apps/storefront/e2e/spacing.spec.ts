@@ -45,8 +45,21 @@ for (const width of [320, 390, 768, 1440]) {
       .nth(0)
       .getByRole('button', { name: 'В корзину', exact: true })
       .click();
-    await expect(cards.nth(0).locator('.sf-card-stepper')).toBeVisible();
-    await expect(cards.nth(0).locator('.sf-card-stepper-val')).toHaveText('1');
+    await expect(
+      cards.nth(0).locator('.sf-icon-cart-btn--in-cart'),
+    ).toBeVisible();
+    await expect(cards.nth(0).locator('.sf-card-stepper')).toHaveCount(0);
+    const iconCenterDelta = await cards
+      .nth(0)
+      .locator('.sf-icon-cart-btn--in-cart')
+      .evaluate((el) => {
+        const btn = el.getBoundingClientRect();
+        const svg = el.querySelector('svg')!.getBoundingClientRect();
+        const btnCenterY = btn.top + btn.height / 2;
+        const svgCenterY = svg.top + svg.height / 2;
+        return Math.abs(btnCenterY - svgCenterY);
+      });
+    expect(iconCenterDelta).toBeLessThanOrEqual(1.5);
     expect(await topPositions()).toEqual(before);
     expect(
       await page.evaluate(

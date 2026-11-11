@@ -7,8 +7,12 @@ export type ReviewItem = {
   createdAt: string;
   verifiedBuyer?: boolean;
 };
+export type BusinessInterval = { open: string; close: string };
 export type Store = {
   banner?: StorefrontBanner | null;
+  timeZone?: string;
+  businessSchedule?: BusinessInterval[][] | null;
+  previewPhotos?: string[];
   district?: string;
   pickupEnabled?: boolean;
   deliveryEnabled?: boolean;
@@ -142,6 +146,14 @@ export function formatSom(minor: number) {
 export function priceDecimal(minor: number) {
   const n = BigInt(minor);
   return `${n / 100n}.${String(n % 100n).padStart(2, '0')}`;
+}
+export function pluralizeProducts(n: number): string {
+  const abs = Math.abs(n) % 100;
+  const mod10 = abs % 10;
+  if (abs > 10 && abs < 20) return `${n} товаров`;
+  if (mod10 === 1) return `${n} товар`;
+  if (mod10 >= 2 && mod10 <= 4) return `${n} товара`;
+  return `${n} товаров`;
 }
 
 export type PublicFilters = {
