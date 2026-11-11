@@ -580,3 +580,27 @@ test('top navigation highlights the active section route and sort tab', async ({
     await expect(activeLinks).toHaveAttribute('aria-current', 'page');
   }
 });
+
+test('orders pages do not show hardcoded mock orders and link to buyer cabinet', async ({
+  page,
+}) => {
+  await page.goto('/orders');
+  await expect(
+    page.getByRole('heading', { name: 'Заказов пока нет', exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole('main')).not.toContainText('38472');
+  await expect(page.getByRole('main')).not.toContainText('Мир игрушек');
+  await expect(
+    page.getByRole('link', { name: 'Личный кабинет', exact: true }),
+  ).toHaveAttribute('href', '/buyer');
+
+  await page.goto('/orders/missing-order');
+  await expect(
+    page.getByRole('heading', {
+      name: 'Заказ не найден в локальной истории',
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page.getByRole('main')).not.toContainText('Плюшевый мишка');
+  await expect(page.getByRole('main')).not.toContainText('Берекет');
+});
