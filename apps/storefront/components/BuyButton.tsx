@@ -80,6 +80,7 @@ export default function BuyButton({
             </Link>
           ) : (
             <Button
+              variant="secondary"
               className={compactBtnClass}
               aria-label={
                 product.available < 1 ? 'Товар закончился' : 'В корзину'

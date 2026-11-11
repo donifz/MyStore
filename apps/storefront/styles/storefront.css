@@ -6502,12 +6502,33 @@ select.sf-input:focus,
 .sf-page
   .sf-card-footer-row
   .sf-buy-actions--compact
+  .sf-button--secondary.sf-icon-cart-btn,
+.sf-button--secondary.sf-icon-cart-btn {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border: 1.5px solid #cbd5e1 !important;
+  box-shadow: none !important;
+}
+
+.sf-page
+  .sf-card-footer-row
+  .sf-buy-actions--compact
+  .sf-button--secondary.sf-icon-cart-btn:hover:not(:disabled),
+.sf-button--secondary.sf-icon-cart-btn:hover:not(:disabled) {
+  background: #eff6ff !important;
+  color: var(--sf-primary) !important;
+  border-color: #93c5fd !important;
+}
+
+.sf-page
+  .sf-card-footer-row
+  .sf-buy-actions--compact
   .sf-icon-cart-btn--in-cart,
 .sf-icon-cart-btn--in-cart {
-  background: #ecfdf5 !important;
-  color: #059669 !important;
-  border: 1px solid #a7f3d0 !important;
-  box-shadow: none !important;
+  background: var(--sf-primary) !important;
+  color: #ffffff !important;
+  border: 1px solid var(--sf-primary) !important;
+  box-shadow: 0 2px 6px rgba(29, 107, 243, 0.25) !important;
 }
 
 .sf-page
@@ -6515,9 +6536,9 @@ select.sf-input:focus,
   .sf-buy-actions--compact
   .sf-icon-cart-btn--in-cart:hover,
 .sf-icon-cart-btn--in-cart:hover {
-  background: #d1fae5 !important;
-  color: #047857 !important;
-  border-color: #6ee7b7 !important;
+  background: var(--sf-primary-hover) !important;
+  color: #ffffff !important;
+  border-color: var(--sf-primary-hover) !important;
 }
 
 .sf-sort-pill__prefix {
