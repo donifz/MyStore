@@ -24,7 +24,9 @@ for (const width of [320, 390, 768, 1440]) {
         elements.map((el) => {
           const r = el.getBoundingClientRect();
           const b = el
-            .querySelector('.sf-buy-actions .sf-button')!
+            .querySelector(
+              '.sf-buy-actions .sf-button, .sf-buy-actions .sf-card-stepper',
+            )!
             .getBoundingClientRect();
           return {
             cardTop: Math.round(r.top + scrollY),
@@ -43,9 +45,8 @@ for (const width of [320, 390, 768, 1440]) {
       .nth(0)
       .getByRole('button', { name: 'В корзину', exact: true })
       .click();
-    await expect(
-      cards.nth(0).getByRole('link', { name: /Перейти в корзину/ }),
-    ).toBeVisible();
+    await expect(cards.nth(0).locator('.sf-card-stepper')).toBeVisible();
+    await expect(cards.nth(0).locator('.sf-card-stepper-val')).toHaveText('1');
     expect(await topPositions()).toEqual(before);
     expect(
       await page.evaluate(
