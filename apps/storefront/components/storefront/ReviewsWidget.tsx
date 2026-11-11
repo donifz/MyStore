@@ -3,42 +3,6 @@ import { useEffect, useState, FormEvent } from 'react';
 import type { ReviewItem } from '../../lib/public-api';
 import { Button } from '../ui';
 
-const DEFAULT_REVIEWS: ReviewItem[] = [
-  {
-    id: 'demo-rev-1',
-    authorName: 'Айгерим К.',
-    rating: 5,
-    comment:
-      'Отличное качество! Забрали самовывозом из магазина за 15 минут, всё аккуратно упаковано. Ребёнок в восторге!',
-    createdAt: '12 мая 2026',
-    verifiedBuyer: true,
-  },
-  {
-    id: 'demo-rev-2',
-    authorName: 'Бакыт Э.',
-    rating: 5,
-    comment:
-      'Полностью соответствует описанию и фото. Продавец вежливый, помог с выбором и быстро подтвердил заказ.',
-    createdAt: '10 мая 2026',
-    verifiedBuyer: true,
-  },
-  {
-    id: 'demo-rev-3',
-    authorName: 'Мээрим Т.',
-    rating: 4,
-    comment:
-      'Хороший товар за свою цену, материалы приятные и безопасные. Будем заказывать ещё.',
-    createdAt: '6 мая 2026',
-    verifiedBuyer: true,
-  },
-];
-
-const CURRENT_BUYER = {
-  name: 'Азамат Эркинбеков',
-  phone: '+996 555 12 34 56',
-  verifiedBuyer: true,
-};
-
 const RATING_LABELS: Record<number, string> = {
   5: 'Отлично',
   4: 'Хорошо',
@@ -54,11 +18,20 @@ function makeOperationKey() {
   return 'rev-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
 }
 
+function pluralizeReviews(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 19) return `${n} отзывов`;
+  if (mod10 === 1) return `${n} отзыв`;
+  if (mod10 >= 2 && mod10 <= 4) return `${n} отзыва`;
+  return `${n} отзывов`;
+}
+
 export default function ReviewsWidget({
   slug,
   productId,
-  initialAverage = 4.8,
-  initialCount = 128,
+  initialAverage,
+  initialCount,
   title = 'Отзывы покупателей',
 }: {
   slug: string;
@@ -71,11 +44,14 @@ export default function ReviewsWidget({
     ? `/api/public/stores/${encodeURIComponent(slug)}/products/${encodeURIComponent(productId)}/reviews`
     : `/api/public/stores/${encodeURIComponent(slug)}/reviews`;
 
-  const [items, setItems] = useState<ReviewItem[]>(DEFAULT_REVIEWS);
-  const [avg, setAvg] = useState<number>(initialAverage || 4.8);
-  const [count, setCount] = useState<number>(initialCount || 128);
+  const storageKey = `mystore_reviews_${slug}_${productId || 'store'}`;
+
+  const [items, setItems] = useState<ReviewItem[]>([]);
+  const [avg, setAvg] = useState<number>(initialAverage || 0);
+  const [count, setCount] = useState<number>(initialCount || 0);
   const [rating, setRating] = useState<number>(5);
   const [hoverRating, setHoverRating] = useState<number>(0);
+  const [authorName, setAuthorName] = useState<string>('');
   const [comment, setComment] = useState<string>('');
   const [operationKey, setOperationKey] = useState<string>(() =>
     makeOperationKey(),
@@ -85,24 +61,69 @@ export default function ReviewsWidget({
   const [errorMsg, setErrorMsg] = useState<string>('');
 
   useEffect(() => {
+    try {
+      const savedName = localStorage.getItem('mystore_reviewer_name');
+      if (savedName) setAuthorName(savedName);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
     let active = true;
+
+    // Load any local reviews saved on this device
+    let localItems: ReviewItem[] = [];
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) localItems = parsed;
+      }
+    } catch {}
+
     fetch(endpoint, { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (!active || !data) return;
-        if (Array.isArray(data.items) && data.items.length > 0) {
-          setItems([...data.items, ...DEFAULT_REVIEWS]);
-        }
-        if (typeof data.ratingCount === 'number' && data.ratingCount > 0) {
-          setAvg(Number(data.ratingAverage) || initialAverage);
-          setCount(initialCount + data.ratingCount);
+        if (!active) return;
+        const serverItems: ReviewItem[] = Array.isArray(data?.items)
+          ? data.items
+          : [];
+        const merged = [
+          ...localItems,
+          ...serverItems.filter(
+            (si) => !localItems.some((li) => li.id === si.id),
+          ),
+        ];
+        setItems(merged);
+
+        if (merged.length > 0) {
+          const totalRating = merged.reduce(
+            (acc, it) => acc + (it.rating || 5),
+            0,
+          );
+          setAvg(Number((totalRating / merged.length).toFixed(1)));
+          setCount(merged.length);
+        } else if (typeof data?.ratingCount === 'number') {
+          setAvg(Number(data.ratingAverage) || 0);
+          setCount(data.ratingCount);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!active) return;
+        if (localItems.length > 0) {
+          setItems(localItems);
+          const totalRating = localItems.reduce(
+            (acc, it) => acc + (it.rating || 5),
+            0,
+          );
+          setAvg(Number((totalRating / localItems.length).toFixed(1)));
+          setCount(localItems.length);
+        }
+      });
+
     return () => {
       active = false;
     };
-  }, [endpoint, initialAverage, initialCount]);
+  }, [endpoint, storageKey]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -111,65 +132,70 @@ export default function ReviewsWidget({
       setErrorMsg('Пожалуйста, напишите пару слов о вашем впечатлении.');
       return;
     }
+    const finalAuthor = authorName.trim() || 'Покупатель';
     setSubmitting(true);
     setErrorMsg('');
     setStatusMsg('');
+
+    try {
+      localStorage.setItem('mystore_reviewer_name', finalAuthor);
+    } catch {}
+
+    const newReview: ReviewItem = {
+      id: operationKey,
+      authorName: finalAuthor,
+      rating,
+      comment: trimmedComment,
+      createdAt: new Date().toISOString(),
+      verifiedBuyer: true,
+    };
+
     try {
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           operationKey,
-          authorName: CURRENT_BUYER.name,
+          authorName: finalAuthor,
           rating,
           comment: trimmedComment,
         }),
       });
-      if (!res.ok) {
-        throw new Error('Не удалось сохранить отзыв');
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.review) {
+          newReview.id = data.review.id || newReview.id;
+          newReview.createdAt = data.review.createdAt || newReview.createdAt;
+        }
       }
-      const data = await res.json();
-      const created: ReviewItem = data.review || {
-        id: operationKey,
-        authorName: CURRENT_BUYER.name,
-        rating,
-        comment: trimmedComment,
-        createdAt: new Date().toISOString(),
-        verifiedBuyer: true,
-      };
-      setItems((prev) => [
-        created,
-        ...prev.filter((item) => item.id !== created.id),
-      ]);
-      setCount((prev) => prev + 1);
-      setAvg((prev) =>
-        Number(((prev * count + rating) / (count + 1)).toFixed(1)),
-      );
-      setComment('');
-      setRating(5);
-      setOperationKey(makeOperationKey());
-      setStatusMsg('Спасибо! Ваш проверенный отзыв опубликован.');
     } catch {
-      const fallback: ReviewItem = {
-        id: operationKey,
-        authorName: CURRENT_BUYER.name,
-        rating,
-        comment: trimmedComment,
-        createdAt: 'Только что',
-        verifiedBuyer: true,
-      };
-      setItems((prev) => [fallback, ...prev]);
-      setCount((prev) => prev + 1);
-      setAvg((prev) =>
-        Number(((prev * count + rating) / (count + 1)).toFixed(1)),
-      );
-      setComment('');
-      setRating(5);
-      setOperationKey(makeOperationKey());
-      setStatusMsg('Спасибо! Ваш проверенный отзыв опубликован.');
-    } finally {
-      setSubmitting(false);
+      // Offline or unauthenticated fallback persists review locally
     }
+
+    setItems((prev) => {
+      const updated = [
+        newReview,
+        ...prev.filter((it) => it.id !== newReview.id),
+      ];
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    setCount((prev) => prev + 1);
+    setAvg((prev) => {
+      const currentCount = count || 0;
+      return Number(
+        ((prev * currentCount + rating) / (currentCount + 1)).toFixed(1),
+      );
+    });
+
+    setComment('');
+    setRating(5);
+    setOperationKey(makeOperationKey());
+    setStatusMsg('Спасибо! Ваш отзыв опубликован.');
+    setSubmitting(false);
   }
 
   const displayStar = hoverRating || rating;
@@ -178,26 +204,35 @@ export default function ReviewsWidget({
     <section className="sf-reviews-widget" aria-label={title}>
       <div className="sf-reviews-header">
         <div className="sf-reviews-summary">
-          <strong className="sf-reviews-big-score">
-            {String(avg.toFixed(1)).replace('.', ',')}
-          </strong>
-          <div className="sf-reviews-summary-meta">
-            <div className="sf-reviews-stars" aria-hidden="true">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <span
-                  key={star}
-                  className={
-                    star <= Math.round(avg)
-                      ? 'sf-star-glyph sf-star-glyph--on'
-                      : 'sf-star-glyph sf-star-glyph--off'
-                  }
-                >
-                  ★
-                </span>
-              ))}
+          {count > 0 ? (
+            <>
+              <strong className="sf-reviews-big-score">
+                {String(avg.toFixed(1)).replace('.', ',')}
+              </strong>
+              <div className="sf-reviews-summary-meta">
+                <div className="sf-reviews-stars" aria-hidden="true">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <span
+                      key={star}
+                      className={
+                        star <= Math.round(avg)
+                          ? 'sf-star-glyph sf-star-glyph--on'
+                          : 'sf-star-glyph sf-star-glyph--off'
+                      }
+                    >
+                      ★
+                    </span>
+                  ))}
+                </div>
+                <small>{pluralizeReviews(count)}</small>
+              </div>
+            </>
+          ) : (
+            <div className="sf-reviews-summary-meta sf-reviews-summary-meta--empty">
+              <span className="sf-reviews-no-score">Пока нет отзывов</span>
+              <small>Оставьте первый отзыв</small>
             </div>
-            <small>{count} отзывов</small>
-          </div>
+          )}
         </div>
         <h3>{title}</h3>
       </div>
@@ -230,25 +265,25 @@ export default function ReviewsWidget({
           </div>
         </div>
 
-        <div className="sf-review-author-chip">
-          <span className="sf-review-author-avatar" aria-hidden="true">
-            {CURRENT_BUYER.name.slice(0, 1)}
-          </span>
-          <div className="sf-review-author-info">
-            <div className="sf-review-author-name-row">
-              <strong>{CURRENT_BUYER.name}</strong>
-              <span className="sf-verified-buyer-tag">
-                ✓ Проверенный покупатель
-              </span>
-            </div>
-            <small>{CURRENT_BUYER.phone}</small>
-          </div>
+        <div className="sf-review-author-field">
+          <label htmlFor="review-author-name" className="sf-field__label">
+            Ваше имя
+          </label>
+          <input
+            id="review-author-name"
+            type="text"
+            className="sf-input sf-review-author-input"
+            placeholder="Например, Айбек"
+            maxLength={60}
+            value={authorName}
+            onChange={(e) => setAuthorName(e.target.value)}
+          />
         </div>
 
         <div className="sf-review-form-fields">
-          <input
-            type="text"
-            className="sf-input sf-review-comment-input"
+          <textarea
+            className="sf-textarea sf-review-comment-input"
+            rows={3}
             placeholder="Поделитесь впечатлениями: качество, доставка, соответствие описанию..."
             maxLength={2000}
             value={comment}
@@ -273,55 +308,66 @@ export default function ReviewsWidget({
       </form>
 
       <div className="sf-reviews-list">
-        {items.map((item) => {
-          const dateLabel =
-            item.createdAt && item.createdAt.includes('T')
-              ? new Date(item.createdAt).toLocaleDateString('ru-RU', {
-                  day: 'numeric',
-                  month: 'long',
-                })
-              : item.createdAt;
-          return (
-            <article key={item.id} className="sf-review-card">
-              <div className="sf-review-card-head">
-                <span className="sf-review-avatar" aria-hidden="true">
-                  {item.authorName.slice(0, 1).toUpperCase()}
-                </span>
-                <div className="sf-review-author">
-                  <div className="sf-review-author-name-row">
-                    <strong>{item.authorName}</strong>
-                    {item.verifiedBuyer !== false && (
-                      <span className="sf-verified-buyer-tag">
-                        ✓ Купил товар
-                      </span>
-                    )}
+        {items.length === 0 ? (
+          <div className="sf-reviews-empty">
+            <span className="sf-reviews-empty-icon" aria-hidden="true">
+              ★
+            </span>
+            <p>У этого {productId ? 'товара' : 'магазина'} пока нет отзывов</p>
+            <small>Поделитесь вашим мнением о покупке первым!</small>
+          </div>
+        ) : (
+          items.map((item) => {
+            const dateLabel =
+              item.createdAt && item.createdAt.includes('T')
+                ? new Date(item.createdAt).toLocaleDateString('ru-RU', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })
+                : item.createdAt;
+            return (
+              <article key={item.id} className="sf-review-card">
+                <div className="sf-review-card-head">
+                  <span className="sf-review-avatar" aria-hidden="true">
+                    {(item.authorName || 'П').slice(0, 1).toUpperCase()}
+                  </span>
+                  <div className="sf-review-author">
+                    <div className="sf-review-author-name-row">
+                      <strong>{item.authorName || 'Покупатель'}</strong>
+                      {item.verifiedBuyer !== false && (
+                        <span className="sf-verified-buyer-tag">
+                          ✓ Проверенный отзыв
+                        </span>
+                      )}
+                    </div>
+                    <small>{dateLabel}</small>
                   </div>
-                  <small>{dateLabel}</small>
+                  <div
+                    className="sf-review-item-stars"
+                    aria-label={`Оценка ${item.rating} из 5`}
+                  >
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <span
+                        key={s}
+                        className={
+                          s <= item.rating
+                            ? 'sf-star-glyph sf-star-glyph--on'
+                            : 'sf-star-glyph sf-star-glyph--off'
+                        }
+                      >
+                        ★
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                <div
-                  className="sf-review-item-stars"
-                  aria-label={`Оценка ${item.rating} из 5`}
-                >
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <span
-                      key={s}
-                      className={
-                        s <= item.rating
-                          ? 'sf-star-glyph sf-star-glyph--on'
-                          : 'sf-star-glyph sf-star-glyph--off'
-                      }
-                    >
-                      ★
-                    </span>
-                  ))}
-                </div>
-              </div>
-              {item.comment && (
-                <p className="sf-review-comment">{item.comment}</p>
-              )}
-            </article>
-          );
-        })}
+                {item.comment && (
+                  <p className="sf-review-comment">{item.comment}</p>
+                )}
+              </article>
+            );
+          })
+        )}
       </div>
     </section>
   );
