@@ -211,7 +211,15 @@ export class VariantsController {
     @Param('variantId', ParseUUIDPipe) id: string,
     @Req() req: UserRequest,
   ) {
-    await this.access.requireMembership(req.userId, shopId, 'read');
-    return this.variants.getById(shopId, id);
+    const member = await this.access.requireMembership(
+      req.userId,
+      shopId,
+      'read',
+    );
+    return this.variants.getById(
+      shopId,
+      id,
+      member.role !== 'cashier' || member.canViewReports,
+    );
   }
 }

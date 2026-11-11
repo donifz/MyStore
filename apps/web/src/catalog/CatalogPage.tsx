@@ -7,51 +7,7 @@ import { formatSom } from '../api/money';
 import { formatDate } from '../api/money';
 import { useSession } from '../auth/SessionProvider';
 import BarcodeLabel from './BarcodeLabel';
-
-function CatalogThumb({ photoUrl, name }: { photoUrl?: string; name: string }) {
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    setFailed(false);
-  }, [photoUrl]);
-
-  if (photoUrl && !failed) {
-    return (
-      <span className="catalog-thumb">
-        <img
-          src={photoUrl}
-          alt={name}
-          className="catalog-thumb__img"
-          loading="lazy"
-          onError={() => setFailed(true)}
-        />
-      </span>
-    );
-  }
-
-  return (
-    <span
-      className="catalog-thumb catalog-thumb--placeholder"
-      aria-label="Фото по умолчанию"
-    >
-      <svg
-        width="18"
-        height="18"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-        <path d="m3.3 7 8.7 5 8.7-5" />
-        <path d="M12 22V12" />
-      </svg>
-    </span>
-  );
-}
+import ProductThumb from './ProductThumb';
 
 export default function CatalogPage() {
   const { shopId } = useParams(),
@@ -215,7 +171,7 @@ export default function CatalogPage() {
                 <tr key={v.id}>
                   <td>
                     <div className="catalog-product-cell">
-                      <CatalogThumb photoUrl={v.photoUrl} name={v.name} />
+                      <ProductThumb photoUrl={v.photoUrl} name={v.name} />
                       <div className="catalog-product-info">
                         <div className="catalog-product-title">
                           {role !== 'cashier' ? (

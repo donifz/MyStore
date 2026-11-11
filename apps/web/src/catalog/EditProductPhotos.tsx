@@ -7,9 +7,11 @@ import { usePhotoCropQueue } from './use-photo-crop-queue';
 export default function EditProductPhotos({
   shopId,
   variant,
+  onSaved,
 }: {
   shopId: string;
   variant: Variant;
+  onSaved?: (updated: Variant) => void;
 }) {
   const [photos, setPhotos] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -52,10 +54,14 @@ export default function EditProductPhotos({
           return photoFrom(file);
         }),
       );
-      await api(`/shops/${shopId}/variants/${variant.id}/photos`, {
-        method: 'PUT',
-        body: { photoDataUrls },
-      });
+      const updated = await api<Variant>(
+        `/shops/${shopId}/variants/${variant.id}/photos`,
+        {
+          method: 'PUT',
+          body: { photoDataUrls },
+        },
+      );
+      onSaved?.(updated);
       setMessage('Альбом сохранён и отправлен на модерацию.');
     } catch (e) {
       setError(errorText(e));
@@ -76,57 +82,89 @@ export default function EditProductPhotos({
   }
 
   return (
-    <section className="panel form-panel" aria-label="Фотографии товара">
-      <h2>Фотографии товара</h2>
-      <p className="muted">
-        До 8 фотографий. Первое фото — главное. Изменения появятся на витрине
-        после модерации.
-      </p>
-      <div className="product-form-grid">
+    <section
+      className="admin-kit-card product-detail-photos"
+      aria-label="Фотографии товара"
+    >
+      <div className="admin-kit-card-head">
+        <div>
+          <h2>Фотографии товара</h2>
+          <p className="muted">
+            До 8 фотографий. Первое фото — главное. Изменения появятся на
+            витрине после модерации.
+          </p>
+        </div>
+      </div>
+      <div className="product-photo-grid">
         {photos.map((photo, index) => (
-          <div key={index} className="product-form-block">
-            <img src={photo} alt={`Фото ${index + 1}`} width={160} />
-            <p>{index === 0 ? 'Главное фото' : `Фото ${index + 1}`}</p>
-            <button
-              type="button"
-              disabled={busy || index === 0}
-              onClick={() => move(index, -1)}
-            >
-              Раньше
-            </button>
-            <button
-              type="button"
-              disabled={busy || index === photos.length - 1}
-              onClick={() => move(index, 1)}
-            >
-              Позже
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => {
-                setPhotos((current) => current.filter((_, i) => i !== index));
-                setMessage('');
-              }}
-            >
-              Удалить
-            </button>
+          <div key={index} className="product-photo-tile">
+            <img src={photo} alt={`Фото ${index + 1}`} />
+            <div className="product-photo-tile__meta">
+              <span
+                className={
+                  index === 0 ? 'admin-kit-status green' : 'admin-kit-status'
+                }
+              >
+                {index === 0 ? 'Главное фото' : `Фото ${index + 1}`}
+              </span>
+              <div className="product-photo-tile__actions">
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={busy || index === 0}
+                  onClick={() => move(index, -1)}
+                >
+                  Раньше
+                </button>
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={busy || index === photos.length - 1}
+                  onClick={() => move(index, 1)}
+                >
+                  Позже
+                </button>
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={busy}
+                  onClick={() => {
+                    setPhotos((current) =>
+                      current.filter((_, i) => i !== index),
+                    );
+                    setMessage('');
+                  }}
+                >
+                  Удалить
+                </button>
+              </div>
+            </div>
           </div>
         ))}
       </div>
-      <label>
-        Добавить фотографии
-        <input
-          type="file"
-          multiple
-          accept="image/jpeg,image/png,image/webp"
-          disabled={busy || photoCrop.cropping || photos.length >= 8}
-          onChange={(e) => {
-            add(e.target.files);
-            e.target.value = '';
-          }}
-        />
-      </label>
+      <div className="product-photo-footer">
+        <label className="product-photo-upload">
+          Добавить фотографии
+          <input
+            type="file"
+            multiple
+            accept="image/jpeg,image/png,image/webp"
+            disabled={busy || photoCrop.cropping || photos.length >= 8}
+            onChange={(e) => {
+              add(e.target.files);
+              e.target.value = '';
+            }}
+          />
+        </label>
+        <button
+          type="button"
+          className="primary"
+          disabled={busy}
+          onClick={() => void save()}
+        >
+          {busy ? 'Сохранение…' : 'Сохранить фотографии'}
+        </button>
+      </div>
       {error && (
         <p role="alert" className="error">
           {error}
@@ -137,14 +175,6 @@ export default function EditProductPhotos({
           {message}
         </p>
       )}
-      <button
-        type="button"
-        className="primary"
-        disabled={busy}
-        onClick={() => void save()}
-      >
-        {busy ? 'Сохранение…' : 'Сохранить фотографии'}
-      </button>
       {photoCrop.cropDialog}
     </section>
   );
