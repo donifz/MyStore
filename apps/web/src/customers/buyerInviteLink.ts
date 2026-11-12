@@ -7,7 +7,7 @@ export function parseBuyerInviteFragment(fragment: string): string {
 export function parseBuyerAuthTokenFragment(fragment: string): string {
   const params = new URLSearchParams(fragment.replace(/^#/, ''));
   const token = params.get('token') || params.get('login-token');
-  return token && /^[a-f0-9]{64}$/.test(token) ? token : '';
+  return token && /^[A-Za-z0-9_-]{32,64}$/.test(token) ? token : '';
 }
 
 export function buyerInviteLink(token: string, origin: string): string {
