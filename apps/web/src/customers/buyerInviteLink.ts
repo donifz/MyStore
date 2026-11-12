@@ -4,6 +4,12 @@ export function parseBuyerInviteFragment(fragment: string): string {
   return token && /^[A-Za-z0-9_-]{43}$/.test(token) ? token : '';
 }
 
+export function parseBuyerAuthTokenFragment(fragment: string): string {
+  const params = new URLSearchParams(fragment.replace(/^#/, ''));
+  const token = params.get('token') || params.get('login-token');
+  return token && /^[a-f0-9]{64}$/.test(token) ? token : '';
+}
+
 export function buyerInviteLink(token: string, origin: string): string {
   if (!/^[A-Za-z0-9_-]{43}$/.test(token)) {
     throw new Error('Недействительный код приглашения');

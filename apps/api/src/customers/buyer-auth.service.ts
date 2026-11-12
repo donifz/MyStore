@@ -220,6 +220,22 @@ export class BuyerAuthService {
     };
   }
 
+  async changePassword(buyerId: string, newPassword: string) {
+    if (newPassword.length < 12 || newPassword.length > 256) {
+      throw new BadRequestException(
+        'Пароль должен содержать от 12 до 256 символов',
+      );
+    }
+    const hash = await hashPassword(newPassword);
+    await this.db.query(
+      `UPDATE buyer_accounts
+       SET password_hash=$2, initial_password_enc=NULL
+       WHERE id=$1`,
+      [buyerId, hash],
+    );
+    return { updated: true };
+  }
+
   async logout(token: string) {
     await this.db.query('DELETE FROM buyer_sessions WHERE token_hash=$1', [
       this.digest(token),

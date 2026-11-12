@@ -182,4 +182,67 @@ describe('single-use buyer invitations', () => {
       .expect(200);
     expect(customerView.body.linked).toBe(true);
   });
+
+  it('allows cashier to reset access for linked customer, generating new password on scan and allowing password change', async () => {
+    const id = await customer('+996700555666');
+    const invitation = (await issue(id).expect(201)).body;
+    const agent = request.agent(c.app.getHttpServer());
+
+    // Initial invite login
+    await agent
+      .post('/buyer/accept-invite')
+      .set('Origin', 'http://localhost:5173')
+      .send({ token: invitation.token })
+      .expect(201);
+
+    // Customer is linked. Now regular issue fails with 409:
+    await issue(id).expect(409);
+
+    // Cashier issues a reset invite:
+    const reset = await request(c.app.getHttpServer())
+      .post(`/shops/${fixture.shop}/customers/${id}/invite/reset`)
+      .auth(c.cashier, { type: 'bearer' })
+      .send({})
+      .expect(201);
+
+    expect(reset.body.token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+
+    // Customer scans reset QR and accepts:
+    const resetAgent = request.agent(c.app.getHttpServer());
+    const resetLogin = await resetAgent
+      .post('/buyer/accept-invite')
+      .set('Origin', 'http://localhost:5173')
+      .send({ token: reset.body.token })
+      .expect(201);
+
+    expect(resetLogin.body.isNewAccount).toBe(false);
+
+    // Check that a new password was generated:
+    const initialPw = await resetAgent
+      .get('/buyer/initial-password')
+      .expect(200);
+    expect(initialPw.body.password).toMatch(/^[A-Za-z0-9]{12}$/);
+
+    // Now buyer changes password in cabinet:
+    await resetAgent
+      .post('/buyer/change-password')
+      .set('Origin', 'http://localhost:5173')
+      .set('x-csrf-token', resetLogin.body.csrfToken)
+      .send({ password: 'my-new-secure-password-123' })
+      .expect(201);
+
+    // hasInitialPassword is now false:
+    const me = await resetAgent.get('/buyer/me').expect(200);
+    expect(me.body.hasInitialPassword).toBe(false);
+
+    // Initial password endpoint now returns 404:
+    await resetAgent.get('/buyer/initial-password').expect(404);
+
+    // Login with new password succeeds:
+    await request(c.app.getHttpServer())
+      .post('/buyer/login')
+      .set('Origin', 'http://localhost:5173')
+      .send({ phone: '+996700555666', password: 'my-new-secure-password-123' })
+      .expect(201);
+  });
 });

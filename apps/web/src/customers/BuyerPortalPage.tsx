@@ -9,7 +9,10 @@ import {
   formatKyrgyzPhoneInput,
   KYRGYZ_PHONE_PATTERN,
 } from './kyrgyzPhoneMask';
-import { parseBuyerInviteFragment } from './buyerInviteLink';
+import {
+  parseBuyerInviteFragment,
+  parseBuyerAuthTokenFragment,
+} from './buyerInviteLink';
 import BuyerInviteQr from './BuyerInviteQr';
 import PaymentIcon from '../pos/PaymentIcon';
 import { formatSom } from '../api/money';
@@ -159,12 +162,32 @@ export default function BuyerPortalPage() {
   const [inviteToken, setInviteToken] = useState(() =>
     parseBuyerInviteFragment(window.location.hash),
   );
+  const [authToken, setAuthToken] = useState(() =>
+    parseBuyerAuthTokenFragment(window.location.hash),
+  );
   const [revealedPassword, setRevealedPassword] = useState<string | null>(null);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [passwordBusy, setPasswordBusy] = useState(false);
   const [passwordCopied, setPasswordCopied] = useState(false);
+
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changePasswordBusy, setChangePasswordBusy] = useState(false);
+  const [changePasswordError, setChangePasswordError] = useState('');
+  const [changePasswordSuccess, setChangePasswordSuccess] = useState('');
+
+  const [telegramLoginOpen, setTelegramLoginOpen] = useState(false);
+  const [telegramLoginUrl, setTelegramLoginUrl] = useState('');
+  const [telegramLoginToken, setTelegramLoginToken] = useState('');
+  const [telegramLoginBusy, setTelegramLoginBusy] = useState(false);
+  const [telegramLoginError, setTelegramLoginError] = useState('');
+
   useEffect(() => {
-    if (parseBuyerInviteFragment(window.location.hash)) {
+    if (
+      parseBuyerInviteFragment(window.location.hash) ||
+      parseBuyerAuthTokenFragment(window.location.hash)
+    ) {
       window.history.replaceState(
         window.history.state,
         '',
@@ -190,7 +213,7 @@ export default function BuyerPortalPage() {
 
   useEffect(() => {
     if (!inviteToken) {
-      if (!handledInviteRef.current) {
+      if (!handledInviteRef.current && !authToken) {
         void refresh();
       }
       return;
@@ -222,14 +245,32 @@ export default function BuyerPortalPage() {
         setInviteToken('');
         setBusy(false);
       });
-  }, [inviteToken, refresh]);
+  }, [inviteToken, authToken, refresh]);
+
+  const handledAuthRef = useRef('');
 
   useEffect(() => {
-    if (!account) {
-      setTelegramEnabled(false);
-      setTelegramLink('');
-      return;
-    }
+    if (!authToken || handledAuthRef.current === authToken) return;
+    handledAuthRef.current = authToken;
+    setBusy(true);
+    void buyerApi<{ csrfToken: string }>('token-login', { token: authToken })
+      .then(async () => {
+        setNotice('Вы успешно вошли в кабинет!');
+        await refresh();
+      })
+      .catch(async (err) => {
+        setError(
+          err instanceof Error ? err.message : 'Не удалось войти по ссылке.',
+        );
+        await refresh();
+      })
+      .finally(() => {
+        setAuthToken('');
+        setBusy(false);
+      });
+  }, [authToken, refresh]);
+
+  useEffect(() => {
     let active = true;
     void buyerApi<{ enabled: boolean }>('telegram/config')
       .then((result) => {
@@ -241,7 +282,92 @@ export default function BuyerPortalPage() {
     return () => {
       active = false;
     };
-  }, [account?.id, account?.phoneVerified]);
+  }, [account?.id]);
+
+  useEffect(() => {
+    if (!telegramLoginToken || !telegramLoginOpen) return;
+    let active = true;
+    const interval = setInterval(() => {
+      void buyerApi<{ status: string; csrfToken?: string }>(
+        'telegram/auth-poll',
+        { token: telegramLoginToken },
+      )
+        .then(async (res) => {
+          if (!active) return;
+          if (res.status === 'ready') {
+            clearInterval(interval);
+            setTelegramLoginOpen(false);
+            setTelegramLoginToken('');
+            setNotice('Вы успешно вошли в кабинет через Telegram!');
+            await refresh();
+          } else if (res.status === 'expired') {
+            clearInterval(interval);
+            setTelegramLoginError('Время ожидания истекло. Повторите попытку.');
+          }
+        })
+        .catch(() => {});
+    }, 2000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [telegramLoginToken, telegramLoginOpen, refresh]);
+
+  async function startTelegramLogin() {
+    setTelegramLoginError('');
+    setTelegramLoginBusy(true);
+    try {
+      const res = await buyerApi<{ url: string; token: string }>(
+        'telegram/auth-request',
+        {},
+      );
+      setTelegramLoginUrl(res.url);
+      setTelegramLoginToken(res.token);
+      setTelegramLoginOpen(true);
+    } catch (err) {
+      setTelegramLoginError(
+        err instanceof Error
+          ? err.message
+          : 'Не удалось запустить вход через Telegram',
+      );
+    } finally {
+      setTelegramLoginBusy(false);
+    }
+  }
+
+  async function submitChangePassword(e: FormEvent) {
+    e.preventDefault();
+    setChangePasswordError('');
+    setChangePasswordSuccess('');
+    if (newPassword.length < 12) {
+      setChangePasswordError('Пароль должен содержать не менее 12 символов');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setChangePasswordError('Пароли не совпадают');
+      return;
+    }
+    setChangePasswordBusy(true);
+    try {
+      await buyerApi(
+        'change-password',
+        { password: newPassword },
+        account?.csrfToken,
+      );
+      setChangePasswordSuccess('Пароль успешно сохранён!');
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowChangePassword(false);
+      setRevealedPassword(null);
+      await refresh();
+    } catch (err) {
+      setChangePasswordError(
+        err instanceof Error ? err.message : 'Не удалось изменить пароль',
+      );
+    } finally {
+      setChangePasswordBusy(false);
+    }
+  }
 
   async function prepareTelegram() {
     setBusy(true);
@@ -901,60 +1027,162 @@ export default function BuyerPortalPage() {
 
               {/* Right Column: Password & Connected Shops */}
               <div>
-                {account.hasInitialPassword && (
-                  <section
-                    className="buyer-panel"
-                    style={{ marginBottom: '20px' }}
-                  >
-                    <div className="buyer-panel-head">
-                      <h2>Пароль для входа</h2>
-                    </div>
-                    <p className="muted" style={{ marginBottom: '12px' }}>
-                      Кабинет создан автоматически. Используйте этот пароль для
-                      входа по номеру телефона.
-                    </p>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        flexWrap: 'wrap',
-                      }}
-                    >
-                      <code
-                        data-testid="buyer-initial-password"
+                <section
+                  className="buyer-panel"
+                  style={{ marginBottom: '20px' }}
+                >
+                  <div className="buyer-panel-head">
+                    <h2>Пароль для входа</h2>
+                  </div>
+                  {account.hasInitialPassword && (
+                    <>
+                      <p className="muted" style={{ marginBottom: '12px' }}>
+                        Кабинет создан автоматически. Используйте этот пароль
+                        для входа по номеру телефона:
+                      </p>
+                      <div
                         style={{
-                          padding: '8px 12px',
-                          borderRadius: '8px',
-                          background: '#f1f5f9',
-                          fontSize: '15px',
-                          letterSpacing: passwordVisible ? '0.04em' : '0.12em',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          flexWrap: 'wrap',
+                          marginBottom: '16px',
                         }}
                       >
-                        {passwordVisible && revealedPassword
-                          ? revealedPassword
-                          : '••••••••••••'}
-                      </code>
-                      <button
-                        type="button"
-                        className="button"
-                        disabled={passwordBusy}
-                        onClick={() => void togglePasswordVisibility()}
-                      >
-                        {passwordVisible ? 'Скрыть пароль' : 'Показать пароль'}
-                      </button>
-                      {passwordVisible && revealedPassword && (
+                        <code
+                          data-testid="buyer-initial-password"
+                          style={{
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            background: '#f1f5f9',
+                            fontSize: '15px',
+                            letterSpacing: passwordVisible
+                              ? '0.04em'
+                              : '0.12em',
+                          }}
+                        >
+                          {passwordVisible && revealedPassword
+                            ? revealedPassword
+                            : '••••••••••••'}
+                        </code>
                         <button
                           type="button"
                           className="button"
-                          onClick={() => void copyPassword()}
+                          disabled={passwordBusy}
+                          onClick={() => void togglePasswordVisibility()}
                         >
-                          {passwordCopied ? 'Скопировано' : 'Копировать'}
+                          {passwordVisible
+                            ? 'Скрыть пароль'
+                            : 'Показать пароль'}
                         </button>
-                      )}
-                    </div>
-                  </section>
-                )}
+                        {passwordVisible && revealedPassword && (
+                          <button
+                            type="button"
+                            className="button"
+                            onClick={() => void copyPassword()}
+                          >
+                            {passwordCopied ? 'Скопировано' : 'Копировать'}
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  {changePasswordSuccess && (
+                    <p
+                      role="status"
+                      style={{ color: '#16a34a', marginBottom: '12px' }}
+                    >
+                      {changePasswordSuccess}
+                    </p>
+                  )}
+
+                  {!showChangePassword ? (
+                    <button
+                      type="button"
+                      className="button secondary"
+                      onClick={() => {
+                        setShowChangePassword(true);
+                        setChangePasswordError('');
+                        setChangePasswordSuccess('');
+                      }}
+                    >
+                      {account.hasInitialPassword
+                        ? 'Задать свой постоянный пароль'
+                        : 'Сменить пароль'}
+                    </button>
+                  ) : (
+                    <form
+                      onSubmit={(e) => void submitChangePassword(e)}
+                      style={{ marginTop: '12px' }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '10px',
+                        }}
+                      >
+                        <label>
+                          Новый пароль
+                          <input
+                            type="password"
+                            required
+                            minLength={12}
+                            maxLength={256}
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder="Не менее 12 символов"
+                          />
+                        </label>
+                        <label>
+                          Повторите новый пароль
+                          <input
+                            type="password"
+                            required
+                            minLength={12}
+                            maxLength={256}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder="Повторите пароль"
+                          />
+                        </label>
+                        {changePasswordError && (
+                          <p role="alert" className="error">
+                            {changePasswordError}
+                          </p>
+                        )}
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: '10px',
+                            marginTop: '6px',
+                          }}
+                        >
+                          <button
+                            type="submit"
+                            className="button primary"
+                            disabled={changePasswordBusy}
+                          >
+                            {changePasswordBusy
+                              ? 'Сохраняем…'
+                              : 'Сохранить пароль'}
+                          </button>
+                          <button
+                            type="button"
+                            className="button"
+                            onClick={() => {
+                              setShowChangePassword(false);
+                              setChangePasswordError('');
+                            }}
+                          >
+                            Отмена
+                          </button>
+                        </div>
+                      </div>
+                    </form>
+                  )}
+                </section>
 
                 <section className="buyer-panel">
                   <div className="buyer-panel-head">
@@ -1080,6 +1308,147 @@ export default function BuyerPortalPage() {
                 ? 'Уже есть аккаунт? Войти'
                 : 'Нет аккаунта? Регистрация'}
             </button>
+
+            {mode === 'login' && telegramEnabled && (
+              <div
+                style={{
+                  marginTop: '16px',
+                  paddingTop: '16px',
+                  borderTop: '1px solid #e2e8f0',
+                  textAlign: 'center',
+                }}
+              >
+                {!telegramLoginOpen ? (
+                  <div>
+                    <p
+                      className="muted"
+                      style={{ fontSize: '13px', marginBottom: '10px' }}
+                    >
+                      Забыли пароль или хотите войти без ввода пароля?
+                    </p>
+                    <button
+                      type="button"
+                      className="button secondary"
+                      style={{
+                        width: '100%',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                      }}
+                      onClick={() => void startTelegramLogin()}
+                      disabled={telegramLoginBusy}
+                    >
+                      <PaymentIcon name="sparkle" size={18} />
+                      {telegramLoginBusy
+                        ? 'Подключение…'
+                        : 'Войти или сбросить пароль через Telegram'}
+                    </button>
+                    {telegramLoginError && (
+                      <p
+                        role="alert"
+                        className="error"
+                        style={{ marginTop: '8px' }}
+                      >
+                        {telegramLoginError}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      padding: '16px',
+                      background: '#f8fafc',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0',
+                    }}
+                  >
+                    <h3
+                      style={{
+                        fontSize: '15px',
+                        fontWeight: 600,
+                        margin: '0 0 8px 0',
+                      }}
+                    >
+                      Вход через Telegram
+                    </h3>
+                    <p
+                      className="muted"
+                      style={{ fontSize: '13px', marginBottom: '12px' }}
+                    >
+                      Отсканируйте QR-код камерой телефона или нажмите кнопку,
+                      чтобы открыть бота и отправить контакт для входа.
+                    </p>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        margin: '12px 0',
+                      }}
+                    >
+                      <BuyerInviteQr value={telegramLoginUrl} />
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '8px',
+                        justifyContent: 'center',
+                        marginTop: '12px',
+                      }}
+                    >
+                      <a
+                        href={telegramLoginUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="button primary"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        Открыть Telegram
+                      </a>
+                      <button
+                        type="button"
+                        className="button"
+                        onClick={() => {
+                          setTelegramLoginOpen(false);
+                          setTelegramLoginToken('');
+                        }}
+                      >
+                        Отмена
+                      </button>
+                    </div>
+                    {telegramLoginError && (
+                      <p
+                        role="alert"
+                        className="error"
+                        style={{ marginTop: '8px' }}
+                      >
+                        {telegramLoginError}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {mode === 'login' && (
+              <p
+                className="muted"
+                style={{
+                  fontSize: '12px',
+                  textAlign: 'center',
+                  marginTop: '12px',
+                  lineHeight: '1.4',
+                }}
+              >
+                Забыли пароль? Войдите через Telegram выше или обратитесь на
+                кассу магазина для сброса доступа по QR-коду.
+              </p>
+            )}
+
             <p
               className="muted"
               style={{

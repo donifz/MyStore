@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buyerInviteLink, parseBuyerInviteFragment } from './buyerInviteLink';
+import {
+  buyerInviteLink,
+  parseBuyerInviteFragment,
+  parseBuyerAuthTokenFragment,
+} from './buyerInviteLink';
 
 const token = 'a'.repeat(43);
 
@@ -15,5 +19,11 @@ describe('buyer activation invitation', () => {
     expect(parseBuyerInviteFragment('#invite=abc')).toBe('');
     expect(parseBuyerInviteFragment('#other=' + token)).toBe('');
     expect(() => buyerInviteLink('bad', 'https://mystore.test')).toThrow();
+  });
+  it('parses auth token fragments', () => {
+    expect(parseBuyerAuthTokenFragment('#token=' + token)).toBe(token);
+    expect(parseBuyerAuthTokenFragment('#login-token=' + token)).toBe(token);
+    expect(parseBuyerAuthTokenFragment('#token=invalid')).toBe('');
+    expect(parseBuyerAuthTokenFragment('')).toBe('');
   });
 });

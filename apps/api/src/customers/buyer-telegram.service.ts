@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   HttpException,
   ConflictException,
   ForbiddenException,
@@ -8,7 +9,9 @@ import {
 } from '@nestjs/common';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { DataSource } from 'typeorm';
+import { hashPassword } from '../auth/password';
 import { DATABASE } from '../database';
+import { BuyerAuthService, generateBuyerPassword } from './buyer-auth.service';
 import { normalizeKyrgyzPhone } from './kyrgyz-phone';
 
 type TelegramMessage = {
@@ -43,7 +46,10 @@ function telegramConfig() {
 export class BuyerTelegramService {
   private webhookReady = false;
 
-  constructor(@Inject(DATABASE) private readonly db: DataSource) {}
+  constructor(
+    @Inject(DATABASE) private readonly db: DataSource,
+    private readonly buyerAuth: BuyerAuthService,
+  ) {}
 
   async registerWebhook(): Promise<void> {
     if (
@@ -181,6 +187,53 @@ export class BuyerTelegramService {
     };
   }
 
+  async requestAuth() {
+    const config = telegramConfig();
+    if (!this.config().enabled || !config) {
+      throw new ServiceUnavailableException(
+        'Вход через Telegram пока не подключён',
+      );
+    }
+    const token = randomBytes(24).toString('base64url');
+    await this.db.query(
+      `INSERT INTO buyer_telegram_auth_requests
+       (token_hash, expires_at)
+       VALUES ($1, now() + interval '10 minutes')`,
+      [digest(token)],
+    );
+    return {
+      url: `https://t.me/${config.username}?start=auth_${token}`,
+      token,
+      expiresIn: 600,
+    };
+  }
+
+  async pollAuth(token: string) {
+    if (!/^[A-Za-z0-9_-]{32}$/.test(token)) {
+      throw new BadRequestException('Недействительный токен');
+    }
+    const [row] = await this.db.query(
+      `SELECT session_token, used_at, expires_at, revoked_at
+       FROM buyer_telegram_auth_requests
+       WHERE token_hash=$1`,
+      [digest(token)],
+    );
+    if (
+      !row ||
+      row.revoked_at ||
+      new Date(row.expires_at).getTime() <= Date.now()
+    ) {
+      return { status: 'expired' as const };
+    }
+    if (row.used_at && row.session_token) {
+      return {
+        status: 'ready' as const,
+        token: row.session_token as string,
+      };
+    }
+    return { status: 'pending' as const };
+  }
+
   async webhook(secretHeader: unknown, update: TelegramUpdate) {
     const config = telegramConfig();
     if (!config) throw new ServiceUnavailableException();
@@ -210,7 +263,44 @@ export class BuyerTelegramService {
 
     const text = message?.text;
     if (typeof text === 'string' && text.startsWith('/start ')) {
-      const token = text.slice(7).trim();
+      const rawParam = text.slice(7).trim();
+      if (rawParam.startsWith('auth_')) {
+        const token = rawParam.slice(5).trim();
+        if (!/^[A-Za-z0-9_-]{32}$/.test(token)) return { ok: true };
+        const [boundRows] = await this.db.query(
+          `UPDATE buyer_telegram_auth_requests
+           SET telegram_user_id=$2,chat_id=$3
+           WHERE token_hash=$1 AND expires_at>now()
+             AND used_at IS NULL AND revoked_at IS NULL
+             AND (telegram_user_id IS NULL OR telegram_user_id=$2)
+           RETURNING id`,
+          [digest(token), user, chat],
+        );
+        const bound = Array.isArray(boundRows) ? boundRows[0] : boundRows;
+        if (!bound) {
+          await this.send(
+            config.token,
+            chat,
+            'Ссылка для входа недействительна или истекла. Попробуйте снова на сайте MyStore.',
+          );
+          return { ok: true };
+        }
+        await this.send(
+          config.token,
+          chat,
+          'Для входа в личный кабинет MyStore нажмите кнопку ниже:',
+          {
+            keyboard: [
+              [{ text: 'Поделиться своим номером', request_contact: true }],
+            ],
+            one_time_keyboard: true,
+            resize_keyboard: true,
+          },
+        );
+        return { ok: true };
+      }
+
+      const token = rawParam;
       if (!/^[A-Za-z0-9_-]{32}$/.test(token)) return { ok: true };
       const [boundRows] = await this.db.query(
         `UPDATE buyer_telegram_verifications
@@ -267,6 +357,78 @@ export class BuyerTelegramService {
       return { ok: true };
     }
     const status = await this.db.transaction(async (tx) => {
+      // 1. Check if there is an active login auth request first
+      const [authReq] = await tx.query(
+        `SELECT id FROM buyer_telegram_auth_requests
+         WHERE telegram_user_id=$1 AND chat_id=$2
+           AND expires_at>now() AND used_at IS NULL AND revoked_at IS NULL
+         ORDER BY created_at DESC LIMIT 1 FOR UPDATE`,
+        [user, chat],
+      );
+
+      if (authReq) {
+        const [other] = await tx.query(
+          'SELECT id, phone_e164 FROM buyer_accounts WHERE telegram_user_id=$1',
+          [user],
+        );
+        if (other && other.phone_e164 !== phone) {
+          return 'linked_to_different_phone';
+        }
+
+        const [existingBuyer] = await tx.query(
+          'SELECT id, display_name FROM buyer_accounts WHERE phone_e164=$1 FOR UPDATE',
+          [phone],
+        );
+
+        let buyerId: string;
+        if (existingBuyer) {
+          buyerId = existingBuyer.id;
+          await tx.query(
+            `UPDATE buyer_accounts
+             SET phone_verified_at=COALESCE(phone_verified_at,now()),
+                 telegram_user_id=$2
+             WHERE id=$1`,
+            [buyerId, user],
+          );
+        } else {
+          const generated = generateBuyerPassword(12);
+          const pwHash = await hashPassword(generated);
+          const encrypted = this.buyerAuth.encryptInitialPassword(generated);
+          const [created] = await tx.query(
+            `INSERT INTO buyer_accounts
+             (phone_e164,display_name,password_hash,initial_password_enc,phone_verified_at,telegram_user_id)
+             VALUES($1,$2,$3,$4,now(),$5)
+             RETURNING id`,
+            [phone, 'Покупатель', pwHash, encrypted, user],
+          );
+          buyerId = created.id;
+        }
+
+        await tx.query(
+          `UPDATE shop_customers
+           SET buyer_account_id=$1,updated_at=now()
+           WHERE phone_e164=$2 AND buyer_account_id IS NULL`,
+          [buyerId, phone],
+        );
+
+        const session = await this.buyerAuth.createSession(buyerId, tx);
+        await tx.query(
+          `UPDATE buyer_telegram_auth_requests
+           SET used_at=now(), buyer_id=$2, phone_e164=$3, session_token=$4
+           WHERE id=$1`,
+          [authReq.id, buyerId, phone, session.token],
+        );
+        await tx.query(
+          `UPDATE buyer_telegram_auth_requests
+           SET revoked_at=now()
+           WHERE telegram_user_id=$1 AND id<>$2
+             AND used_at IS NULL AND revoked_at IS NULL`,
+          [user, authReq.id],
+        );
+        return { type: 'auth_success' as const, token: session.token };
+      }
+
+      // 2. Otherwise check for verification challenge
       const [challenge] = await tx.query(
         `SELECT id,buyer_id FROM buyer_telegram_verifications
          WHERE telegram_user_id=$1 AND chat_id=$2
@@ -315,16 +477,35 @@ export class BuyerTelegramService {
       );
       return 'verified';
     });
+    if (typeof status === 'object' && status?.type === 'auth_success') {
+      const publicBase = process.env.PUBLIC_BASE_URL || '';
+      const loginLink = publicBase
+        ? `${publicBase}/buyer#token=${status.token}`
+        : '';
+      const reply = loginLink
+        ? `Вход выполнен успешно! Если вы открыли бота с компьютера, страница обновится автоматически.\n\nНа телефоне нажмите для входа: ${loginLink}`
+        : 'Вход выполнен успешно! Вернитесь в браузер на сайт MyStore.';
+      await this.send(config.token, chat, reply, { remove_keyboard: true });
+      return { ok: true };
+    }
     const messages: Record<string, string> = {
       verified:
         'Номер подтверждён. Вернитесь в кабинет MyStore и обновите статус.',
       expired: 'Ссылка истекла. Получите новую в кабинете MyStore.',
       mismatch: 'Номер контакта не совпадает с номером аккаунта MyStore.',
       linked: 'Этот Telegram уже связан с другим аккаунтом MyStore.',
+      linked_to_different_phone:
+        'Этот Telegram-аккаунт уже привязан к другому номеру телефона в MyStore.',
     };
-    await this.send(config.token, chat, messages[status], {
-      remove_keyboard: true,
-    });
+    await this.send(
+      config.token,
+      chat,
+      messages[typeof status === 'string' ? status : 'expired'] ||
+        'Произошла ошибка.',
+      {
+        remove_keyboard: true,
+      },
+    );
     return { ok: true };
   }
 

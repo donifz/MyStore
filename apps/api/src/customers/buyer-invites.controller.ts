@@ -39,6 +39,16 @@ export class ShopBuyerInvitesController {
     await this.access.requireMembership(req.userId, shopId, 'sell');
     return this.invites.issue(shopId, customerId, req.userId);
   }
+
+  @Post(':customerId/invite/reset')
+  async reset(
+    @Param('shopId', ParseUUIDPipe) shopId: string,
+    @Param('customerId', ParseUUIDPipe) customerId: string,
+    @Req() req: UserRequest,
+  ) {
+    await this.access.requireMembership(req.userId, shopId, 'sell');
+    return this.invites.resetAccess(shopId, customerId, req.userId);
+  }
 }
 
 @Controller('buyer')
