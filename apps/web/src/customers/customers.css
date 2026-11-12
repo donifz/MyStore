@@ -847,6 +847,662 @@
   overflow-wrap: anywhere;
 }
 
+/* Unified CRM & Debts Hub */
+.crm-hub {
+  padding-bottom: 32px;
+}
+
+.crm-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.crm-heading h1 {
+  margin: 2px 0 6px;
+  font-size: 26px;
+  letter-spacing: -0.02em;
+}
+
+.crm-add-btn {
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 9px;
+  box-shadow: 0 2px 6px rgba(22, 101, 52, 0.2);
+}
+
+.crm-metrics {
+  margin-bottom: 22px;
+}
+
+.crm-table-panel {
+  background: var(--admin-surface, #ffffff);
+  border: 1px solid var(--admin-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.crm-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--admin-border, #e2e8f0);
+  flex-wrap: wrap;
+  background: #fafbfc;
+}
+
+.crm-tabs {
+  display: inline-flex;
+  align-items: center;
+  background: #edf2f7;
+  padding: 4px;
+  border-radius: 10px;
+  gap: 4px;
+}
+
+.crm-tab {
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  padding: 6px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.crm-tab:hover {
+  color: #0f172a;
+}
+
+.crm-tab.active {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.crm-tab-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.crm-tab-badge.amber {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.crm-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-grow: 1;
+  justify-content: flex-end;
+  min-width: 280px;
+}
+
+.crm-search-box {
+  position: relative;
+  flex-grow: 1;
+  max-width: 360px;
+}
+
+.crm-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.crm-search-box input {
+  width: 100%;
+  padding-left: 32px;
+  padding-right: 12px;
+  height: 38px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13px;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.crm-search-box input:focus {
+  outline: none;
+  border-color: #207a58;
+  box-shadow: 0 0 0 3px rgba(32, 122, 88, 0.12);
+}
+
+.crm-sort-select {
+  height: 38px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13px;
+  padding: 0 10px;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+}
+
+.crm-table-wrap {
+  overflow-x: auto;
+}
+
+.crm-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.crm-table th {
+  padding: 12px 18px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.crm-table td {
+  padding: 14px 18px;
+  font-size: 14px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.crm-table tr:hover td {
+  background: #fafbfc;
+}
+
+.crm-row-debtor td {
+  background: #fffdfa;
+}
+
+.crm-customer-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.crm-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.crm-avatar.debt-avatar {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.crm-customer-meta strong {
+  display: block;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.crm-address {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.crm-phone {
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  color: #334155;
+  font-size: 13px;
+}
+
+.crm-points-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  background: #eff6ff;
+  color: #1e40af;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.crm-debt-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.crm-debt-badge.warning {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.crm-debt-badge.warning strong {
+  font-size: 14px;
+}
+
+.crm-debt-badge.paid {
+  background: #f0fdf4;
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.crm-cabinet-linked {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.crm-badge-active {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.crm-btn-xs {
+  font-size: 12px !important;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+}
+
+.crm-btn-sm {
+  font-size: 13px !important;
+  padding: 6px 14px !important;
+  border-radius: 7px !important;
+  font-weight: 600;
+}
+
+.crm-empty-state {
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.crm-loading {
+  padding: 30px 20px;
+  text-align: center;
+  color: #64748b;
+}
+
+/* Modals and Drawers */
+.crm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.crm-modal-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+  box-sizing: border-box;
+}
+
+.crm-modal-content {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
+  max-width: 520px;
+  width: 100%;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+  box-sizing: border-box;
+}
+
+.crm-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.crm-modal-head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.crm-modal-close {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.crm-modal-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.crm-form-fields {
+  display: grid;
+  gap: 14px;
+}
+
+.crm-form-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.crm-form-fields input {
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.crm-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Debt & Repayments Drawer */
+.crm-drawer-content {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 680px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.22);
+  box-sizing: border-box;
+}
+
+.crm-drawer-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.crm-drawer-head h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+}
+
+.crm-balance-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.crm-balance-hero.has-debt {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.crm-balance-hero.cleared {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.crm-balance-hero small {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+.crm-balance-hero h3 {
+  margin: 0;
+  font-size: 24px;
+  letter-spacing: -0.02em;
+}
+
+.crm-hero-tag {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.crm-hero-tag.amber {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.crm-hero-tag.green {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.crm-repay-panel {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 20px;
+}
+
+.crm-repay-panel h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+.crm-notice {
+  margin: 12px 0;
+}
+
+.crm-field-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.crm-field-block select {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.crm-sale-summary-pill {
+  padding: 10px 14px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.crm-quick-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.crm-chip {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.crm-chip:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.crm-repay-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.crm-repay-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.crm-repay-grid input,
+.crm-repay-grid select {
+  padding: 9px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.crm-submit-repay {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.crm-history-block {
+  margin-top: 20px;
+}
+
+.crm-history-block h3 {
+  font-size: 15px;
+  margin: 0 0 10px;
+}
+
+.crm-subtable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.crm-subtable th {
+  padding: 8px 12px;
+  background: #f1f5f9;
+  border-bottom: 1px solid #cbd5e1;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.crm-subtable td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.crm-subrow-active td {
+  background: #f8fafc;
+  font-weight: 600;
+}
+
+.crm-repayment-list {
+  display: grid;
+  gap: 8px;
+}
+
+.crm-repayment-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.crm-method-tag {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #e2e8f0;
+  color: #475569;
+}
+
+@media (max-width: 768px) {
+  .crm-heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .crm-add-btn {
+    width: 100%;
+  }
+  .crm-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .crm-filter-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .crm-search-box {
+    max-width: 100%;
+  }
+  .crm-repay-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 1099px) {
   .buyer-top-nav {
     display: none;
