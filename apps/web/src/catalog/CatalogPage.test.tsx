@@ -256,4 +256,18 @@ it('renders barcode scanner icon button and maintains focus on search input', as
   // Clicking scanner button refocuses search input
   await u.click(scannerBtn);
   expect(document.activeElement).toBe(searchInput);
+
+  // Clicking camera button opens camera modal dialog
+  await u.click(cameraBtn);
+  expect(
+    await screen.findByRole('heading', { name: 'Сканировать камерой' }),
+  ).toBeTruthy();
+
+  // Close modal via close button
+  const closeBtn = screen.getByRole('button', { name: 'Закрыть' });
+  await u.click(closeBtn);
+  expect(
+    screen.queryByRole('heading', { name: 'Сканировать камерой' }),
+  ).toBeNull();
+  expect(document.activeElement).toBe(searchInput);
 });

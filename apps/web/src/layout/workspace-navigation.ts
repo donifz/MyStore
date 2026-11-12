@@ -177,10 +177,8 @@ export function workspaceMenu(
       ? [
           item('Витрина', 'storefront', /^storefront$/),
           item('Сотрудники', 'staff', /^staff$/),
-          item('Доступ платформы', 'platform-access', /^platform-access$/),
         ]
       : []),
-    item('Уведомления', 'operations', /^operations$/),
   ];
   return [
     { label: 'Основное', items: primary },

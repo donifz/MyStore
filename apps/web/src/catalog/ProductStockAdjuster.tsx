@@ -20,10 +20,10 @@ export interface ProductStockAdjusterProps {
 }
 
 const REASON_PRESETS = [
-  { id: 'recount', label: 'Плановая инвентаризация / пересчёт' },
-  { id: 'surplus', label: 'Оприходование излишков' },
-  { id: 'defect', label: 'Списание: брак / дефект' },
-  { id: 'shortage', label: 'Списание: недостача / утрата' },
+  { id: 'recount', label: 'Пересчёт' },
+  { id: 'surplus', label: 'Оприходование (излишек)' },
+  { id: 'defect', label: 'Списание (брак)' },
+  { id: 'shortage', label: 'Списание (недостача)' },
   { id: 'custom', label: 'Другая причина…' },
 ];
 
@@ -130,11 +130,7 @@ export default function ProductStockAdjuster({
     <div className="product-stock-adjuster">
       <div className="product-stock-adjuster__header">
         <div>
-          <h3>Корректировка остатка по правилам учёта</h3>
-          <p className="muted">
-            Каждое изменение формирует складской документ (инвентаризация,
-            оприходование или списание)
-          </p>
+          <h3>Изменение остатка</h3>
         </div>
         {onClose && (
           <button
@@ -162,7 +158,7 @@ export default function ProductStockAdjuster({
 
       <div className="product-stock-adjuster__current-info">
         <div className="product-stock-adjuster__stat">
-          <span className="muted">Сейчас на складе (физ.):</span>
+          <span className="muted">Было:</span>
           <strong>{physicalCount} шт.</strong>
         </div>
         <div className="product-stock-adjuster__stat">
@@ -171,17 +167,13 @@ export default function ProductStockAdjuster({
         </div>
         {reservedCount > 0 && (
           <div className="product-stock-adjuster__stat is-warn">
-            <span className="muted">В резерве:</span>
+            <span className="muted">Резерв:</span>
             <strong>{reservedCount} шт.</strong>
-            <small>(минимальный неснижаемый остаток)</small>
           </div>
         )}
       </div>
 
       <div className="product-stock-adjuster__controls">
-        <label className="product-stock-adjuster__label">
-          Новое фактическое количество:
-        </label>
         <div className="product-stock-adjuster__stepper-row">
           <button
             type="button"
@@ -287,24 +279,21 @@ export default function ProductStockAdjuster({
         >
           {delta > 0 && (
             <span>
-              📈 Изменение: <strong>+{delta} шт.</strong> (оприходование /
-              излишек)
+              📈 <strong>+{delta} шт.</strong> (приход)
             </span>
           )}
           {delta < 0 && (
             <span>
-              📉 Изменение: <strong>{delta} шт.</strong> (списание / недостача)
+              📉 <strong>{delta} шт.</strong> (списание)
             </span>
           )}
-          {delta === 0 && <span>Остаток не изменился (дельта: 0 шт.)</span>}
+          {delta === 0 && <span>Без изменений</span>}
         </div>
       </div>
 
       {delta > 0 && canViewCost && (
         <div className="product-stock-adjuster__field">
-          <label htmlFor="adjuster-cost-input">
-            Закупочная стоимость оприходуемой единицы, сом:
-          </label>
+          <label htmlFor="adjuster-cost-input">Закупка, сом:</label>
           <input
             id="adjuster-cost-input"
             type="text"
@@ -314,23 +303,11 @@ export default function ProductStockAdjuster({
             disabled={busy}
             onChange={(e) => setCostInput(e.target.value)}
           />
-          <small className="muted">
-            По этой цене новые единицы будут учтены на балансе склада
-          </small>
         </div>
       )}
 
-      {delta < 0 && (
-        <p className="product-stock-adjuster__note muted">
-          ℹ️ При списании стоимость рассчитывается автоматически по средней
-          учётной стоимости списанных единиц.
-        </p>
-      )}
-
       <div className="product-stock-adjuster__field">
-        <label htmlFor="adjuster-reason-preset">
-          Основание изменения (для складского документа):
-        </label>
+        <label htmlFor="adjuster-reason-preset">Причина:</label>
         <select
           id="adjuster-reason-preset"
           className="product-stock-adjuster__select"
@@ -349,7 +326,7 @@ export default function ProductStockAdjuster({
           <input
             type="text"
             className="product-stock-adjuster__text-input"
-            placeholder="Укажите причину корректировки (обязательно)"
+            placeholder="Укажите причину"
             maxLength={500}
             value={customReason}
             disabled={busy}

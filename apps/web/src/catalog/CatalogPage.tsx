@@ -229,6 +229,7 @@ export default function CatalogPage() {
                 onClick={() => setCameraScannerOpen(true)}
               >
                 <svg
+                  className="catalog-scanner-camera-icon"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -236,8 +237,8 @@ export default function CatalogPage() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   aria-hidden="true"
-                  width="18"
-                  height="18"
+                  width="22"
+                  height="22"
                 >
                   <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
                   <circle cx="12" cy="13" r="3.5" />
@@ -450,18 +451,49 @@ export default function CatalogPage() {
         </div>
       )}
       {cameraScannerOpen && (
-        <CameraScanner
-          onScan={(code) => {
-            setQ(code);
-            setPage(1);
+        <div
+          className="barcode-dialog-backdrop camera-scanner-backdrop"
+          role="presentation"
+          onClick={() => {
             setCameraScannerOpen(false);
             searchInputRef.current?.focus();
           }}
-          onClose={() => {
-            setCameraScannerOpen(false);
-            searchInputRef.current?.focus();
-          }}
-        />
+        >
+          <div
+            className="camera-scanner-modal panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Сканирование камерой"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="camera-scanner-modal__head">
+              <h3>Сканировать камерой</h3>
+              <button
+                type="button"
+                className="camera-scanner-modal__close"
+                aria-label="Закрыть"
+                onClick={() => {
+                  setCameraScannerOpen(false);
+                  searchInputRef.current?.focus();
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <CameraScanner
+              onScan={(code) => {
+                setQ(code);
+                setPage(1);
+                setCameraScannerOpen(false);
+                searchInputRef.current?.focus();
+              }}
+              onClose={() => {
+                setCameraScannerOpen(false);
+                searchInputRef.current?.focus();
+              }}
+            />
+          </div>
+        </div>
       )}
     </>
   );
