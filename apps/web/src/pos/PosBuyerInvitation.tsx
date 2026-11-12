@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import BuyerInviteQr from '../customers/BuyerInviteQr';
+import { useCustomerActivationPoll } from '../customers/useCustomerActivationPoll';
 import PaymentIcon from './PaymentIcon';
 import { buyerInviteLink } from '../customers/buyerInviteLink';
 
@@ -7,6 +8,9 @@ type Props = {
   name: string;
   token: string;
   expiresAt: string;
+  shopId?: string;
+  customerId?: string;
+  onActivated?: () => void;
   onClose: () => void;
 };
 
@@ -14,10 +18,15 @@ export default function PosBuyerInvitation({
   name,
   token,
   expiresAt,
+  shopId,
+  customerId,
+  onActivated,
   onClose,
 }: Props) {
   const [feedback, setFeedback] = useState('');
   const link = buyerInviteLink(token, window.location.origin);
+
+  useCustomerActivationPoll(shopId, customerId, onActivated);
 
   async function copy() {
     try {
@@ -50,8 +59,9 @@ export default function PosBuyerInvitation({
     <div className="credit-invite-card" role="status">
       <h3>Приглашение для {name}</h3>
       <p>
-        Покажите QR или отправьте ссылку. Покупатель войдёт в общий кабинет
-        MyStore и подтвердит доступ к данным магазина.
+        Покажите QR-код или отправьте ссылку. Покупатель сразу окажется в своём
+        кабинете с готовым паролем, а после перехода появится у вас в списке для
+        оформления долга.
       </p>
       <div className="credit-invite-content">
         <BuyerInviteQr value={link} />

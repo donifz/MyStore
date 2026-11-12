@@ -418,6 +418,20 @@ export default function CreditFields({
               name={existingInvitation.name}
               token={existingInvitation.token}
               expiresAt={existingInvitation.expiresAt}
+              shopId={shopId}
+              customerId={selected?.id || customerId}
+              onActivated={() => {
+                setExistingInvitation(null);
+                if (selected && selected.id) {
+                  onSelectedCustomer?.({
+                    ...selected,
+                    id: selected.id,
+                    linked: true,
+                  });
+                }
+                onCustomerEligible(true);
+                setRevision((n) => n + 1);
+              }}
               onClose={() => {
                 setExistingInvitation(null);
                 setRevision((n) => n + 1);
@@ -500,6 +514,16 @@ export default function CreditFields({
               name={invitation.name}
               token={invitation.token}
               expiresAt={invitation.expiresAt}
+              shopId={shopId}
+              customerId={customerId}
+              onActivated={() => {
+                setInvitation(null);
+                setVerifiedEnrollment(invitation.name);
+                onCustomerEligible(true);
+                setMode('existing');
+                setQuery('');
+                setRevision((n) => n + 1);
+              }}
               onClose={() => {
                 setInvitation(null);
                 setMode('existing');

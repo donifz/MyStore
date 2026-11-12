@@ -36,6 +36,7 @@ export default function ShopCustomersPage() {
   const [address, setAddress] = useState('');
   const [saving, setSaving] = useState(false);
   const [invitation, setInvitation] = useState<{
+    customerId: string;
     token: string;
     expiresAt: string;
     name: string;
@@ -85,7 +86,11 @@ export default function ShopCustomersPage() {
           `/shops/${shopId}/customers/${customer.id}/invite`,
           { method: 'POST', body: {} },
         );
-        setInvitation({ ...issued, name: customer.name });
+        setInvitation({
+          ...issued,
+          customerId: customer.id,
+          name: customer.name,
+        });
       } catch (err) {
         setCreateError(
           'Клиент создан, но приглашение не удалось выдать: ' + errorText(err),
@@ -107,7 +112,11 @@ export default function ShopCustomersPage() {
         `/shops/${shopId}/customers/${customer.id}/invite`,
         { method: 'POST', body: {} },
       );
-      setInvitation({ ...issued, name: customer.name });
+      setInvitation({
+        ...issued,
+        customerId: customer.id,
+        name: customer.name,
+      });
     } catch (err) {
       setError(errorText(err));
     }
@@ -182,6 +191,12 @@ export default function ShopCustomersPage() {
             name={invitation.name}
             token={invitation.token}
             expiresAt={invitation.expiresAt}
+            shopId={shopId}
+            customerId={invitation.customerId}
+            onActivated={() => {
+              setInvitation(null);
+              setRevision((value) => value + 1);
+            }}
             onClose={() => setInvitation(null)}
           />
         )}

@@ -6,11 +6,29 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { createHmac, randomBytes } from 'node:crypto';
-import { DataSource } from 'typeorm';
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  createHmac,
+  randomBytes,
+} from 'node:crypto';
+import { DataSource, EntityManager } from 'typeorm';
 import { DATABASE } from '../database';
 import { checkPassword, hashPassword } from '../auth/password';
 import { normalizeKyrgyzPhone } from './kyrgyz-phone';
+
+const PASSWORD_ALPHABET =
+  'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+
+export function generateBuyerPassword(length = 12): string {
+  const bytes = randomBytes(length);
+  let out = '';
+  for (let i = 0; i < length; i++) {
+    out += PASSWORD_ALPHABET[bytes[i] % PASSWORD_ALPHABET.length];
+  }
+  return out;
+}
 
 @Injectable()
 export class BuyerAuthService {
@@ -33,6 +51,55 @@ export class BuyerAuthService {
     return createHmac('sha256', this.secret)
       .update('buyer:' + token)
       .digest('hex');
+  }
+
+  private initialPasswordKey() {
+    return createHash('sha256')
+      .update('buyer-initial-pw:' + this.secret)
+      .digest();
+  }
+
+  encryptInitialPassword(plain: string): string {
+    const iv = randomBytes(12);
+    const cipher = createCipheriv('aes-256-gcm', this.initialPasswordKey(), iv);
+    const encrypted = Buffer.concat([
+      cipher.update(plain, 'utf8'),
+      cipher.final(),
+    ]);
+    const tag = cipher.getAuthTag();
+    return [
+      iv.toString('base64url'),
+      tag.toString('base64url'),
+      encrypted.toString('base64url'),
+    ].join('.');
+  }
+
+  decryptInitialPassword(encoded: string): string {
+    const [ivStr, tagStr, dataStr] = encoded.split('.');
+    if (!ivStr || !tagStr || !dataStr) {
+      throw new Error('Invalid encrypted initial password');
+    }
+    const decipher = createDecipheriv(
+      'aes-256-gcm',
+      this.initialPasswordKey(),
+      Buffer.from(ivStr, 'base64url'),
+    );
+    decipher.setAuthTag(Buffer.from(tagStr, 'base64url'));
+    const decrypted = Buffer.concat([
+      decipher.update(Buffer.from(dataStr, 'base64url')),
+      decipher.final(),
+    ]);
+    return decrypted.toString('utf8');
+  }
+
+  async createSession(buyerId: string, tx?: EntityManager) {
+    const token = randomBytes(32).toString('hex');
+    const runner = tx ?? this.db;
+    await runner.query(
+      "INSERT INTO buyer_sessions(token_hash,buyer_id,expires_at) VALUES($1,$2,now()+interval '12 hours')",
+      [this.digest(token), buyerId],
+    );
+    return { token, expiresIn: 43200 };
   }
 
   limit(key: string) {
@@ -99,12 +166,7 @@ export class BuyerAuthService {
         [row.id, phone],
       );
     }
-    const token = randomBytes(32).toString('hex');
-    await this.db.query(
-      "INSERT INTO buyer_sessions(token_hash,buyer_id,expires_at) VALUES($1,$2,now()+interval '12 hours')",
-      [this.digest(token), row.id],
-    );
-    return { token, expiresIn: 43200 };
+    return this.createSession(row.id);
   }
 
   async authenticate(token: string): Promise<string> {
@@ -119,7 +181,9 @@ export class BuyerAuthService {
 
   async me(buyerId: string) {
     const [row] = await this.db.query(
-      'SELECT id,phone_e164,display_name,phone_verified_at,created_at FROM buyer_accounts WHERE id=$1',
+      `SELECT id,phone_e164,display_name,phone_verified_at,created_at,
+       initial_password_enc IS NOT NULL AS "hasInitialPassword"
+       FROM buyer_accounts WHERE id=$1`,
       [buyerId],
     );
     if (!row) throw new UnauthorizedException();
@@ -136,8 +200,23 @@ export class BuyerAuthService {
       phone: row.phone_e164,
       name: row.display_name,
       phoneVerified: !!row.phone_verified_at,
+      hasInitialPassword: !!row.hasInitialPassword,
       shops,
       createdAt: row.created_at.toISOString(),
+    };
+  }
+
+  async revealInitialPassword(buyerId: string) {
+    const [row] = await this.db.query(
+      'SELECT initial_password_enc FROM buyer_accounts WHERE id=$1',
+      [buyerId],
+    );
+    if (!row) throw new UnauthorizedException();
+    if (!row.initial_password_enc) {
+      return { password: null as string | null };
+    }
+    return {
+      password: this.decryptInitialPassword(row.initial_password_enc),
     };
   }
 

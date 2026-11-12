@@ -136,4 +136,50 @@ describe('single-use buyer invitations', () => {
       .send({})
       .expect(401);
   });
+
+  it('auto-creates buyer account with random password and logs in via accept-invite', async () => {
+    const id = await customer('+996700987654');
+    const invitation = (await issue(id).expect(201)).body;
+    const agent = request.agent(c.app.getHttpServer());
+
+    const accepted = await agent
+      .post('/buyer/accept-invite')
+      .set('Origin', 'http://localhost:5173')
+      .send({ token: invitation.token })
+      .expect(201);
+    expect(accepted.body.isNewAccount).toBe(true);
+    expect(accepted.body.shopId).toBe(fixture.shop);
+    expect(accepted.body.csrfToken).toBeTruthy();
+
+    // Token is single-use.
+    await agent
+      .post('/buyer/accept-invite')
+      .set('Origin', 'http://localhost:5173')
+      .send({ token: invitation.token })
+      .expect(409);
+
+    // Buyer is immediately logged in and has initial password available.
+    const me = await agent.get('/buyer/me').expect(200);
+    expect(me.body.hasInitialPassword).toBe(true);
+    expect(me.body.shops).toEqual([
+      { shopId: fixture.shop, shopName: 'Test Shop' },
+    ]);
+
+    const revealed = await agent.get('/buyer/initial-password').expect(200);
+    expect(revealed.body.password).toMatch(/^[A-Za-z0-9]{12}$/);
+
+    // Revealed password works for standard phone+password login.
+    await request(c.app.getHttpServer())
+      .post('/buyer/login')
+      .set('Origin', 'http://localhost:5173')
+      .send({ phone: '+996700987654', password: revealed.body.password })
+      .expect(201);
+
+    // Cashier immediately sees the customer as linked.
+    const customerView = await request(c.app.getHttpServer())
+      .get(`/shops/${fixture.shop}/customers/${id}`)
+      .auth(c.cashier, { type: 'bearer' })
+      .expect(200);
+    expect(customerView.body.linked).toBe(true);
+  });
 });

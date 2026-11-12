@@ -1,10 +1,14 @@
 import BuyerInviteQr from './BuyerInviteQr';
 import { buyerInviteLink } from './buyerInviteLink';
+import { useCustomerActivationPoll } from './useCustomerActivationPoll';
 
 type Props = {
   name: string;
   token: string;
   expiresAt: string;
+  shopId?: string;
+  customerId?: string;
+  onActivated?: () => void;
   onClose: () => void;
 };
 
@@ -12,9 +16,13 @@ export default function BuyerActivationPanel({
   name,
   token,
   expiresAt,
+  shopId,
+  customerId,
+  onActivated,
   onClose,
 }: Props) {
   const link = buyerInviteLink(token, window.location.origin);
+  useCustomerActivationPoll(shopId, customerId, onActivated);
   return (
     <div className="buyer-message buyer-invite-panel" role="status">
       <strong>Приглашение для {name}</strong>

@@ -40,6 +40,7 @@ import { BuyerTelegramVerification1760000000036 } from './migrations/17600000000
 import { LoyaltyWallets1760000000037 } from './migrations/1760000000037-LoyaltyWallets';
 import { StorefrontReviews1760000000038 } from './migrations/1760000000038-StorefrontReviews';
 import { ShopCustomAttributes1760000000039 } from './migrations/1760000000039-ShopCustomAttributes';
+import { BuyerInitialPassword1760000000040 } from './migrations/1760000000040-BuyerInitialPassword';
 export const DATABASE = Symbol('DATABASE');
 export function buildDataSource(url: string) {
   return new DataSource({
@@ -87,6 +88,7 @@ export function buildDataSource(url: string) {
       LoyaltyWallets1760000000037,
       StorefrontReviews1760000000038,
       ShopCustomAttributes1760000000039,
+      BuyerInitialPassword1760000000040,
     ],
   });
 }
