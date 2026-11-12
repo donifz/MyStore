@@ -170,3 +170,55 @@ it('renders authenticated dashboard with embedded QR card, debts and repayments'
   await user.click(screen.getByRole('button', { name: /Обновить QR/ }));
   expect(await screen.findByText(/Действует:/)).toBeTruthy();
 });
+
+it('keeps generated initial password hidden until buyer clicks reveal button', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => {
+      if (url.endsWith('/me')) {
+        return new Response(
+          JSON.stringify({ ...mockAccount, hasInitialPassword: true }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
+      }
+      if (url.endsWith('/initial-password')) {
+        return new Response(JSON.stringify({ password: 'Ab3dEf7gHj9K' }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      if (url.endsWith('/debts') || url.endsWith('/repayments')) {
+        return new Response(JSON.stringify([]), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      if (url.endsWith('/telegram/config') || url.endsWith('/loyalty/config')) {
+        return new Response(JSON.stringify({ enabled: false }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({}), { status: 200 });
+    }),
+  );
+
+  render(
+    <MemoryRouter>
+      <BuyerPortalPage />
+    </MemoryRouter>,
+  );
+
+  expect(await screen.findByText('Пароль для входа')).toBeTruthy();
+  const pwBox = screen.getByTestId('buyer-initial-password');
+  expect(pwBox.textContent).toBe('••••••••••••');
+
+  const user = userEvent.setup();
+  await user.click(screen.getByRole('button', { name: 'Показать пароль' }));
+  expect(await screen.findByText('Ab3dEf7gHj9K')).toBeTruthy();
+
+  await user.click(screen.getByRole('button', { name: 'Скрыть пароль' }));
+  expect(screen.getByTestId('buyer-initial-password').textContent).toBe(
+    '••••••••••••',
+  );
+});

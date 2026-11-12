@@ -22,6 +22,16 @@ class BuyerLoginDto {
   @IsString() @MaxLength(32) phone!: string;
   @IsString() @MinLength(1) @MaxLength(256) password!: string;
 }
+export function setBuyerSessionCookie(res: Response, token: string) {
+  res.cookie('mystore_buyer_session', token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 43200000,
+  });
+}
+
 @Controller('buyer')
 export class BuyerAuthController {
   constructor(private readonly buyers: BuyerAuthService) {}
@@ -40,13 +50,7 @@ export class BuyerAuthController {
     validateOrigin(req.headers.origin);
     this.buyers.limit('login:' + (req.ip ?? 'unknown'));
     const session = await this.buyers.login(body.phone, body.password);
-    res.cookie('mystore_buyer_session', session.token, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: 43200000,
-    });
+    setBuyerSessionCookie(res, session.token);
     return { expiresIn: session.expiresIn, csrfToken: csrfFor(session.token) };
   }
   @Get('me')
@@ -56,6 +60,11 @@ export class BuyerAuthController {
       ...(await this.buyers.me(req.buyerId)),
       csrfToken: csrfFor(req.buyerToken),
     };
+  }
+  @Get('initial-password')
+  @UseGuards(BuyerAuthGuard)
+  async initialPassword(@Req() req: BuyerRequest) {
+    return this.buyers.revealInitialPassword(req.buyerId);
   }
   @Post('logout')
   @UseGuards(BuyerAuthGuard)

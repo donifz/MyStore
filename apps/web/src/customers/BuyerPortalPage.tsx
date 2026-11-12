@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from 'react';
 import {
   formatKyrgyzPhoneInput,
   KYRGYZ_PHONE_PATTERN,
@@ -90,6 +96,7 @@ type BuyerAccount = {
   phone: string;
   name: string;
   phoneVerified: boolean;
+  hasInitialPassword?: boolean;
   shops: { shopId: string; shopName: string }[];
   createdAt: string;
   csrfToken: string;
@@ -152,6 +159,10 @@ export default function BuyerPortalPage() {
   const [inviteToken, setInviteToken] = useState(() =>
     parseBuyerInviteFragment(window.location.hash),
   );
+  const [revealedPassword, setRevealedPassword] = useState<string | null>(null);
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [passwordBusy, setPasswordBusy] = useState(false);
+  const [passwordCopied, setPasswordCopied] = useState(false);
   useEffect(() => {
     if (parseBuyerInviteFragment(window.location.hash)) {
       window.history.replaceState(
@@ -175,9 +186,43 @@ export default function BuyerPortalPage() {
     }
   }, []);
 
+  const handledInviteRef = useRef('');
+
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (!inviteToken) {
+      if (!handledInviteRef.current) {
+        void refresh();
+      }
+      return;
+    }
+    if (handledInviteRef.current === inviteToken) {
+      return;
+    }
+    handledInviteRef.current = inviteToken;
+    setBusy(true);
+    void buyerApi<{ shopName: string; isNewAccount: boolean }>(
+      'accept-invite',
+      {
+        token: inviteToken,
+      },
+    )
+      .then(async (res) => {
+        setNotice(`Вы вошли в кабинет! Магазин «${res.shopName}» подключён.`);
+        await refresh();
+      })
+      .catch(async (err) => {
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Не удалось войти по приглашению.',
+        );
+        await refresh();
+      })
+      .finally(() => {
+        setInviteToken('');
+        setBusy(false);
+      });
+  }, [inviteToken, refresh]);
 
   useEffect(() => {
     if (!account) {
@@ -387,11 +432,52 @@ export default function BuyerPortalPage() {
     try {
       await buyerApi('logout', {}, account.csrfToken);
       setAccount(null);
+      setRevealedPassword(null);
+      setPasswordVisible(false);
       setNotice('Вы вышли из кабинета.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Не удалось выйти');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function togglePasswordVisibility() {
+    if (passwordVisible) {
+      setPasswordVisible(false);
+      return;
+    }
+    if (revealedPassword) {
+      setPasswordVisible(true);
+      return;
+    }
+    setPasswordBusy(true);
+    setError('');
+    try {
+      const result = await buyerApi<{ password: string | null }>(
+        'initial-password',
+      );
+      if (result.password) {
+        setRevealedPassword(result.password);
+        setPasswordVisible(true);
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Не удалось получить пароль',
+      );
+    } finally {
+      setPasswordBusy(false);
+    }
+  }
+
+  async function copyPassword() {
+    if (!revealedPassword) return;
+    try {
+      await navigator.clipboard.writeText(revealedPassword);
+      setPasswordCopied(true);
+      setTimeout(() => setPasswordCopied(false), 2000);
+    } catch {
+      setError('Не удалось скопировать пароль');
     }
   }
 
@@ -813,8 +899,63 @@ export default function BuyerPortalPage() {
                 </section>
               </div>
 
-              {/* Right Column: Connected Shops */}
+              {/* Right Column: Password & Connected Shops */}
               <div>
+                {account.hasInitialPassword && (
+                  <section
+                    className="buyer-panel"
+                    style={{ marginBottom: '20px' }}
+                  >
+                    <div className="buyer-panel-head">
+                      <h2>Пароль для входа</h2>
+                    </div>
+                    <p className="muted" style={{ marginBottom: '12px' }}>
+                      Кабинет создан автоматически. Используйте этот пароль для
+                      входа по номеру телефона.
+                    </p>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <code
+                        data-testid="buyer-initial-password"
+                        style={{
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          background: '#f1f5f9',
+                          fontSize: '15px',
+                          letterSpacing: passwordVisible ? '0.04em' : '0.12em',
+                        }}
+                      >
+                        {passwordVisible && revealedPassword
+                          ? revealedPassword
+                          : '••••••••••••'}
+                      </code>
+                      <button
+                        type="button"
+                        className="button"
+                        disabled={passwordBusy}
+                        onClick={() => void togglePasswordVisibility()}
+                      >
+                        {passwordVisible ? 'Скрыть пароль' : 'Показать пароль'}
+                      </button>
+                      {passwordVisible && revealedPassword && (
+                        <button
+                          type="button"
+                          className="button"
+                          onClick={() => void copyPassword()}
+                        >
+                          {passwordCopied ? 'Скопировано' : 'Копировать'}
+                        </button>
+                      )}
+                    </div>
+                  </section>
+                )}
+
                 <section className="buyer-panel">
                   <div className="buyer-panel-head">
                     <h2>
