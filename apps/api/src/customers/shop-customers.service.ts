@@ -13,7 +13,14 @@ import { normalizeKyrgyzPhone } from './kyrgyz-phone';
 export class ShopCustomersService {
   constructor(@Inject(DATABASE) private readonly db: DataSource) {}
 
-  async list(shopId: string, query: string, page: number, pageSize: number) {
+  async list(
+    shopId: string,
+    query: string,
+    page: number,
+    pageSize: number,
+    filter?: string,
+    sort?: string,
+  ) {
     const term = query.trim();
     const phone = term
       ? (() => {
@@ -24,10 +31,20 @@ export class ShopCustomersService {
           }
         })()
       : null;
-    const where = `shop_id=$1 AND (
+    let where = `shop_id=$1 AND (
       $2::text='' OR lower(display_name) LIKE '%' || lower($2) || '%'
       OR phone_e164=$3 OR ($4::text<>'' AND phone_e164 LIKE '%' || $4 || '%')
     )`;
+    if (filter === 'debt') {
+      where += ` AND EXISTS (
+        SELECT 1 FROM credit_sales cs
+        WHERE cs.shop_id=shop_customers.shop_id
+          AND cs.customer_id=shop_customers.id
+          AND (cs.total_minor - cs.paid_minor) > 0
+      )`;
+    } else if (filter === 'linked') {
+      where += ` AND buyer_account_id IS NOT NULL`;
+    }
     const args = [shopId, term, phone, term.replace(/\D/g, '')];
     const [count] = await this.db.query(
       `SELECT count(*)::int AS total FROM shop_customers WHERE ${where}`,
@@ -41,10 +58,37 @@ export class ShopCustomersService {
        COALESCE((SELECT lw.balance_points FROM loyalty_wallets lw
          WHERE lw.shop_id=shop_customers.shop_id AND lw.customer_id=shop_customers.id),0) AS "balancePoints"
        FROM shop_customers WHERE ${where}
-       ORDER BY created_at DESC,id DESC LIMIT $5 OFFSET $6`,
+       ${sort === 'debt' || filter === 'debt' ? 'ORDER BY "debtMinor" DESC, created_at DESC, id DESC' : sort === 'name' ? 'ORDER BY display_name ASC, id DESC' : 'ORDER BY created_at DESC,id DESC'} LIMIT $5 OFFSET $6`,
       [...args, pageSize, (page - 1) * pageSize],
     );
     return { items: rows, total: count.total, page, pageSize };
+  }
+
+  async summary(shopId: string) {
+    const [row] = await this.db.query(
+      `SELECT
+        COUNT(*)::int AS "totalCustomers",
+        COUNT(CASE WHEN buyer_account_id IS NOT NULL THEN 1 END)::int AS "linkedCount",
+        COALESCE((
+          SELECT SUM(cs.total_minor - cs.paid_minor)::bigint
+          FROM credit_sales cs
+          WHERE cs.shop_id = $1 AND (cs.total_minor - cs.paid_minor) > 0
+        ), 0)::text AS "totalDebtMinor",
+        COALESCE((
+          SELECT COUNT(DISTINCT cs.customer_id)::int
+          FROM credit_sales cs
+          WHERE cs.shop_id = $1 AND (cs.total_minor - cs.paid_minor) > 0
+        ), 0) AS "debtorsCount"
+      FROM shop_customers
+      WHERE shop_id = $1`,
+      [shopId],
+    );
+    return {
+      totalCustomers: Number(row?.totalCustomers ?? 0),
+      linkedCount: Number(row?.linkedCount ?? 0),
+      totalDebtMinor: Number(row?.totalDebtMinor ?? 0),
+      debtorsCount: Number(row?.debtorsCount ?? 0),
+    };
   }
 
   /**

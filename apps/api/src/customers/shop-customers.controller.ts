@@ -40,6 +40,8 @@ class CustomerQuery {
   @IsOptional() @IsString() @MaxLength(120) q = '';
   @Type(() => Number) @IsInt() @Min(1) @Max(1000000) page = 1;
   @Type(() => Number) @IsInt() @Min(1) @Max(100) pageSize = 10;
+  @IsOptional() @IsString() filter?: string;
+  @IsOptional() @IsString() sort?: string;
 }
 @Controller('shops/:shopId/customers')
 @UseGuards(AuthGuard)
@@ -55,7 +57,22 @@ export class ShopCustomersController {
     @Query() query: CustomerQuery,
   ) {
     await this.access.requireMembership(req.userId, shopId, 'read');
-    return this.customers.list(shopId, query.q, query.page, query.pageSize);
+    return this.customers.list(
+      shopId,
+      query.q,
+      query.page,
+      query.pageSize,
+      query.filter,
+      query.sort,
+    );
+  }
+  @Get('summary')
+  async summary(
+    @Param('shopId', ParseUUIDPipe) shopId: string,
+    @Req() req: UserRequest,
+  ) {
+    await this.access.requireMembership(req.userId, shopId, 'read');
+    return this.customers.summary(shopId);
   }
   @Get('directory')
   async directory(

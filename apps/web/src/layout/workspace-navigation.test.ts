@@ -195,6 +195,26 @@ it('keeps everyday tasks prominent and advanced tools under More', () => {
   expect(ownerMenu[1].items.some((item) => item.label === 'Отчёты')).toBe(true);
   expect(ownerMenu[1].items.some((item) => item.label === 'Смена')).toBe(true);
   expect(
+    ownerMenu[1].items.some((item) => item.label === 'Клиенты и долги'),
+  ).toBe(true);
+  const customersMenu = workspaceMenu(
+    { kind: 'shop', shop: owner },
+    '/seller/own/customers',
+    '',
+  );
+  expect(
+    customersMenu[1].items.find((item) => item.label === 'Клиенты и долги')
+      ?.active,
+  ).toBe(true);
+  const debtsMenu = workspaceMenu(
+    { kind: 'shop', shop: owner },
+    '/seller/own/debts',
+    '',
+  );
+  expect(
+    debtsMenu[1].items.find((item) => item.label === 'Клиенты и долги')?.active,
+  ).toBe(true);
+  expect(
     ownerMenu[0].items.filter((item) => item.active).map((item) => item.label),
   ).toEqual(['Приёмка']);
 
