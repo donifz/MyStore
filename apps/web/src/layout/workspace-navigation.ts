@@ -156,8 +156,7 @@ export function workspaceMenu(
   ];
   const more = [
     item('Смена', 'shift', /^shift$/),
-    item('Клиенты', 'customers', /^customers$/),
-    item('Долги', 'debts', /^debts$/),
+    item('Клиенты и долги', 'customers', /^(?:customers|debts)$/),
     item(
       hasShopPermission(shop, 'return') ? 'Продажи и возвраты' : 'Продажи',
       'sales',
