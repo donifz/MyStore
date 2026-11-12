@@ -9,6 +9,7 @@ import { useResource } from '../storefront/use-resource';
 import BarcodeLabel from './BarcodeLabel';
 import EditProductPhotos from './EditProductPhotos';
 import type { CategoryNode } from './PhotoAssistant';
+import ProductStockAdjuster from './ProductStockAdjuster';
 import ProductThumb from './ProductThumb';
 
 type DetailTab = 'main' | 'photos' | 'variants' | 'stock' | 'storefront';
@@ -76,16 +77,25 @@ export default function EditVariantPage() {
     [activeTab, setActiveTab] = useState<DetailTab>('main'),
     [photoOverride, setPhotoOverride] = useState<Variant | null>(null),
     [barcodeDialogOpen, setBarcodeDialogOpen] = useState(false),
+    [stockAdjustDialogOpen, setStockAdjustDialogOpen] = useState(false),
+    [stockOverride, setStockOverride] = useState<{
+      physical: number;
+      available: number;
+      reserved: number;
+    } | null>(null),
     [syncedData, setSyncedData] = useState<Variant | null>(null);
 
   useEffect(() => {
     setPhotoOverride(null);
+    setStockOverride(null);
     setActiveTab('main');
     setBarcodeDialogOpen(false);
+    setStockAdjustDialogOpen(false);
   }, [id]);
 
   if (r.data && r.data !== syncedData) {
     setSyncedData(r.data);
+    setStockOverride(null);
     setName(r.data.name);
     const minor = BigInt(r.data.salePriceMinor);
     setPrice(`${minor / 100n}.${String(minor % 100n).padStart(2, '0')}`);
@@ -241,9 +251,15 @@ export default function EditVariantPage() {
       ? (profitMinor / liveSaleMinor) * 100
       : undefined;
 
-  const availableCount = r.data?.available ?? 0;
-  const physicalCount = r.data?.physical ?? 0;
-  const reservedCount = r.data?.reserved ?? 0;
+  const availableCount = stockOverride
+    ? stockOverride.available
+    : (r.data?.available ?? 0);
+  const physicalCount = stockOverride
+    ? stockOverride.physical
+    : (r.data?.physical ?? 0);
+  const reservedCount = stockOverride
+    ? stockOverride.reserved
+    : (r.data?.reserved ?? 0);
   const categoryTrail = [category, subcategory].filter(Boolean).join(' → ');
 
   return (
@@ -254,6 +270,18 @@ export default function EditVariantPage() {
         </Link>
         {r.data && (
           <div className="product-detail-actions">
+            {allowed && (
+              <button
+                type="button"
+                className="button secondary"
+                onClick={() => {
+                  setActiveTab('stock');
+                  setStockAdjustDialogOpen(true);
+                }}
+              >
+                Изменить остаток
+              </button>
+            )}
             <button
               type="button"
               className="button secondary"
@@ -376,7 +404,7 @@ export default function EditVariantPage() {
                   </strong>
                 </div>
               )}
-              <div className="product-detail-kpi">
+              <div className="product-detail-kpi product-detail-kpi--stock">
                 <span>Доступно</span>
                 <strong>
                   {availableCount} шт.
@@ -384,6 +412,18 @@ export default function EditVariantPage() {
                     резерв {reservedCount}
                   </small>
                 </strong>
+                {allowed && (
+                  <button
+                    type="button"
+                    className="product-detail-kpi__adjust-btn"
+                    onClick={() => {
+                      setActiveTab('stock');
+                      setStockAdjustDialogOpen(true);
+                    }}
+                  >
+                    Изменить остаток
+                  </button>
+                )}
               </div>
             </div>
           </section>
@@ -833,6 +873,24 @@ export default function EditVariantPage() {
                     <strong>{reservedCount} шт.</strong>
                   </div>
                 </div>
+
+                {allowed && shopId && id && (
+                  <div className="product-detail-stock-adjust-wrap">
+                    <ProductStockAdjuster
+                      shopId={shopId}
+                      variantId={id}
+                      variantName={name || r.data?.name || ''}
+                      physicalCount={physicalCount}
+                      reservedCount={reservedCount}
+                      availableCount={availableCount}
+                      defaultUnitCostMinor={r.data?.lastPurchaseMinor}
+                      canViewCost={canViewCost}
+                      onStockUpdated={(newStock) => {
+                        setStockOverride(newStock);
+                      }}
+                    />
+                  </div>
+                )}
               </section>
 
               <section className="admin-kit-card">
@@ -951,6 +1009,37 @@ export default function EditVariantPage() {
               </button>
             </div>
             <BarcodeLabel product={r.data} />
+          </section>
+        </div>
+      )}
+
+      {stockAdjustDialogOpen && r.data && shopId && id && (
+        <div
+          className="barcode-dialog-backdrop"
+          role="presentation"
+          onClick={() => setStockAdjustDialogOpen(false)}
+        >
+          <section
+            className="product-stock-dialog panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Корректировка остатка: ${name || r.data.name}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <ProductStockAdjuster
+              shopId={shopId}
+              variantId={id}
+              variantName={name || r.data.name}
+              physicalCount={physicalCount}
+              reservedCount={reservedCount}
+              availableCount={availableCount}
+              defaultUnitCostMinor={r.data.lastPurchaseMinor}
+              canViewCost={canViewCost}
+              onStockUpdated={(newStock) => {
+                setStockOverride(newStock);
+              }}
+              onClose={() => setStockAdjustDialogOpen(false)}
+            />
           </section>
         </div>
       )}
