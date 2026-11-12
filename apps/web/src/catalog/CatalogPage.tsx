@@ -1,5 +1,5 @@
 import Pagination from '../components/Pagination';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
 import { Page, Variant } from '../api/types';
@@ -8,6 +8,7 @@ import { formatDate } from '../api/money';
 import { useSession } from '../auth/SessionProvider';
 import BarcodeLabel from './BarcodeLabel';
 import ProductThumb from './ProductThumb';
+import CameraScanner from '../scanner/CameraScanner';
 
 export default function CatalogPage() {
   const { shopId } = useParams(),
@@ -22,8 +23,78 @@ export default function CatalogPage() {
     [data, setData] = useState<Page<Variant> | null>(null),
     [error, setError] = useState(''),
     [loading, setLoading] = useState(false),
-    [barcodeProduct, setBarcodeProduct] = useState<Variant | null>(null);
+    [barcodeProduct, setBarcodeProduct] = useState<Variant | null>(null),
+    [scannerFocused, setScannerFocused] = useState(true),
+    [cameraScannerOpen, setCameraScannerOpen] = useState(false),
+    searchInputRef = useRef<HTMLInputElement>(null);
   const role = session.user?.shops.find((x) => x.id === shopId)?.role;
+
+  useEffect(() => {
+    searchInputRef.current?.focus({ preventScroll: true });
+
+    const keepFocus = () => {
+      if (barcodeProduct || cameraScannerOpen) return;
+      const active = document.activeElement;
+      if (
+        active &&
+        (active.tagName === 'INPUT' ||
+          active.tagName === 'TEXTAREA' ||
+          active.tagName === 'SELECT' ||
+          active.getAttribute('contenteditable') === 'true')
+      ) {
+        return;
+      }
+      requestAnimationFrame(() => {
+        const currentActive = document.activeElement;
+        if (
+          currentActive &&
+          (currentActive.tagName === 'INPUT' ||
+            currentActive.tagName === 'TEXTAREA' ||
+            currentActive.tagName === 'SELECT' ||
+            currentActive.getAttribute('contenteditable') === 'true')
+        ) {
+          return;
+        }
+        searchInputRef.current?.focus({ preventScroll: true });
+        setScannerFocused(true);
+      });
+    };
+
+    const handleGlobalClick = (event: MouseEvent) => {
+      if (barcodeProduct || cameraScannerOpen) return;
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      if (
+        target.closest(
+          'input, textarea, select, button, a, [role="button"], [role="dialog"], [role="tab"], .pagination, .barcode-dialog',
+        )
+      ) {
+        return;
+      }
+      keepFocus();
+    };
+
+    const handleWindowFocus = (event: FocusEvent) => {
+      if (event.target !== window && event.target !== document) return;
+      keepFocus();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        keepFocus();
+      }
+    };
+
+    window.addEventListener('click', handleGlobalClick);
+    window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.removeEventListener('click', handleGlobalClick);
+      window.removeEventListener('focus', handleWindowFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [barcodeProduct, cameraScannerOpen]);
+
   useEffect(() => {
     let alive = true;
     setLoading(true);
@@ -63,17 +134,117 @@ export default function CatalogPage() {
       </div>
       <section className="panel">
         <div className="toolbar" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
-          <label className="search-label">
-            Поиск
-            <input
-              value={q}
-              placeholder="Название или штрихкод"
-              onChange={(e) => {
-                setQ(e.target.value);
-                setPage(1);
-              }}
-            />
-          </label>
+          <div className="catalog-search-wrap">
+            <label className="search-label" htmlFor="catalog-search-input">
+              Поиск
+            </label>
+            <div className="catalog-search-row">
+              <div className="catalog-search-input-group">
+                <svg
+                  className="catalog-search-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <input
+                  id="catalog-search-input"
+                  ref={searchInputRef}
+                  type="search"
+                  autoFocus
+                  autoComplete="off"
+                  value={q}
+                  placeholder="Название или штрихкод"
+                  aria-label="Поиск"
+                  onFocus={() => setScannerFocused(true)}
+                  onBlur={() => setScannerFocused(false)}
+                  onChange={(e) => {
+                    setQ(e.target.value);
+                    setPage(1);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      setPage(1);
+                    }
+                  }}
+                />
+                {q && (
+                  <button
+                    type="button"
+                    className="catalog-search-clear"
+                    aria-label="Очистить поиск"
+                    onClick={() => {
+                      setQ('');
+                      setPage(1);
+                      searchInputRef.current?.focus();
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                className={`catalog-scanner-btn${scannerFocused ? ' is-active' : ''}`}
+                title="USB- или Bluetooth-сканер держит фокус ввода"
+                aria-label="Фокус для сканера"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  searchInputRef.current?.focus({ preventScroll: true });
+                }}
+                onClick={() => {
+                  searchInputRef.current?.focus({ preventScroll: true });
+                  setScannerFocused(true);
+                }}
+              >
+                <svg
+                  className="catalog-scanner-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  aria-hidden="true"
+                >
+                  <path d="M4 5v14M7 5v14M11 5v14M14 5v14M17 5v14M20 5v14" />
+                </svg>
+                <span className="catalog-scanner-text">Сканер</span>
+                <span
+                  className={`pos-focus-dot${scannerFocused ? ' on' : ''}`}
+                  aria-hidden="true"
+                />
+              </button>
+              <button
+                type="button"
+                className="catalog-scanner-camera-btn"
+                title="Сканировать камерой телефона"
+                aria-label="Сканировать камерой"
+                onClick={() => setCameraScannerOpen(true)}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  width="18"
+                  height="18"
+                >
+                  <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
+                  <circle cx="12" cy="13" r="3.5" />
+                </svg>
+              </button>
+            </div>
+          </div>
           <div
             className="filter-group"
             role="tablist"
@@ -277,6 +448,20 @@ export default function CatalogPage() {
             <BarcodeLabel product={barcodeProduct} />
           </section>
         </div>
+      )}
+      {cameraScannerOpen && (
+        <CameraScanner
+          onScan={(code) => {
+            setQ(code);
+            setPage(1);
+            setCameraScannerOpen(false);
+            searchInputRef.current?.focus();
+          }}
+          onClose={() => {
+            setCameraScannerOpen(false);
+            searchInputRef.current?.focus();
+          }}
+        />
       )}
     </>
   );

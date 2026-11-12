@@ -104,6 +104,14 @@ function mockServer({
       ];
     } else if (url.includes('/custom-attributes')) {
       body = [];
+    } else if (url.includes('/inventory/counts') && init?.method === 'POST') {
+      const payload = JSON.parse(String(init.body));
+      body = {
+        id: 'doc-count-001',
+        kind: 'inventory_count',
+        delta: payload.countedQuantity - payload.expectedQuantity,
+        valueMinor: 0,
+      };
     }
     return new Response(JSON.stringify(body), {
       status: 200,
@@ -145,7 +153,7 @@ it('renders hero KPI summary, cost margin calculation, and switches product deta
 
   await u.click(screen.getByRole('tab', { name: 'Склад и штрихкод' }));
   await screen.findByRole('heading', { name: 'Остатки на складе' });
-  expect(screen.getByText('5 шт.')).toBeTruthy();
+  expect(screen.getAllByText('5 шт.').length).toBeGreaterThanOrEqual(1);
   expect(screen.getByRole('img', { name: 'Штрихкод' })).toBeTruthy();
 
   await u.click(screen.getByRole('tab', { name: 'Витрина и архив' }));
@@ -221,4 +229,75 @@ it('blocks cashier from editing product details', async () => {
       'Нет доступа к этому разделу. Выберите доступный контекст.',
     ),
   ).toBeTruthy();
+});
+
+it('allows easily increasing and decreasing stock according to accounting rules', async () => {
+  mockServer();
+  const app = await import('../App');
+  const u = userEvent.setup();
+
+  render(
+    <MemoryRouter
+      initialEntries={[`/seller/${shop}/products/${variantId}/edit`]}
+    >
+      <app.default />
+    </MemoryRouter>,
+  );
+
+  await screen.findByLabelText('Цена продажи, сом');
+
+  // Navigate to Stock tab
+  await u.click(screen.getByRole('tab', { name: 'Склад и штрихкод' }));
+  await screen.findByRole('heading', { name: 'Остатки на складе' });
+
+  // Initial stock: physical 5, reserved 1, available 4
+  const input = screen.getByLabelText(
+    'Фактическое количество',
+  ) as HTMLInputElement;
+  expect(input).toBeTruthy();
+  expect(input.value).toBe('5');
+
+  // Initially delta is 0, submit button shows "Укажите новое количество" and is disabled
+  const submitBtn = screen.getByRole('button', {
+    name: 'Укажите новое количество',
+  });
+  expect(submitBtn.hasAttribute('disabled')).toBe(true);
+
+  // Click "+" button to increase to 6 (+1)
+  const plusBtn = screen.getByRole('button', { name: 'Увеличить на 1' });
+  await u.click(plusBtn);
+  expect(input.value).toBe('6');
+  expect(screen.getAllByText(/\+1 шт\./).length).toBeGreaterThanOrEqual(1);
+  expect(
+    screen.getByRole('button', { name: 'Оприходовать +1 шт.' }),
+  ).toBeTruthy();
+
+  // Click "−" button twice to decrease to 4 (-1 from original 5)
+  const minusBtn = screen.getByRole('button', { name: 'Уменьшить на 1' });
+  await u.click(minusBtn);
+  expect(input.value).toBe('5');
+  await u.click(minusBtn);
+  expect(input.value).toBe('4');
+  expect(screen.getAllByText(/-1 шт\./).length).toBeGreaterThanOrEqual(1);
+  expect(screen.getByRole('button', { name: 'Списать 1 шт.' })).toBeTruthy();
+
+  // Click "+5" chip to jump to 9 (+4 from original 5)
+  await u.click(screen.getByRole('button', { name: '+5' }));
+  expect(input.value).toBe('9');
+  expect(screen.getAllByText(/\+4 шт\./).length).toBeGreaterThanOrEqual(1);
+
+  // Submit the adjustment
+  const countSubmitBtn = screen.getByRole('button', {
+    name: 'Оприходовать +4 шт.',
+  });
+  await u.click(countSubmitBtn);
+
+  // Success alert is shown with accounting confirmation
+  await screen.findByText(/Документ инвентаризации зафиксирован/);
+  expect(screen.getByText(/Остаток успешно изменён: 9 шт\./)).toBeTruthy();
+
+  // Stock KPI and tiles update
+  expect(screen.getAllByText('9 шт.').length).toBeGreaterThanOrEqual(1);
+  // Available should now be 9 - 1 (reserved) = 8
+  expect(screen.getAllByText('8 шт.').length).toBeGreaterThanOrEqual(1);
 });

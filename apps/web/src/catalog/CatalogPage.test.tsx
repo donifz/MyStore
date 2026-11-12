@@ -219,3 +219,41 @@ it('shows purchase price for non-cashiers and product photo with default fallbac
   expect(screen.queryByRole('img', { name: 'Рюкзак' })).toBeNull();
   expect(screen.getAllByLabelText('Фото по умолчанию')).toHaveLength(2);
 });
+
+it('renders barcode scanner icon button and maintains focus on search input', async () => {
+  server('owner');
+  const app = await import('../App');
+  const u = userEvent.setup();
+
+  render(
+    <MemoryRouter initialEntries={['/seller/' + shop + '/products']}>
+      <app.default />
+    </MemoryRouter>,
+  );
+
+  await screen.findByText('Рюкзак');
+
+  const searchInput = screen.getByLabelText('Поиск') as HTMLInputElement;
+  expect(searchInput).toBeTruthy();
+  expect(searchInput.getAttribute('placeholder')).toBe('Название или штрихкод');
+
+  const scannerBtn = screen.getByRole('button', { name: 'Фокус для сканера' });
+  expect(scannerBtn).toBeTruthy();
+
+  const cameraBtn = screen.getByRole('button', { name: 'Сканировать камерой' });
+  expect(cameraBtn).toBeTruthy();
+
+  // Test typing in search input
+  await u.type(searchInput, '00123');
+  expect(searchInput.value).toBe('00123');
+
+  // Test clear button
+  const clearBtn = screen.getByRole('button', { name: 'Очистить поиск' });
+  expect(clearBtn).toBeTruthy();
+  await u.click(clearBtn);
+  expect(searchInput.value).toBe('');
+
+  // Clicking scanner button refocuses search input
+  await u.click(scannerBtn);
+  expect(document.activeElement).toBe(searchInput);
+});
