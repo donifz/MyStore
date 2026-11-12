@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Headers,
+  HttpCode,
   Post,
   Req,
   Res,
@@ -35,6 +36,7 @@ export class BuyerTelegramController {
   }
 
   @Post('auth-poll')
+  @HttpCode(200)
   async authPoll(
     @Body() body: { token: string },
     @Req() req: Request,

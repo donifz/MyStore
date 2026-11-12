@@ -235,8 +235,11 @@ describe('single-use buyer invitations', () => {
     const me = await resetAgent.get('/buyer/me').expect(200);
     expect(me.body.hasInitialPassword).toBe(false);
 
-    // Initial password endpoint now returns 404:
-    await resetAgent.get('/buyer/initial-password').expect(404);
+    // Initial password endpoint now returns null:
+    const initialPwAfter = await resetAgent
+      .get('/buyer/initial-password')
+      .expect(200);
+    expect(initialPwAfter.body.password).toBeNull();
 
     // Login with new password succeeds:
     await request(c.app.getHttpServer())
