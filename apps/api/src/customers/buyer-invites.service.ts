@@ -62,6 +62,41 @@ export class BuyerInvitesService {
     });
   }
 
+  async resetAccess(shopId: string, customerId: string, actorId: string) {
+    return this.db.transaction(async (tx) => {
+      const [customer] = await tx.query(
+        `SELECT id,buyer_account_id,display_name,phone_e164
+         FROM shop_customers
+         WHERE shop_id=$1 AND id=$2 FOR UPDATE`,
+        [shopId, customerId],
+      );
+      if (!customer) throw new NotFoundException('Клиент не найден');
+
+      await tx.query(
+        `UPDATE shop_customer_invitations
+         SET revoked_at=now()
+         WHERE shop_id=$1 AND customer_id=$2
+           AND accepted_at IS NULL AND revoked_at IS NULL`,
+        [shopId, customerId],
+      );
+
+      const token = randomBytes(32).toString('base64url');
+      const [invitation] = await tx.query(
+        `INSERT INTO shop_customer_invitations
+         (shop_id,customer_id,token_hash,issued_by,expires_at)
+         VALUES($1,$2,$3,$4,now()+interval '15 minutes')
+         RETURNING expires_at`,
+        [shopId, customerId, digest(token), actorId],
+      );
+      return {
+        token,
+        expiresAt: invitation.expires_at.toISOString(),
+        customerName: customer.display_name,
+        phone: customer.phone_e164,
+      };
+    });
+  }
+
   async accept(buyerId: string, token: string) {
     if (!/^[A-Za-z0-9_-]{43}$/.test(token))
       throw new BadRequestException('Недействительный код приглашения');
@@ -171,9 +206,6 @@ export class BuyerInvitesService {
       ) {
         throw new ConflictException('Код уже использован или истёк');
       }
-      if (customer.buyer_account_id) {
-        throw new ConflictException('Клиент уже привязан к кабинету');
-      }
 
       const [existingBuyer] = await tx.query(
         'SELECT id FROM buyer_accounts WHERE phone_e164=$1 FOR UPDATE',
@@ -182,8 +214,25 @@ export class BuyerInvitesService {
 
       let buyerId: string;
       let isNewAccount = false;
-      if (existingBuyer) {
+      if (customer.buyer_account_id) {
+        buyerId = customer.buyer_account_id;
+        const generated = generateBuyerPassword(12);
+        const pwHash = await hashPassword(generated);
+        const encrypted = this.buyerAuth.encryptInitialPassword(generated);
+        await tx.query(
+          `UPDATE buyer_accounts
+           SET password_hash=$2, initial_password_enc=$3
+           WHERE id=$1`,
+          [buyerId, pwHash, encrypted],
+        );
+      } else if (existingBuyer) {
         buyerId = existingBuyer.id;
+        await tx.query(
+          `UPDATE shop_customers
+           SET buyer_account_id=$3,updated_at=now()
+           WHERE shop_id=$1 AND id=$2 AND buyer_account_id IS NULL`,
+          [candidate.shop_id, candidate.customer_id, buyerId],
+        );
       } else {
         const generated = generateBuyerPassword(12);
         const pwHash = await hashPassword(generated);
@@ -197,14 +246,13 @@ export class BuyerInvitesService {
         );
         buyerId = created.id;
         isNewAccount = true;
+        await tx.query(
+          `UPDATE shop_customers
+           SET buyer_account_id=$3,updated_at=now()
+           WHERE shop_id=$1 AND id=$2 AND buyer_account_id IS NULL`,
+          [candidate.shop_id, candidate.customer_id, buyerId],
+        );
       }
-
-      await tx.query(
-        `UPDATE shop_customers
-         SET buyer_account_id=$3,updated_at=now()
-         WHERE shop_id=$1 AND id=$2 AND buyer_account_id IS NULL`,
-        [candidate.shop_id, candidate.customer_id, buyerId],
-      );
       await tx.query(
         `UPDATE shop_customer_invitations
          SET accepted_at=now(),accepted_by=$2

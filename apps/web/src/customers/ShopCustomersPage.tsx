@@ -122,6 +122,25 @@ export default function ShopCustomersPage() {
     }
   }
 
+  async function resetAccess(customer: ShopCustomer) {
+    if (!shopId) return;
+    setError('');
+    setInvitation(null);
+    try {
+      const issued = await api<{ token: string; expiresAt: string }>(
+        `/shops/${shopId}/customers/${customer.id}/invite/reset`,
+        { method: 'POST', body: {} },
+      );
+      setInvitation({
+        ...issued,
+        customerId: customer.id,
+        name: customer.name,
+      });
+    } catch (err) {
+      setError(errorText(err));
+    }
+  }
+
   return (
     <div className="customer-page">
       <div className="page-heading">
@@ -243,7 +262,15 @@ export default function ShopCustomersPage() {
                         </td>
                         <td>
                           {c.linked ? (
-                            'Привязан'
+                            <button
+                              type="button"
+                              className="button ghost"
+                              style={{ fontSize: '13px', padding: '4px 8px' }}
+                              onClick={() => void resetAccess(c)}
+                              title="Выдать QR для сброса пароля и повторного входа"
+                            >
+                              Сбросить пароль (QR)
+                            </button>
                           ) : (
                             <button
                               type="button"

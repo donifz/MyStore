@@ -22,6 +22,12 @@ class BuyerLoginDto {
   @IsString() @MaxLength(32) phone!: string;
   @IsString() @MinLength(1) @MaxLength(256) password!: string;
 }
+class ChangePasswordDto {
+  @IsString() @MinLength(12) @MaxLength(256) password!: string;
+}
+class TokenLoginDto {
+  @IsString() @MinLength(32) @MaxLength(128) token!: string;
+}
 export function setBuyerSessionCookie(res: Response, token: string) {
   res.cookie('mystore_buyer_session', token, {
     httpOnly: true,
@@ -60,6 +66,27 @@ export class BuyerAuthController {
       ...(await this.buyers.me(req.buyerId)),
       csrfToken: csrfFor(req.buyerToken),
     };
+  }
+  @Post('token-login')
+  async tokenLogin(
+    @Body() body: TokenLoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    validateOrigin(req.headers.origin);
+    this.buyers.limit('token-login:' + (req.ip ?? 'unknown'));
+    await this.buyers.authenticate(body.token);
+    setBuyerSessionCookie(res, body.token);
+    return { csrfToken: csrfFor(body.token) };
+  }
+  @Post('change-password')
+  @UseGuards(BuyerAuthGuard)
+  async changePassword(
+    @Req() req: BuyerRequest,
+    @Body() body: ChangePasswordDto,
+  ) {
+    validateOrigin(req.headers.origin);
+    return this.buyers.changePassword(req.buyerId, body.password);
   }
   @Get('initial-password')
   @UseGuards(BuyerAuthGuard)

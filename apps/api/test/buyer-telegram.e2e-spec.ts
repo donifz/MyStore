@@ -266,4 +266,81 @@ describe('Telegram verification of buyer phone ownership', () => {
       process.env.TELEGRAM_BOT_TOKEN = saved;
     }
   });
+
+  it('allows buyer to authenticate and reset password via Telegram bot', async () => {
+    // Register customer account first with known phone
+    await request(app())
+      .post('/buyer/register')
+      .set('Origin', origin)
+      .send({
+        phone: '+996700111222',
+        name: 'Telegram User',
+        password: 'old-password-123',
+      })
+      .expect(201);
+
+    // Request telegram auth without session
+    const reqRes = await request(app())
+      .post('/buyer/telegram/auth-request')
+      .set('Origin', origin)
+      .send({})
+      .expect(201);
+
+    expect(reqRes.body.token).toMatch(/^[A-Za-z0-9_-]{32}$/);
+    expect(reqRes.body.url).toContain('start=auth_' + reqRes.body.token);
+
+    // Initial poll says pending
+    const pollPending = await request(app())
+      .post('/buyer/telegram/auth-poll')
+      .set('Origin', origin)
+      .send({ token: reqRes.body.token })
+      .expect(200);
+    expect(pollPending.body.status).toBe('pending');
+
+    // User sends /start auth_<token>
+    await webhook(message({ text: '/start auth_' + reqRes.body.token })).expect(
+      201,
+    );
+
+    // User shares contact with matching phone
+    await webhook(
+      message({
+        contact: {
+          user_id: 234567890,
+          phone_number: '+996700111222',
+        },
+      }),
+    ).expect(201);
+
+    // Polling now returns ready and sets session cookie
+    const agent = request.agent(app());
+    const pollReady = await agent
+      .post('/buyer/telegram/auth-poll')
+      .set('Origin', origin)
+      .send({ token: reqRes.body.token })
+      .expect(200);
+
+    expect(pollReady.body.status).toBe('ready');
+    expect(pollReady.body.csrfToken).toBeTruthy();
+
+    // Authenticated user can fetch /buyer/me
+    const me = await agent.get('/buyer/me').expect(200);
+    expect(me.body.phone).toBe('+996700111222');
+    expect(me.body.phoneVerified).toBe(true);
+
+    // User can set new password in cabinet
+    await agent
+      .post('/buyer/change-password')
+      .set('Origin', origin)
+      .set('x-csrf-token', pollReady.body.csrfToken)
+      .send({ password: 'brand-new-password-456' })
+      .expect(201);
+
+    // Login with new password succeeds
+    await request(app())
+      .post('/buyer/login')
+      .set('Origin', origin)
+      .send({ phone: '+996700111222', password: 'brand-new-password-456' })
+      .expect(201);
+  });
 });
