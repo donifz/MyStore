@@ -299,7 +299,7 @@ describe('Telegram verification of buyer phone ownership', () => {
 
     // User sends /start auth_<token>
     await webhook(message({ text: '/start auth_' + reqRes.body.token })).expect(
-      200,
+      201,
     );
 
     // User shares contact with matching phone
@@ -310,7 +310,7 @@ describe('Telegram verification of buyer phone ownership', () => {
           phone_number: '+996700111222',
         },
       }),
-    ).expect(200);
+    ).expect(201);
 
     // Polling now returns ready and sets session cookie
     const agent = request.agent(app());
