@@ -370,7 +370,7 @@ small {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
+  width: 42px;
   height: 38px;
   border-radius: 8px;
   border: 1px solid var(--border, #cbd5e1);
@@ -384,6 +384,12 @@ small {
   background: #f8fafc;
   color: #007659;
   border-color: #94a3b8;
+}
+.catalog-scanner-camera-icon {
+  width: 22px;
+  height: 22px;
+  display: block;
+  flex-shrink: 0;
 }
 .table-wrap {
   overflow: auto;
@@ -587,7 +593,7 @@ td:first-child {
 .barcode-dialog-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 20;
+  z-index: 1000;
   background: #172b3d88;
   display: grid;
   place-items: center;
@@ -10060,4 +10066,52 @@ fieldset {
   display: flex;
   gap: 8px;
   margin-top: 4px;
+}
+
+.camera-scanner-backdrop {
+  z-index: 1000;
+  background: rgba(15, 23, 42, 0.75);
+}
+.camera-scanner-modal {
+  width: min(100%, 460px);
+  max-height: 90vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.camera-scanner-modal__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.camera-scanner-modal__head h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: #0f172a;
+}
+.camera-scanner-modal__close {
+  background: none;
+  border: none;
+  font-size: 26px;
+  line-height: 1;
+  color: #64748b;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+.camera-scanner-modal__close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+.camera-scanner-modal .camera-scanner {
+  margin-top: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
 }
