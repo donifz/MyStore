@@ -28,6 +28,18 @@ export type Store = {
   phone?: string;
   hours?: string;
 };
+export type HeroSlide = {
+  id?: string;
+  sortOrder: number;
+  isActive: boolean;
+  badge: string;
+  title: string;
+  subtitle: string;
+  buttonText: string;
+  buttonUrl: string;
+  imageUrl?: string | null;
+  bgGradient: string;
+};
 export type StorefrontBanner = { imageDataUrl: string };
 export type ProductVariant = {
   id: string;

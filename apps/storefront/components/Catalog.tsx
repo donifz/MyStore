@@ -7,6 +7,7 @@ import {
   PublicApiError,
   Products,
   Store,
+  HeroSlide,
   Search,
   Page,
   query,
@@ -60,13 +61,17 @@ export default async function Catalog({
     );
   }
   let stores: Store[] = [];
+  let heroSlides: HeroSlide[] = [];
   if (!slug) {
     try {
-      stores = (
-        await publicApi<Page<Store>>(
+      const [storesRes, slidesRes] = await Promise.all([
+        publicApi<Page<Store>>(
           '/stores?pageSize=6&city=' + encodeURIComponent(filter.city),
-        )
-      ).items;
+        ).catch(() => ({ items: [] })),
+        publicApi<HeroSlide[]>('/hero-slides').catch(() => []),
+      ]);
+      stores = storesRes.items;
+      if (Array.isArray(slidesRes)) heroSlides = slidesRes;
     } catch {
       /* Catalogue remains usable. */
     }
@@ -114,7 +119,11 @@ export default async function Catalog({
         </nav>
       )}
       {!store ? (
-        <MarketplaceHero products={products.items} compact />
+        <MarketplaceHero
+          products={products.items}
+          compact
+          slides={heroSlides}
+        />
       ) : (
         <StoreHeroSection
           store={store}

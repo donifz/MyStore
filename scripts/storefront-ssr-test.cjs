@@ -85,6 +85,7 @@ const seen = [];
         url.pathname === '/api/public/stores/old-shop'
       )
         body = store;
+      else if (url.pathname === '/api/public/hero-slides') body = [];
       else {
         res.statusCode = 404;
         return res.end('{"message":"not found"}');
