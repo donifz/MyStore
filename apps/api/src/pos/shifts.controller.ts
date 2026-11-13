@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  IsArray,
   IsInt,
   IsOptional,
   IsString,
@@ -18,7 +19,9 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { ShopAccessService } from '../shops/shop-access.service';
 import { ShiftsService } from './shifts.service';
@@ -28,6 +31,17 @@ class OpenDto {
   @Min(0)
   @Max(Number.MAX_SAFE_INTEGER)
   openingCashMinor?: number;
+}
+export class CloseExpenseItemDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(250)
+  reason!: string;
+
+  @IsInt()
+  @Min(1)
+  @Max(Number.MAX_SAFE_INTEGER)
+  amountMinor!: number;
 }
 class CloseDto {
   @IsOptional()
@@ -40,6 +54,11 @@ class CloseDto {
   @Min(0)
   @Max(Number.MAX_SAFE_INTEGER)
   expenseMinor?: number;
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CloseExpenseItemDto)
+  expenses?: CloseExpenseItemDto[];
   @IsOptional() @IsString() @MaxLength(500) comment?: string;
 }
 class CashTransactionDto {
@@ -102,6 +121,7 @@ export class ShiftsController {
       dto.actualCashMinor,
       dto.comment,
       dto.expenseMinor,
+      dto.expenses,
     );
   }
   @Post(':id/cash-in') async cashIn(

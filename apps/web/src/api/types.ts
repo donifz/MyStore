@@ -145,6 +145,9 @@ export type FinancialSummary = {
   onlineSalesCount?: number;
   costOfGoodsMinor: number;
   grossProfitMinor: number;
+  cashExpensesMinor?: number;
+  netProfitMinor?: number;
+  expenseCategories?: { reason: string; totalMinor: number; count: number }[];
   loyaltyRedeemedMinor?: number;
   grossAfterLoyaltyMinor?: number;
   paymentsReceivedMinor: number;

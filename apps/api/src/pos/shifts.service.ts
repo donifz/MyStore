@@ -169,13 +169,29 @@ export class ShiftsService {
     actualCashMinor?: number,
     comment?: string,
     expenseMinor?: number,
+    expenses?: Array<{ reason: string; amountMinor: number }>,
   ) {
     // When no cash count is entered, close with the system-calculated balance.
     // Optional daily expenses are posted atomically before calculating it.
     const manualAmount =
       actualCashMinor === undefined ? null : safeMoney(minor(actualCashMinor));
-    const expense =
-      expenseMinor === undefined ? 0 : safeMoney(minor(expenseMinor));
+    const items =
+      expenses && expenses.length > 0
+        ? expenses
+            .map((it) => ({
+              reason: it.reason.trim(),
+              amountMinor: safeMoney(minor(it.amountMinor)),
+            }))
+            .filter((it) => it.amountMinor > 0 && it.reason.length > 0)
+        : expenseMinor !== undefined && safeMoney(minor(expenseMinor)) > 0
+          ? [
+              {
+                reason: 'Расход за смену при закрытии',
+                amountMinor: safeMoney(minor(expenseMinor)),
+              },
+            ]
+          : [];
+    const totalExpense = items.reduce((sum, it) => sum + it.amountMinor, 0);
     const note = comment?.trim() || null;
     return this.ops.execute(
       shopId,
@@ -185,7 +201,8 @@ export class ShiftsService {
         actorId,
         shiftId: id.toLowerCase(),
         actualCashMinor: manualAmount,
-        expenseMinor: expense,
+        expenseMinor: totalExpense,
+        expenses: items,
         comment: note,
       },
       async (tx) => {
@@ -199,27 +216,22 @@ export class ShiftsService {
         if (row.closed_at) throw new ConflictException('Shift closed');
 
         const before = await this.view(tx, row);
-        if (expense > 0) {
-          if (BigInt(expense) > BigInt(before.expectedCashMinor))
+        if (totalExpense > 0) {
+          if (BigInt(totalExpense) > BigInt(before.expectedCashMinor))
             throw new BadRequestException(
               'Расход превышает ожидаемые наличные в кассе',
             );
-          await tx.query(
-            `INSERT INTO cash_transactions
-             (id,shop_id,shift_id,actor_id,type,amount_minor,reason)
-             VALUES($1,$2,$3,$4,'out',$5,$6)`,
-            [
-              randomUUID(),
-              shopId,
-              id,
-              actorId,
-              expense,
-              'Расход за смену при закрытии',
-            ],
-          );
+          for (const it of items) {
+            await tx.query(
+              `INSERT INTO cash_transactions
+               (id,shop_id,shift_id,actor_id,type,amount_minor,reason)
+               VALUES($1,$2,$3,$4,'out',$5,$6)`,
+              [randomUUID(), shopId, id, actorId, it.amountMinor, it.reason],
+            );
+          }
         }
 
-        const view = expense > 0 ? await this.view(tx, row) : before;
+        const view = totalExpense > 0 ? await this.view(tx, row) : before;
         // A negative expected cash balance cannot be represented as an
         // actual cash count. Preserve it as an audit discrepancy instead.
         const amount = manualAmount ?? Math.max(0, view.expectedCashMinor);

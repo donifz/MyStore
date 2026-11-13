@@ -97,6 +97,25 @@ export class ReportsService {
        FROM cash_shifts WHERE shop_id=$1 AND closed_at >= $2 AND closed_at < $3`,
       [shop, start, end],
     );
+    const [cashTx] = await db.query(
+      `SELECT
+        COALESCE(sum(amount_minor) FILTER (WHERE type='out'),0) AS expenses_out,
+        COALESCE(sum(amount_minor) FILTER (WHERE type='in'),0) AS cash_in
+       FROM cash_transactions WHERE shop_id=$1 AND created_at >= $2 AND created_at < $3`,
+      [shop, start, end],
+    );
+    const expenseCategoriesRows = await db.query(
+      `SELECT
+        reason,
+        COALESCE(sum(amount_minor),0) AS total_minor,
+        count(*)::int AS count
+       FROM cash_transactions
+       WHERE shop_id=$1 AND type='out' AND created_at >= $2 AND created_at < $3
+       GROUP BY reason
+       ORDER BY total_minor DESC
+       LIMIT 10`,
+      [shop, start, end],
+    );
     const dailyRows = await db.query(
       `SELECT
         to_char(d.created_at AT TIME ZONE 'Asia/Bishkek', 'YYYY-MM-DD') AS day,
@@ -158,6 +177,9 @@ export class ReportsService {
       returns = Number(trade.returns);
     const cost = Number(trade.sold_cost) - Number(trade.returned_cost);
     const revenue = sales - returns;
+    const cashExpenses = Number(cashTx.expenses_out);
+    const grossProfit = revenue - cost;
+    const netProfit = grossProfit - cashExpenses;
     return {
       from: start,
       to: end,
@@ -170,7 +192,14 @@ export class ReportsService {
       onlineSalesMinor: Number(trade.online_sales),
       onlineSalesCount: Number(trade.online_sales_count),
       costOfGoodsMinor: cost,
-      grossProfitMinor: revenue - cost,
+      grossProfitMinor: grossProfit,
+      cashExpensesMinor: cashExpenses,
+      netProfitMinor: netProfit,
+      expenseCategories: expenseCategoriesRows.map((r: any) => ({
+        reason: String(r.reason),
+        totalMinor: Number(r.total_minor),
+        count: Number(r.count),
+      })),
       loyaltyRedeemedMinor: Number(bonusRedemptions.spent) * 100,
       grossAfterLoyaltyMinor:
         revenue - cost - Number(bonusRedemptions.spent) * 100,

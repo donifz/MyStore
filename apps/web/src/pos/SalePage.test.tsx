@@ -379,3 +379,85 @@ it('opens and closes a cashier shift in the POS dialog without required fields',
   await waitFor(() => expect(saved[1]).toEqual({ expenseMinor: 1500 }));
   await screen.findByRole('button', { name: 'Открыть смену' });
 });
+
+it('supports detailed itemized expenses with preset templates when closing shift', async () => {
+  const saved: any[] = [];
+  let currentShift: any = {
+    id: 's-detailed',
+    status: 'opened',
+    openedAt: '2026-11-05T09:00:00.000Z',
+    expectedCashMinor: 100000,
+    salesCashMinor: 80000,
+    salesCardMinor: 20000,
+    refundsCashMinor: 0,
+    refundsCardMinor: 0,
+    actorId: 'cashier',
+  };
+  vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+    if (init?.method === 'POST') saved.push(JSON.parse(String(init.body)));
+    let body: any = {};
+    if (url.endsWith('/me')) {
+      body = {
+        userId: 'cashier',
+        email: 'c@test.tld',
+        csrfToken: 'csrf',
+        shops: [{ id: shop, name: 'Shop', role: 'cashier' }],
+      };
+    } else if (url.includes('/pos/shifts/current')) {
+      body = currentShift;
+    } else if (url.endsWith('/close')) {
+      currentShift = null;
+      body = { status: 'closed' };
+    }
+    return new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  });
+
+  render(
+    <MemoryRouter initialEntries={['/seller/' + shop + '/pos']}>
+      <App />
+    </MemoryRouter>,
+  );
+  const user = userEvent.setup();
+  await user.click(
+    await screen.findByRole('button', { name: 'Завершить смену' }),
+  );
+  expect(screen.getByText('Продажи за смену')).toBeTruthy();
+
+  // Click toggle for detailed expenses
+  const toggleBtn = screen.getByRole('button', { name: 'Детальный расход' });
+  await user.click(toggleBtn);
+
+  // Template items are shown ("Обед", etc.)
+  expect(screen.getByDisplayValue('Обед')).toBeTruthy();
+
+  // Enter amount for "Обед"
+  const lunchAmount = screen.getByLabelText(
+    'Сумма для Обед',
+  ) as HTMLInputElement;
+  fireEvent.change(lunchAmount, { target: { value: '250' } });
+
+  // Add a new expense item
+  await user.click(screen.getByRole('button', { name: '+ Добавить статью' }));
+  const rows = screen.getAllByPlaceholderText('Статья (за что)');
+  const newRowReason = rows[rows.length - 1];
+  fireEvent.change(newRowReason, { target: { value: 'Такси' } });
+  const newRowAmount = screen.getByLabelText('Сумма для Такси');
+  fireEvent.change(newRowAmount, { target: { value: '150' } });
+
+  // Submit closing
+  await user.click(
+    screen.getByRole('dialog').querySelector('.quick-shift-submit')!,
+  );
+
+  await waitFor(() => {
+    expect(saved.length).toBe(1);
+    expect(saved[0].expenseMinor).toBe(40000); // 250 + 150 = 400 SOM = 40000 minor
+    expect(saved[0].expenses).toEqual([
+      { reason: 'Обед', amountMinor: 25000 },
+      { reason: 'Такси', amountMinor: 15000 },
+    ]);
+  });
+});
