@@ -155,6 +155,14 @@ export function pluralizeProducts(n: number): string {
   if (mod10 >= 2 && mod10 <= 4) return `${n} товара`;
   return `${n} товаров`;
 }
+export function pluralizeStores(n: number): string {
+  const abs = Math.abs(n) % 100;
+  const mod10 = abs % 10;
+  if (abs > 10 && abs < 20) return `${n} магазинов`;
+  if (mod10 === 1) return `${n} магазин`;
+  if (mod10 >= 2 && mod10 <= 4) return `${n} магазина`;
+  return `${n} магазинов`;
+}
 
 export type PublicFilters = {
   locations: { city: string; district: string }[];
