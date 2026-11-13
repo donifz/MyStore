@@ -154,6 +154,13 @@ export class ShiftsService {
         ? { occupied: true }
         : this.view(this.db.manager, row);
   }
+  async latest(shopId: string) {
+    const [row] = await this.db.query(
+      'SELECT * FROM cash_shifts WHERE shop_id=$1 ORDER BY opened_at DESC LIMIT 1',
+      [shopId],
+    );
+    return row ? this.view(this.db.manager, row) : null;
+  }
   async get(shopId: string, id: string, actorId: string, owner: boolean) {
     const [row] = await this.db.query(
       'SELECT * FROM cash_shifts WHERE shop_id=$1 AND id=$2',

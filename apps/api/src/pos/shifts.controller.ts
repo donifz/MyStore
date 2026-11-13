@@ -96,6 +96,13 @@ export class ShiftsController {
     await this.access.requireMembership(req.userId, shop, 'sell');
     return this.shifts.current(shop, req.userId);
   }
+  @Get('latest') async latest(
+    @Param('shopId', ParseUUIDPipe) shop: string,
+    @Req() req: UserRequest,
+  ) {
+    await this.access.requireMembership(req.userId, shop, 'sell');
+    return this.shifts.latest(shop);
+  }
   @Get(':id') async get(
     @Param('shopId', ParseUUIDPipe) shop: string,
     @Param('id', ParseUUIDPipe) id: string,
