@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import {
   publicApi,
   publicFilters,
@@ -79,11 +80,13 @@ export default async function Stores({
     : value('category')
       ? 'popular'
       : 'all';
+  const nonce = (await headers()).get('x-nonce') || undefined;
   return (
     <div className="sf-stack sf-shops-page">
       <Refresh />
       <script
         type="application/ld+json"
+        nonce={nonce}
         dangerouslySetInnerHTML={{
           __html: breadcrumbsJson([
             { name: 'Главная', url: '/' },

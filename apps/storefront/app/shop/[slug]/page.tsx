@@ -1,4 +1,5 @@
 import { notFound, permanentRedirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import Catalog from '../../../components/Catalog';
 import {
   publicApi,
@@ -63,14 +64,17 @@ export default async function StorePage({ params, searchParams }: Props) {
       `/shop/${encodeURIComponent(store.slug)}${query.size ? `?${query}` : ''}`,
     );
   }
+  const nonce = (await headers()).get('x-nonce') || undefined;
   return (
     <>
       <script
         type="application/ld+json"
+        nonce={nonce}
         dangerouslySetInnerHTML={{ __html: storeJson(store) }}
       />
       <script
         type="application/ld+json"
+        nonce={nonce}
         dangerouslySetInnerHTML={{
           __html: breadcrumbsJson([
             { name: 'Главная', url: '/' },

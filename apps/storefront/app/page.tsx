@@ -1,3 +1,4 @@
+import { headers } from 'next/headers';
 import Catalog from '../components/Catalog';
 import { Search } from '../lib/public-api';
 import { metadata, websiteJson, organizationJson } from '../lib/seo';
@@ -25,14 +26,17 @@ export default async function Home({
 }: {
   searchParams: Promise<Search>;
 }) {
+  const nonce = (await headers()).get('x-nonce') || undefined;
   return (
     <>
       <script
         type="application/ld+json"
+        nonce={nonce}
         dangerouslySetInnerHTML={{ __html: websiteJson() }}
       />
       <script
         type="application/ld+json"
+        nonce={nonce}
         dangerouslySetInnerHTML={{ __html: organizationJson() }}
       />
       <Catalog search={await searchParams} />

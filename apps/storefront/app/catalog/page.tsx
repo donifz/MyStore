@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import Icon, { CategoryIllustration } from '../../components/storefront/Icon';
 import { metadata, breadcrumbsJson } from '../../lib/seo';
 
@@ -78,11 +79,13 @@ const CATALOG_CATEGORIES = [
   },
 ];
 
-export default function CatalogCategoriesPage() {
+export default async function CatalogCategoriesPage() {
+  const nonce = (await headers()).get('x-nonce') || undefined;
   return (
     <div className="sf-stack sf-catalog-page">
       <script
         type="application/ld+json"
+        nonce={nonce}
         dangerouslySetInnerHTML={{
           __html: breadcrumbsJson([
             { name: 'Главная', url: '/' },
