@@ -115,6 +115,9 @@ export class PublicStorefrontController {
       .type('image/jpeg')
       .send(await this.capture.photo(null, id, slug, photoIndex));
   }
+  @Get('hero-slides') heroSlides() {
+    return this.service.heroSlides();
+  }
   @Get('filters') filters() {
     return this.service.filters();
   }
