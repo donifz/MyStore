@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Icon, { CategoryIllustration } from '../../components/storefront/Icon';
-import { metadata } from '../../lib/seo';
+import { metadata, breadcrumbsJson } from '../../lib/seo';
 
 export const dynamic = 'force-dynamic';
 export const generateMetadata = () =>
@@ -8,6 +8,7 @@ export const generateMetadata = () =>
     'Каталог категорий — MyStore',
     'Все категории товаров и магазинов MyStore.',
     '/catalog',
+    { image: '/osh-hero.webp' },
   );
 
 const CATALOG_CATEGORIES = [
@@ -80,6 +81,15 @@ const CATALOG_CATEGORIES = [
 export default function CatalogCategoriesPage() {
   return (
     <div className="sf-stack sf-catalog-page">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: breadcrumbsJson([
+            { name: 'Главная', url: '/' },
+            { name: 'Каталог', url: '/catalog' },
+          ]),
+        }}
+      />
       <nav className="sf-breadcrumbs" aria-label="Хлебные крошки">
         <Link href="/">Главная</Link>
         <span>›</span>

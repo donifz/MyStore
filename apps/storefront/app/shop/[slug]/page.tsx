@@ -6,7 +6,7 @@ import {
   Store,
   Search,
 } from '../../../lib/public-api';
-import { metadata } from '../../../lib/seo';
+import { metadata, storeJson, breadcrumbsJson } from '../../../lib/seo';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,11 +19,17 @@ export async function generateMetadata({ params, searchParams }: Props) {
   const { slug } = await params;
   try {
     const s = await publicApi<Store>('/stores/' + encodeURIComponent(slug));
+    const preview =
+      s.previewPhotos?.[0] ||
+      (s.banner?.imageDataUrl ? s.banner.imageDataUrl : undefined);
     return metadata(
       s.name + ' — MyStore',
       s.description || `Каталог магазина ${s.name}, ${s.city}. Цены и наличие.`,
       '/shop/' + s.slug,
-      Object.keys(await searchParams).length > 0,
+      {
+        noindex: Object.keys(await searchParams).length > 0,
+        image: preview,
+      },
     );
   } catch (e) {
     if (e instanceof PublicApiError && e.status === 404) notFound();
@@ -57,5 +63,23 @@ export default async function StorePage({ params, searchParams }: Props) {
       `/shop/${encodeURIComponent(store.slug)}${query.size ? `?${query}` : ''}`,
     );
   }
-  return <Catalog slug={slug} search={search} />;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: storeJson(store) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: breadcrumbsJson([
+            { name: 'Главная', url: '/' },
+            { name: 'Магазины', url: '/shops' },
+            { name: store.name, url: `/shop/${store.slug}` },
+          ]),
+        }}
+      />
+      <Catalog slug={slug} search={search} />
+    </>
+  );
 }

@@ -1,7 +1,9 @@
 import Catalog from '../components/Catalog';
 import { Search } from '../lib/public-api';
-import { metadata } from '../lib/seo';
+import { metadata, websiteJson, organizationJson } from '../lib/seo';
+
 export const dynamic = 'force-dynamic';
+
 export async function generateMetadata({
   searchParams,
 }: {
@@ -11,13 +13,29 @@ export async function generateMetadata({
     'Товары местных магазинов — MyStore',
     'Товары магазинов Кыргызстана: цены, актуальное наличие и контакты продавцов.',
     '/',
-    Object.keys(await searchParams).length > 0,
+    {
+      noindex: Object.keys(await searchParams).length > 0,
+      image: '/osh-hero.webp',
+    },
   );
 }
+
 export default async function Home({
   searchParams,
 }: {
   searchParams: Promise<Search>;
 }) {
-  return <Catalog search={await searchParams} />;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: websiteJson() }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: organizationJson() }}
+      />
+      <Catalog search={await searchParams} />
+    </>
+  );
 }
