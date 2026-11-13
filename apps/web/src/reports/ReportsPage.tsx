@@ -196,6 +196,11 @@ export default function ReportsPage() {
           'Валовая прибыль после бонусов',
           money(data.grossAfterLoyaltyMinor ?? data.grossProfitMinor),
         ],
+        ['Расходы из кассы (смены)', money(data.cashExpensesMinor ?? 0)],
+        [
+          'Чистая прибыль (после расходов кассы)',
+          money(data.netProfitMinor ?? data.grossProfitMinor),
+        ],
         [
           'Возвраты покупателей',
           `${money(data.returnsMinor)} (${data.returnsCount ?? 0})`,
@@ -659,6 +664,50 @@ export default function ReportsPage() {
                 </div>
               )}
             </section>
+
+            {data.expenseCategories && data.expenseCategories.length > 0 && (
+              <section className="panel analytics-card">
+                <div className="analytics-card-head">
+                  <div>
+                    <p className="eyebrow">Расходы из кассы</p>
+                    <h2>Статьи расходов за период</h2>
+                  </div>
+                  <div className="analytics-inline-legend">
+                    <span>
+                      Всего расходов:{' '}
+                      <strong>{money(data.cashExpensesMinor ?? 0)}</strong>
+                    </span>
+                  </div>
+                </div>
+                <div className="admin-kit-category-bars">
+                  {(() => {
+                    const maxExp = Math.max(
+                      1,
+                      ...data.expenseCategories.map((c) => c.totalMinor),
+                    );
+                    return data.expenseCategories.map((c, i) => (
+                      <div key={i}>
+                        <span>
+                          <strong>{c.reason}</strong>
+                          <small>
+                            {money(c.totalMinor)} ({c.count}{' '}
+                            {c.count === 1 ? 'выплата' : 'выплат'})
+                          </small>
+                        </span>
+                        <div>
+                          <span
+                            style={{
+                              width: `${Math.max(4, Math.round((c.totalMinor / maxExp) * 100))}%`,
+                              background: '#e11d48',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </section>
+            )}
           </div>
 
           <div className="stat-grid">

@@ -100,6 +100,25 @@ function CartIcon() {
   );
 }
 
+function WalletIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+      <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+      <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+    </svg>
+  );
+}
+
 function ReceiptIcon() {
   return (
     <svg
@@ -612,7 +631,7 @@ export function ShopHome() {
         </p>
       )}
 
-      {/* Row 1: 4 KPI Metric Cards */}
+      {/* Row 1: KPI Metric Cards */}
       <section className="shop-home-kpis-grid" aria-label="Ключевые показатели">
         <MetricCard
           title="Выручка"
@@ -642,15 +661,38 @@ export function ShopHome() {
                 : '—'
               : 'По правам отчётов'
           }
-          trendText={comparisonTrend(
-            summary?.grossProfitMinor,
-            previousSummary?.grossProfitMinor,
-            period,
-          )}
+          trendText={
+            summary?.cashExpensesMinor && summary.cashExpensesMinor > 0
+              ? `Чистая: ${formatSom(summary.netProfitMinor ?? summary.grossProfitMinor)}`
+              : comparisonTrend(
+                  summary?.grossProfitMinor,
+                  previousSummary?.grossProfitMinor,
+                  period,
+                )
+          }
           icon={<BarChartIcon />}
           iconBg="#e8f5ee"
           iconColor="#176b4a"
-          infoTooltip="Валовая прибыль: выручка минус себестоимость"
+          infoTooltip="Валовая прибыль (выручка минус себестоимость). Внизу указана чистая прибыль после расходов кассы"
+        />
+        <MetricCard
+          title="Расходы кассы"
+          value={
+            canReports
+              ? summary
+                ? formatSom(summary.cashExpensesMinor ?? 0)
+                : '—'
+              : 'По правам отчётов'
+          }
+          trendText={comparisonTrend(
+            summary?.cashExpensesMinor,
+            previousSummary?.cashExpensesMinor,
+            period,
+          )}
+          icon={<WalletIcon />}
+          iconBg="#fee2e2"
+          iconColor="#b91c1c"
+          infoTooltip="Сумма расходов и выплат из кассы за выбранный период"
         />
         <MetricCard
           title="Продажи"
