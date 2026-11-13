@@ -132,6 +132,8 @@ app
         );
       if (url.pathname.endsWith('/custom-attributes'))
         return res.end(JSON.stringify([]));
+      if (url.pathname === '/api/public/hero-slides')
+        return res.end(JSON.stringify([]));
       if (url.pathname.includes('/products/'))
         return res.end(JSON.stringify(item));
       if (url.pathname.startsWith('/api/public/stores/'))
