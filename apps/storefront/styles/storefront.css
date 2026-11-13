@@ -7689,9 +7689,250 @@ select.sf-input:focus,
 }
 
 /* Shops List (/shops) */
+.sf-shops-page {
+  gap: 24px;
+}
+
+/* Shops Hero */
+.sf-shops-hero {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 28px;
+  align-items: center;
+  padding: 32px 36px;
+  background: linear-gradient(135deg, #f8fafc 0%, #edf4fe 60%, #e0edfe 100%);
+  border: 1px solid #dbeafe;
+  border-radius: 24px;
+  box-shadow: 0 4px 20px -4px rgba(37, 99, 235, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.sf-shops-hero::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 240px;
+  height: 240px;
+  background: radial-gradient(
+    circle,
+    rgba(59, 130, 246, 0.15) 0%,
+    transparent 70%
+  );
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+.sf-shops-hero__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  z-index: 1;
+}
+
+.sf-shops-hero__badge-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sf-shops-hero h1 {
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 850;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+  margin: 0;
+}
+
+.sf-shops-hero h1 em {
+  font-style: normal;
+  color: var(--sf-primary, #2563eb);
+}
+
+.sf-shops-hero__desc {
+  font-size: 15px;
+  line-height: 1.55;
+  color: #475569;
+  margin: 0;
+  max-width: 580px;
+}
+
+.sf-shops-hero__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.sf-shops-hero__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid #cbd5e1;
+  border-radius: 9999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.sf-shops-hero__badge-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--sf-primary, #2563eb);
+}
+
+.sf-shops-hero__aside {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  z-index: 1;
+  align-items: stretch;
+}
+
+.sf-shops-hero__stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px 24px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.06);
+}
+
+.sf-shops-hero__stat-num {
+  font-size: clamp(32px, 3.5vw, 42px);
+  font-weight: 850;
+  letter-spacing: -0.04em;
+  color: var(--sf-primary, #2563eb);
+  line-height: 1;
+}
+
+.sf-shops-hero__stat-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.sf-shops-hero__stat-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #047857;
+}
+
+.sf-shops-hero__feature-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.sf-shops-hero__feature-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: var(--sf-primary, #2563eb);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.sf-shops-hero__feature-card strong {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 750;
+  color: #0f172a;
+}
+
+.sf-shops-hero__feature-card small {
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+/* Quick Cities Strip */
+.sf-shops-quick-cities {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.sf-shops-quick-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  flex-shrink: 0;
+}
+
+.sf-shops-quick-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding: 2px 0;
+  flex: 1;
+}
+
+.sf-city-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 9999px;
+  background: #f1f5f9;
+  color: #334155;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.sf-city-chip:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.sf-city-chip--active {
+  background: var(--sf-primary, #2563eb);
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28);
+}
+
+/* Quick Categories for Shops */
+.sf-shops-quick-categories {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* Modernized Search Bar */
 .sf-shops-search-bar {
   display: grid;
-  grid-template-columns: minmax(220px, 1.6fr) repeat(3, minmax(140px, 1fr)) auto;
+  grid-template-columns: minmax(220px, 1.8fr) repeat(3, minmax(130px, 1fr)) auto;
   gap: 12px;
   align-items: end;
   background: #ffffff;
@@ -7705,91 +7946,357 @@ select.sf-input:focus,
   position: relative;
 }
 
-.sf-shops-search-input-wrap > svg {
-  display: none;
-}
-
-.sf-store-list-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.sf-page .sf-store-card--modern,
-.sf-store-card--modern {
-  border-radius: 20px;
-  border: 1px solid #e2e8f0;
-  background: #ffffff;
-  box-shadow: var(--sf-shadow);
-  padding: 0;
-}
-
-.sf-page .sf-store-card-row,
-.sf-store-card-row {
+.sf-shops-search-icon {
+  position: absolute;
+  left: 14px;
+  bottom: 12px;
+  color: #94a3b8;
   display: flex;
   align-items: center;
-  gap: 18px;
-  padding: 20px 22px;
-  color: #0f172a !important;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.sf-shops-search-input-wrap input {
+  padding-left: 40px !important;
+}
+
+.sf-shops-search-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+}
+
+.sf-shops-reset-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  height: 44px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.sf-shops-reset-link:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Results header */
+.sf-shops-page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.sf-shops-results-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sf-shops-results-title-group h1 {
+  font-size: clamp(22px, 2.2vw, 28px);
+  font-weight: 850;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+  margin: 0;
+}
+
+.sf-shops-count-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: var(--sf-primary, #2563eb);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+/* Store List Grid */
+.sf-store-list-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 20px;
+}
+
+/* StoreCard Modern Styles */
+.sf-page .sf-store-card--modern,
+.sf-store-card--modern {
+  border-radius: 18px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  padding: 0;
+  overflow: hidden;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.sf-store-card--modern:hover {
+  transform: translateY(-3px);
+  border-color: #bfdbfe;
+  box-shadow: 0 12px 28px -6px rgba(37, 99, 235, 0.16);
+}
+
+.sf-store-card-link {
+  display: flex;
+  flex-direction: column;
   height: 100%;
+  text-decoration: none;
+  color: inherit !important;
 }
 
-.sf-store-card-avatar {
-  width: 64px;
-  height: 64px;
-  border-radius: 16px;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
+.sf-store-card__status-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  padding: 4px 10px;
+  border-radius: 9999px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
 }
 
-.sf-store-card-info {
-  display: grid;
-  gap: 4px;
+.sf-store-card__body {
+  padding: 32px 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   flex: 1;
+}
+
+.sf-store-card__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   min-width: 0;
 }
 
-.sf-store-card-info .sf-store-card-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.sf-store-card-info .sf-store-card-title h2 {
+.sf-store-card-name,
+.sf-store-card__title-row h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 800;
   color: #0f172a;
-}
-
-.sf-store-card-sub {
-  margin: 0;
-  font-size: 13.5px;
-  color: #64748b;
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.sf-store-card-stats {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.sf-rating-count-pill {
+  font-size: 11.5px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.sf-store-new-badge {
+  font-size: 12px;
+  font-weight: 700;
+  color: #047857;
+  background: #ecfdf5;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.sf-store-card-desc {
+  margin: 0;
   font-size: 13px;
-  color: #475569;
+  line-height: 1.45;
+  color: #64748b;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sf-store-card-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   margin-top: 2px;
 }
 
-.sf-store-card-stats strong {
-  color: #0f172a;
+.sf-store-feature-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.sf-store-feature-pill--delivery {
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.sf-store-feature-pill--phone {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+/* Partner CTA Card */
+.sf-partner-cta-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 28px;
+  align-items: center;
+  padding: 32px 36px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #1e3a8a 100%);
+  border-radius: 24px;
+  color: #ffffff;
+  box-shadow: 0 10px 30px -8px rgba(15, 23, 42, 0.3);
+  margin-top: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.sf-partner-cta-card::after {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(
+    circle,
+    rgba(59, 130, 246, 0.3) 0%,
+    transparent 70%
+  );
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+.sf-partner-cta-card__content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 1;
+}
+
+.sf-partner-cta-card__badge {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: rgba(59, 130, 246, 0.25);
+  border: 1px solid rgba(147, 197, 253, 0.4);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #93c5fd;
+  text-transform: uppercase;
+}
+
+.sf-partner-cta-card h2 {
+  font-size: clamp(20px, 2.2vw, 26px);
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  margin: 0;
+}
+
+.sf-partner-cta-card p {
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: #cbd5e1;
+  margin: 0;
+  max-width: 620px;
+}
+
+.sf-partner-cta-card__perks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.sf-partner-cta-card__perk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: #e2e8f0;
+}
+
+.sf-partner-cta-card__check {
+  color: #38bdf8;
   font-weight: 800;
 }
 
-.sf-store-card-chevron {
+.sf-partner-cta-card__action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.sf-partner-cta-card__btn {
+  white-space: nowrap;
+  font-weight: 750;
+  padding: 14px 28px;
+  font-size: 15px;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.4);
+}
+
+.sf-partner-cta-card__note {
+  font-size: 12px;
   color: #94a3b8;
-  display: grid;
-  place-items: center;
+  text-align: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .sf-shops-hero {
+    grid-template-columns: 1fr;
+    padding: 24px 20px;
+  }
+  .sf-shops-hero__aside {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .sf-partner-cta-card {
+    grid-template-columns: 1fr;
+    padding: 24px 20px;
+    gap: 20px;
+  }
+  .sf-partner-cta-card__action {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .sf-shops-hero__aside {
+    grid-template-columns: 1fr;
+  }
+  .sf-store-list-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* My Orders (/orders) & Order Detail (/orders/[id]) */
