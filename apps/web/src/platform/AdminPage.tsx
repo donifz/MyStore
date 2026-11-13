@@ -10,6 +10,7 @@ import {
 import { api, ApiError, errorText } from '../api/client';
 import { useSession } from '../auth/SessionProvider';
 import { AdminCard, AdminEmpty, AdminMetric, AdminStatus } from './AdminKit';
+import HeroSliderEditor, { type HeroSlide } from './HeroSliderEditor';
 import type { PlatformFinancialGrant, FinancialSummary } from '../api/types';
 
 type Application = {
@@ -137,6 +138,9 @@ export default function AdminPage() {
     name: string;
     email: string;
   } | null>(null);
+  const [heroSlides, setHeroSlides] = useState<HeroSlide[] | null>(null);
+  const [heroSlidesLoading, setHeroSlidesLoading] = useState(false);
+  const [heroSlidesSaving, setHeroSlidesSaving] = useState(false);
   const [params, setParams] = useSearchParams();
   const location = useLocation();
   const tab = platformSection(location.search);
@@ -300,6 +304,47 @@ export default function AdminPage() {
     applicationQuery,
     applicationStatus,
   ]);
+
+  useEffect(() => {
+    if (!session.user?.platformAdmin || tab !== 'banners') return;
+    let active = true;
+    setHeroSlidesLoading(true);
+    void api<{ slides: HeroSlide[] }>('/platform/admin/hero-slides')
+      .then((res) => {
+        if (!active) return;
+        setHeroSlides(res.slides);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setError(errorText(err));
+      })
+      .finally(() => {
+        if (!active) return;
+        setHeroSlidesLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [session.user?.userId, session.user?.platformAdmin, tab]);
+
+  async function handleSaveHeroSlides(slides: HeroSlide[]) {
+    setHeroSlidesSaving(true);
+    try {
+      const res = await api<{ slides: HeroSlide[] }>(
+        '/platform/admin/hero-slides',
+        {
+          method: 'PUT',
+          body: { slides },
+        },
+      );
+      setHeroSlides(res.slides);
+    } catch (err) {
+      throw err;
+    } finally {
+      setHeroSlidesSaving(false);
+    }
+  }
+
   async function decideApplication(
     row: Application,
     decision: 'in_review' | 'approved' | 'rejected',
@@ -1435,6 +1480,22 @@ export default function AdminPage() {
                 )}
               </div>
             </div>
+          ) : tab === 'banners' ? (
+            heroSlidesLoading && !heroSlides ? (
+              <AdminCard
+                title="Баннеры витрины"
+                subtitle="Загрузка баннеров..."
+              >
+                <AdminEmpty>Загрузка слайдов...</AdminEmpty>
+              </AdminCard>
+            ) : (
+              <HeroSliderEditor
+                key={heroSlides ? 'loaded' : 'initial'}
+                initialSlides={heroSlides || []}
+                onSave={handleSaveHeroSlides}
+                saving={heroSlidesSaving}
+              />
+            )
           ) : (
             <AdminCard
               title="Журнал решений"
