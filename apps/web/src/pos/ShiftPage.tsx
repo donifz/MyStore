@@ -292,34 +292,7 @@ function ShiftWorkspace({
       <div className="page-heading">
         <div>
           <p className="eyebrow">Контроль кассы</p>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              flexWrap: 'wrap',
-            }}
-          >
-            <h1 style={{ margin: 0 }}>Смена</h1>
-            {!shift && (
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: '#f1f5f9',
-                  color: '#475569',
-                  border: '1px solid #cbd5e1',
-                  padding: '4px 10px',
-                  borderRadius: '20px',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                }}
-              >
-                Смена закрыта
-              </span>
-            )}
-          </div>
+          <h1 style={{ margin: 0 }}>Смена</h1>
         </div>
         <Link className="button" to={'/seller/' + shopId + '/pos'}>
           Перейти к кассе

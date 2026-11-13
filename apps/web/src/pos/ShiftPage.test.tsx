@@ -78,7 +78,7 @@ it('renders closed shift state with previous shift results and owner Telegram se
   expect(
     await screen.findByRole('heading', { level: 1, name: 'Смена' }),
   ).toBeTruthy();
-  expect(await screen.findByText('Смена закрыта')).toBeTruthy();
+  expect(await screen.findByText(/Смена закрыта/)).toBeTruthy();
 
   // Previous shift results card
   expect(await screen.findByText('Итоги последней смены')).toBeTruthy();
