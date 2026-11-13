@@ -241,4 +241,75 @@ export class PlatformAdminService {
       throw error;
     }
   }
+
+  async listHeroSlides() {
+    return this.db.query(
+      `SELECT id, sort_order AS "sortOrder", is_active AS "isActive",
+              badge, title, subtitle, button_text AS "buttonText",
+              button_url AS "buttonUrl", image_url AS "imageUrl",
+              bg_gradient AS "bgGradient", created_at AS "createdAt",
+              updated_at AS "updatedAt"
+       FROM platform_hero_slides
+       ORDER BY sort_order ASC, created_at ASC`,
+    );
+  }
+
+  async publicHeroSlides() {
+    return this.db.query(
+      `SELECT id, sort_order AS "sortOrder", badge, title, subtitle,
+              button_text AS "buttonText", button_url AS "buttonUrl",
+              image_url AS "imageUrl", bg_gradient AS "bgGradient"
+       FROM platform_hero_slides
+       WHERE is_active = true
+       ORDER BY sort_order ASC, created_at ASC`,
+    );
+  }
+
+  async updateHeroSlides(adminId: string, slides: any[]) {
+    return this.db.transaction(async (tx) => {
+      await tx.query('DELETE FROM platform_hero_slides');
+      for (let i = 0; i < slides.length; i++) {
+        const s = slides[i];
+        if (!s.title || typeof s.title !== 'string') {
+          throw new BadRequestException('Slide title is required');
+        }
+        await tx.query(
+          `INSERT INTO platform_hero_slides (
+             id, sort_order, is_active, badge, title, subtitle,
+             button_text, button_url, image_url, bg_gradient, updated_at
+           ) VALUES (
+             COALESCE($1::uuid, gen_random_uuid()), $2, $3, $4, $5, $6, $7, $8, $9, $10, now()
+           )`,
+          [
+            s.id || null,
+            i,
+            s.isActive ?? true,
+            (s.badge || '').trim(),
+            s.title.trim(),
+            (s.subtitle || '').trim(),
+            (s.buttonText || 'Смотреть товары').trim(),
+            (s.buttonUrl || '#catalog').trim(),
+            s.imageUrl || null,
+            s.bgGradient || 'blue',
+          ],
+        );
+      }
+      const updated = await tx.query(
+        `SELECT id, sort_order AS "sortOrder", is_active AS "isActive",
+                badge, title, subtitle, button_text AS "buttonText",
+                button_url AS "buttonUrl", image_url AS "imageUrl",
+                bg_gradient AS "bgGradient", created_at AS "createdAt",
+                updated_at AS "updatedAt"
+         FROM platform_hero_slides
+         ORDER BY sort_order ASC, created_at ASC`,
+      );
+      await tx.query(
+        `INSERT INTO audit_log(shop_id,actor_id,action,entity_type,entity_id,details)
+         VALUES(null,$1,'platform:hero-slides-update','platform_hero_slides','marketplace',
+                $2)`,
+        [adminId, JSON.stringify({ count: slides.length })],
+      );
+      return updated;
+    });
+  }
 }

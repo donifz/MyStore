@@ -5,6 +5,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -23,6 +24,7 @@ import {
 import { Type } from 'class-transformer';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { PlatformAdminService } from './platform-admin.service';
+import { UpdateHeroSlidesDto } from './hero-slides.dto';
 
 class ShopsPageQuery {
   @Type(() => Number) @IsInt() @Min(1) @Max(1000000) page = 1;
@@ -114,5 +116,20 @@ export class AdminSessionController {
   ) {
     await this.admins.requireAdmin(req.userId);
     return this.admins.resetOwnerPassword(req.userId, shopId, body?.ownerEmail);
+  }
+
+  @Get('hero-slides')
+  async heroSlides(@Req() req: UserRequest) {
+    await this.admins.requireAdmin(req.userId);
+    return this.admins.listHeroSlides();
+  }
+
+  @Put('hero-slides')
+  async updateHeroSlides(
+    @Req() req: UserRequest,
+    @Body() body: UpdateHeroSlidesDto,
+  ) {
+    await this.admins.requireAdmin(req.userId);
+    return this.admins.updateHeroSlides(req.userId, body.slides || []);
   }
 }

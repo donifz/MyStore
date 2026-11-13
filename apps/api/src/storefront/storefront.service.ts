@@ -281,6 +281,16 @@ export class StorefrontService {
       throw error;
     }
   }
+  async heroSlides() {
+    return this.db.query(
+      `SELECT id, sort_order AS "sortOrder", badge, title, subtitle,
+              button_text AS "buttonText", button_url AS "buttonUrl",
+              image_url AS "imageUrl", bg_gradient AS "bgGradient"
+       FROM platform_hero_slides
+       WHERE is_active = true
+       ORDER BY sort_order ASC, created_at ASC`,
+    );
+  }
   async filters() {
     const locations = await this.db.query(
       "SELECT DISTINCT city,district FROM shops WHERE published AND (NOT marketplace_blocked) AND city<>'' ORDER BY city,district",
