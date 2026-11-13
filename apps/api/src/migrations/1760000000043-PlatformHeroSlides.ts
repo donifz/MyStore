@@ -21,11 +21,11 @@ export class PlatformHeroSlides1760000000043 implements MigrationInterface {
       CREATE INDEX IF NOT EXISTS platform_hero_slides_sort_idx
         ON platform_hero_slides(sort_order, created_at);
 
-      INSERT INTO platform_hero_slides (sort_order, is_active, badge, title, subtitle, button_text, button_url, bg_gradient)
+      INSERT INTO platform_hero_slides (sort_order, is_active, badge, title, subtitle, button_text, button_url, image_url, bg_gradient)
       VALUES
-        (0, true, 'МАРКЕТПЛЕЙС МАГАЗИНОВ', 'Товары рядом', 'Смотрите наличие и забирайте в магазине', 'Смотреть товары', '#catalog', 'blue'),
-        (1, true, 'ЛОКАЛЬНЫЙ БИЗНЕС', 'Магазины вашего города', 'Проверенные продавцы и честные остатки прямо из кассы', 'Все магазины', '/shops', 'indigo'),
-        (2, true, 'ДЛЯ ВЛАДЕЛЬЦЕВ МАГАЗИНОВ', 'Откройте онлайн-витрину', 'Касса, склад и онлайн-заказы для вашего бизнеса в Кыргызстане', 'Стать продавцом', '/partner', 'emerald');
+        (0, true, 'МАРКЕТПЛЕЙС МАГАЗИНОВ', 'Товары рядом', 'Магазины вашего города в одном месте', 'Смотреть товары', '#catalog', '/banners/banner-shops.jpg', 'blue'),
+        (1, true, 'СКИДКИ И АКЦИИ', 'Скидки до 50%', 'Сезонные предложения от магазинов вашего города', 'Смотреть скидки', '#catalog', '/banners/banner-sale.jpg', 'indigo'),
+        (2, true, 'БЫСТРАЯ ДОСТАВКА', 'Быстрая доставка', 'Забирайте сами или закажите курьером прямо до двери', 'Магазины рядом', '/shops', '/banners/banner-delivery.jpg', 'emerald');
     `);
   }
 
