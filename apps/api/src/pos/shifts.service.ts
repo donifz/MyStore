@@ -256,9 +256,11 @@ export class ShiftsService {
         return this.view(tx, closed);
       },
     );
-    void this.shopTelegram.sendShiftCloseSummary(shopId, id).catch((err) => {
+    try {
+      await this.shopTelegram.sendShiftCloseSummary(shopId, id);
+    } catch (err) {
       console.warn('[shop-telegram] shift close notification failed:', err);
-    });
+    }
     return result;
   }
   async cashIn(

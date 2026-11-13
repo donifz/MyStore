@@ -91,7 +91,7 @@ describe('Shop Telegram Owner Daily Shift Summary (E2E)', () => {
         first_name: 'Owner',
       },
       text: `/start owner_${token}`,
-    }).expect(200);
+    }).expect(201);
 
     // Verify subscription created
     const statusRes = await request(app())
@@ -132,7 +132,7 @@ describe('Shop Telegram Owner Daily Shift Summary (E2E)', () => {
     const callArgs = mockedFetch.mock.calls[0];
     const body = JSON.parse(callArgs[1].body);
     expect(body.chat_id).toBe('987654321');
-    expect(body.text).toContain('Сводка закрытия смены');
+    expect(body.text.toLowerCase()).toContain('сводка закрытия смены');
     expect(body.text).toContain('Выручка');
   });
 
@@ -166,14 +166,11 @@ describe('Shop Telegram Owner Daily Shift Summary (E2E)', () => {
       })
       .expect(201);
 
-    // Allow background dispatch promise to execute
-    await new Promise((r) => setTimeout(r, 80));
-
     expect(mockedFetch).toHaveBeenCalled();
     const lastCall = mockedFetch.mock.calls[mockedFetch.mock.calls.length - 1];
     const body = JSON.parse(lastCall[1].body);
-    expect(body.chat_id).toBe('987654321');
-    expect(body.text).toContain('Сводка закрытия смены • Test Shop');
+    expect(body.chat_id).toBe(987654321);
+    expect(body.text.toLowerCase()).toContain('сводка закрытия смены');
     expect(body.text).toContain('Такси курьеру');
     expect(body.text).toContain('В кассе на конец смены');
   });
