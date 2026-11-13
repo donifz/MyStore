@@ -23,7 +23,7 @@ export class PlatformHeroSlides1760000000043 implements MigrationInterface {
 
       INSERT INTO platform_hero_slides (sort_order, is_active, badge, title, subtitle, button_text, button_url, image_url, bg_gradient)
       VALUES
-        (0, true, 'МАРКЕТПЛЕЙС МАГАЗИНОВ', 'Товары рядом', 'Магазины вашего города в одном месте', 'Смотреть товары', '#catalog', '/banners/banner-shops.jpg', 'blue'),
+        (0, true, 'МАРКЕТПЛЕЙС МАГАЗИНОВ', 'Товары рядом', 'Смотрите наличие и забирайте в магазине', 'Смотреть товары', '#catalog', '/banners/banner-shops.jpg', 'blue'),
         (1, true, 'СКИДКИ И АКЦИИ', 'Скидки до 50%', 'Сезонные предложения от магазинов вашего города', 'Смотреть скидки', '#catalog', '/banners/banner-sale.jpg', 'indigo'),
         (2, true, 'БЫСТРАЯ ДОСТАВКА', 'Быстрая доставка', 'Забирайте сами или закажите курьером прямо до двери', 'Магазины рядом', '/shops', '/banners/banner-delivery.jpg', 'emerald');
     `);
