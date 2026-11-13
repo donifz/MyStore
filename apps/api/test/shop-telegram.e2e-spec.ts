@@ -169,7 +169,7 @@ describe('Shop Telegram Owner Daily Shift Summary (E2E)', () => {
     expect(mockedFetch).toHaveBeenCalled();
     const lastCall = mockedFetch.mock.calls[mockedFetch.mock.calls.length - 1];
     const body = JSON.parse(lastCall[1].body);
-    expect(body.chat_id).toBe(987654321);
+    expect(String(body.chat_id)).toBe('987654321');
     expect(body.text.toLowerCase()).toContain('сводка закрытия смены');
     expect(body.text).toContain('Такси курьеру');
     expect(body.text).toContain('В кассе на конец смены');

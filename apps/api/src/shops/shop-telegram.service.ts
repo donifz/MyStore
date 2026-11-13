@@ -283,7 +283,7 @@ export class ShopTelegramService {
         shopId,
       ]);
       const [shift] = await this.db.query(
-        `SELECT s.*, u.display_name, u.email
+        `SELECT s.*, u.email
          FROM cash_shifts s
          LEFT JOIN users u ON u.id = s.actor_id
          WHERE s.shop_id=$1 AND s.id=$2`,
@@ -376,9 +376,7 @@ export class ShopTelegramService {
       const discrepancy = actualCash - expectedCash;
 
       const shopName = escapeHtml(shop?.name || 'Магазин');
-      const cashierName = escapeHtml(
-        shift.display_name || shift.email || 'Кассир',
-      );
+      const cashierName = escapeHtml(shift.email || 'Кассир');
 
       const openedAt = new Date(shift.opened_at);
       const closedAt = shift.closed_at ? new Date(shift.closed_at) : new Date();
