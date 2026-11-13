@@ -257,6 +257,18 @@ export async function createApp(
       return express.json({ limit: '6mb' })(req, res, next);
     },
   );
+  // Allow larger payload for platform hero slides (custom banner image data)
+  app.use(
+    /^\/(?:api\/)?platform\/admin\/hero-slides\/?$/,
+    (
+      req: express.Request,
+      res: express.Response,
+      next: express.NextFunction,
+    ) => {
+      if (req.method !== 'POST' && req.method !== 'PUT') return next();
+      return express.json({ limit: '10mb' })(req, res, next);
+    },
+  );
   app.use(express.json({ limit: '1mb' }));
   app.use(
     (

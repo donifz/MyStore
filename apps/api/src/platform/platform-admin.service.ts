@@ -273,6 +273,13 @@ export class PlatformAdminService {
         if (!s.title || typeof s.title !== 'string') {
           throw new BadRequestException('Slide title is required');
         }
+        const validId =
+          typeof s.id === 'string' &&
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+            s.id,
+          )
+            ? s.id
+            : null;
         await tx.query(
           `INSERT INTO platform_hero_slides (
              id, sort_order, is_active, badge, title, subtitle,
@@ -281,7 +288,7 @@ export class PlatformAdminService {
              COALESCE($1::uuid, gen_random_uuid()), $2, $3, $4, $5, $6, $7, $8, $9, $10, now()
            )`,
           [
-            s.id || null,
+            validId,
             i,
             s.isActive ?? true,
             (s.badge || '').trim(),
@@ -305,7 +312,7 @@ export class PlatformAdminService {
       );
       await tx.query(
         `INSERT INTO audit_log(shop_id,actor_id,action,entity_type,entity_id,details)
-         VALUES(null,$1,'platform:hero-slides-update','platform_hero_slides','marketplace',
+         VALUES(null,$1,'platform:hero-slides-update','platform_hero_slides',null,
                 $2)`,
         [adminId, JSON.stringify({ count: slides.length })],
       );
