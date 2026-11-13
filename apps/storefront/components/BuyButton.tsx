@@ -6,6 +6,7 @@ import { Button, Alert } from './ui';
 import type { Product } from '../lib/public-api';
 import { useCart } from './CartProvider';
 import Icon from './storefront/Icon';
+import { buildProductWhatsAppUrl } from '../lib/whatsapp';
 
 export default function BuyButton({
   product,
@@ -21,6 +22,14 @@ export default function BuyButton({
     [added, setAdded] = useState(false),
     [quantity, setQuantity] = useState(1),
     [localError, setLocalError] = useState('');
+
+  const whatsAppUrl = buildProductWhatsAppUrl({
+    phone: product.store.phone,
+    productName: product.name,
+    priceMinor: product.salePriceMinor,
+    storeName: product.store.name,
+    pageUrl: typeof window !== 'undefined' ? window.location.href : undefined,
+  });
 
   const cartItem = c.ready
     ? c.items.find(
@@ -159,6 +168,18 @@ export default function BuyButton({
         <Icon name="bolt" width={18} height={18} />
         Купить сейчас
       </Button>
+      {whatsAppUrl && product.available > 0 && (
+        <a
+          href={whatsAppUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="sf-whatsapp-btn"
+          aria-label="Заказать в WhatsApp"
+        >
+          <Icon name="whatsapp" width={18} height={18} />
+          Заказать в WhatsApp
+        </a>
+      )}
       {(added || inCart) && (
         <div role="status">
           <Link className="sf-added" href="/cart">

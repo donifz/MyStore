@@ -23,6 +23,7 @@ import { metadata, productJson } from '../../../../../lib/seo';
 import Refresh from '../../../../../components/Refresh';
 import VariantSelector from '../../../../../components/storefront/VariantSelector';
 import ReviewsWidget from '../../../../../components/storefront/ReviewsWidget';
+import { buildProductWhatsAppUrl } from '../../../../../lib/whatsapp';
 export const dynamic = 'force-dynamic';
 type Props = { params: Promise<{ slug: string; id: string }> };
 async function load(params: Props['params']) {
@@ -71,6 +72,12 @@ export default async function ProductPage({ params }: Props) {
   if (v.store.slug !== requested.slug)
     permanentRedirect(`/shop/${v.store.slug}/products/${v.id}`);
   const phone = v.store.phone?.replace(/[^\d+]/g, '');
+  const whatsAppUrl = buildProductWhatsAppUrl({
+    phone: v.store.phone,
+    productName: v.name,
+    priceMinor: v.salePriceMinor,
+    storeName: v.store.name,
+  });
   let related: Product[] = [];
   try {
     related = (
@@ -310,10 +317,30 @@ export default async function ProductPage({ params }: Props) {
                 </div>
               </div>
               {phone && (
-                <a className="sf-contact-link" href={'tel:' + phone}>
-                  <Icon name="phone" width={15} height={15} />
-                  Связаться с магазином
-                </a>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                  }}
+                >
+                  <a className="sf-contact-link" href={'tel:' + phone}>
+                    <Icon name="phone" width={15} height={15} />
+                    Связаться с магазином
+                  </a>
+                  {whatsAppUrl && (
+                    <a
+                      className="sf-contact-link"
+                      href={whatsAppUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#16a34a' }}
+                    >
+                      <Icon name="whatsapp" width={15} height={15} />
+                      Написать в WhatsApp
+                    </a>
+                  )}
+                </div>
               )}
             </div>
           </div>
