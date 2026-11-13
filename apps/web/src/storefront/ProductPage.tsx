@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom';
 import { formatSom } from '../api/money';
 import { PublicProduct } from './types';
 import { useResource } from './use-resource';
+import { buildProductWhatsAppUrl } from './whatsapp';
 export default function ProductPage() {
   const { slug, id } = useParams();
   const r = useResource<PublicProduct>(
@@ -65,6 +66,36 @@ export default function ProductPage() {
             >
               Связаться с магазином
             </a>
+            {(() => {
+              const waUrl = buildProductWhatsAppUrl({
+                phone: v.store.phone,
+                productName: v.name,
+                priceMinor: v.salePriceMinor,
+                storeName: v.store.name,
+              });
+              if (!waUrl) return null;
+              return (
+                <a
+                  className="button full-width"
+                  style={{
+                    background: '#25D366',
+                    color: '#ffffff',
+                    borderColor: '#20ba59',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    fontWeight: 600,
+                    marginTop: '8px',
+                  }}
+                  href={waUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Заказать в WhatsApp
+                </a>
+              );
+            })()}
             <p className="muted">
               Покупку, самовывоз и доставку согласуйте с продавцом. Наличие
               может измениться до покупки.

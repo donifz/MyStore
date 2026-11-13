@@ -71,6 +71,11 @@ it('displays public product availability and contact purchase without cost field
       .getByRole('link', { name: 'Связаться с магазином' })
       .getAttribute('href'),
   ).toBe('tel:+996700123456');
+  expect(
+    screen
+      .getByRole('link', { name: 'Заказать в WhatsApp' })
+      .getAttribute('href'),
+  ).toContain('https://wa.me/996700123456');
   expect(screen.queryByText(/себестоимость/i)).toBeNull();
 });
 it('shows confirmation after a partner application without requesting a password', async () => {
