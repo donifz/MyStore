@@ -370,6 +370,16 @@ function ShiftWorkspace({
         </button>
       )}
 
+      {lastClosed && (
+        <section className="panel">
+          <h2>Смена закрыта</h2>
+          <p>Расхождение: {formatSom(lastClosed.discrepancyMinor ?? 0)}</p>
+          <p>
+            Фактические наличные: {formatSom(lastClosed.actualCashMinor ?? 0)}
+          </p>
+        </section>
+      )}
+
       {shift ? (
         /* ================= OPEN SHIFT VIEW ================= */
         <div
@@ -734,48 +744,54 @@ function ShiftWorkspace({
               </div>
             </div>
 
-            <label>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'baseline',
-                }}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'baseline',
+                marginBottom: '6px',
+              }}
+            >
+              <label
+                htmlFor="actual-cash-input"
+                style={{ margin: 0, fontWeight: 600 }}
               >
-                <span>Фактические наличные, сом</span>
-                <button
-                  type="button"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#007659',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    padding: 0,
-                    textDecoration: 'underline',
-                  }}
-                  onClick={() =>
-                    setActual((shift.expectedCashMinor / 100).toFixed(2))
-                  }
-                >
-                  ⚡ Совпадает ({formatSom(shift.expectedCashMinor)})
-                </button>
-              </div>
-              <input
-                inputMode="decimal"
-                placeholder={(shift.expectedCashMinor / 100).toFixed(2)}
-                value={
-                  closing.draft.submission
-                    ? (
-                        closing.draft.submission.body.actualCashMinor / 100
-                      ).toFixed(2)
-                    : actual
+                Фактические наличные, сом
+              </label>
+              <button
+                type="button"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#007659',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: 0,
+                  textDecoration: 'underline',
+                }}
+                onClick={() =>
+                  setActual((shift.expectedCashMinor / 100).toFixed(2))
                 }
-                onChange={(e) => setActual(e.target.value)}
-                disabled={!!closing.draft.submission}
-              />
-            </label>
+              >
+                ⚡ Совпадает ({formatSom(shift.expectedCashMinor)})
+              </button>
+            </div>
+            <input
+              id="actual-cash-input"
+              inputMode="decimal"
+              placeholder={(shift.expectedCashMinor / 100).toFixed(2)}
+              value={
+                closing.draft.submission
+                  ? (
+                      closing.draft.submission.body.actualCashMinor / 100
+                    ).toFixed(2)
+                  : actual
+              }
+              onChange={(e) => setActual(e.target.value)}
+              disabled={!!closing.draft.submission}
+              style={{ marginBottom: '14px' }}
+            />
 
             {/* Live Discrepancy Helper */}
             {liveDiscrepancy !== null && (
