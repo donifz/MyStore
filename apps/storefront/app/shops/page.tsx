@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import {
   publicApi,
   publicFilters,
@@ -18,7 +19,7 @@ import {
 } from '../../components/ui';
 import Pagination from '../../components/Pagination';
 import Refresh from '../../components/Refresh';
-import { metadata } from '../../lib/seo';
+import { metadata, breadcrumbsJson } from '../../lib/seo';
 
 export const dynamic = 'force-dynamic';
 export async function generateMetadata({
@@ -30,7 +31,10 @@ export async function generateMetadata({
     'Магазины рядом — MyStore',
     'Магазины вашего города и их товары.',
     '/shops',
-    Object.keys(await searchParams).length > 0,
+    {
+      noindex: Object.keys(await searchParams).length > 0,
+      image: '/osh-hero.webp',
+    },
   );
 }
 
@@ -76,9 +80,20 @@ export default async function Stores({
     : value('category')
       ? 'popular'
       : 'all';
+  const nonce = (await headers()).get('x-nonce') || undefined;
   return (
     <div className="sf-stack sf-shops-page">
       <Refresh />
+      <script
+        type="application/ld+json"
+        nonce={nonce}
+        dangerouslySetInnerHTML={{
+          __html: breadcrumbsJson([
+            { name: 'Главная', url: '/' },
+            { name: 'Магазины', url: '/shops' },
+          ]),
+        }}
+      />
       <nav className="sf-breadcrumbs" aria-label="Хлебные крошки">
         <Link href="/">Главная</Link>
         <span>›</span>

@@ -19,7 +19,7 @@ import {
   Products,
   formatSom,
 } from '../../../../../lib/public-api';
-import { metadata, productJson } from '../../../../../lib/seo';
+import { metadata, productJson, breadcrumbsJson } from '../../../../../lib/seo';
 import Refresh from '../../../../../components/Refresh';
 import VariantSelector from '../../../../../components/storefront/VariantSelector';
 import ReviewsWidget from '../../../../../components/storefront/ReviewsWidget';
@@ -38,11 +38,16 @@ async function load(params: Props['params']) {
 export async function generateMetadata({ params }: Props) {
   try {
     const p = await load(params);
+    const photo = p.photoUrls?.[0] || p.photoUrl;
     return metadata(
       p.name + ' — ' + p.store.name + ' | MyStore',
       p.description ||
         `${p.name}: цена ${formatSom(p.salePriceMinor)}, магазин ${p.store.name}, ${p.store.city}.`,
       `/shop/${p.store.slug}/products/${p.id}`,
+      {
+        image: photo,
+        type: 'article',
+      },
     );
   } catch (e) {
     if (e instanceof PublicApiError && e.status === 404) notFound();
@@ -97,6 +102,26 @@ export default async function ProductPage({ params }: Props) {
         type="application/ld+json"
         nonce={(await headers()).get('x-nonce') || undefined}
         dangerouslySetInnerHTML={{ __html: productJson(v) }}
+      />
+      <script
+        type="application/ld+json"
+        nonce={(await headers()).get('x-nonce') || undefined}
+        dangerouslySetInnerHTML={{
+          __html: breadcrumbsJson([
+            { name: 'Главная', url: '/' },
+            { name: 'Магазины', url: '/shops' },
+            { name: v.store.name, url: `/shop/${v.store.slug}` },
+            ...(v.category
+              ? [
+                  {
+                    name: v.category,
+                    url: `/shop/${v.store.slug}?category=${encodeURIComponent(v.category)}`,
+                  },
+                ]
+              : []),
+            { name: v.name, url: `/shop/${v.store.slug}/products/${v.id}` },
+          ]),
+        }}
       />
       <div className="sf-product-store-bar sf-panel">
         <Link

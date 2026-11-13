@@ -19,7 +19,7 @@ export async function generateMetadata({ params, searchParams }: Props) {
     return metadata(
       s.name + ' — MyStore',
       s.description || `Каталог магазина ${s.name}, ${s.city}. Цены и наличие.`,
-      '/shops/' + slug,
+      '/shop/' + s.slug,
       Object.keys(await searchParams).length > 0,
     );
   } catch (e) {
@@ -27,7 +27,7 @@ export async function generateMetadata({ params, searchParams }: Props) {
     return metadata(
       'Магазин временно недоступен — MyStore',
       'Попробуйте позднее.',
-      '/shops/' + slug,
+      '/shop/' + slug,
       true,
     );
   }

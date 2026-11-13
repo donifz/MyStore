@@ -1,6 +1,10 @@
+import type { MetadataRoute } from 'next';
 import { publicBase } from '../lib/seo';
+
 export const dynamic = 'force-dynamic';
-export default function robots() {
+
+export default function robots(): MetadataRoute.Robots {
+  const base = publicBase();
   return {
     rules: {
       userAgent: '*',
@@ -11,9 +15,14 @@ export default function robots() {
         '/partner',
         '/favorites',
         '/cart',
+        '/checkout',
+        '/orders',
+        '/profile',
+        '/buyer',
         '/ui-kit',
       ],
     },
-    sitemap: publicBase() + '/sitemap.xml',
+    sitemap: `${base}/sitemap.xml`,
+    host: base,
   };
 }
