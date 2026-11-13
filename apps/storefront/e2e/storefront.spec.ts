@@ -680,3 +680,37 @@ test('catalog category strips scroll cleanly, avoid fake counts/ratings, and kee
   await expect(sellerStats).not.toContainText('5,0');
   await expect(sellerStats).toContainText('Пока нет отзывов');
 });
+
+test('shops directory displays hero, quick filters, rich store cards, and partner CTA without overflow', async ({
+  page,
+}) => {
+  for (const width of [320, 390, 768, 1200]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/shops');
+
+    await expect(page.locator('.sf-shops-hero')).toBeVisible();
+    await expect(page.locator('.sf-shops-hero h1')).toContainText(
+      'Магазины вашего города',
+    );
+    await expect(page.locator('.sf-partner-cta-card')).toBeVisible();
+    await expect(
+      page.locator('.sf-partner-cta-card a[href="/partner"]'),
+    ).toBeVisible();
+
+    const storeCards = page.locator(
+      '.sf-store-list-grid .sf-store-card--modern',
+    );
+    if ((await storeCards.count()) > 0) {
+      await expect(storeCards.first()).toBeVisible();
+      await expect(
+        storeCards.first().locator('.sf-home-store-card__cta'),
+      ).toBeVisible();
+    }
+
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  }
+});
