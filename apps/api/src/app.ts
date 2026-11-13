@@ -108,6 +108,8 @@ import {
   OwnerFinancialAccessController,
   AdminFinancialAccessController,
 } from './platform/financial-access.controller';
+import { ShopTelegramService } from './shops/shop-telegram.service';
+import { ShopTelegramController } from './shops/shop-telegram.controller';
 const STOREFRONT_EXACT_PATHS = new Set([
   '/',
   '/catalog',
@@ -182,6 +184,7 @@ export async function createApp(
       ShopBuyerInvitesController,
       ShopCustomersController,
       ShopCustomAttributesController,
+      ShopTelegramController,
     ],
     providers: [
       ShopCustomAttributesService,
@@ -226,6 +229,7 @@ export async function createApp(
       BuyerInvitesService,
       BuyerAuthGuard,
       ShopCustomersService,
+      ShopTelegramService,
     ],
   })
   class AppModule {}

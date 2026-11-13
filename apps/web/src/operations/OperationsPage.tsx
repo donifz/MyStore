@@ -1,5 +1,6 @@
 import Pagination from '../components/Pagination';
 import EmailSettings from './EmailSettings';
+import TelegramOwnerSettings from './TelegramOwnerSettings';
 import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
@@ -526,6 +527,7 @@ export default function OperationsPage() {
           ))}
         </div>
       </div>
+      <TelegramOwnerSettings shopId={shopId} owner={shop?.role === 'owner'} />
       <EmailSettings shopId={shopId} owner={shop?.role === 'owner'} />
       {shop?.role === 'owner' && (
         <div className="panel">
