@@ -5,7 +5,6 @@ import { setup, teardown, fixture } from './helpers';
 describe('Shop Telegram Owner Daily Shift Summary (E2E)', () => {
   let c: Awaited<ReturnType<typeof setup>>;
   let mockedFetch: jest.SpyInstance;
-  const origin = 'http://localhost:5173';
   const secret = 'test_telegram_webhook_secret_123';
   const app = () => c.app.getHttpServer();
 
@@ -35,18 +34,6 @@ describe('Shop Telegram Owner Daily Shift Summary (E2E)', () => {
     await teardown(c);
   });
 
-  async function loginAs(userId: string) {
-    const email =
-      userId === fixture.owner ? 'owner@example.test' : 'cashier@example.test';
-    const agent = request.agent(app());
-    const res = await agent
-      .post('/auth/login')
-      .set('Origin', origin)
-      .send({ email, password: 'correct-test-password' })
-      .expect(201);
-    return { agent, csrf: res.body.csrfToken as string };
-  }
-
   function webhook(message: object) {
     return request(app())
       .post('/integrations/telegram/buyer-webhook')
@@ -55,26 +42,23 @@ describe('Shop Telegram Owner Daily Shift Summary (E2E)', () => {
   }
 
   it('only owner can view status and issue link-token', async () => {
-    const cashierSession = await loginAs(fixture.cashier);
-    await cashierSession.agent
+    await request(app())
       .get(`/shops/${fixture.shop}/telegram/status`)
-      .set('Origin', origin)
+      .auth(c.cashier, { type: 'bearer' })
       .expect(403);
 
-    const ownerSession = await loginAs(fixture.owner);
-    const statusRes = await ownerSession.agent
+    const statusRes = await request(app())
       .get(`/shops/${fixture.shop}/telegram/status`)
-      .set('Origin', origin)
+      .auth(c.owner, { type: 'bearer' })
       .expect(200);
 
     expect(statusRes.body.enabled).toBe(true);
     expect(statusRes.body.botUsername).toBe('mystore_test_bot');
     expect(statusRes.body.subscription).toBeNull();
 
-    const tokenRes = await ownerSession.agent
+    const tokenRes = await request(app())
       .post(`/shops/${fixture.shop}/telegram/link-token`)
-      .set('Origin', origin)
-      .set('X-CSRF-Token', ownerSession.csrf)
+      .auth(c.owner, { type: 'bearer' })
       .send({})
       .expect(201);
 
@@ -85,11 +69,9 @@ describe('Shop Telegram Owner Daily Shift Summary (E2E)', () => {
   });
 
   it('connects owner via /start owner_<token> in webhook and dispatches welcome message', async () => {
-    const ownerSession = await loginAs(fixture.owner);
-    const tokenRes = await ownerSession.agent
+    const tokenRes = await request(app())
       .post(`/shops/${fixture.shop}/telegram/link-token`)
-      .set('Origin', origin)
-      .set('X-CSRF-Token', ownerSession.csrf)
+      .auth(c.owner, { type: 'bearer' })
       .send({})
       .expect(201);
 
@@ -112,9 +94,9 @@ describe('Shop Telegram Owner Daily Shift Summary (E2E)', () => {
     }).expect(200);
 
     // Verify subscription created
-    const statusRes = await ownerSession.agent
+    const statusRes = await request(app())
       .get(`/shops/${fixture.shop}/telegram/status`)
-      .set('Origin', origin)
+      .auth(c.owner, { type: 'bearer' })
       .expect(200);
 
     expect(statusRes.body.subscription).not.toBeNull();
@@ -132,20 +114,17 @@ describe('Shop Telegram Owner Daily Shift Summary (E2E)', () => {
   });
 
   it('sends test summary to connected chat', async () => {
-    const ownerSession = await loginAs(fixture.owner);
-    await ownerSession.agent
+    await request(app())
       .post(`/shops/${fixture.shop}/telegram/manual-subscribe`)
-      .set('Origin', origin)
-      .set('X-CSRF-Token', ownerSession.csrf)
+      .auth(c.owner, { type: 'bearer' })
       .send({ chatId: '987654321' })
       .expect(201);
 
     mockedFetch.mockClear();
 
-    await ownerSession.agent
+    await request(app())
       .post(`/shops/${fixture.shop}/telegram/test-summary`)
-      .set('Origin', origin)
-      .set('X-CSRF-Token', ownerSession.csrf)
+      .auth(c.owner, { type: 'bearer' })
       .send({})
       .expect(201);
 
@@ -158,20 +137,17 @@ describe('Shop Telegram Owner Daily Shift Summary (E2E)', () => {
   });
 
   it('triggers shift close summary upon closing a shift', async () => {
-    const ownerSession = await loginAs(fixture.owner);
     // Subscribe owner
-    await ownerSession.agent
+    await request(app())
       .post(`/shops/${fixture.shop}/telegram/manual-subscribe`)
-      .set('Origin', origin)
-      .set('X-CSRF-Token', ownerSession.csrf)
+      .auth(c.owner, { type: 'bearer' })
       .send({ chatId: '987654321' })
       .expect(201);
 
     // Open a shift
-    const openRes = await ownerSession.agent
+    const openRes = await request(app())
       .post(`/shops/${fixture.shop}/pos/shifts`)
-      .set('Origin', origin)
-      .set('X-CSRF-Token', ownerSession.csrf)
+      .auth(c.owner, { type: 'bearer' })
       .set('Idempotency-Key', 'test-shift-open-tg-1')
       .send({ openingCashMinor: 500000 })
       .expect(201);
@@ -180,10 +156,9 @@ describe('Shop Telegram Owner Daily Shift Summary (E2E)', () => {
     mockedFetch.mockClear();
 
     // Close shift with itemized expenses
-    await ownerSession.agent
+    await request(app())
       .post(`/shops/${fixture.shop}/pos/shifts/${shiftId}/close`)
-      .set('Origin', origin)
-      .set('X-CSRF-Token', ownerSession.csrf)
+      .auth(c.owner, { type: 'bearer' })
       .set('Idempotency-Key', 'test-shift-close-tg-1')
       .send({
         actualCashMinor: 480000,
@@ -192,7 +167,7 @@ describe('Shop Telegram Owner Daily Shift Summary (E2E)', () => {
       .expect(201);
 
     // Allow background dispatch promise to execute
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 80));
 
     expect(mockedFetch).toHaveBeenCalled();
     const lastCall = mockedFetch.mock.calls[mockedFetch.mock.calls.length - 1];
