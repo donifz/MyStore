@@ -73,7 +73,9 @@ it('resolves platform sections from URLs and defaults unknown input to overview'
     'overview',
     'applications',
     'products',
+    'banners',
     'audit',
+    'financial-access',
   ] as const)
     expect(platformSection('?section=' + section)).toBe(section);
   expect(platformSection('')).toBe('overview');

@@ -1,6 +1,11 @@
 import { hasShopPermission, type Me, type Shop, type Role } from '../api/types';
 export type PlatformSection =
-  'overview' | 'applications' | 'products' | 'audit' | 'financial-access';
+  | 'overview'
+  | 'applications'
+  | 'products'
+  | 'banners'
+  | 'audit'
+  | 'financial-access';
 export type WorkspaceContext =
   | { kind: 'platform' }
   | { kind: 'shop'; shop: Shop }
@@ -17,6 +22,7 @@ const sections: PlatformSection[] = [
   'overview',
   'applications',
   'products',
+  'banners',
   'audit',
   'financial-access',
 ];
@@ -117,6 +123,7 @@ export function workspaceMenu(
             'Обзор',
             'Партнёры',
             'Модерация товаров',
+            'Баннеры витрины',
             'Аудит',
             'Финансовый доступ',
           ][i],
