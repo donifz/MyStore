@@ -80,3 +80,19 @@ it('allows adding and removing slides with minimum 1 slide constraint', async ()
 
   expect(screen.queryByText('Слайд #3')).toBeNull();
 });
+
+it('displays error alert when saving throws', async () => {
+  const onSave = vi.fn().mockRejectedValue(new Error('Internal server error'));
+  const user = userEvent.setup();
+
+  render(<HeroSliderEditor initialSlides={initialSlides} onSave={onSave} />);
+
+  const titleInput = screen.getByDisplayValue('Товары рядом');
+  await user.type(titleInput, '!');
+
+  const saveBtn = screen.getByRole('button', { name: /сохранить изменения/i });
+  await user.click(saveBtn);
+
+  expect(screen.getByRole('alert')).toBeTruthy();
+  expect(screen.getByText('Internal server error')).toBeTruthy();
+});

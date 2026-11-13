@@ -309,10 +309,13 @@ export default function AdminPage() {
     if (!session.user?.platformAdmin || tab !== 'banners') return;
     let active = true;
     setHeroSlidesLoading(true);
-    void api<{ slides: HeroSlide[] }>('/platform/admin/hero-slides')
+    void api<{ slides: HeroSlide[] } | HeroSlide[]>(
+      '/platform/admin/hero-slides',
+    )
       .then((res) => {
         if (!active) return;
-        setHeroSlides(res.slides);
+        const slides = Array.isArray(res) ? res : res.slides || [];
+        setHeroSlides(slides);
       })
       .catch((err) => {
         if (!active) return;
@@ -330,14 +333,15 @@ export default function AdminPage() {
   async function handleSaveHeroSlides(slides: HeroSlide[]) {
     setHeroSlidesSaving(true);
     try {
-      const res = await api<{ slides: HeroSlide[] }>(
+      const res = await api<{ slides: HeroSlide[] } | HeroSlide[]>(
         '/platform/admin/hero-slides',
         {
           method: 'PUT',
           body: { slides },
         },
       );
-      setHeroSlides(res.slides);
+      const updatedSlides = Array.isArray(res) ? res : res.slides || [];
+      setHeroSlides(updatedSlides);
     } catch (err) {
       throw err;
     } finally {

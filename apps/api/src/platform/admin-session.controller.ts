@@ -121,7 +121,8 @@ export class AdminSessionController {
   @Get('hero-slides')
   async heroSlides(@Req() req: UserRequest) {
     await this.admins.requireAdmin(req.userId);
-    return this.admins.listHeroSlides();
+    const slides = await this.admins.listHeroSlides();
+    return { slides };
   }
 
   @Put('hero-slides')
@@ -130,6 +131,10 @@ export class AdminSessionController {
     @Body() body: UpdateHeroSlidesDto,
   ) {
     await this.admins.requireAdmin(req.userId);
-    return this.admins.updateHeroSlides(req.userId, body.slides || []);
+    const slides = await this.admins.updateHeroSlides(
+      req.userId,
+      body.slides || [],
+    );
+    return { slides };
   }
 }
