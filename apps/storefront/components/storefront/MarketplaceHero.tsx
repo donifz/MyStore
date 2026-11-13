@@ -21,7 +21,7 @@ const DEFAULT_SLIDES: HeroSlide[] = [
     isActive: true,
     badge: 'МАРКЕТПЛЕЙС МАГАЗИНОВ',
     title: 'Товары рядом',
-    subtitle: 'Магазины вашего города в одном месте',
+    subtitle: 'Смотрите наличие и забирайте в магазине',
     buttonText: 'Смотреть товары',
     buttonUrl: '#catalog',
     imageUrl: '/banners/banner-shops.jpg',
