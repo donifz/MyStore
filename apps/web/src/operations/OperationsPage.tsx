@@ -505,6 +505,7 @@ export default function OperationsPage() {
           {error}
         </p>
       )}
+      <TelegramOwnerSettings shopId={shopId} owner={shop?.role === 'owner'} />
       <div className="panel">
         <h2>Уведомления</h2>
         {!notifications.length && (
@@ -527,7 +528,6 @@ export default function OperationsPage() {
           ))}
         </div>
       </div>
-      <TelegramOwnerSettings shopId={shopId} owner={shop?.role === 'owner'} />
       <EmailSettings shopId={shopId} owner={shop?.role === 'owner'} />
       {shop?.role === 'owner' && (
         <div className="panel">

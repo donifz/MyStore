@@ -177,6 +177,7 @@ export function workspaceMenu(
       ? [
           item('Витрина', 'storefront', /^storefront$/),
           item('Сотрудники', 'staff', /^staff$/),
+          item('Telegram-бот', 'operations', /^operations$/),
         ]
       : []),
   ];
