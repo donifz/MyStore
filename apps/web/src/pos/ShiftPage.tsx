@@ -301,32 +301,7 @@ function ShiftWorkspace({
             }}
           >
             <h1 style={{ margin: 0 }}>Смена</h1>
-            {shift ? (
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: '#ecfdf5',
-                  color: '#065f46',
-                  border: '1px solid #a7f3d0',
-                  padding: '4px 10px',
-                  borderRadius: '20px',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                }}
-              >
-                <span
-                  style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    background: '#10b981',
-                  }}
-                />
-                Смена открыта
-              </span>
-            ) : (
+            {!shift && (
               <span
                 style={{
                   display: 'inline-flex',
@@ -400,6 +375,37 @@ function ShiftWorkspace({
         <div
           style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
         >
+          <section
+            className="panel"
+            style={{
+              padding: '0.875rem 1.25rem',
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '10px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span
+                style={{
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  background: '#10b981',
+                  display: 'inline-block',
+                }}
+              />
+              <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Смена открыта</h2>
+            </div>
+            <p className="muted" style={{ margin: 0, fontSize: '0.875rem' }}>
+              С {formatDate(shift.openedAt)}
+            </p>
+          </section>
+
           {/* Key KPI Cards */}
           <div
             style={{
@@ -1239,43 +1245,44 @@ function ShiftWorkspace({
           )}
 
           {/* Open New Shift Form */}
-          <section
-            className="panel form-panel"
-            style={{
-              background: '#ffffff',
-              border: '1px solid #cbd5e1',
-              borderRadius: '14px',
-              padding: '1.25rem',
-            }}
-          >
-            <h2 style={{ marginTop: 0, fontSize: '1.35rem' }}>Открыть смену</h2>
-            <p
-              className="muted"
-              style={{ marginTop: '-0.25rem', marginBottom: '1rem' }}
+          {!opening.draft.submission && !s.loading && (
+            <section
+              className="panel form-panel"
+              style={{
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '14px',
+                padding: '1.25rem',
+              }}
             >
-              Укажите начальную сумму наличных в денежном ящике.
-            </p>
-            <label>
-              Начальные наличные, сом
-              <input
-                inputMode="decimal"
-                value={openingCash}
-                onChange={(e) => setOpeningCash(e.target.value)}
-                disabled={!!opening.draft.submission}
-                placeholder="0.00"
-              />
-            </label>
-            <button
-              className="primary"
-              style={{ width: '100%', padding: '12px', fontSize: '1rem' }}
-              disabled={opening.busy || opening.blocked || !opening.online}
-              onClick={() => void open()}
-            >
-              {opening.draft.submission
-                ? 'Повторить открытие'
-                : 'Открыть смену'}
-            </button>
-          </section>
+              <h2 style={{ marginTop: 0, fontSize: '1.35rem' }}>
+                Открыть смену
+              </h2>
+              <p
+                className="muted"
+                style={{ marginTop: '-0.25rem', marginBottom: '1rem' }}
+              >
+                Укажите начальную сумму наличных в денежном ящике.
+              </p>
+              <label>
+                Начальные наличные, сом
+                <input
+                  inputMode="decimal"
+                  value={openingCash}
+                  onChange={(e) => setOpeningCash(e.target.value)}
+                  placeholder="0.00"
+                />
+              </label>
+              <button
+                className="primary"
+                style={{ width: '100%', padding: '12px', fontSize: '1rem' }}
+                disabled={opening.busy || opening.blocked || !opening.online}
+                onClick={() => void open()}
+              >
+                Открыть смену
+              </button>
+            </section>
+          )}
         </div>
       )}
 
