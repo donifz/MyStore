@@ -12,6 +12,8 @@ import { DATABASE } from '../database';
 import { IdempotencyService } from '../common/idempotency.service';
 import { minor, safeMoney, MAX_MONEY } from '../common/money';
 import { ShiftView, CashTransactionView } from './pos.types';
+import { ShopTelegramService } from '../shops/shop-telegram.service';
+
 export function signedMoney(n: bigint) {
   if (n > MAX_MONEY || n < -MAX_MONEY)
     throw new BadRequestException('Money outside safe range');
@@ -22,6 +24,7 @@ export class ShiftsService {
   constructor(
     @Inject(DATABASE) private readonly db: DataSource,
     private readonly ops: IdempotencyService,
+    private readonly shopTelegram: ShopTelegramService,
   ) {}
   async view(tx: EntityManager, row: any): Promise<ShiftView> {
     const [sum] = await tx.query(
@@ -193,7 +196,7 @@ export class ShiftsService {
           : [];
     const totalExpense = items.reduce((sum, it) => sum + it.amountMinor, 0);
     const note = comment?.trim() || null;
-    return this.ops.execute(
+    const result = await this.ops.execute(
       shopId,
       key,
       {
@@ -253,6 +256,12 @@ export class ShiftsService {
         return this.view(tx, closed);
       },
     );
+    try {
+      await this.shopTelegram.sendShiftCloseSummary(shopId, id);
+    } catch (err) {
+      console.warn('[shop-telegram] shift close notification failed:', err);
+    }
+    return result;
   }
   async cashIn(
     shopId: string,

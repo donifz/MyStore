@@ -28,10 +28,12 @@ function ShiftWorkspace({
   const [cashBusy, setCashBusy] = useState(false);
   const [cashError, setCashError] = useState('');
 
+  const isOwner =
+    useSession().user?.shops.find((x) => x.id === shopId)?.role === 'owner';
   const s = useCurrentShift(
     shopId,
     `${opening.success}:${closing.success}:${shiftTrigger}`,
-    useSession().user?.shops.find((x) => x.id === shopId)?.role === 'owner',
+    isOwner,
   );
   const shift = s.current && 'id' in s.current ? s.current : null;
 
@@ -371,6 +373,30 @@ function ShiftWorkspace({
                   : 'Закрыть смену'}
               </button>
             </div>
+
+            {isOwner && (
+              <p
+                className="muted"
+                style={{
+                  fontSize: '0.825rem',
+                  marginTop: '-0.5rem',
+                  marginBottom: '1.5rem',
+                }}
+              >
+                📱{' '}
+                <i>
+                  При закрытии смены ежедневная сводка (выручка, расходы,
+                  остаток и топ товаров) автоматически отправляется в Telegram
+                  владельцу.
+                </i>{' '}
+                <Link
+                  to={`/seller/${shopId}/operations`}
+                  style={{ textDecoration: 'underline' }}
+                >
+                  Настроить Telegram-бота
+                </Link>
+              </p>
+            )}
 
             <section style={{ marginTop: '2rem' }}>
               <h3>Движения наличных за смену</h3>

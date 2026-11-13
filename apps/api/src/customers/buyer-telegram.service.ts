@@ -13,10 +13,16 @@ import { hashPassword } from '../auth/password';
 import { DATABASE } from '../database';
 import { BuyerAuthService, generateBuyerPassword } from './buyer-auth.service';
 import { normalizeKyrgyzPhone } from './kyrgyz-phone';
+import { ShopTelegramService } from '../shops/shop-telegram.service';
 
 type TelegramMessage = {
   chat?: { id?: number; type?: string };
-  from?: { id?: number; is_bot?: boolean };
+  from?: {
+    id?: number;
+    is_bot?: boolean;
+    username?: string;
+    first_name?: string;
+  };
   text?: string;
   contact?: { phone_number?: string; user_id?: number };
 };
@@ -49,6 +55,7 @@ export class BuyerTelegramService {
   constructor(
     @Inject(DATABASE) private readonly db: DataSource,
     private readonly buyerAuth: BuyerAuthService,
+    private readonly shopTelegram: ShopTelegramService,
   ) {}
 
   async registerWebhook(): Promise<void> {
@@ -264,6 +271,17 @@ export class BuyerTelegramService {
     const text = message?.text;
     if (typeof text === 'string' && text.startsWith('/start ')) {
       const rawParam = text.slice(7).trim();
+      if (rawParam.startsWith('owner_')) {
+        const token = rawParam.slice(6).trim();
+        const handled = await this.shopTelegram.handleOwnerStart(
+          user,
+          chat,
+          message?.from?.username,
+          message?.from?.first_name,
+          token,
+        );
+        if (handled) return { ok: true };
+      }
       if (rawParam.startsWith('auth_')) {
         const token = rawParam.slice(5).trim();
         if (!/^[A-Za-z0-9_-]{32}$/.test(token)) return { ok: true };

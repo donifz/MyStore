@@ -42,6 +42,7 @@ import { StorefrontReviews1760000000038 } from './migrations/1760000000038-Store
 import { ShopCustomAttributes1760000000039 } from './migrations/1760000000039-ShopCustomAttributes';
 import { BuyerInitialPassword1760000000040 } from './migrations/1760000000040-BuyerInitialPassword';
 import { BuyerTelegramAuth1760000000041 } from './migrations/1760000000041-BuyerTelegramAuth';
+import { ShopTelegramNotifications1760000000042 } from './migrations/1760000000042-ShopTelegramNotifications';
 export const DATABASE = Symbol('DATABASE');
 export function buildDataSource(url: string) {
   return new DataSource({
@@ -91,6 +92,7 @@ export function buildDataSource(url: string) {
       ShopCustomAttributes1760000000039,
       BuyerInitialPassword1760000000040,
       BuyerTelegramAuth1760000000041,
+      ShopTelegramNotifications1760000000042,
     ],
   });
 }
