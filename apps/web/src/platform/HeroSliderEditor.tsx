@@ -47,6 +47,60 @@ const GRADIENTS = [
   },
 ];
 
+const PRESET_BANNERS = [
+  { label: '«Товары рядом»', url: '/banners/banner-shops.jpg' },
+  { label: '«Скидки до 50%»', url: '/banners/banner-sale.jpg' },
+  { label: '«Быстрая доставка»', url: '/banners/banner-delivery.jpg' },
+];
+
+async function processBannerImage(file: File): Promise<string> {
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    throw new Error('Прикрепите изображение JPEG, PNG или WebP.');
+  }
+  if (file.size > 20 * 1024 * 1024) {
+    throw new Error('Размер изображения не должен превышать 20 МБ.');
+  }
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Не удалось прочитать файл.'));
+    reader.onload = () => {
+      if (typeof window === 'undefined' || typeof Image === 'undefined') {
+        return resolve(String(reader.result));
+      }
+      const img = new Image();
+      img.onerror = () =>
+        reject(new Error('Не удалось обработать изображение.'));
+      img.onload = () => {
+        try {
+          const maxW = 1400;
+          const maxH = 650;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxW || h > maxH) {
+            const scale = Math.min(maxW / w, maxH / h);
+            w = Math.max(1, Math.round(w * scale));
+            h = Math.max(1, Math.round(h * scale));
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            return resolve(String(reader.result));
+          }
+          ctx.drawImage(img, 0, 0, w, h);
+          const compressed = canvas.toDataURL('image/jpeg', 0.85);
+          resolve(compressed);
+        } catch {
+          resolve(String(reader.result));
+        }
+      };
+      img.src = String(reader.result);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function HeroSliderEditor({
   initialSlides,
   onSave,
@@ -141,29 +195,21 @@ export default function HeroSliderEditor({
     setSaved(false);
   };
 
-  const handleFileUpload = (
+  const handleFileUpload = async (
     index: number,
     e: ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      setError('Прикрепите изображение JPEG, PNG или WebP.');
+    try {
+      setError('');
+      const dataUrl = await processBannerImage(file);
+      updateSlide(index, { imageUrl: dataUrl });
+    } catch (err: any) {
+      setError(err?.message || 'Не удалось загрузить файл.');
+    } finally {
       e.target.value = '';
-      return;
     }
-    if (file.size > 1024 * 1024) {
-      setError('Размер изображения не должен превышать 1 МБ.');
-      e.target.value = '';
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      updateSlide(index, { imageUrl: String(reader.result) });
-      e.target.value = '';
-    };
-    reader.onerror = () => setError('Не удалось загрузить файл.');
-    reader.readAsDataURL(file);
   };
 
   const handleSave = async () => {
@@ -562,7 +608,61 @@ export default function HeroSliderEditor({
 
                   <div>
                     <label>
-                      Изображение баннера (до 1 МБ)
+                      Изображение баннера
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '8px',
+                          flexWrap: 'wrap',
+                          marginTop: '6px',
+                          marginBottom: '8px',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: '12px',
+                            color: '#64748b',
+                            width: '100%',
+                          }}
+                        >
+                          Быстрый выбор готового баннера:
+                        </span>
+                        {PRESET_BANNERS.map((pb) => (
+                          <button
+                            key={pb.url}
+                            type="button"
+                            className="secondary"
+                            style={{
+                              fontSize: '12px',
+                              padding: '4px 10px',
+                              background:
+                                s.imageUrl === pb.url ? '#e0f2fe' : undefined,
+                              borderColor:
+                                s.imageUrl === pb.url ? '#0284c7' : undefined,
+                            }}
+                            onClick={() =>
+                              updateSlide(index, { imageUrl: pb.url })
+                            }
+                          >
+                            {pb.label}
+                          </button>
+                        ))}
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="URL изображения (/banners/... или https://...)"
+                        value={s.imageUrl || ''}
+                        onChange={(e) =>
+                          updateSlide(index, {
+                            imageUrl: e.target.value.trim() || null,
+                          })
+                        }
+                        style={{ marginBottom: '8px' }}
+                      />
+                      <span style={{ fontSize: '12px', color: '#64748b' }}>
+                        Или загрузите файл (с камеры или галереи, до 20 МБ —
+                        автосжатие):
+                      </span>
                       <input
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
