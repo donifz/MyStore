@@ -282,16 +282,40 @@ export class StorefrontService {
     }
   }
   async heroSlides() {
-    return this.db.query(
-      `SELECT id, sort_order AS "sortOrder", badge, title, subtitle,
-              button_text AS "buttonText", button_url AS "buttonUrl",
-              image_url AS "imageUrl", mobile_image_url AS "mobileImageUrl",
-              hide_overlay AS "hideOverlay", only_image AS "onlyImage",
-              bg_gradient AS "bgGradient"
-       FROM platform_hero_slides
-       WHERE is_active = true
-       ORDER BY sort_order ASC, created_at ASC`,
-    );
+    try {
+      return await this.db.query(
+        `SELECT id, sort_order AS "sortOrder", badge, title, subtitle,
+                button_text AS "buttonText", button_url AS "buttonUrl",
+                image_url AS "imageUrl", mobile_image_url AS "mobileImageUrl",
+                hide_overlay AS "hideOverlay", only_image AS "onlyImage",
+                bg_gradient AS "bgGradient"
+         FROM platform_hero_slides
+         WHERE is_active = true
+         ORDER BY sort_order ASC, created_at ASC`,
+      );
+    } catch (err: any) {
+      if (err?.code === '42703') {
+        const rows = await this.db.query(
+          `SELECT id, sort_order AS "sortOrder", badge, title, subtitle,
+                  button_text AS "buttonText", button_url AS "buttonUrl",
+                  image_url AS "imageUrl",
+                  bg_gradient AS "bgGradient"
+           FROM platform_hero_slides
+           WHERE is_active = true
+           ORDER BY sort_order ASC, created_at ASC`,
+        );
+        return rows.map((r: any) => ({
+          ...r,
+          mobileImageUrl: null,
+          hideOverlay: false,
+          onlyImage: false,
+        }));
+      }
+      if (err?.code === '42P01') {
+        return [];
+      }
+      throw err;
+    }
   }
   async filters() {
     const locations = await this.db.query(

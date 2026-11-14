@@ -7244,7 +7244,7 @@ fieldset {
   }
 }
 @media (max-width: 820px) {
-  .workspace-shop .sidebar.admin-kit-sidebar {
+  :is(.workspace-shop, .workspace-platform) .sidebar.admin-kit-sidebar {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
@@ -7254,14 +7254,14 @@ fieldset {
     color: #18232b;
     border-bottom: 1px solid #e3e9ec;
   }
-  .workspace-shop .sidebar .admin-kit-brand {
+  :is(.workspace-shop, .workspace-platform) .sidebar .admin-kit-brand {
     grid-column: 1;
     padding: 0;
     gap: 8px;
     color: #18232b;
     font-size: 19px;
   }
-  .workspace-shop .admin-kit-brand-logo {
+  :is(.workspace-shop, .workspace-platform) .admin-kit-brand-logo {
     flex-basis: 34px;
     width: 34px;
     height: 34px;
@@ -7269,10 +7269,11 @@ fieldset {
     background: #17734f;
     color: #fff;
   }
-  .workspace-shop .admin-kit-brand small {
+  :is(.workspace-shop, .workspace-platform) .admin-kit-brand small {
     display: none;
   }
-  .workspace-shop .sidebar-bottom.admin-kit-sidebar-bottom {
+  :is(.workspace-shop, .workspace-platform)
+    .sidebar-bottom.admin-kit-sidebar-bottom {
     grid-column: 2;
     grid-row: 1;
     display: inline-flex;
@@ -7281,7 +7282,7 @@ fieldset {
     margin: 0;
     padding: 0;
   }
-  .workspace-shop .workspace-mobile-avatar {
+  :is(.workspace-shop, .workspace-platform) .workspace-mobile-avatar {
     display: inline-grid;
     place-items: center;
     width: 32px;
@@ -7292,7 +7293,7 @@ fieldset {
     font-size: 12px;
     font-weight: 700;
   }
-  .workspace-shop .sidebar-bottom button {
+  :is(.workspace-shop, .workspace-platform) .sidebar-bottom button {
     min-height: 34px;
     padding: 6px 10px;
     border: 1px solid #d5dee3;
@@ -7302,16 +7303,16 @@ fieldset {
     font-size: 12px;
     font-weight: 600;
   }
-  .workspace-shop .workspace-context {
+  :is(.workspace-shop, .workspace-platform) .workspace-context {
     grid-column: 1 / -1;
     display: flex;
     align-items: center;
     gap: 8px;
   }
-  .workspace-shop .workspace-context label {
+  :is(.workspace-shop, .workspace-platform) .workspace-context label {
     display: none;
   }
-  .workspace-shop .workspace-context select {
+  :is(.workspace-shop, .workspace-platform) .workspace-context select {
     flex: 1;
     min-width: 0;
     min-height: 36px;
@@ -7323,7 +7324,7 @@ fieldset {
     font-size: 13px;
     font-weight: 600;
   }
-  .workspace-shop .workspace-context small {
+  :is(.workspace-shop, .workspace-platform) .workspace-context small {
     flex: 0 0 auto;
     padding: 4px 8px;
     border-radius: 999px;
@@ -7332,66 +7333,69 @@ fieldset {
     font-size: 11px;
     font-weight: 600;
   }
-  .workspace-shop .topbar.admin-kit-topbar:not(:has(.admin-kit-search)) {
+  :is(.workspace-shop, .workspace-platform) .topbar.admin-kit-topbar {
     display: none;
   }
-  .workspace-shop .topbar.admin-kit-topbar:has(.admin-kit-search) {
-    min-height: 0;
-    padding: 10px 14px;
-  }
-  .workspace-shop
-    .topbar.admin-kit-topbar:has(.admin-kit-search)
-    .workspace-header-main
-    > span,
-  .workspace-shop
-    .topbar.admin-kit-topbar:has(.admin-kit-search)
-    .admin-kit-identity {
-    display: none;
-  }
-  .workspace-shop .sidebar.admin-kit-sidebar nav {
+  :is(.workspace-shop, .workspace-platform) .sidebar.admin-kit-sidebar nav {
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
     z-index: 40;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(54px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(48px, 1fr));
     align-items: stretch;
-    gap: 4px;
+    gap: 2px;
     margin: 0;
-    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
     background: #fff;
     border-top: 1px solid #dfe7e4;
     box-shadow: 0 -4px 18px rgb(15 35 28 / 8%);
     overflow: visible;
   }
-  .workspace-shop .sidebar nav > .workspace-nav-group > a,
-  .workspace-shop .workspace-more > summary {
+  :is(.workspace-shop, .workspace-platform)
+    .sidebar
+    nav
+    > .workspace-nav-group
+    > a,
+  :is(.workspace-shop, .workspace-platform) .workspace-more > summary {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 3px;
     min-height: 50px;
-    padding: 6px 4px;
+    padding: 6px 2px;
     border-radius: 10px;
     background: transparent;
     color: #5b6972;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
     line-height: 1.15;
     text-align: center;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .workspace-shop .sidebar nav > .workspace-nav-group > a[aria-current='page'],
-  .workspace-shop .sidebar nav > .workspace-nav-group > a.active,
-  .workspace-shop .workspace-more.has-active > summary,
-  .workspace-shop .workspace-more[open] > summary {
+  :is(.workspace-shop, .workspace-platform)
+    .sidebar
+    nav
+    > .workspace-nav-group
+    > a[aria-current='page'],
+  :is(.workspace-shop, .workspace-platform)
+    .sidebar
+    nav
+    > .workspace-nav-group
+    > a.active,
+  :is(.workspace-shop, .workspace-platform)
+    .workspace-more.has-active
+    > summary,
+  :is(.workspace-shop, .workspace-platform) .workspace-more[open] > summary {
     background: #e3f4ec;
     color: #146343;
     font-weight: 700;
   }
-  .workspace-shop .workspace-more-sheet {
+  :is(.workspace-shop, .workspace-platform) .workspace-more-sheet {
     position: fixed;
     left: 12px;
     right: 12px;
@@ -7409,23 +7413,25 @@ fieldset {
     background: #fff;
     box-shadow: 0 10px 30px rgb(15 35 28 / 18%);
   }
-  .workspace-shop .workspace-more-sheet a {
+  :is(.workspace-shop, .workspace-platform) .workspace-more-sheet a {
     display: flex;
     align-items: center;
     min-height: 40px;
     padding: 8px 12px;
-    border-radius: 9px;
+    border-radius: 999px;
     background: #f5f8f7;
     color: #18232b;
     font-size: 13px;
     font-weight: 600;
   }
-  .workspace-shop .workspace-more-sheet a[aria-current='page'],
-  .workspace-shop .workspace-more-sheet a.active {
+  :is(.workspace-shop, .workspace-platform)
+    .workspace-more-sheet
+    a[aria-current='page'],
+  :is(.workspace-shop, .workspace-platform) .workspace-more-sheet a.active {
     background: #17734f;
     color: #fff;
   }
-  .workspace-shop .workspace-install-more {
+  :is(.workspace-shop, .workspace-platform) .workspace-install-more {
     grid-column: 1 / -1;
     margin-top: 4px;
     padding: 6px 12px;
@@ -7434,11 +7440,11 @@ fieldset {
     background: #f6faf8;
     color: #24333b;
   }
-  .workspace-shop .workspace-install-more button {
+  :is(.workspace-shop, .workspace-platform) .workspace-install-more button {
     background: #17734f;
     color: #fff;
   }
-  .workspace-shop .content.admin-kit-content {
+  :is(.workspace-shop, .workspace-platform) .content.admin-kit-content {
     padding-bottom: 92px;
   }
 }
