@@ -70,6 +70,12 @@ export class HeroSlideItemDto {
   @IsString()
   @MaxLength(30)
   bgGradient?: string;
+
+  @IsOptional()
+  createdAt?: unknown;
+
+  @IsOptional()
+  updatedAt?: unknown;
 }
 
 export class UpdateHeroSlidesDto {

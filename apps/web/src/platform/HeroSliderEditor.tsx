@@ -280,7 +280,7 @@ export default function HeroSliderEditor({
 
   const handleSave = async () => {
     for (let i = 0; i < slides.length; i++) {
-      if (!slides[i].title.trim()) {
+      if (!slides[i].onlyImage && !slides[i].title.trim()) {
         setError(`Слайд #${i + 1}: заголовок обязателен для заполнения.`);
         return;
       }
@@ -289,23 +289,28 @@ export default function HeroSliderEditor({
       setError('');
       await onSave(
         slides.map((s, idx) => ({
-          ...s,
+          ...(s.id ? { id: s.id } : {}),
           sortOrder: idx,
-          badge: s.badge.trim(),
-          title: s.title.trim(),
-          subtitle: s.subtitle.trim(),
-          buttonText: s.buttonText.trim(),
-          buttonUrl: s.buttonUrl.trim(),
+          isActive: Boolean(s.isActive),
+          badge: (s.badge || '').trim(),
+          title: s.title.trim() || `Баннер ${idx + 1}`,
+          subtitle: (s.subtitle || '').trim(),
+          buttonText: (s.buttonText || '').trim() || 'Смотреть товары',
+          buttonUrl: (s.buttonUrl || '').trim() || '#catalog',
           imageUrl: s.imageUrl?.trim() || null,
           mobileImageUrl: s.mobileImageUrl?.trim() || null,
           hideOverlay: Boolean(s.hideOverlay),
           onlyImage: Boolean(s.onlyImage),
+          bgGradient: s.bgGradient || 'blue',
         })),
       );
       setDirty(false);
       setSaved(true);
     } catch (err: any) {
-      setError(err?.message || 'Не удалось сохранить слайды.');
+      const detailMsg = Array.isArray(err?.details?.message)
+        ? err.details.message.join(', ')
+        : err?.message;
+      setError(detailMsg || 'Не удалось сохранить слайды.');
     }
   };
 
