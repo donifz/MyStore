@@ -172,3 +172,43 @@ it('supports toggling hideOverlay, onlyImage, and mobileImageUrl', async () => {
   expect(saved[0].onlyImage).toBe(true);
   expect(saved[0].mobileImageUrl).toBe('https://example.com/mobile.jpg');
 });
+
+it('strips createdAt and updatedAt metadata when saving loaded slides', async () => {
+  const onSave = vi.fn().mockResolvedValue(undefined);
+  const user = userEvent.setup();
+  const slidesWithMeta = [
+    {
+      id: '77235f74-b922-4d07-af91-84a049d7b6e1',
+      sortOrder: 0,
+      isActive: true,
+      badge: 'МАРКЕТПЛЕЙС',
+      title: 'Товары рядом',
+      subtitle: 'Описание',
+      buttonText: 'Смотреть',
+      buttonUrl: '#catalog',
+      imageUrl: '/banners/banner-shops.jpg',
+      mobileImageUrl: null,
+      hideOverlay: false,
+      onlyImage: false,
+      bgGradient: 'blue',
+      createdAt: '2026-11-14T04:06:55.475Z',
+      updatedAt: '2026-11-14T04:06:55.475Z',
+    } as any,
+  ];
+  render(
+    <HeroSliderEditor
+      initialSlides={slidesWithMeta}
+      saving={false}
+      onSave={onSave}
+    />,
+  );
+
+  await user.click(screen.getByRole('checkbox', { name: /без затемнения/i }));
+  await user.click(
+    screen.getByRole('button', { name: /сохранить изменения/i }),
+  );
+  expect(onSave).toHaveBeenCalledTimes(1);
+  const saved = onSave.mock.calls[0][0][0];
+  expect('createdAt' in saved).toBe(false);
+  expect('updatedAt' in saved).toBe(false);
+});
