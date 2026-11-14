@@ -11,6 +11,9 @@ export type HeroSlide = {
   buttonText: string;
   buttonUrl: string;
   imageUrl?: string | null;
+  mobileImageUrl?: string | null;
+  hideOverlay?: boolean;
+  onlyImage?: boolean;
   bgGradient: string;
 };
 
@@ -63,6 +66,9 @@ const DEFAULT_SLIDES: HeroSlide[] = [
     buttonText: 'Смотреть товары',
     buttonUrl: '#catalog',
     imageUrl: '/banners/banner-shops.jpg',
+    mobileImageUrl: null,
+    hideOverlay: false,
+    onlyImage: false,
     bgGradient: 'blue',
   },
   {
@@ -74,6 +80,9 @@ const DEFAULT_SLIDES: HeroSlide[] = [
     buttonText: 'Смотреть скидки',
     buttonUrl: '#catalog',
     imageUrl: '/banners/banner-sale.jpg',
+    mobileImageUrl: null,
+    hideOverlay: false,
+    onlyImage: false,
     bgGradient: 'indigo',
   },
   {
@@ -85,11 +94,17 @@ const DEFAULT_SLIDES: HeroSlide[] = [
     buttonText: 'Магазины рядом',
     buttonUrl: '/shops',
     imageUrl: '/banners/banner-delivery.jpg',
+    mobileImageUrl: null,
+    hideOverlay: false,
+    onlyImage: false,
     bgGradient: 'emerald',
   },
 ];
 
-async function processBannerImage(file: File): Promise<string> {
+async function processBannerImage(
+  file: File,
+  isMobile = false,
+): Promise<string> {
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
     throw new Error('Прикрепите изображение JPEG, PNG или WebP.');
   }
@@ -108,8 +123,8 @@ async function processBannerImage(file: File): Promise<string> {
         reject(new Error('Не удалось обработать изображение.'));
       img.onload = () => {
         try {
-          const maxW = 1200;
-          const maxH = 550;
+          const maxW = isMobile ? 800 : 1200;
+          const maxH = isMobile ? 800 : 550;
           let w = img.width;
           let h = img.height;
           if (w > maxW || h > maxH) {
@@ -169,6 +184,9 @@ export default function HeroSliderEditor({
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
   const [previewIdx, setPreviewIdx] = useState(0);
+  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>(
+    'desktop',
+  );
 
   const updateSlide = (index: number, patch: Partial<HeroSlide>) => {
     setSlides((prev) => {
@@ -193,6 +211,9 @@ export default function HeroSliderEditor({
         buttonText: 'Подробнее',
         buttonUrl: '#catalog',
         imageUrl: null,
+        mobileImageUrl: null,
+        hideOverlay: false,
+        onlyImage: false,
         bgGradient: 'indigo',
       },
     ]);
@@ -238,13 +259,18 @@ export default function HeroSliderEditor({
   const handleFileUpload = async (
     index: number,
     e: ChangeEvent<HTMLInputElement>,
+    target: 'desktop' | 'mobile' = 'desktop',
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
       setError('');
-      const dataUrl = await processBannerImage(file);
-      updateSlide(index, { imageUrl: dataUrl });
+      const dataUrl = await processBannerImage(file, target === 'mobile');
+      if (target === 'mobile') {
+        updateSlide(index, { mobileImageUrl: dataUrl });
+      } else {
+        updateSlide(index, { imageUrl: dataUrl });
+      }
     } catch (err: any) {
       setError(err?.message || 'Не удалось загрузить файл.');
     } finally {
@@ -271,6 +297,9 @@ export default function HeroSliderEditor({
           buttonText: s.buttonText.trim(),
           buttonUrl: s.buttonUrl.trim(),
           imageUrl: s.imageUrl?.trim() || null,
+          mobileImageUrl: s.mobileImageUrl?.trim() || null,
+          hideOverlay: Boolean(s.hideOverlay),
+          onlyImage: Boolean(s.onlyImage),
         })),
       );
       setDirty(false);
@@ -284,6 +313,15 @@ export default function HeroSliderEditor({
   const activeGradient =
     GRADIENTS.find((g) => g.key === activeSlide?.bgGradient)?.value ||
     GRADIENTS[0].value;
+  const previewImage =
+    previewDevice === 'mobile'
+      ? activeSlide?.mobileImageUrl || activeSlide?.imageUrl
+      : activeSlide?.imageUrl;
+  const previewBg = previewImage
+    ? activeSlide?.hideOverlay
+      ? `url(${previewImage}) center/cover no-repeat`
+      : `linear-gradient(rgba(15,23,42,0.65), rgba(15,23,42,0.65)), url(${previewImage}) center/cover no-repeat`
+    : activeGradient;
 
   return (
     <div className="page-stack">
@@ -293,93 +331,206 @@ export default function HeroSliderEditor({
         subtitle="Так баннер будет отображаться на главной странице маркетплейса"
       >
         <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '14px',
+            flexWrap: 'wrap',
+            gap: '8px',
+          }}
+        >
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              type="button"
+              className={previewDevice === 'desktop' ? 'primary' : 'secondary'}
+              style={{ fontSize: '12px', padding: '5px 12px' }}
+              onClick={() => setPreviewDevice('desktop')}
+            >
+              🖥️ ПК / Десктоп
+            </button>
+            <button
+              type="button"
+              className={previewDevice === 'mobile' ? 'primary' : 'secondary'}
+              style={{ fontSize: '12px', padding: '5px 12px' }}
+              onClick={() => setPreviewDevice('mobile')}
+            >
+              📱 Смартфон (мобильный вид)
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {activeSlide?.hideOverlay && (
+              <span
+                style={{
+                  fontSize: '11.5px',
+                  color: '#0284c7',
+                  background: '#e0f2fe',
+                  padding: '2px 8px',
+                  borderRadius: '999px',
+                }}
+              >
+                Без затемнения
+              </span>
+            )}
+            {activeSlide?.onlyImage && (
+              <span
+                style={{
+                  fontSize: '11.5px',
+                  color: '#7c3aed',
+                  background: '#f3e8ff',
+                  padding: '2px 8px',
+                  borderRadius: '999px',
+                }}
+              >
+                Только фото
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div
           className="admin-slider-preview-wrap"
           style={{
-            background: activeSlide?.imageUrl
-              ? `linear-gradient(rgba(15,23,42,0.65), rgba(15,23,42,0.65)), url(${activeSlide.imageUrl}) center/cover`
-              : activeGradient,
+            background: previewBg,
             borderRadius: '20px',
-            padding: '36px 32px',
+            padding: previewDevice === 'mobile' ? '22px 18px' : '36px 32px',
+            maxWidth: previewDevice === 'mobile' ? '360px' : '100%',
+            margin: previewDevice === 'mobile' ? '0 auto' : undefined,
             color: '#ffffff',
             position: 'relative',
             overflow: 'hidden',
             boxShadow: '0 8px 24px rgba(15, 23, 42, 0.15)',
-            minHeight: '200px',
+            minHeight: previewDevice === 'mobile' ? '180px' : '200px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
+            transition: 'max-width 0.2s ease',
           }}
         >
-          <div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              {activeSlide?.badge && (
+          {activeSlide?.onlyImage ? (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100%',
+                minHeight: previewDevice === 'mobile' ? '140px' : '160px',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div
+                style={{ display: 'flex', gap: '8px', alignItems: 'center' }}
+              >
                 <span
                   style={{
-                    background: 'rgba(255,255,255,0.22)',
+                    background: 'rgba(15,23,42,0.65)',
                     backdropFilter: 'blur(6px)',
                     padding: '4px 10px',
                     borderRadius: '999px',
                     fontSize: '11px',
                     fontWeight: 700,
-                    letterSpacing: '0.06em',
                   }}
                 >
-                  {activeSlide.badge}
+                  Только баннер (текст скрыт)
                 </span>
-              )}
-              {!activeSlide?.isActive && (
-                <AdminStatus tone="neutral">Скрыт на витрине</AdminStatus>
-              )}
+                {!activeSlide?.isActive && (
+                  <AdminStatus tone="neutral">Скрыт на витрине</AdminStatus>
+                )}
+              </div>
+              <div
+                style={{
+                  alignSelf: 'flex-start',
+                  background: 'rgba(255,255,255,0.92)',
+                  color: '#0f172a',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                }}
+              >
+                Ссылка клика: {activeSlide.buttonUrl || '#catalog'}
+              </div>
             </div>
-            <h2
-              style={{
-                color: '#ffffff',
-                fontSize: '28px',
-                fontWeight: 850,
-                marginTop: '12px',
-                marginBottom: '8px',
-                lineHeight: 1.2,
-              }}
-            >
-              {activeSlide?.title || 'Заголовок слайда'}
-            </h2>
-            <p
-              style={{
-                color: 'rgba(255,255,255,0.9)',
-                fontSize: '14.5px',
-                margin: 0,
-                maxWidth: '520px',
-              }}
-            >
-              {activeSlide?.subtitle || 'Подзаголовок или описание предложения'}
-            </p>
-          </div>
+          ) : (
+            <div>
+              <div
+                style={{ display: 'flex', gap: '8px', alignItems: 'center' }}
+              >
+                {activeSlide?.badge && (
+                  <span
+                    style={{
+                      background: 'rgba(255,255,255,0.22)',
+                      backdropFilter: 'blur(6px)',
+                      padding: '4px 10px',
+                      borderRadius: '999px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      letterSpacing: '0.06em',
+                    }}
+                  >
+                    {activeSlide.badge}
+                  </span>
+                )}
+                {!activeSlide?.isActive && (
+                  <AdminStatus tone="neutral">Скрыт на витрине</AdminStatus>
+                )}
+              </div>
+              <h2
+                style={{
+                  color: '#ffffff',
+                  fontSize: previewDevice === 'mobile' ? '22px' : '28px',
+                  fontWeight: 850,
+                  marginTop: '12px',
+                  marginBottom: '8px',
+                  lineHeight: 1.2,
+                }}
+              >
+                {activeSlide?.title || 'Заголовок слайда'}
+              </h2>
+              <p
+                style={{
+                  color: 'rgba(255,255,255,0.9)',
+                  fontSize: previewDevice === 'mobile' ? '13px' : '14.5px',
+                  margin: 0,
+                  maxWidth: '520px',
+                }}
+              >
+                {activeSlide?.subtitle ||
+                  'Подзаголовок или описание предложения'}
+              </p>
+            </div>
+          )}
 
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              marginTop: '24px',
+              justifyContent: activeSlide?.onlyImage
+                ? 'flex-end'
+                : 'space-between',
+              marginTop: '20px',
               flexWrap: 'wrap',
               gap: '12px',
             }}
           >
-            <span
-              style={{
-                background: '#ffffff',
-                color: '#0f172a',
-                padding: '10px 20px',
-                borderRadius: '12px',
-                fontWeight: 700,
-                fontSize: '14px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              {activeSlide?.buttonText || 'Смотреть'} →
-            </span>
+            {!activeSlide?.onlyImage && (
+              <span
+                style={{
+                  background: '#ffffff',
+                  color: '#0f172a',
+                  padding:
+                    previewDevice === 'mobile' ? '8px 16px' : '10px 20px',
+                  borderRadius: '12px',
+                  fontWeight: 700,
+                  fontSize: previewDevice === 'mobile' ? '13px' : '14px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                {activeSlide?.buttonText || 'Смотреть'} →
+              </span>
+            )}
 
             {/* Navigation Dots */}
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -513,7 +664,8 @@ export default function HeroSliderEditor({
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '10px',
+                      gap: '12px',
+                      flexWrap: 'wrap',
                     }}
                   >
                     <strong>Слайд #{index + 1}</strong>
@@ -529,6 +681,32 @@ export default function HeroSliderEditor({
                         }
                       />
                       <span>Активен</span>
+                    </label>
+                    <label
+                      className="checkbox-label"
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={Boolean(s.hideOverlay)}
+                        onChange={(e) =>
+                          updateSlide(index, { hideOverlay: e.target.checked })
+                        }
+                      />
+                      <span>Без затемнения</span>
+                    </label>
+                    <label
+                      className="checkbox-label"
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={Boolean(s.onlyImage)}
+                        onChange={(e) =>
+                          updateSlide(index, { onlyImage: e.target.checked })
+                        }
+                      />
+                      <span>Только фото (скрыть текст поверх)</span>
                     </label>
                   </div>
 
@@ -657,21 +835,48 @@ export default function HeroSliderEditor({
                     </select>
                   </label>
 
-                  <div>
-                    <label>
-                      Изображение баннера
+                  <div
+                    style={{
+                      gridColumn: '1 / -1',
+                      display: 'grid',
+                      gridTemplateColumns:
+                        'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
+                      gap: '16px',
+                      marginTop: '8px',
+                      paddingTop: '16px',
+                      borderTop: '1px solid #e2e8f0',
+                    }}
+                  >
+                    {/* Desktop Banner Box */}
+                    <div
+                      style={{
+                        background: '#f8fafc',
+                        padding: '16px',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          fontSize: '13px',
+                          color: '#0f172a',
+                          marginBottom: '8px',
+                        }}
+                      >
+                        🖥️ Основной баннер (ПК и планшеты)
+                      </div>
                       <div
                         style={{
                           display: 'flex',
-                          gap: '8px',
+                          gap: '6px',
                           flexWrap: 'wrap',
-                          marginTop: '6px',
                           marginBottom: '8px',
                         }}
                       >
                         <span
                           style={{
-                            fontSize: '12px',
+                            fontSize: '11px',
                             color: '#64748b',
                             width: '100%',
                           }}
@@ -684,8 +889,8 @@ export default function HeroSliderEditor({
                             type="button"
                             className="secondary"
                             style={{
-                              fontSize: '12px',
-                              padding: '4px 10px',
+                              fontSize: '11px',
+                              padding: '3px 8px',
                               background:
                                 s.imageUrl === pb.url ? '#e0f2fe' : undefined,
                               borderColor:
@@ -699,55 +904,166 @@ export default function HeroSliderEditor({
                           </button>
                         ))}
                       </div>
-                      <input
-                        type="text"
-                        placeholder="URL изображения (/banners/... или https://...)"
-                        value={s.imageUrl || ''}
-                        onChange={(e) =>
-                          updateSlide(index, {
-                            imageUrl: e.target.value.trim() || null,
-                          })
-                        }
-                        style={{ marginBottom: '8px' }}
-                      />
-                      <span style={{ fontSize: '12px', color: '#64748b' }}>
-                        Или загрузите файл (с камеры или галереи, до 20 МБ —
-                        автосжатие):
-                      </span>
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        onChange={(e) => handleFileUpload(index, e)}
-                      />
-                    </label>
-                    {s.imageUrl && (
-                      <div
+                      <label style={{ display: 'grid', gap: '6px' }}>
+                        <span style={{ fontSize: '12px', color: '#475569' }}>
+                          URL баннера:
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="/banners/... или https://..."
+                          value={s.imageUrl || ''}
+                          onChange={(e) =>
+                            updateSlide(index, {
+                              imageUrl: e.target.value.trim() || null,
+                            })
+                          }
+                        />
+                      </label>
+                      <label
                         style={{
+                          display: 'grid',
+                          gap: '4px',
                           marginTop: '8px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px',
                         }}
                       >
-                        <img
-                          src={s.imageUrl}
-                          alt="Миниатюра"
-                          style={{
-                            width: '80px',
-                            height: '46px',
-                            objectFit: 'cover',
-                            borderRadius: '8px',
-                            border: '1px solid #cbd5e1',
-                          }}
+                        <span style={{ fontSize: '12px', color: '#64748b' }}>
+                          Или загрузите файл для ПК (автосжатие):
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          aria-label="Загрузить баннер для ПК"
+                          onChange={(e) =>
+                            handleFileUpload(index, e, 'desktop')
+                          }
                         />
-                        <button
-                          type="button"
-                          onClick={() => updateSlide(index, { imageUrl: null })}
+                      </label>
+                      {s.imageUrl && (
+                        <div
+                          style={{
+                            marginTop: '10px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                          }}
                         >
-                          Убрать изображение
-                        </button>
+                          <img
+                            src={s.imageUrl}
+                            alt="Миниатюра ПК"
+                            style={{
+                              width: '80px',
+                              height: '46px',
+                              objectFit: 'cover',
+                              borderRadius: '8px',
+                              border: '1px solid #cbd5e1',
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateSlide(index, { imageUrl: null })
+                            }
+                          >
+                            Убрать фото
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Mobile Banner Box */}
+                    <div
+                      style={{
+                        background: '#f8fafc',
+                        padding: '16px',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          fontSize: '13px',
+                          color: '#0f172a',
+                          marginBottom: '4px',
+                        }}
+                      >
+                        📱 Мобильный баннер (для смартфонов)
                       </div>
-                    )}
+                      <p
+                        style={{
+                          fontSize: '11.5px',
+                          color: '#64748b',
+                          margin: '0 0 10px',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        Отображается на смартфонах вместо основного. Если не
+                        задан, используется баннер для ПК.
+                      </p>
+                      <label style={{ display: 'grid', gap: '6px' }}>
+                        <span style={{ fontSize: '12px', color: '#475569' }}>
+                          URL мобильного баннера:
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="URL мобильного фото (https://...)"
+                          value={s.mobileImageUrl || ''}
+                          onChange={(e) =>
+                            updateSlide(index, {
+                              mobileImageUrl: e.target.value.trim() || null,
+                            })
+                          }
+                        />
+                      </label>
+                      <label
+                        style={{
+                          display: 'grid',
+                          gap: '4px',
+                          marginTop: '8px',
+                        }}
+                      >
+                        <span style={{ fontSize: '12px', color: '#64748b' }}>
+                          Или загрузите файл для смартфонов (квадратный или
+                          вертикальный):
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          aria-label="Загрузить баннер для смартфонов"
+                          onChange={(e) => handleFileUpload(index, e, 'mobile')}
+                        />
+                      </label>
+                      {s.mobileImageUrl && (
+                        <div
+                          style={{
+                            marginTop: '10px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                          }}
+                        >
+                          <img
+                            src={s.mobileImageUrl}
+                            alt="Миниатюра мобайл"
+                            style={{
+                              width: '50px',
+                              height: '50px',
+                              objectFit: 'cover',
+                              borderRadius: '8px',
+                              border: '1px solid #cbd5e1',
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateSlide(index, { mobileImageUrl: null })
+                            }
+                          >
+                            Убрать мобильное фото
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

@@ -55,6 +55,19 @@ export class HeroSlideItemDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(2000000)
+  mobileImageUrl?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  hideOverlay?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  onlyImage?: boolean;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(30)
   bgGradient?: string;
 }

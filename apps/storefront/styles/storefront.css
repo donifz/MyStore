@@ -5085,48 +5085,49 @@ button.sf-hero-dot:focus-visible {
   }
 }
 
-.sf-hero-custom-art {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  min-height: 180px;
+/* Responsive background for hero slides */
+.sf-home-hero[data-has-custom-bg='true'] {
+  background-image: var(--sf-hero-bg-desktop) !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
 }
 
-.sf-hero-custom-badge {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 8px;
-  padding: 24px 32px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
-  color: #ffffff;
+@media (max-width: 680px) {
+  .sf-home-hero[data-has-custom-bg='true'] {
+    background-image: var(
+      --sf-hero-bg-mobile,
+      var(--sf-hero-bg-desktop)
+    ) !important;
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+  }
 }
 
-.sf-hero-custom-badge-icon {
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  display: grid;
-  place-items: center;
-  color: #ffffff;
+.sf-home-hero[data-has-image='true']:not(.sf-home-hero--only-image) {
+  grid-template-columns: minmax(0, 1fr);
 }
 
-.sf-hero-custom-badge strong {
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+.sf-home-hero--only-image {
+  position: relative;
+  display: block !important;
+  min-height: 280px;
+  cursor: pointer;
+  padding: 0 !important;
 }
 
-.sf-hero-custom-badge small {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.85);
+.sf-home-hero__pure-link {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: block;
+}
+
+@media (max-width: 680px) {
+  .sf-home-hero--only-image {
+    min-height: 180px;
+  }
 }
 
 /* Rectangular 2-Line Category Cards Strip */

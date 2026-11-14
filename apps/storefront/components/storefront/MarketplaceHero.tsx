@@ -115,18 +115,42 @@ export default function MarketplaceHero({
       current.bgGradient !== 'studio' &&
       GRADIENTS[current.bgGradient];
     const hasImage = Boolean(current.imageUrl);
-    const isLightText = hasImage || isCustomGradient;
+    const hasMobileImage = Boolean(current.mobileImageUrl);
+    const hideOverlay = Boolean(current.hideOverlay);
+    const onlyImage = Boolean(current.onlyImage);
+    const isLightText = (hasImage || isCustomGradient) && !hideOverlay;
 
-    const backgroundStyle = hasImage
-      ? `linear-gradient(rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.70)), url("${current.imageUrl}") center/cover no-repeat`
+    const desktopBg = hasImage
+      ? hideOverlay
+        ? `url("${current.imageUrl}") center/cover no-repeat`
+        : `linear-gradient(rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.70)), url("${current.imageUrl}") center/cover no-repeat`
       : isCustomGradient
         ? GRADIENTS[current.bgGradient]
         : undefined;
 
+    const mobileBg = hasMobileImage
+      ? hideOverlay
+        ? `url("${current.mobileImageUrl}") center/cover no-repeat`
+        : `linear-gradient(rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.70)), url("${current.mobileImageUrl}") center/cover no-repeat`
+      : desktopBg;
+
+    const customBgStyle: React.CSSProperties &
+      Record<
+        '--sf-hero-bg-desktop' | '--sf-hero-bg-mobile',
+        string | undefined
+      > = {} as any;
+    if (desktopBg) {
+      customBgStyle['--sf-hero-bg-desktop'] = desktopBg;
+      customBgStyle['--sf-hero-bg-mobile'] = mobileBg || desktopBg;
+      customBgStyle.background = desktopBg;
+    }
+
     return (
       <section
-        className={`sf-home-hero ${isLightText ? 'sf-home-hero--light-text' : ''}`}
-        style={backgroundStyle ? { background: backgroundStyle } : undefined}
+        className={`sf-home-hero ${isLightText ? 'sf-home-hero--light-text' : ''} ${onlyImage ? 'sf-home-hero--only-image' : ''} ${hideOverlay ? 'sf-home-hero--no-overlay' : ''} ${hasImage || hasMobileImage ? 'sf-home-hero--has-image' : ''}`}
+        style={desktopBg ? customBgStyle : undefined}
+        data-has-custom-bg={Boolean(desktopBg)}
+        data-has-image={Boolean(hasImage || hasMobileImage)}
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
         onTouchStart={handleTouchStart}
@@ -146,246 +170,247 @@ export default function MarketplaceHero({
           </button>
         )}
 
-        <div
-          key={currentIdx}
-          className="sf-home-hero__copy sf-home-hero__slide-fade"
-        >
-          {current.badge && (
-            <span className="sf-hero-tag">{current.badge}</span>
-          )}
-          <h1>{current.title}</h1>
-          <p>{current.subtitle}</p>
-          {current.buttonText && current.buttonUrl && (
-            <Link
-              className="sf-button sf-button--primary"
-              href={current.buttonUrl}
-            >
-              {current.buttonText} <Icon name="arrow" width={18} height={18} />
-            </Link>
-          )}
-        </div>
+        {onlyImage ? (
+          <Link
+            href={current.buttonUrl || '#catalog'}
+            className="sf-home-hero__pure-link"
+            aria-label={current.title || 'Перейти к покупкам'}
+          />
+        ) : (
+          <div
+            key={currentIdx}
+            className="sf-home-hero__copy sf-home-hero__slide-fade"
+          >
+            {current.badge && (
+              <span className="sf-hero-tag">{current.badge}</span>
+            )}
+            <h1>{current.title}</h1>
+            <p>{current.subtitle}</p>
+            {current.buttonText && current.buttonUrl && (
+              <Link
+                className="sf-button sf-button--primary"
+                href={current.buttonUrl}
+              >
+                {current.buttonText}{' '}
+                <Icon name="arrow" width={18} height={18} />
+              </Link>
+            )}
+          </div>
+        )}
 
-        <div className="sf-home-hero__scene" aria-hidden="true">
-          {!hasImage &&
-          (!isCustomGradient || current.bgGradient === 'studio') ? (
-            <svg
-              viewBox="0 0 560 250"
-              className="sf-home-hero__svg"
-              fill="none"
-            >
-              <defs>
-                <radialGradient id="heroGlow" cx="55%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
-                  <stop offset="100%" stopColor="#dbeafe" stopOpacity="0" />
-                </radialGradient>
-                <linearGradient id="bearGrad" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#e5b074" />
-                  <stop offset="100%" stopColor="#b97d3e" />
-                </linearGradient>
-                <linearGradient id="robotBody" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#ffffff" />
-                  <stop offset="100%" stopColor="#dbeafe" />
-                </linearGradient>
-                <linearGradient id="carBody" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#ef4444" />
-                  <stop offset="100%" stopColor="#b91c1c" />
-                </linearGradient>
-              </defs>
-              <ellipse
-                cx="300"
-                cy="125"
-                rx="240"
-                ry="115"
-                fill="url(#heroGlow)"
-              />
-              <ellipse
-                cx="290"
-                cy="222"
-                rx="235"
-                ry="18"
-                fill="#93c5fd"
-                opacity="0.35"
-              />
-              <rect
-                x="404"
-                y="160"
-                width="76"
-                height="18"
-                rx="9"
-                fill="#3b82f6"
-              />
-              <rect
-                x="410"
-                y="142"
-                width="64"
-                height="18"
-                rx="9"
-                fill="#22c55e"
-              />
-              <rect
-                x="416"
-                y="124"
-                width="52"
-                height="18"
-                rx="9"
-                fill="#eab308"
-              />
-              <rect
-                x="422"
-                y="106"
-                width="40"
-                height="18"
-                rx="9"
-                fill="#f97316"
-              />
-              <rect
-                x="428"
-                y="88"
-                width="28"
-                height="18"
-                rx="9"
-                fill="#ef4444"
-              />
-              <circle cx="442" cy="78" r="10" fill="#fde047" />
+        {!hasImage &&
+          !hasMobileImage &&
+          !onlyImage &&
+          (!isCustomGradient || current.bgGradient === 'studio') && (
+            <div className="sf-home-hero__scene" aria-hidden="true">
+              <svg
+                viewBox="0 0 560 250"
+                className="sf-home-hero__svg"
+                fill="none"
+              >
+                <defs>
+                  <radialGradient id="heroGlow" cx="55%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
+                    <stop offset="100%" stopColor="#dbeafe" stopOpacity="0" />
+                  </radialGradient>
+                  <linearGradient id="bearGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#e5b074" />
+                    <stop offset="100%" stopColor="#b97d3e" />
+                  </linearGradient>
+                  <linearGradient id="robotBody" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#ffffff" />
+                    <stop offset="100%" stopColor="#dbeafe" />
+                  </linearGradient>
+                  <linearGradient id="carBody" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#ef4444" />
+                    <stop offset="100%" stopColor="#b91c1c" />
+                  </linearGradient>
+                </defs>
+                <ellipse
+                  cx="300"
+                  cy="125"
+                  rx="240"
+                  ry="115"
+                  fill="url(#heroGlow)"
+                />
+                <ellipse
+                  cx="290"
+                  cy="222"
+                  rx="235"
+                  ry="18"
+                  fill="#93c5fd"
+                  opacity="0.35"
+                />
+                <rect
+                  x="404"
+                  y="160"
+                  width="76"
+                  height="18"
+                  rx="9"
+                  fill="#3b82f6"
+                />
+                <rect
+                  x="410"
+                  y="142"
+                  width="64"
+                  height="18"
+                  rx="9"
+                  fill="#22c55e"
+                />
+                <rect
+                  x="416"
+                  y="124"
+                  width="52"
+                  height="18"
+                  rx="9"
+                  fill="#eab308"
+                />
+                <rect
+                  x="422"
+                  y="106"
+                  width="40"
+                  height="18"
+                  rx="9"
+                  fill="#f97316"
+                />
+                <rect
+                  x="428"
+                  y="88"
+                  width="28"
+                  height="18"
+                  rx="9"
+                  fill="#ef4444"
+                />
+                <circle cx="442" cy="78" r="10" fill="#fde047" />
 
-              <rect
-                x="92"
-                y="166"
-                width="54"
-                height="36"
-                rx="5"
-                fill="#1d6bf3"
-              />
-              <rect
-                x="100"
-                y="159"
-                width="14"
-                height="8"
-                rx="2"
-                fill="#1557d0"
-              />
-              <rect
-                x="122"
-                y="159"
-                width="14"
-                height="8"
-                rx="2"
-                fill="#1557d0"
-              />
-              <rect
-                x="132"
-                y="176"
-                width="48"
-                height="30"
-                rx="5"
-                fill="#ef4444"
-              />
-              <rect
-                x="74"
-                y="182"
-                width="48"
-                height="28"
-                rx="5"
-                fill="#facc15"
-              />
+                <rect
+                  x="92"
+                  y="166"
+                  width="54"
+                  height="36"
+                  rx="5"
+                  fill="#1d6bf3"
+                />
+                <rect
+                  x="100"
+                  y="159"
+                  width="14"
+                  height="8"
+                  rx="2"
+                  fill="#1557d0"
+                />
+                <rect
+                  x="122"
+                  y="159"
+                  width="14"
+                  height="8"
+                  rx="2"
+                  fill="#1557d0"
+                />
+                <rect
+                  x="132"
+                  y="176"
+                  width="48"
+                  height="30"
+                  rx="5"
+                  fill="#ef4444"
+                />
+                <rect
+                  x="74"
+                  y="182"
+                  width="48"
+                  height="28"
+                  rx="5"
+                  fill="#facc15"
+                />
 
-              <circle cx="212" cy="54" r="22" fill="url(#bearGrad)" />
-              <circle cx="212" cy="54" r="12" fill="#f8d8b4" />
-              <circle cx="298" cy="54" r="22" fill="url(#bearGrad)" />
-              <circle cx="298" cy="54" r="12" fill="#f8d8b4" />
-              <ellipse
-                cx="255"
-                cy="158"
-                rx="54"
-                ry="52"
-                fill="url(#bearGrad)"
-              />
-              <ellipse cx="255" cy="164" rx="32" ry="30" fill="#f8d8b4" />
-              <circle cx="255" cy="90" r="44" fill="url(#bearGrad)" />
-              <ellipse cx="255" cy="100" rx="20" ry="16" fill="#f8d8b4" />
-              <circle cx="239" cy="82" r="5.5" fill="#1e293b" />
-              <circle cx="271" cy="82" r="5.5" fill="#1e293b" />
-              <ellipse cx="255" cy="95" rx="8" ry="5.5" fill="#451a03" />
-              <path
-                d="M247 104c4 4 12 4 16 0"
-                stroke="#451a03"
-                strokeWidth="2.6"
-                strokeLinecap="round"
-              />
-              <path
-                d="M235 124l20 9 20-9-6 18-14-6-14 6-6-18z"
-                fill="#78350f"
-              />
-              <circle cx="198" cy="152" r="18" fill="url(#bearGrad)" />
-              <circle cx="312" cy="152" r="18" fill="url(#bearGrad)" />
-              <circle cx="216" cy="196" r="22" fill="url(#bearGrad)" />
-              <circle cx="216" cy="196" r="12" fill="#f8d8b4" />
-              <circle cx="294" cy="196" r="22" fill="url(#bearGrad)" />
-              <circle cx="294" cy="196" r="12" fill="#f8d8b4" />
+                <circle cx="212" cy="54" r="22" fill="url(#bearGrad)" />
+                <circle cx="212" cy="54" r="12" fill="#f8d8b4" />
+                <circle cx="298" cy="54" r="22" fill="url(#bearGrad)" />
+                <circle cx="298" cy="54" r="12" fill="#f8d8b4" />
+                <ellipse
+                  cx="255"
+                  cy="158"
+                  rx="54"
+                  ry="52"
+                  fill="url(#bearGrad)"
+                />
+                <ellipse cx="255" cy="164" rx="32" ry="30" fill="#f8d8b4" />
+                <circle cx="255" cy="90" r="44" fill="url(#bearGrad)" />
+                <ellipse cx="255" cy="100" rx="20" ry="16" fill="#f8d8b4" />
+                <circle cx="239" cy="82" r="5.5" fill="#1e293b" />
+                <circle cx="271" cy="82" r="5.5" fill="#1e293b" />
+                <ellipse cx="255" cy="95" rx="8" ry="5.5" fill="#451a03" />
+                <path
+                  d="M247 104c4 4 12 4 16 0"
+                  stroke="#451a03"
+                  strokeWidth="2.6"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M235 124l20 9 20-9-6 18-14-6-14 6-6-18z"
+                  fill="#78350f"
+                />
+                <circle cx="198" cy="152" r="18" fill="url(#bearGrad)" />
+                <circle cx="312" cy="152" r="18" fill="url(#bearGrad)" />
+                <circle cx="216" cy="196" r="22" fill="url(#bearGrad)" />
+                <circle cx="216" cy="196" r="12" fill="#f8d8b4" />
+                <circle cx="294" cy="196" r="22" fill="url(#bearGrad)" />
+                <circle cx="294" cy="196" r="12" fill="#f8d8b4" />
 
-              <rect
-                x="324"
-                y="74"
-                width="78"
-                height="58"
-                rx="26"
-                fill="url(#robotBody)"
-                stroke="#93c5fd"
-                strokeWidth="2"
-              />
-              <rect
-                x="338"
-                y="88"
-                width="50"
-                height="26"
-                rx="8"
-                fill="#1e293b"
-              />
-              <circle cx="350" cy="101" r="5" fill="#38bdf8" />
-              <circle cx="376" cy="101" r="5" fill="#38bdf8" />
-              <rect
-                x="358"
-                y="58"
-                width="10"
-                height="16"
-                rx="4"
-                fill="#93c5fd"
-              />
-              <circle cx="363" cy="54" r="6" fill="#f43f5e" />
-              <rect
-                x="332"
-                y="136"
-                width="62"
-                height="66"
-                rx="16"
-                fill="url(#robotBody)"
-                stroke="#93c5fd"
-                strokeWidth="2"
-              />
-              <circle cx="363" cy="164" r="12" fill="#38bdf8" opacity="0.8" />
+                <rect
+                  x="324"
+                  y="74"
+                  width="78"
+                  height="58"
+                  rx="26"
+                  fill="url(#robotBody)"
+                  stroke="#93c5fd"
+                  strokeWidth="2"
+                />
+                <rect
+                  x="338"
+                  y="88"
+                  width="50"
+                  height="26"
+                  rx="8"
+                  fill="#1e293b"
+                />
+                <circle cx="350" cy="101" r="5" fill="#38bdf8" />
+                <circle cx="376" cy="101" r="5" fill="#38bdf8" />
+                <rect
+                  x="358"
+                  y="58"
+                  width="10"
+                  height="16"
+                  rx="4"
+                  fill="#93c5fd"
+                />
+                <circle cx="363" cy="54" r="6" fill="#f43f5e" />
+                <rect
+                  x="332"
+                  y="136"
+                  width="62"
+                  height="66"
+                  rx="16"
+                  fill="url(#robotBody)"
+                  stroke="#93c5fd"
+                  strokeWidth="2"
+                />
+                <circle cx="363" cy="164" r="12" fill="#38bdf8" opacity="0.8" />
 
-              <path
-                d="M412 186l16-24c4-6 11-9 18-9h48c7 0 14 3 18 9l16 14c5 4 8 9 8 15v9c0 4-3 7-7 7H415c-4 0-7-3-7-7v-14z"
-                fill="url(#carBody)"
-              />
-              <path d="M434 158h46l14 18h-70l10-18z" fill="#1e293b" />
-              <circle cx="436" cy="204" r="17" fill="#0f172a" />
-              <circle cx="436" cy="204" r="8" fill="#cbd5e1" />
-              <circle cx="506" cy="204" r="17" fill="#0f172a" />
-              <circle cx="506" cy="204" r="8" fill="#cbd5e1" />
-            </svg>
-          ) : (
-            <div className="sf-hero-custom-art">
-              <div className="sf-hero-custom-badge">
-                <span className="sf-hero-custom-badge-icon">
-                  <Icon name="bag" width={32} height={32} />
-                </span>
-                <strong>MyStore</strong>
-                <small>Находки рядом с вами</small>
-              </div>
+                <path
+                  d="M412 186l16-24c4-6 11-9 18-9h48c7 0 14 3 18 9l16 14c5 4 8 9 8 15v9c0 4-3 7-7 7H415c-4 0-7-3-7-7v-14z"
+                  fill="url(#carBody)"
+                />
+                <path d="M434 158h46l14 18h-70l10-18z" fill="#1e293b" />
+                <circle cx="436" cy="204" r="17" fill="#0f172a" />
+                <circle cx="436" cy="204" r="8" fill="#cbd5e1" />
+                <circle cx="506" cy="204" r="17" fill="#0f172a" />
+                <circle cx="506" cy="204" r="8" fill="#cbd5e1" />
+              </svg>
             </div>
           )}
-        </div>
 
         {slideList.length > 1 && (
           <button
