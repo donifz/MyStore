@@ -122,16 +122,16 @@ export default function MarketplaceHero({
 
     const desktopBg = hasImage
       ? hideOverlay
-        ? `url("${current.imageUrl}") center/cover no-repeat`
-        : `linear-gradient(rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.70)), url("${current.imageUrl}") center/cover no-repeat`
+        ? `url("${current.imageUrl}")`
+        : `linear-gradient(rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.70)), url("${current.imageUrl}")`
       : isCustomGradient
         ? GRADIENTS[current.bgGradient]
         : undefined;
 
     const mobileBg = hasMobileImage
       ? hideOverlay
-        ? `url("${current.mobileImageUrl}") center/cover no-repeat`
-        : `linear-gradient(rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.70)), url("${current.mobileImageUrl}") center/cover no-repeat`
+        ? `url("${current.mobileImageUrl}")`
+        : `linear-gradient(rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.70)), url("${current.mobileImageUrl}")`
       : desktopBg;
 
     const customBgStyle: React.CSSProperties &
@@ -142,7 +142,10 @@ export default function MarketplaceHero({
     if (desktopBg) {
       customBgStyle['--sf-hero-bg-desktop'] = desktopBg;
       customBgStyle['--sf-hero-bg-mobile'] = mobileBg || desktopBg;
-      customBgStyle.background = desktopBg;
+      customBgStyle.backgroundImage = desktopBg;
+      customBgStyle.backgroundSize = 'cover';
+      customBgStyle.backgroundPosition = 'center';
+      customBgStyle.backgroundRepeat = 'no-repeat';
     }
 
     return (
