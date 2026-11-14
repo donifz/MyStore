@@ -53,6 +53,42 @@ const PRESET_BANNERS = [
   { label: '«Быстрая доставка»', url: '/banners/banner-delivery.jpg' },
 ];
 
+const DEFAULT_SLIDES: HeroSlide[] = [
+  {
+    sortOrder: 0,
+    isActive: true,
+    badge: 'МАРКЕТПЛЕЙС МАГАЗИНОВ',
+    title: 'Товары рядом',
+    subtitle: 'Смотрите наличие и забирайте в магазине',
+    buttonText: 'Смотреть товары',
+    buttonUrl: '#catalog',
+    imageUrl: '/banners/banner-shops.jpg',
+    bgGradient: 'blue',
+  },
+  {
+    sortOrder: 1,
+    isActive: true,
+    badge: 'СКИДКИ И АКЦИИ',
+    title: 'Скидки до 50%',
+    subtitle: 'Сезонные предложения от магазинов вашего города',
+    buttonText: 'Смотреть скидки',
+    buttonUrl: '#catalog',
+    imageUrl: '/banners/banner-sale.jpg',
+    bgGradient: 'indigo',
+  },
+  {
+    sortOrder: 2,
+    isActive: true,
+    badge: 'БЫСТРАЯ ВЫДАЧА',
+    title: 'Быстрая доставка',
+    subtitle: 'Забирайте сами или закажите курьером прямо до двери',
+    buttonText: 'Магазины рядом',
+    buttonUrl: '/shops',
+    imageUrl: '/banners/banner-delivery.jpg',
+    bgGradient: 'emerald',
+  },
+];
+
 async function processBannerImage(file: File): Promise<string> {
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
     throw new Error('Прикрепите изображение JPEG, PNG или WebP.');
@@ -72,8 +108,8 @@ async function processBannerImage(file: File): Promise<string> {
         reject(new Error('Не удалось обработать изображение.'));
       img.onload = () => {
         try {
-          const maxW = 1400;
-          const maxH = 650;
+          const maxW = 1200;
+          const maxH = 550;
           let w = img.width;
           let h = img.height;
           if (w > maxW || h > maxH) {
@@ -89,7 +125,17 @@ async function processBannerImage(file: File): Promise<string> {
             return resolve(String(reader.result));
           }
           ctx.drawImage(img, 0, 0, w, h);
-          const compressed = canvas.toDataURL('image/jpeg', 0.85);
+          let compressed = canvas.toDataURL('image/jpeg', 0.8);
+          if (compressed.length > 1800000) {
+            const downscaled = document.createElement('canvas');
+            downscaled.width = Math.round(w * 0.7);
+            downscaled.height = Math.round(h * 0.7);
+            const dCtx = downscaled.getContext('2d');
+            if (dCtx) {
+              dCtx.drawImage(canvas, 0, 0, downscaled.width, downscaled.height);
+              compressed = downscaled.toDataURL('image/jpeg', 0.7);
+            }
+          }
           resolve(compressed);
         } catch {
           resolve(String(reader.result));
@@ -111,21 +157,7 @@ export default function HeroSliderEditor({
   saving?: boolean;
 }) {
   const [slides, setSlides] = useState<HeroSlide[]>(() =>
-    initialSlides.length
-      ? initialSlides
-      : [
-          {
-            sortOrder: 0,
-            isActive: true,
-            badge: 'МАРКЕТПЛЕЙС МАГАЗИНОВ',
-            title: 'Товары рядом',
-            subtitle: 'Смотрите наличие и забирайте в магазине',
-            buttonText: 'Смотреть товары',
-            buttonUrl: '#catalog',
-            imageUrl: null,
-            bgGradient: 'blue',
-          },
-        ],
+    initialSlides.length ? initialSlides : DEFAULT_SLIDES,
   );
   const [dirty, setDirty] = useState(false);
 
@@ -195,6 +227,14 @@ export default function HeroSliderEditor({
     setSaved(false);
   };
 
+  const resetToDefaults = () => {
+    setSlides(DEFAULT_SLIDES);
+    setDirty(true);
+    setSaved(false);
+    setError('');
+    setPreviewIdx(0);
+  };
+
   const handleFileUpload = async (
     index: number,
     e: ChangeEvent<HTMLInputElement>,
@@ -230,6 +270,7 @@ export default function HeroSliderEditor({
           subtitle: s.subtitle.trim(),
           buttonText: s.buttonText.trim(),
           buttonUrl: s.buttonUrl.trim(),
+          imageUrl: s.imageUrl?.trim() || null,
         })),
       );
       setDirty(false);
@@ -413,9 +454,19 @@ export default function HeroSliderEditor({
         title="Слайды главного экрана"
         subtitle="Настройте промо-баннеры, которые отображаются в карусели на главной странице"
         action={
-          <button type="button" className="primary" onClick={addSlide}>
-            + Добавить слайд
-          </button>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="secondary"
+              onClick={resetToDefaults}
+              title="Восстановить 3 стандартных баннера с готовыми изображениями"
+            >
+              ↺ Стандартные баннеры
+            </button>
+            <button type="button" className="primary" onClick={addSlide}>
+              + Добавить слайд
+            </button>
+          </div>
         }
       >
         {error && (
