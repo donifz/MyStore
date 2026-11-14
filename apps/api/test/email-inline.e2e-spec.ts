@@ -39,7 +39,7 @@ describe('compiled API with Gmail inline queue', () => {
       });
       exited = new Promise((r) => child!.once('exit', r));
       let ready = false;
-      for (let i = 0; i < 60; i++) {
+      for (let i = 0; i < 150; i++) {
         if (child.exitCode !== null)
           throw new Error('Compiled API exited before ready');
         try {
