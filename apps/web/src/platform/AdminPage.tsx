@@ -141,6 +141,9 @@ export default function AdminPage() {
   const [heroSlides, setHeroSlides] = useState<HeroSlide[] | null>(null);
   const [heroSlidesLoading, setHeroSlidesLoading] = useState(false);
   const [heroSlidesSaving, setHeroSlidesSaving] = useState(false);
+  const [selectedRevisions, setSelectedRevisions] = useState<Set<string>>(
+    new Set(),
+  );
   const [params, setParams] = useSearchParams();
   const location = useLocation();
   const tab = platformSection(location.search);
@@ -437,6 +440,79 @@ export default function AdminPage() {
       setBusy(false);
     }
   }
+
+  async function batchDecideProducts(
+    decision: 'approved' | 'rejected',
+    customIds?: string[],
+  ) {
+    const ids = customIds || Array.from(selectedRevisions);
+    if (!ids.length) return;
+    if (
+      decision === 'rejected' &&
+      !window.confirm(`Отклонить выбранные товары (${ids.length} шт.)?`)
+    ) {
+      return;
+    }
+    if (
+      decision === 'approved' &&
+      ids.length > 1 &&
+      !window.confirm(
+        `Одобрить выбранные товары (${ids.length} шт.) и опубликовать их на витрине?`,
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      await api('/platform/admin/products/batch-decision', {
+        method: 'POST',
+        body: {
+          ids,
+          decision,
+          reason:
+            reason ||
+            (decision === 'approved'
+              ? 'Одобрено администратором'
+              : 'Отклонено администратором'),
+        },
+      });
+      setSelectedRevisions(new Set());
+      await load();
+      setProductRefresh((value) => value + 1);
+    } catch (e) {
+      setError(errorText(e));
+      await load().catch(() => {});
+      setProductRefresh((value) => value + 1);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function quickApproveSingle(id: string) {
+    setBusy(true);
+    setError('');
+    try {
+      await api(`/platform/admin/products/revisions/${id}/decision`, {
+        method: 'POST',
+        body: { decision: 'approved', reason: 'Одобрено' },
+      });
+      setSelectedRevisions((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      await load();
+      setProductRefresh((value) => value + 1);
+    } catch (e) {
+      setError(errorText(e));
+      await load().catch(() => {});
+      setProductRefresh((value) => value + 1);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function openSummary(grant: PlatformFinancialGrant) {
     setSelectedGrant(grant);
     setSummaryLoading(true);
@@ -715,51 +791,320 @@ export default function AdminPage() {
     </AdminCard>
   );
 
+  const isAllPageSelected =
+    visibleProducts.length > 0 &&
+    visibleProducts.every((p) => selectedRevisions.has(p.revision_id));
+
   const productsTable = (
     <AdminCard
       title="Модерация товаров"
-      subtitle="Карточки магазинов на проверке"
-      action={<button onClick={() => setTab('products')}>Все товары →</button>}
+      subtitle={
+        productTotal > 0
+          ? `Карточек на проверке: ${productTotal}. Одобряйте по одной или пачками.`
+          : 'Карточки магазинов на проверке'
+      }
+      action={
+        tab !== 'products' ? (
+          <button onClick={() => setTab('products')}>Все товары →</button>
+        ) : undefined
+      }
     >
       {productLoading ? (
         <p role="status">Загрузка товаров…</p>
       ) : !visibleProducts.length ? (
         <AdminEmpty>Нет карточек на проверке</AdminEmpty>
       ) : (
-        <div className="admin-kit-scroll">
-          <table className="admin-kit-table admin-kit-products-table">
-            <thead>
-              <tr>
-                <th>Товар</th>
-                <th>Магазин</th>
-                <th>Категория</th>
-                <th>Дата</th>
-                <th>Статус</th>
-                <th>Действие</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleProducts.map((p) => (
-                <tr key={p.revision_id}>
-                  <td data-label="Товар">
-                    <strong>{p.name}</strong>
-                  </td>
-                  <td data-label="Магазин">{p.shop_name}</td>
-                  <td data-label="Категория">{p.category || 'Не указана'}</td>
-                  <td data-label="Дата">{productDate(p.created_at)}</td>
-                  <td data-label="Статус">
-                    <AdminStatus>На проверке</AdminStatus>
-                  </td>
-                  <td data-label="Действие">
-                    <button onClick={() => void showProduct(p.revision_id)}>
-                      Посмотреть
-                    </button>
-                  </td>
+        <>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '12px',
+              marginBottom: '16px',
+              padding: '12px 16px',
+              background: selectedRevisions.size > 0 ? '#ecfdf5' : '#f8fafc',
+              border:
+                selectedRevisions.size > 0
+                  ? '1px solid #a7f3d0'
+                  : '1px solid #e2e8f0',
+              borderRadius: '12px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  aria-label="Выбрать все товары на странице"
+                  checked={isAllPageSelected}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedRevisions(
+                        new Set(visibleProducts.map((p) => p.revision_id)),
+                      );
+                    } else {
+                      setSelectedRevisions(new Set());
+                    }
+                  }}
+                />
+                <span>
+                  {selectedRevisions.size > 0
+                    ? `Выбрано: ${selectedRevisions.size} из ${visibleProducts.length}`
+                    : `Выбрать все ${visibleProducts.length} на странице`}
+                </span>
+              </label>
+              {selectedRevisions.size > 0 && (
+                <button
+                  type="button"
+                  style={{
+                    fontSize: '12px',
+                    padding: '2px 8px',
+                    background: 'transparent',
+                    border: '1px solid #cbd5e1',
+                  }}
+                  onClick={() => setSelectedRevisions(new Set())}
+                >
+                  Снять выбор
+                </button>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {selectedRevisions.size > 0 ? (
+                <>
+                  <button
+                    type="button"
+                    className="primary"
+                    style={{ background: '#059669', borderColor: '#059669' }}
+                    disabled={busy}
+                    onClick={() => void batchDecideProducts('approved')}
+                  >
+                    ✓ Одобрить выбранные ({selectedRevisions.size})
+                  </button>
+                  <button
+                    type="button"
+                    style={{
+                      color: '#dc2626',
+                      borderColor: '#fca5a5',
+                      background: '#fff',
+                    }}
+                    disabled={busy}
+                    onClick={() => void batchDecideProducts('rejected')}
+                  >
+                    ✕ Отклонить выбранные
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="primary"
+                  style={{ background: '#059669', borderColor: '#059669' }}
+                  disabled={busy}
+                  onClick={() =>
+                    void batchDecideProducts(
+                      'approved',
+                      visibleProducts.map((p) => p.revision_id),
+                    )
+                  }
+                >
+                  ✓ Одобрить всю страницу ({visibleProducts.length})
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="admin-kit-scroll">
+            <table className="admin-kit-table admin-kit-products-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '40px' }}>
+                    <input
+                      type="checkbox"
+                      aria-label="Выбрать все в таблице"
+                      checked={isAllPageSelected}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedRevisions(
+                            new Set(visibleProducts.map((p) => p.revision_id)),
+                          );
+                        } else {
+                          setSelectedRevisions(new Set());
+                        }
+                      }}
+                    />
+                  </th>
+                  <th>Товар</th>
+                  <th>Магазин</th>
+                  <th>Категория</th>
+                  <th>Дата</th>
+                  <th>Статус</th>
+                  <th>Действие</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {visibleProducts.map((p) => {
+                  const isChecked = selectedRevisions.has(p.revision_id);
+                  return (
+                    <tr
+                      key={p.revision_id}
+                      style={{
+                        background: isChecked ? '#f0fdf4' : undefined,
+                      }}
+                    >
+                      <td style={{ width: '40px' }}>
+                        <input
+                          type="checkbox"
+                          aria-label={`Выбрать ${p.name}`}
+                          checked={isChecked}
+                          onChange={(e) => {
+                            setSelectedRevisions((prev) => {
+                              const next = new Set(prev);
+                              if (e.target.checked) {
+                                next.add(p.revision_id);
+                              } else {
+                                next.delete(p.revision_id);
+                              }
+                              return next;
+                            });
+                          }}
+                        />
+                      </td>
+                      <td data-label="Товар">
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                          }}
+                        >
+                          {p.has_photo ? (
+                            <img
+                              src={`/api/platform/admin/products/revisions/${p.revision_id}/photo`}
+                              alt=""
+                              style={{
+                                width: '38px',
+                                height: '38px',
+                                borderRadius: '6px',
+                                objectFit: 'cover',
+                                border: '1px solid #e2e8f0',
+                                flexShrink: 0,
+                                background: '#f8fafc',
+                              }}
+                              onError={(e) => {
+                                (e.currentTarget as HTMLElement).style.display =
+                                  'none';
+                              }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: '38px',
+                                height: '38px',
+                                borderRadius: '6px',
+                                background: '#f1f5f9',
+                                display: 'grid',
+                                placeItems: 'center',
+                                fontSize: '16px',
+                                flexShrink: 0,
+                              }}
+                            >
+                              📦
+                            </div>
+                          )}
+                          <div>
+                            <strong>{p.name}</strong>
+                            {p.description && (
+                              <small
+                                style={{
+                                  display: 'block',
+                                  color: '#64748b',
+                                  maxWidth: '260px',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {p.description}
+                              </small>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Магазин">
+                        <span
+                          style={{
+                            background: '#f1f5f9',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: 500,
+                          }}
+                        >
+                          {p.shop_name}
+                        </span>
+                      </td>
+                      <td data-label="Категория">
+                        {p.category || 'Не указана'}
+                      </td>
+                      <td data-label="Дата">{productDate(p.created_at)}</td>
+                      <td data-label="Статус">
+                        <AdminStatus>На проверке</AdminStatus>
+                      </td>
+                      <td
+                        data-label="Действие"
+                        style={{ whiteSpace: 'nowrap' }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: '6px',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <button
+                            type="button"
+                            className="admin-kit-approve"
+                            style={{
+                              background: '#059669',
+                              color: '#fff',
+                              border: 0,
+                              fontSize: '12px',
+                              padding: '5px 10px',
+                              borderRadius: '6px',
+                            }}
+                            disabled={busy}
+                            title="Одобрить товар сразу"
+                            onClick={() =>
+                              void quickApproveSingle(p.revision_id)
+                            }
+                          >
+                            ✓ Одобрить
+                          </button>
+                          <button
+                            type="button"
+                            style={{ fontSize: '12px', padding: '5px 10px' }}
+                            onClick={() => void showProduct(p.revision_id)}
+                          >
+                            Посмотреть
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
       {!productLoading && productTotal > 0 && (
         <div className="admin-kit-pagination">
@@ -900,11 +1245,192 @@ export default function AdminPage() {
               note="Карточки на проверке"
             />
           </div>
+          <div
+            className="admin-tab-nav"
+            style={{
+              display: 'flex',
+              gap: '8px',
+              overflowX: 'auto',
+              paddingBottom: '8px',
+              marginBottom: '20px',
+              borderBottom: '1px solid #e2e8f0',
+            }}
+          >
+            {[
+              { key: 'overview', label: 'Обзор', badge: null },
+              {
+                key: 'products',
+                label: 'Модерация товаров',
+                badge: overview?.pendingProducts || null,
+                badgeColor: '#dc2626',
+              },
+              {
+                key: 'applications',
+                label: 'Партнёры',
+                badge: overview?.pendingPartners || null,
+                badgeColor: '#ea580c',
+              },
+              { key: 'banners', label: 'Баннеры витрины', badge: null },
+              {
+                key: 'financial-access',
+                label: 'Финансовый доступ',
+                badge: null,
+              },
+              { key: 'audit', label: 'Журнал решений', badge: null },
+            ].map((t) => {
+              const isActive = tab === t.key;
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  style={{
+                    borderRadius: '999px',
+                    padding: '8px 16px',
+                    fontSize: '13.5px',
+                    fontWeight: isActive ? 600 : 500,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    whiteSpace: 'nowrap',
+                    background: isActive ? '#0f172a' : '#ffffff',
+                    color: isActive ? '#ffffff' : '#334155',
+                    border: isActive
+                      ? '1px solid #0f172a'
+                      : '1px solid #cbd5e1',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => setTab(t.key as PlatformSection)}
+                >
+                  {t.label}
+                  {t.badge ? (
+                    <span
+                      style={{
+                        background: t.badgeColor || '#ef4444',
+                        color: '#ffffff',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        borderRadius: '999px',
+                        padding: '1px 6px',
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {t.badge}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+
           {tab === 'overview' ? (
             <div className="admin-kit-grid">
               <div className="admin-kit-primary">
-                {applicationsTable}
-                {productsTable}
+                {(overview?.pendingProducts ?? 0) > 0 && (
+                  <div
+                    style={{
+                      background:
+                        'linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%)',
+                      border: '1px solid #fde68a',
+                      borderRadius: '16px',
+                      padding: '16px 20px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '12px',
+                      marginBottom: '16px',
+                    }}
+                  >
+                    <div>
+                      <strong
+                        style={{
+                          fontSize: '15px',
+                          color: '#92400e',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                        }}
+                      >
+                        <span>⚠️</span> Требуется модерация товаров (
+                        {overview?.pendingProducts} шт.)
+                      </strong>
+                      <p
+                        style={{
+                          margin: '4px 0 0',
+                          fontSize: '13px',
+                          color: '#b45309',
+                        }}
+                      >
+                        Продавцы отправили новые карточки товаров. Проверьте и
+                        опубликуйте их на витрине.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="primary"
+                      style={{
+                        background: '#d97706',
+                        borderColor: '#d97706',
+                      }}
+                      onClick={() => setTab('products')}
+                    >
+                      Перейти к модерации ({overview?.pendingProducts}) →
+                    </button>
+                  </div>
+                )}
+
+                {(overview?.pendingPartners ?? 0) > 0 && (
+                  <div
+                    style={{
+                      background:
+                        'linear-gradient(135deg, #e0e7ff 0%, #eef2ff 100%)',
+                      border: '1px solid #c7d2fe',
+                      borderRadius: '16px',
+                      padding: '16px 20px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '12px',
+                      marginBottom: '16px',
+                    }}
+                  >
+                    <div>
+                      <strong
+                        style={{
+                          fontSize: '15px',
+                          color: '#3730a3',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                        }}
+                      >
+                        <span>📋</span> Новые заявки партнёров (
+                        {overview?.pendingPartners} шт.)
+                      </strong>
+                      <p
+                        style={{
+                          margin: '4px 0 0',
+                          fontSize: '13px',
+                          color: '#4338ca',
+                        }}
+                      >
+                        Заявки на подключение магазинов к платформе MyStore.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="primary"
+                      style={{
+                        background: '#4f46e5',
+                        borderColor: '#4f46e5',
+                      }}
+                      onClick={() => setTab('applications')}
+                    >
+                      Рассмотреть заявки ({overview?.pendingPartners}) →
+                    </button>
+                  </div>
+                )}
 
                 <AdminCard
                   title="Магазины"

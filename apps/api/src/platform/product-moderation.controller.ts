@@ -12,10 +12,13 @@ import {
 } from '@nestjs/common';
 import { Type } from 'class-transformer';
 import {
+  ArrayNotEmpty,
+  IsArray,
   IsIn,
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   MaxLength,
   Min,
@@ -32,6 +35,20 @@ class PageQuery {
 class DecisionDto {
   @IsIn(['approved', 'rejected']) decision!: 'approved' | 'rejected';
   @IsOptional() @IsString() @MaxLength(500) reason?: string;
+}
+class BatchDecisionDto {
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsUUID('4', { each: true })
+  ids!: string[];
+
+  @IsIn(['approved', 'rejected'])
+  decision!: 'approved' | 'rejected';
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
 }
 @Controller('platform/admin')
 @UseGuards(AuthGuard)
@@ -70,6 +87,18 @@ export class ProductModerationController {
   ) {
     await this.admins.requireAdmin(req.userId);
     return this.products.decide(id, req.userId, body.decision, body.reason);
+  }
+  @Post('products/batch-decision') async batchDecide(
+    @Req() req: UserRequest,
+    @Body() body: BatchDecisionDto,
+  ) {
+    await this.admins.requireAdmin(req.userId);
+    return this.products.batchDecide(
+      body.ids,
+      req.userId,
+      body.decision,
+      body.reason,
+    );
   }
   @Get('audit') async audit(@Req() req: UserRequest, @Query() q: PageQuery) {
     await this.admins.requireAdmin(req.userId);
