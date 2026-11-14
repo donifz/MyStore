@@ -1224,27 +1224,6 @@ export default function AdminPage() {
         <p role="status">Загрузка данных…</p>
       ) : (
         <>
-          <div className="admin-kit-metrics">
-            <AdminMetric
-              symbol="▣"
-              label="Магазины платформы"
-              value={overview?.shopCount ?? '—'}
-              note="Всего зарегистрировано"
-            />
-            <AdminMetric
-              symbol="♙"
-              tone="amber"
-              label="Партнёры на модерации"
-              value={overview?.pendingPartners ?? '—'}
-              note="Ожидают решения"
-            />
-            <AdminMetric
-              symbol="▤"
-              label="Товары на модерации"
-              value={overview?.pendingProducts ?? '—'}
-              note="Карточки на проверке"
-            />
-          </div>
           <div
             className="admin-tab-nav"
             style={{
@@ -1257,26 +1236,39 @@ export default function AdminPage() {
             }}
           >
             {[
-              { key: 'overview', label: 'Обзор', badge: null },
+              { key: 'overview', label: 'Обзор', icon: '▣', badge: null },
               {
                 key: 'products',
                 label: 'Модерация товаров',
+                icon: '🛡️',
                 badge: overview?.pendingProducts || null,
                 badgeColor: '#dc2626',
               },
               {
                 key: 'applications',
                 label: 'Партнёры',
+                icon: '📋',
                 badge: overview?.pendingPartners || null,
                 badgeColor: '#ea580c',
               },
-              { key: 'banners', label: 'Баннеры витрины', badge: null },
+              {
+                key: 'banners',
+                label: 'Баннеры витрины',
+                icon: '🎨',
+                badge: null,
+              },
               {
                 key: 'financial-access',
                 label: 'Финансовый доступ',
+                icon: '💳',
                 badge: null,
               },
-              { key: 'audit', label: 'Журнал решений', badge: null },
+              {
+                key: 'audit',
+                label: 'Журнал решений',
+                icon: '📜',
+                badge: null,
+              },
             ].map((t) => {
               const isActive = tab === t.key;
               return (
@@ -1301,6 +1293,7 @@ export default function AdminPage() {
                   }}
                   onClick={() => setTab(t.key as PlatformSection)}
                 >
+                  <span aria-hidden="true">{t.icon}</span>
                   {t.label}
                   {t.badge ? (
                     <span
@@ -1325,6 +1318,30 @@ export default function AdminPage() {
           {tab === 'overview' ? (
             <div className="admin-kit-grid">
               <div className="admin-kit-primary">
+                <div
+                  className="admin-kit-metrics"
+                  style={{ marginBottom: '20px' }}
+                >
+                  <AdminMetric
+                    symbol="▣"
+                    label="Магазины платформы"
+                    value={overview?.shopCount ?? '—'}
+                    note="Всего зарегистрировано"
+                  />
+                  <AdminMetric
+                    symbol="♙"
+                    tone="amber"
+                    label="Партнёры на модерации"
+                    value={overview?.pendingPartners ?? '—'}
+                    note="Ожидают решения"
+                  />
+                  <AdminMetric
+                    symbol="▤"
+                    label="Товары на модерации"
+                    value={overview?.pendingProducts ?? '—'}
+                    note="Карточки на проверке"
+                  />
+                </div>
                 {(overview?.pendingProducts ?? 0) > 0 && (
                   <div
                     style={{
@@ -1809,6 +1826,36 @@ export default function AdminPage() {
             </div>
           ) : tab === 'applications' ? (
             <>
+              <div
+                style={{
+                  marginBottom: '16px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '8px',
+                }}
+              >
+                <div>
+                  <h2
+                    style={{
+                      margin: '0 0 4px 0',
+                      fontSize: '20px',
+                      fontWeight: 700,
+                    }}
+                  >
+                    Заявки партнёров
+                  </h2>
+                  <p style={{ margin: 0, color: '#64748b', fontSize: '13px' }}>
+                    Заявки на регистрацию и подключение новых магазинов
+                  </p>
+                </div>
+                {overview?.pendingPartners ? (
+                  <AdminStatus tone="amber">
+                    Ожидают решения: {overview.pendingPartners}
+                  </AdminStatus>
+                ) : null}
+              </div>
               <label className="admin-kit-reason">
                 Причина отклонения (для отказа обязательно)
                 <input
@@ -1820,7 +1867,40 @@ export default function AdminPage() {
               {applicationsTable}
             </>
           ) : tab === 'products' ? (
-            <>{productsTable}</>
+            <>
+              <div
+                style={{
+                  marginBottom: '16px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '8px',
+                }}
+              >
+                <div>
+                  <h2
+                    style={{
+                      margin: '0 0 4px 0',
+                      fontSize: '20px',
+                      fontWeight: 700,
+                    }}
+                  >
+                    Модерация товаров
+                  </h2>
+                  <p style={{ margin: 0, color: '#64748b', fontSize: '13px' }}>
+                    Проверка карточек товаров перед публикацией на витрине
+                    маркетплейса
+                  </p>
+                </div>
+                {overview?.pendingProducts ? (
+                  <AdminStatus tone="amber">
+                    На проверке: {overview.pendingProducts}
+                  </AdminStatus>
+                ) : null}
+              </div>
+              {productsTable}
+            </>
           ) : tab === 'financial-access' ? (
             <div className="admin-kit-grid">
               <div className="admin-kit-primary">

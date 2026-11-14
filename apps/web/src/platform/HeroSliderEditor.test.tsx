@@ -96,3 +96,37 @@ it('displays error alert when saving throws', async () => {
   expect(screen.getByRole('alert')).toBeTruthy();
   expect(screen.getByText('Internal server error')).toBeTruthy();
 });
+
+it('resets slides to standard defaults when clicking reset button', async () => {
+  const onSave = vi.fn().mockResolvedValue(undefined);
+  const user = userEvent.setup();
+
+  render(
+    <HeroSliderEditor
+      initialSlides={[
+        {
+          sortOrder: 0,
+          isActive: true,
+          badge: 'КАСТОМ',
+          title: 'Кастомный баннер',
+          subtitle: 'Описание',
+          buttonText: 'Кнопка',
+          buttonUrl: '#catalog',
+          imageUrl: null,
+          bgGradient: 'rose',
+        },
+      ]}
+      onSave={onSave}
+    />,
+  );
+
+  const resetBtn = screen.getByRole('button', {
+    name: /стандартные баннеры/i,
+  });
+  await user.click(resetBtn);
+
+  expect(screen.getByText('Слайд #1')).toBeTruthy();
+  expect(screen.getByText('Слайд #2')).toBeTruthy();
+  expect(screen.getByText('Слайд #3')).toBeTruthy();
+  expect(screen.getAllByDisplayValue('Товары рядом').length).toBeGreaterThan(0);
+});
