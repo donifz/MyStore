@@ -285,7 +285,9 @@ export class StorefrontService {
     return this.db.query(
       `SELECT id, sort_order AS "sortOrder", badge, title, subtitle,
               button_text AS "buttonText", button_url AS "buttonUrl",
-              image_url AS "imageUrl", bg_gradient AS "bgGradient"
+              image_url AS "imageUrl", mobile_image_url AS "mobileImageUrl",
+              hide_overlay AS "hideOverlay", only_image AS "onlyImage",
+              bg_gradient AS "bgGradient"
        FROM platform_hero_slides
        WHERE is_active = true
        ORDER BY sort_order ASC, created_at ASC`,

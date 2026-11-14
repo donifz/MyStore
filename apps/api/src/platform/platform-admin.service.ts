@@ -247,6 +247,8 @@ export class PlatformAdminService {
       `SELECT id, sort_order AS "sortOrder", is_active AS "isActive",
               badge, title, subtitle, button_text AS "buttonText",
               button_url AS "buttonUrl", image_url AS "imageUrl",
+              mobile_image_url AS "mobileImageUrl",
+              hide_overlay AS "hideOverlay", only_image AS "onlyImage",
               bg_gradient AS "bgGradient", created_at AS "createdAt",
               updated_at AS "updatedAt"
        FROM platform_hero_slides
@@ -258,7 +260,9 @@ export class PlatformAdminService {
     return this.db.query(
       `SELECT id, sort_order AS "sortOrder", badge, title, subtitle,
               button_text AS "buttonText", button_url AS "buttonUrl",
-              image_url AS "imageUrl", bg_gradient AS "bgGradient"
+              image_url AS "imageUrl", mobile_image_url AS "mobileImageUrl",
+              hide_overlay AS "hideOverlay", only_image AS "onlyImage",
+              bg_gradient AS "bgGradient"
        FROM platform_hero_slides
        WHERE is_active = true
        ORDER BY sort_order ASC, created_at ASC`,
@@ -283,9 +287,10 @@ export class PlatformAdminService {
         await tx.query(
           `INSERT INTO platform_hero_slides (
              id, sort_order, is_active, badge, title, subtitle,
-             button_text, button_url, image_url, bg_gradient, updated_at
+             button_text, button_url, image_url, mobile_image_url,
+             hide_overlay, only_image, bg_gradient, updated_at
            ) VALUES (
-             COALESCE($1::uuid, gen_random_uuid()), $2, $3, $4, $5, $6, $7, $8, $9, $10, now()
+             COALESCE($1::uuid, gen_random_uuid()), $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, now()
            )`,
           [
             validId,
@@ -297,6 +302,9 @@ export class PlatformAdminService {
             (s.buttonText || 'Смотреть товары').trim(),
             (s.buttonUrl || '#catalog').trim(),
             s.imageUrl || null,
+            s.mobileImageUrl || null,
+            s.hideOverlay ?? false,
+            s.onlyImage ?? false,
             s.bgGradient || 'blue',
           ],
         );
@@ -305,6 +313,8 @@ export class PlatformAdminService {
         `SELECT id, sort_order AS "sortOrder", is_active AS "isActive",
                 badge, title, subtitle, button_text AS "buttonText",
                 button_url AS "buttonUrl", image_url AS "imageUrl",
+                mobile_image_url AS "mobileImageUrl",
+                hide_overlay AS "hideOverlay", only_image AS "onlyImage",
                 bg_gradient AS "bgGradient", created_at AS "createdAt",
                 updated_at AS "updatedAt"
          FROM platform_hero_slides

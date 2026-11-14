@@ -38,6 +38,9 @@ export type HeroSlide = {
   buttonText: string;
   buttonUrl: string;
   imageUrl?: string | null;
+  mobileImageUrl?: string | null;
+  hideOverlay?: boolean;
+  onlyImage?: boolean;
   bgGradient: string;
 };
 export type StorefrontBanner = { imageDataUrl: string };

@@ -130,3 +130,45 @@ it('resets slides to standard defaults when clicking reset button', async () => 
   expect(screen.getByText('Слайд #3')).toBeTruthy();
   expect(screen.getAllByDisplayValue('Товары рядом').length).toBeGreaterThan(0);
 });
+
+it('supports toggling hideOverlay, onlyImage, and mobileImageUrl', async () => {
+  const onSave = vi.fn().mockResolvedValue(undefined);
+  const user = userEvent.setup();
+
+  render(<HeroSliderEditor initialSlides={initialSlides} onSave={onSave} />);
+
+  // Toggle hideOverlay on slide 1
+  const noOverlayCheckboxes = screen.getAllByRole('checkbox', {
+    name: /без затемнения/i,
+  });
+  await user.click(noOverlayCheckboxes[0]);
+
+  // Toggle onlyImage on slide 1
+  const onlyImageCheckboxes = screen.getAllByRole('checkbox', {
+    name: /только фото/i,
+  });
+  await user.click(onlyImageCheckboxes[0]);
+
+  // Set mobile banner URL
+  const mobileUrlInputs = screen.getAllByPlaceholderText(
+    'URL мобильного фото (https://...)',
+  );
+  await user.type(mobileUrlInputs[0], 'https://example.com/mobile.jpg');
+
+  // Switch preview to mobile
+  const mobilePreviewBtn = screen.getByRole('button', {
+    name: /смартфон/i,
+  });
+  await user.click(mobilePreviewBtn);
+  expect(screen.getByText('Только баннер (текст скрыт)')).toBeTruthy();
+
+  // Save
+  const saveBtn = screen.getByRole('button', { name: /сохранить изменения/i });
+  await user.click(saveBtn);
+
+  expect(onSave).toHaveBeenCalledTimes(1);
+  const saved = onSave.mock.calls[0][0];
+  expect(saved[0].hideOverlay).toBe(true);
+  expect(saved[0].onlyImage).toBe(true);
+  expect(saved[0].mobileImageUrl).toBe('https://example.com/mobile.jpg');
+});
