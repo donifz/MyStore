@@ -321,6 +321,7 @@ export async function createApp(
         ? {
             contentSecurityPolicy: {
               directives: {
+                imgSrc: ["'self'", 'data:', 'blob:'],
                 scriptSrc: [
                   "'self'",
                   (_req, res) =>
@@ -329,7 +330,13 @@ export async function createApp(
               },
             },
           }
-        : undefined,
+        : {
+            contentSecurityPolicy: {
+              directives: {
+                imgSrc: ["'self'", 'data:', 'blob:'],
+              },
+            },
+          },
     ),
   );
   app.use(

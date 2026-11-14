@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api, errorText } from '../api/client';
 import type { Variant } from '../api/types';
 import { photoFrom } from './product-photo';
+import SquareCameraCapture from './SquareCameraCapture';
 import { usePhotoCropQueue } from './use-photo-crop-queue';
 
 export default function EditProductPhotos({
@@ -15,8 +16,10 @@ export default function EditProductPhotos({
 }) {
   const [photos, setPhotos] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const photoCrop = usePhotoCropQueue((added) => {
     setPhotos((current) => [...current, ...added]);
     setMessage('');
@@ -143,13 +146,43 @@ export default function EditProductPhotos({
         ))}
       </div>
       <div className="product-photo-footer">
+        <input
+          ref={cameraInputRef}
+          type="file"
+          aria-label="Снять фото на камеру"
+          accept="image/jpeg,image/png,image/webp"
+          capture="environment"
+          style={{ display: 'none' }}
+          disabled={
+            busy || photoCrop.cropping || cameraOpen || photos.length >= 8
+          }
+          onChange={(e) => {
+            add(e.target.files);
+            e.target.value = '';
+          }}
+        />
+        <button
+          type="button"
+          className="secondary"
+          disabled={
+            busy || photoCrop.cropping || cameraOpen || photos.length >= 8
+          }
+          onClick={() => {
+            setError('');
+            setCameraOpen(true);
+          }}
+        >
+          Сфотографировать
+        </button>
         <label className="product-photo-upload">
-          Добавить фотографии
+          Добавить из галереи
           <input
             type="file"
             multiple
             accept="image/jpeg,image/png,image/webp"
-            disabled={busy || photoCrop.cropping || photos.length >= 8}
+            disabled={
+              busy || photoCrop.cropping || cameraOpen || photos.length >= 8
+            }
             onChange={(e) => {
               add(e.target.files);
               e.target.value = '';
@@ -176,6 +209,19 @@ export default function EditProductPhotos({
         </p>
       )}
       {photoCrop.cropDialog}
+      {cameraOpen && (
+        <SquareCameraCapture
+          onPhoto={(dataUrl) => {
+            setPhotos((current) =>
+              current.length >= 8 ? current : [...current, dataUrl],
+            );
+            setMessage('');
+            setError('');
+          }}
+          onClose={() => setCameraOpen(false)}
+          onFallback={() => cameraInputRef.current?.click()}
+        />
+      )}
     </section>
   );
 }

@@ -27,8 +27,8 @@ export async function photoFrom(file: File, crop: SquareCrop = {}) {
     throw Error('Выберите JPEG, PNG или WebP размером до 20 МБ.');
   const image = await createImageBitmap(file);
   try {
-    if (image.width * image.height > 16000000)
-      throw Error('Фото слишком большое. Выберите снимок до 16 мегапикселей.');
+    if (image.width * image.height > 64000000)
+      throw Error('Фото слишком большое. Выберите снимок до 64 мегапикселей.');
     const { x, y, side } = squareCropRect(image.width, image.height, crop);
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');

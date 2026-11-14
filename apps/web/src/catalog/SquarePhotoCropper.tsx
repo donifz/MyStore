@@ -30,8 +30,9 @@ export default function SquarePhotoCropper({
   } | null>(null);
 
   useEffect(() => {
-    const url = URL.createObjectURL(file);
-    setPreview(url);
+    let objectUrl = '';
+    setPreview('');
+    setDimensions({ width: 0, height: 0 });
     setZoom(1);
     setShiftX(0);
     setShiftY(0);
@@ -39,8 +40,31 @@ export default function SquarePhotoCropper({
     let disposed = false;
     void createImageBitmap(file)
       .then((bitmap) => {
-        if (!disposed)
-          setDimensions({ width: bitmap.width, height: bitmap.height });
+        if (disposed) {
+          bitmap.close();
+          return;
+        }
+        const scale = Math.min(1, 1024 / Math.max(bitmap.width, bitmap.height));
+        const previewCanvas = document.createElement('canvas');
+        previewCanvas.width = Math.max(1, Math.round(bitmap.width * scale));
+        previewCanvas.height = Math.max(1, Math.round(bitmap.height * scale));
+        const ctx = previewCanvas.getContext('2d');
+        let previewUrl = '';
+        if (ctx) {
+          ctx.drawImage(
+            bitmap,
+            0,
+            0,
+            previewCanvas.width,
+            previewCanvas.height,
+          );
+          previewUrl = previewCanvas.toDataURL('image/jpeg', 0.85);
+        } else {
+          objectUrl = URL.createObjectURL(file);
+          previewUrl = objectUrl;
+        }
+        setDimensions({ width: bitmap.width, height: bitmap.height });
+        setPreview(previewUrl);
         bitmap.close();
       })
       .catch(() => {
@@ -48,7 +72,7 @@ export default function SquarePhotoCropper({
       });
     return () => {
       disposed = true;
-      URL.revokeObjectURL(url);
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [file]);
 

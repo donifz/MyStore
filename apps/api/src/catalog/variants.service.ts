@@ -115,6 +115,7 @@ export class VariantsService {
       facets?: boolean;
     } = {},
   ) {
+    const trimmedQ = q.trim();
     const pattern = '%' + q.replace(/[\\%_]/g, '\\$&') + '%';
     const stockClause =
       stock === 'in_stock'
@@ -147,7 +148,7 @@ export class VariantsService {
               : options.sort === 'price-desc'
                 ? 'v.sale_price_minor DESC,v.id ASC'
                 : 'v.name ASC,v.id ASC';
-    const filter =
+    let filter =
       'v.shop_id=$1 AND v.archived=$2 AND (v.name ILIKE $3 OR v.barcode ILIKE $3 OR v.short_barcode ILIKE $3 OR v.sku ILIKE $3)' +
       stockClause +
       categoryClause;
@@ -155,6 +156,22 @@ export class VariantsService {
       'FROM variants v LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id' +
       popularJoin +
       ' WHERE ';
+    if (trimmedQ) {
+      const exactFilter =
+        'v.shop_id=$1 AND v.archived=$2 AND (LOWER(v.barcode)=LOWER($3) OR LOWER(v.short_barcode)=LOWER($3))' +
+        stockClause +
+        categoryClause;
+      const exactParams: unknown[] = [shopId, archived, trimmedQ];
+      if (options.category) exactParams.push(options.category);
+      const [exactCount] = await this.db.query(
+        'SELECT count(*) ' + from + exactFilter,
+        exactParams,
+      );
+      if (Number(exactCount.count) > 0) {
+        params[2] = trimmedQ;
+        filter = exactFilter;
+      }
+    }
     const [count] = await this.db.query(
       'SELECT count(*) ' + from + filter,
       params,
