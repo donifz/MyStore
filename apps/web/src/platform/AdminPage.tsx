@@ -322,7 +322,7 @@ export default function AdminPage() {
       })
       .catch((err) => {
         if (!active) return;
-        setError(errorText(err));
+        console.warn('Hero slides loading fallback:', err);
       })
       .finally(() => {
         if (!active) return;
@@ -1224,97 +1224,6 @@ export default function AdminPage() {
         <p role="status">Загрузка данных…</p>
       ) : (
         <>
-          <div
-            className="admin-tab-nav"
-            style={{
-              display: 'flex',
-              gap: '8px',
-              overflowX: 'auto',
-              paddingBottom: '8px',
-              marginBottom: '20px',
-              borderBottom: '1px solid #e2e8f0',
-            }}
-          >
-            {[
-              { key: 'overview', label: 'Обзор', icon: '▣', badge: null },
-              {
-                key: 'products',
-                label: 'Модерация товаров',
-                icon: '🛡️',
-                badge: overview?.pendingProducts || null,
-                badgeColor: '#dc2626',
-              },
-              {
-                key: 'applications',
-                label: 'Партнёры',
-                icon: '📋',
-                badge: overview?.pendingPartners || null,
-                badgeColor: '#ea580c',
-              },
-              {
-                key: 'banners',
-                label: 'Баннеры витрины',
-                icon: '🎨',
-                badge: null,
-              },
-              {
-                key: 'financial-access',
-                label: 'Финансовый доступ',
-                icon: '💳',
-                badge: null,
-              },
-              {
-                key: 'audit',
-                label: 'Журнал решений',
-                icon: '📜',
-                badge: null,
-              },
-            ].map((t) => {
-              const isActive = tab === t.key;
-              return (
-                <button
-                  key={t.key}
-                  type="button"
-                  style={{
-                    borderRadius: '999px',
-                    padding: '8px 16px',
-                    fontSize: '13.5px',
-                    fontWeight: isActive ? 600 : 500,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    whiteSpace: 'nowrap',
-                    background: isActive ? '#0f172a' : '#ffffff',
-                    color: isActive ? '#ffffff' : '#334155',
-                    border: isActive
-                      ? '1px solid #0f172a'
-                      : '1px solid #cbd5e1',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => setTab(t.key as PlatformSection)}
-                >
-                  <span aria-hidden="true">{t.icon}</span>
-                  {t.label}
-                  {t.badge ? (
-                    <span
-                      style={{
-                        background: t.badgeColor || '#ef4444',
-                        color: '#ffffff',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        borderRadius: '999px',
-                        padding: '1px 6px',
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      {t.badge}
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
-
           {tab === 'overview' ? (
             <div className="admin-kit-grid">
               <div className="admin-kit-primary">
@@ -1899,6 +1808,21 @@ export default function AdminPage() {
                   </AdminStatus>
                 ) : null}
               </div>
+              <label
+                className="admin-kit-search"
+                style={{ marginBottom: '16px', width: '100%' }}
+              >
+                <span aria-hidden="true">⌕</span>
+                <input
+                  aria-label="Поиск по товарам"
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setProductPage(1);
+                  }}
+                  placeholder="Поиск товаров для модерации..."
+                />
+              </label>
               {productsTable}
             </>
           ) : tab === 'financial-access' ? (

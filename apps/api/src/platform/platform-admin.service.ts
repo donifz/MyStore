@@ -243,34 +243,105 @@ export class PlatformAdminService {
   }
 
   async listHeroSlides() {
-    return this.db.query(
-      `SELECT id, sort_order AS "sortOrder", is_active AS "isActive",
-              badge, title, subtitle, button_text AS "buttonText",
-              button_url AS "buttonUrl", image_url AS "imageUrl",
-              mobile_image_url AS "mobileImageUrl",
-              hide_overlay AS "hideOverlay", only_image AS "onlyImage",
-              bg_gradient AS "bgGradient", created_at AS "createdAt",
-              updated_at AS "updatedAt"
-       FROM platform_hero_slides
-       ORDER BY sort_order ASC, created_at ASC`,
-    );
+    try {
+      return await this.db.query(
+        `SELECT id, sort_order AS "sortOrder", is_active AS "isActive",
+                badge, title, subtitle, button_text AS "buttonText",
+                button_url AS "buttonUrl", image_url AS "imageUrl",
+                mobile_image_url AS "mobileImageUrl",
+                hide_overlay AS "hideOverlay", only_image AS "onlyImage",
+                bg_gradient AS "bgGradient", created_at AS "createdAt",
+                updated_at AS "updatedAt"
+         FROM platform_hero_slides
+         ORDER BY sort_order ASC, created_at ASC`,
+      );
+    } catch (err: any) {
+      if (err?.code === '42703') {
+        const rows = await this.db.query(
+          `SELECT id, sort_order AS "sortOrder", is_active AS "isActive",
+                  badge, title, subtitle, button_text AS "buttonText",
+                  button_url AS "buttonUrl", image_url AS "imageUrl",
+                  bg_gradient AS "bgGradient", created_at AS "createdAt",
+                  updated_at AS "updatedAt"
+           FROM platform_hero_slides
+           ORDER BY sort_order ASC, created_at ASC`,
+        );
+        return rows.map((r: any) => ({
+          ...r,
+          mobileImageUrl: null,
+          hideOverlay: false,
+          onlyImage: false,
+        }));
+      }
+      if (err?.code === '42P01') {
+        return [];
+      }
+      throw err;
+    }
   }
 
   async publicHeroSlides() {
-    return this.db.query(
-      `SELECT id, sort_order AS "sortOrder", badge, title, subtitle,
-              button_text AS "buttonText", button_url AS "buttonUrl",
-              image_url AS "imageUrl", mobile_image_url AS "mobileImageUrl",
-              hide_overlay AS "hideOverlay", only_image AS "onlyImage",
-              bg_gradient AS "bgGradient"
-       FROM platform_hero_slides
-       WHERE is_active = true
-       ORDER BY sort_order ASC, created_at ASC`,
-    );
+    try {
+      return await this.db.query(
+        `SELECT id, sort_order AS "sortOrder", badge, title, subtitle,
+                button_text AS "buttonText", button_url AS "buttonUrl",
+                image_url AS "imageUrl", mobile_image_url AS "mobileImageUrl",
+                hide_overlay AS "hideOverlay", only_image AS "onlyImage",
+                bg_gradient AS "bgGradient"
+         FROM platform_hero_slides
+         WHERE is_active = true
+         ORDER BY sort_order ASC, created_at ASC`,
+      );
+    } catch (err: any) {
+      if (err?.code === '42703') {
+        const rows = await this.db.query(
+          `SELECT id, sort_order AS "sortOrder", badge, title, subtitle,
+                  button_text AS "buttonText", button_url AS "buttonUrl",
+                  image_url AS "imageUrl",
+                  bg_gradient AS "bgGradient"
+           FROM platform_hero_slides
+           WHERE is_active = true
+           ORDER BY sort_order ASC, created_at ASC`,
+        );
+        return rows.map((r: any) => ({
+          ...r,
+          mobileImageUrl: null,
+          hideOverlay: false,
+          onlyImage: false,
+        }));
+      }
+      if (err?.code === '42P01') {
+        return [];
+      }
+      throw err;
+    }
   }
 
   async updateHeroSlides(adminId: string, slides: any[]) {
     return this.db.transaction(async (tx) => {
+      await tx.query(`
+        CREATE TABLE IF NOT EXISTS platform_hero_slides (
+          id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+          sort_order integer NOT NULL DEFAULT 0,
+          is_active boolean NOT NULL DEFAULT true,
+          badge varchar(64) NOT NULL DEFAULT '',
+          title varchar(255) NOT NULL,
+          subtitle text NOT NULL DEFAULT '',
+          button_text varchar(64) NOT NULL DEFAULT 'Смотреть товары',
+          button_url varchar(255) NOT NULL DEFAULT '#catalog',
+          image_url text,
+          mobile_image_url text,
+          hide_overlay boolean NOT NULL DEFAULT false,
+          only_image boolean NOT NULL DEFAULT false,
+          bg_gradient varchar(32) NOT NULL DEFAULT 'blue',
+          created_at timestamptz NOT NULL DEFAULT now(),
+          updated_at timestamptz NOT NULL DEFAULT now()
+        );
+        ALTER TABLE platform_hero_slides
+          ADD COLUMN IF NOT EXISTS mobile_image_url text,
+          ADD COLUMN IF NOT EXISTS hide_overlay boolean NOT NULL DEFAULT false,
+          ADD COLUMN IF NOT EXISTS only_image boolean NOT NULL DEFAULT false;
+      `);
       await tx.query('DELETE FROM platform_hero_slides');
       for (let i = 0; i < slides.length; i++) {
         const s = slides[i];
