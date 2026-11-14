@@ -1432,6 +1432,8 @@ export default function AdminPage() {
                   </div>
                 )}
 
+                {applicationsTable}
+
                 <AdminCard
                   title="Магазины"
                   subtitle="Зарегистрированные магазины платформы"
