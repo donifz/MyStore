@@ -441,3 +441,109 @@ it('loads later partner applications from the server with filters', async () => 
     .selectOptions(screen.getByLabelText('Статус заявки'), 'approved');
   expect(requests.some((url) => url.includes('status=approved'))).toBe(true);
 });
+
+it('supports bulk approval of products on moderation', async () => {
+  const requests: { url: string; init?: RequestInit }[] = [];
+  vi.stubGlobal(
+    'confirm',
+    vi.fn(() => true),
+  );
+  vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+    requests.push({ url, init });
+    if (url === '/api/auth/me') {
+      return new Response(
+        JSON.stringify({
+          userId: 'admin',
+          email: 'admin@example.test',
+          csrfToken: 'csrf',
+          platformAdmin: true,
+          shops: [],
+        }),
+        { headers: { 'content-type': 'application/json' } },
+      );
+    }
+    if (url === '/api/platform/admin/overview') {
+      return new Response(
+        JSON.stringify({
+          shopCount: 1,
+          pendingPartners: 0,
+          pendingProducts: 2,
+          shops: [],
+        }),
+        { headers: { 'content-type': 'application/json' } },
+      );
+    }
+    if (url.includes('/api/platform/admin/products?')) {
+      return new Response(
+        JSON.stringify({
+          items: [
+            {
+              revision_id: '11111111-1111-4111-8111-111111111111',
+              variant_id: 'var-1',
+              shop_id: 'shop-1',
+              name: 'Товар 1',
+              description: 'Описание 1',
+              category: 'Игрушки',
+              subcategory: '',
+              has_photo: false,
+              created_at: new Date().toISOString(),
+              shop_name: 'Магазин 1',
+              has_publication: false,
+            },
+            {
+              revision_id: '22222222-2222-4222-8222-222222222222',
+              variant_id: 'var-2',
+              shop_id: 'shop-1',
+              name: 'Товар 2',
+              description: 'Описание 2',
+              category: 'Одежда',
+              subcategory: '',
+              has_photo: false,
+              created_at: new Date().toISOString(),
+              shop_name: 'Магазин 1',
+              has_publication: false,
+            },
+          ],
+          total: 2,
+          page: 1,
+          pageSize: 25,
+        }),
+        { headers: { 'content-type': 'application/json' } },
+      );
+    }
+    if (url === '/api/platform/admin/products/batch-decision') {
+      return new Response(JSON.stringify({ count: 2, items: [] }), {
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+    return new Response(JSON.stringify({ items: [], total: 0 }), {
+      headers: { 'content-type': 'application/json' },
+    });
+  });
+
+  render(
+    <MemoryRouter initialEntries={['/platform/admin?section=products']}>
+      <SessionProvider>
+        <AdminPage />
+      </SessionProvider>
+    </MemoryRouter>,
+  );
+
+  expect(await screen.findByText('Товар 1')).toBeTruthy();
+  expect(screen.getByText('Товар 2')).toBeTruthy();
+
+  const bulkApproveBtn = await screen.findByRole('button', {
+    name: /одобрить всю страницу/i,
+  });
+  await userEvent.setup().click(bulkApproveBtn);
+
+  expect(
+    requests.some(
+      ({ url, init }) =>
+        url === '/api/platform/admin/products/batch-decision' &&
+        init?.method === 'POST' &&
+        typeof init?.body === 'string' &&
+        init.body.includes('11111111-1111-4111-8111-111111111111'),
+    ),
+  ).toBe(true);
+});

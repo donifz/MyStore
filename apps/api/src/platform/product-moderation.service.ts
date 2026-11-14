@@ -118,6 +118,28 @@ export class ProductModerationService {
     });
   }
 
+  async batchDecide(
+    ids: string[],
+    actor: string,
+    decision: 'approved' | 'rejected',
+    reason?: string,
+  ) {
+    const clean = (reason ?? '').replace(/[\x00-\x1f\x7f]/g, ' ').trim();
+    if (decision === 'rejected' && (!clean || clean.length > 500)) {
+      throw new BadRequestException('Rejection reason required');
+    }
+    const results: { id: string; status: string }[] = [];
+    for (const id of ids) {
+      try {
+        const res = await this.decide(id, actor, decision, clean);
+        results.push(res);
+      } catch {
+        // If an item is already decided or not found, continue with the remaining items
+      }
+    }
+    return { count: results.length, items: results };
+  }
+
   async audit(page: number, pageSize: number) {
     const items = await this.db.query(
       `SELECT * FROM (
