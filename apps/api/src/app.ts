@@ -110,6 +110,8 @@ import {
 } from './platform/financial-access.controller';
 import { ShopTelegramService } from './shops/shop-telegram.service';
 import { ShopTelegramController } from './shops/shop-telegram.controller';
+import { PosTerminalService } from './pos/terminal.service';
+import { PosTerminalController } from './pos/terminal.controller';
 const STOREFRONT_EXACT_PATHS = new Set([
   '/',
   '/catalog',
@@ -163,6 +165,7 @@ export async function createApp(
       SalesController,
       ShiftsController,
       PosSalesController,
+      PosTerminalController,
       CreditSalesController,
       CreditRepaymentsController,
       BuyerRepaymentsController,
@@ -211,6 +214,7 @@ export async function createApp(
       SalesService,
       ShiftsService,
       PosSalesService,
+      PosTerminalService,
       CreditSalesService,
       CreditRepaymentsService,
       LoyaltyService,

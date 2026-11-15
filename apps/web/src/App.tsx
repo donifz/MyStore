@@ -35,6 +35,7 @@ import PlatformAccessPage from './platform/PlatformAccessPage';
 import BuyerPortalPage from './customers/BuyerPortalPage';
 import ShopCustomersPage from './customers/ShopCustomersPage';
 import CreditDebtsPage from './pos/CreditDebtsPage';
+import TerminalPage from './pos/TerminalPage';
 import './customers/customers.css';
 export default function App() {
   return (
@@ -81,6 +82,7 @@ export default function App() {
             <Route path="sales/:saleId" element={<SaleDetailPage />} />
             <Route path="sales/:saleId/return" element={<ReturnPage />} />
             <Route path="pos" element={<SalePage />} />
+            <Route path="terminal" element={<TerminalPage />} />
             <Route path="customers" element={<ShopCustomersPage />} />
             <Route path="debts" element={<CreditDebtsPage />} />
             <Route path="receiving" element={<ReceivingPage />} />

@@ -45,6 +45,7 @@ import { BuyerTelegramAuth1760000000041 } from './migrations/1760000000041-Buyer
 import { ShopTelegramNotifications1760000000042 } from './migrations/1760000000042-ShopTelegramNotifications';
 import { PlatformHeroSlides1760000000043 } from './migrations/1760000000043-PlatformHeroSlides';
 import { PlatformHeroSlidesEnhancements1760000000044 } from './migrations/1760000000044-PlatformHeroSlidesEnhancements';
+import { PosTerminalQueue1760000000045 } from './migrations/1760000000045-PosTerminalQueue';
 export const DATABASE = Symbol('DATABASE');
 export function buildDataSource(url: string) {
   return new DataSource({
@@ -97,6 +98,7 @@ export function buildDataSource(url: string) {
       ShopTelegramNotifications1760000000042,
       PlatformHeroSlides1760000000043,
       PlatformHeroSlidesEnhancements1760000000044,
+      PosTerminalQueue1760000000045,
     ],
   });
 }

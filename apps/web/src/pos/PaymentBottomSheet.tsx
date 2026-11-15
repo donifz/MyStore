@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { api } from '../api/client';
 import { formatSom } from '../api/money';
 import CreditFields from './CreditFields';
 import LoyaltyCheckout from './LoyaltyCheckout';
@@ -113,8 +114,31 @@ export default function PaymentBottomSheet({
   const [selectedCustomerName, setSelectedCustomerName] = useState('');
   const [selectedCustomerDebt, setSelectedCustomerDebt] = useState(0);
   const [selectedCustomerPoints, setSelectedCustomerPoints] = useState(0);
+  const [terminalQr, setTerminalQr] = useState<{
+    paymentQrData: string | null;
+    paymentQrLabel: string;
+    showQrOnCheckout: boolean;
+  } | null>(null);
   const returnToCredit = useRef(false);
   const previousCustomer = useRef({ id: '', name: '', debt: 0, points: 0 });
+  useEffect(() => {
+    if (!open || !shopId) return;
+    let alive = true;
+    api<{
+      paymentQrData: string | null;
+      paymentQrLabel: string;
+      showQrOnCheckout: boolean;
+    }>(`/shops/${shopId}/pos/terminal/settings`)
+      .then((res) => {
+        if (alive) setTerminalQr(res);
+      })
+      .catch(() => {
+        if (alive) setTerminalQr(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [open, shopId]);
   useEffect(() => {
     if (!creditCustomerId) {
       setSelectedCustomerName('');
@@ -433,9 +457,39 @@ export default function PaymentBottomSheet({
                 </section>
               )}
               {method === 'card' && !creditMode && (
-                <p className="pos-sheet-payment-hint">
-                  После оплаты на терминале подтвердите продажу.
-                </p>
+                <div className="pos-sheet-payment-hint">
+                  {terminalQr?.paymentQrData && terminalQr.showQrOnCheckout ? (
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.75rem',
+                        background: '#fff',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0',
+                        marginTop: '0.5rem',
+                      }}
+                    >
+                      <img
+                        src={terminalQr.paymentQrData}
+                        alt={terminalQr.paymentQrLabel || 'QR для оплаты'}
+                        style={{
+                          width: '180px',
+                          height: '180px',
+                          objectFit: 'contain',
+                        }}
+                      />
+                      <strong>
+                        {terminalQr.paymentQrLabel || 'Оплата по QR'}
+                      </strong>
+                      <span className="muted">К оплате: {totalText}</span>
+                    </div>
+                  ) : (
+                    <p>После оплаты на терминале подтвердите продажу.</p>
+                  )}
+                </div>
               )}
             </div>
 
