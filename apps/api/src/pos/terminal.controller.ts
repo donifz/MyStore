@@ -23,6 +23,10 @@ import { PosTerminalService } from './terminal.service';
 
 class UpdateTerminalSettingsDto {
   @IsOptional()
+  @IsBoolean()
+  enabled?: boolean;
+
+  @IsOptional()
   @IsString()
   @MaxLength(700_000)
   paymentQrData?: string | null;

@@ -17,6 +17,7 @@ it('loads terminal settings, saves changes, and triggers test print + long polli
   vi.stubGlobal('print', printMock);
 
   let savedSettings = {
+    enabled: false,
     paymentQrData: null as string | null,
     paymentQrLabel: 'Оплата по QR',
     showQrOnCheckout: true,
@@ -174,11 +175,25 @@ it('loads terminal settings, saves changes, and triggers test print + long polli
     await screen.findByRole('heading', { name: 'Терминал и ККМ' }),
   ).toBeTruthy();
 
+  const enableCheckbox = screen.getByLabelText(
+    'Включить терминал печати чеков и QR-оплату',
+  ) as HTMLInputElement;
+  expect(enableCheckbox.checked).toBe(false);
+  expect(
+    (
+      screen.getByRole('button', {
+        name: 'Запустить приём чеков',
+      }) as HTMLButtonElement
+    ).disabled,
+  ).toBe(true);
+
+  await user.click(enableCheckbox);
   const headerInput = screen.getByLabelText('Шапка чека');
   await user.type(headerInput, 'ул. Киевская 10');
   await user.click(screen.getByRole('button', { name: 'Сохранить настройки' }));
 
   expect(await screen.findByText('Настройки терминала сохранены')).toBeTruthy();
+  expect(savedSettings.enabled).toBe(true);
   expect(savedSettings.receiptHeader).toBe('ул. Киевская 10');
 
   await user.click(screen.getByRole('button', { name: 'Тестовая печать' }));

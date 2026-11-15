@@ -5,6 +5,7 @@ export class PosTerminalQueue1760000000045 implements MigrationInterface {
     await q.query(`
       CREATE TABLE pos_terminal_settings (
         shop_id uuid PRIMARY KEY REFERENCES shops(id) ON DELETE CASCADE,
+        enabled boolean NOT NULL DEFAULT false,
         payment_qr_data text,
         payment_qr_label text NOT NULL DEFAULT 'Оплата по QR',
         show_qr_on_checkout boolean NOT NULL DEFAULT true,
