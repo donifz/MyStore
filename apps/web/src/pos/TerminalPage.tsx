@@ -13,6 +13,7 @@ import { InstallApp } from '../pwa/InstallApp';
 import './terminal.css';
 
 export type TerminalSettings = {
+  enabled: boolean;
   paymentQrData: string | null;
   paymentQrLabel: string;
   showQrOnCheckout: boolean;
@@ -54,6 +55,7 @@ type FiscalStatus = {
 };
 
 const DEFAULT_SETTINGS: TerminalSettings = {
+  enabled: false,
   paymentQrData: null,
   paymentQrLabel: 'Оплата по QR',
   showQrOnCheckout: true,
@@ -285,6 +287,61 @@ export default function TerminalPage() {
         </p>
       )}
 
+      <section className="panel no-print" style={{ marginTop: '1rem' }}>
+        <div className="terminal-status-row">
+          <div>
+            <h2>Режим работы терминала</h2>
+            <p className="muted" style={{ margin: '0.25rem 0 0' }}>
+              По умолчанию отключено. Включите, чтобы касса показывала QR при
+              безналичной оплате и отправляла чеки на печать.
+            </p>
+          </div>
+          <span
+            className={`terminal-badge ${
+              settings.enabled ? 'terminal-badge--active' : ''
+            }`}
+          >
+            <span className="terminal-dot" aria-hidden="true" />
+            {settings.enabled ? 'Включён' : 'Отключён'}
+          </span>
+        </div>
+        <div
+          style={{
+            marginTop: '0.75rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.75rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          <label className="terminal-check">
+            <input
+              type="checkbox"
+              checked={settings.enabled}
+              disabled={!canEdit}
+              onChange={(e) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  enabled: e.target.checked,
+                }))
+              }
+            />
+            <span>Включить терминал печати чеков и QR-оплату</span>
+          </label>
+          {canEdit && (
+            <button
+              type="button"
+              className="primary"
+              disabled={saving}
+              onClick={() => void handleSave()}
+            >
+              {saving ? 'Сохранение...' : 'Сохранить'}
+            </button>
+          )}
+        </div>
+      </section>
+
       <div className="terminal-grid no-print">
         <section className="panel terminal-card">
           <div className="terminal-status-row">
@@ -316,6 +373,7 @@ export default function TerminalPage() {
             <button
               type="button"
               className={listening ? 'secondary' : 'primary'}
+              disabled={!settings.enabled && !listening}
               onClick={() => setListening((v) => !v)}
             >
               {listening ? 'Остановить приём' : 'Запустить приём чеков'}

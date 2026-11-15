@@ -4,6 +4,7 @@ import { DataSource, EntityManager } from 'typeorm';
 import { DATABASE } from '../database';
 
 export type TerminalSettings = {
+  enabled: boolean;
   paymentQrData: string | null;
   paymentQrLabel: string;
   showQrOnCheckout: boolean;
@@ -27,6 +28,7 @@ export type TerminalJob = {
 };
 
 const DEFAULT_SETTINGS: TerminalSettings = {
+  enabled: false,
   paymentQrData: null,
   paymentQrLabel: 'Оплата по QR',
   showQrOnCheckout: true,
@@ -44,6 +46,7 @@ export class PosTerminalService {
   private mapSettings(row: any): TerminalSettings {
     if (!row) return { ...DEFAULT_SETTINGS };
     return {
+      enabled: Boolean(row.enabled),
       paymentQrData: row.payment_qr_data ?? null,
       paymentQrLabel: row.payment_qr_label || DEFAULT_SETTINGS.paymentQrLabel,
       showQrOnCheckout: Boolean(row.show_qr_on_checkout),
@@ -93,6 +96,8 @@ export class PosTerminalService {
   ): Promise<TerminalSettings> {
     const current = await this.getSettings(shopId);
     const next: TerminalSettings = {
+      enabled:
+        input.enabled !== undefined ? Boolean(input.enabled) : current.enabled,
       paymentQrData:
         input.paymentQrData !== undefined
           ? input.paymentQrData?.trim() || null
@@ -131,11 +136,12 @@ export class PosTerminalService {
 
     const [row] = await this.db.query(
       `INSERT INTO pos_terminal_settings(
-        shop_id, payment_qr_data, payment_qr_label, show_qr_on_checkout,
+        shop_id, enabled, payment_qr_data, payment_qr_label, show_qr_on_checkout,
         print_qr_on_receipt, paper_width, auto_print, receipt_header, receipt_footer, updated_at
       )
-      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,now())
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,now())
       ON CONFLICT (shop_id) DO UPDATE SET
+        enabled=EXCLUDED.enabled,
         payment_qr_data=EXCLUDED.payment_qr_data,
         payment_qr_label=EXCLUDED.payment_qr_label,
         show_qr_on_checkout=EXCLUDED.show_qr_on_checkout,
@@ -148,6 +154,7 @@ export class PosTerminalService {
       RETURNING *`,
       [
         shopId,
+        next.enabled,
         next.paymentQrData,
         next.paymentQrLabel,
         next.showQrOnCheckout,
@@ -167,6 +174,11 @@ export class PosTerminalService {
     saleId: string,
     payload: Record<string, any>,
   ): Promise<void> {
+    const [settings] = await tx.query(
+      'SELECT enabled FROM pos_terminal_settings WHERE shop_id=$1',
+      [shopId],
+    );
+    if (!settings?.enabled) return;
     await tx.query(
       `INSERT INTO pos_terminal_jobs(id, shop_id, sale_id, kind, status, payload)
        VALUES($1, $2, $3, 'receipt', 'pending', $4)

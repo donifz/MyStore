@@ -115,6 +115,7 @@ export default function PaymentBottomSheet({
   const [selectedCustomerDebt, setSelectedCustomerDebt] = useState(0);
   const [selectedCustomerPoints, setSelectedCustomerPoints] = useState(0);
   const [terminalQr, setTerminalQr] = useState<{
+    enabled: boolean;
     paymentQrData: string | null;
     paymentQrLabel: string;
     showQrOnCheckout: boolean;
@@ -125,6 +126,7 @@ export default function PaymentBottomSheet({
     if (!open || !shopId) return;
     let alive = true;
     api<{
+      enabled: boolean;
       paymentQrData: string | null;
       paymentQrLabel: string;
       showQrOnCheckout: boolean;
@@ -469,7 +471,9 @@ export default function PaymentBottomSheet({
               )}
               {method === 'card' && !creditMode && (
                 <div className="pos-sheet-payment-hint">
-                  {terminalQr?.paymentQrData && terminalQr.showQrOnCheckout ? (
+                  {terminalQr?.enabled &&
+                  terminalQr.paymentQrData &&
+                  terminalQr.showQrOnCheckout ? (
                     <div
                       style={{
                         display: 'flex',
