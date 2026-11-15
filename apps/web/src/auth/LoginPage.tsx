@@ -44,6 +44,15 @@ export default function LoginPage() {
       'from' in location.state
         ? (location.state as { from?: string }).from
         : undefined;
+    const isTerminalReturn =
+      typeof from === 'string' &&
+      (from === '/terminal' || /^\/terminal\/[^/]+$/.test(from));
+    if (isTerminalReturn) {
+      return <Navigate to={from} replace />;
+    }
+    if (typeof window !== 'undefined' && window.AndroidPrinter) {
+      return <Navigate to="/terminal" replace />;
+    }
     return (
       <Navigate
         to={workspaceReturn(s.user, from) ?? workspaceStart(s.user)}

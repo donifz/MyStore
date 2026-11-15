@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { Navigate, useParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
 import { formatDate, formatSom } from '../api/money';
 import { useSession } from '../auth/SessionProvider';
@@ -20,7 +20,6 @@ declare global {
 export default function TerminalKioskPage() {
   const { shopId } = useParams();
   const session = useSession();
-  const navigate = useNavigate();
 
   const [settings, setSettings] = useState<TerminalSettings | null>(null);
   const [currentJob, setCurrentJob] = useState<TerminalJob | null>(null);
@@ -149,8 +148,27 @@ export default function TerminalKioskPage() {
   }
 
   if (!session.user) {
-    navigate('/seller/login');
-    return null;
+    return (
+      <Navigate
+        to="/seller/login"
+        state={{ from: shopId ? `/terminal/${shopId}` : '/terminal' }}
+        replace
+      />
+    );
+  }
+
+  if (!shopId) {
+    const firstShop = session.user.shops[0];
+    if (firstShop) {
+      return <Navigate to={`/terminal/${firstShop.id}`} replace />;
+    }
+    return (
+      <div className="terminal-kiosk">
+        <main className="terminal-kiosk__main">
+          <p className="error">Нет доступных магазинов для терминала.</p>
+        </main>
+      </div>
+    );
   }
 
   const isCard = currentJob?.payload.method === 'card';
