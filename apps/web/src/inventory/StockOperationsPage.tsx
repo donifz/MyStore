@@ -166,7 +166,11 @@ export default function StockOperationsPage() {
                 max={1000000000}
                 value={count}
                 onChange={(e) => {
-                  setCount(e.target.value);
+                  const val = e.target.value
+                    .replace(/\D/g, '')
+                    .replace(/^0+(?=\d)/, '');
+                  if (e.target.value !== val) e.currentTarget.value = val;
+                  setCount(val);
                   setKey(crypto.randomUUID());
                 }}
               />
@@ -190,7 +194,11 @@ export default function StockOperationsPage() {
                 max={1000000000}
                 value={quantity}
                 onChange={(e) => {
-                  setQuantity(e.target.value);
+                  const val = e.target.value
+                    .replace(/\D/g, '')
+                    .replace(/^0+(?=\d)/, '');
+                  if (e.target.value !== val) e.currentTarget.value = val;
+                  setQuantity(val);
                   setKey(crypto.randomUUID());
                 }}
               />

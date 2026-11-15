@@ -190,10 +190,18 @@ export default function ProductStockAdjuster({
               className="product-stock-adjuster__input"
               aria-label="Фактическое количество"
               min={reservedCount}
-              value={targetCount}
+              value={String(targetCount)}
               disabled={busy}
               onChange={(e) => {
-                const val = parseInt(e.target.value, 10);
+                const cleaned = e.target.value
+                  .replace(/\D/g, '')
+                  .replace(/^0+(?=\d)/, '');
+                if (e.target.value !== cleaned) e.currentTarget.value = cleaned;
+                if (cleaned === '') {
+                  setTargetCount(0);
+                  return;
+                }
+                const val = parseInt(cleaned, 10);
                 if (!isNaN(val)) {
                   setTargetCount(Math.max(0, val));
                 }
