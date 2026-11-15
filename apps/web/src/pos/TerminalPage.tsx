@@ -604,19 +604,21 @@ export default function TerminalPage() {
                 : 'Наличные'}
             </span>
           </div>
-          {settings.printQrOnReceipt && settings.paymentQrData && (
-            <>
-              <div className="terminal-receipt-divider" />
-              <img
-                className="terminal-receipt-qr"
-                src={settings.paymentQrData}
-                alt={settings.paymentQrLabel}
-              />
-              <div style={{ textAlign: 'center' }}>
-                {settings.paymentQrLabel}
-              </div>
-            </>
-          )}
+          {activeReceipt.payload.method === 'card' &&
+            settings.printQrOnReceipt &&
+            settings.paymentQrData && (
+              <>
+                <div className="terminal-receipt-divider" />
+                <img
+                  className="terminal-receipt-qr"
+                  src={settings.paymentQrData}
+                  alt={settings.paymentQrLabel}
+                />
+                <div style={{ textAlign: 'center' }}>
+                  {settings.paymentQrLabel}
+                </div>
+              </>
+            )}
           {settings.receiptFooter && (
             <>
               <div className="terminal-receipt-divider" />
