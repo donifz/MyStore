@@ -174,6 +174,18 @@ function SaleWorkspace({
     [scannerFocused, setScannerFocused] = useState(true),
     [paymentSheetOpen, setPaymentSheetOpen] = useState(false),
     [shiftModalOpen, setShiftModalOpen] = useState(false),
+    [lastReceipt, setLastReceipt] = useState<{
+      shopName: string;
+      method: 'cash' | 'card';
+      totalMinor: number;
+      createdAt: string;
+      lines: Array<{
+        name: string;
+        quantity: number;
+        unitPriceMinor: number;
+        discountMinor: number;
+      }>;
+    } | null>(null),
     scanInput = useRef<HTMLInputElement>(null),
     photos = useRef(new Map<string, string>());
 
@@ -933,6 +945,64 @@ function SaleWorkspace({
         success={doc.success}
         onNewReceipt={startNewReceipt}
       />
+      {doc.success && lastReceipt && (
+        <div className="sale-receipt-print" aria-hidden="true">
+          <div style={{ textAlign: 'center', fontWeight: 700 }}>
+            {lastReceipt.shopName}
+          </div>
+          <div style={{ textAlign: 'center', marginTop: '2px' }}>
+            {new Date(lastReceipt.createdAt).toLocaleString('ru-RU')}
+          </div>
+          <div className="receipt-divider" />
+          {lastReceipt.lines.map((line, idx) => {
+            const lineTotal =
+              line.quantity * (line.unitPriceMinor - line.discountMinor);
+            return (
+              <div key={idx} style={{ marginBottom: '4px' }}>
+                <div>
+                  {idx + 1}. {line.name}
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <span>
+                    {line.quantity} ×{' '}
+                    {formatSom(line.unitPriceMinor - line.discountMinor)}
+                  </span>
+                  <span>{formatSom(lineTotal)}</span>
+                </div>
+              </div>
+            );
+          })}
+          <div className="receipt-divider" />
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontWeight: 700,
+            }}
+          >
+            <span>ИТОГО:</span>
+            <span>{formatSom(lastReceipt.totalMinor)}</span>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+            }}
+          >
+            <span>Оплата:</span>
+            <span>
+              {lastReceipt.method === 'card' ? 'Безналичные / QR' : 'Наличные'}
+            </span>
+          </div>
+          <div className="receipt-divider" />
+          <div style={{ textAlign: 'center' }}>Спасибо за покупку!</div>
+        </div>
+      )}
     </div>
   );
 }
