@@ -53,6 +53,7 @@ class PageQuery {
   @IsIn(['newest', 'oldest', 'total-asc', 'total-desc'])
   sort = 'newest';
   @IsOptional() @IsIn(['cash', 'card']) method?: 'cash' | 'card';
+  @IsOptional() @IsUUID() shiftId?: string;
 }
 @Controller('shops/:shopId/pos/sales')
 @UseGuards(AuthGuard)
@@ -95,6 +96,7 @@ export class PosSalesController {
       q.pageSize,
       q.sort,
       q.method,
+      q.shiftId,
     );
   }
   @Get(':id') async get(

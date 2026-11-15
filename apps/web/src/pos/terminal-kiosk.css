@@ -142,3 +142,197 @@
   font-size: 0.85rem;
   cursor: pointer;
 }
+
+.terminal-kiosk__tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+  background: #1e293b;
+  padding: 0.3rem;
+  border-radius: 12px;
+  border: 1px solid #334155;
+}
+
+.terminal-kiosk__tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  padding: 0.65rem 0.75rem;
+  border-radius: 9px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.terminal-kiosk__tab.is-active {
+  background: #0f172a;
+  color: #f8fafc;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.terminal-kiosk__tab-count {
+  background: #064e3b;
+  color: #34d399;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+}
+
+.terminal-kiosk__sales {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1rem 0;
+  overflow-y: auto;
+}
+
+.terminal-kiosk__sales-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.terminal-kiosk__sales-head h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.terminal-kiosk__sales-sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+.terminal-kiosk__refresh {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.terminal-kiosk__refresh:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.terminal-kiosk__summary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem;
+}
+
+.terminal-kiosk__stat {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 0.7rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.terminal-kiosk__stat span {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.terminal-kiosk__stat strong {
+  font-size: 1rem;
+  color: #f8fafc;
+}
+
+.terminal-kiosk__stat--total strong {
+  color: #34d399;
+}
+
+.terminal-kiosk__empty,
+.terminal-kiosk__empty-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 14px;
+  padding: 1.25rem;
+  text-align: center;
+  color: #cbd5e1;
+}
+
+.terminal-kiosk__sale-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.terminal-kiosk__sale-item {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.terminal-kiosk__sale-row {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: inherit;
+  padding: 0.8rem 0.95rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.terminal-kiosk__sale-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.terminal-kiosk__sale-meta strong {
+  font-size: 0.95rem;
+  color: #f8fafc;
+}
+
+.terminal-kiosk__sale-meta span {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.terminal-kiosk__sale-amount {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #34d399;
+  white-space: nowrap;
+}
+
+.terminal-kiosk__sale-detail {
+  border-top: 1px solid #334155;
+  padding: 0.65rem 0.95rem;
+  background: #0f172a;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.terminal-kiosk__sale-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+  color: #cbd5e1;
+}

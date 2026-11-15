@@ -17,12 +17,19 @@ export class SalesHistoryService {
     pageSize: number,
     sort = 'newest',
     method?: 'cash' | 'card',
+    shiftId?: string,
   ) {
-    const where =
-      "d.shop_id=$1 AND d.kind='sale' AND ($2::boolean OR d.actor_id=$3)" +
-      (method
-        ? " AND EXISTS (SELECT 1 FROM payment_records pr WHERE pr.shop_id=d.shop_id AND pr.document_id=d.id AND pr.kind='sale' AND pr.method=$4)"
-        : '');
+    const args: unknown[] = [shopId, owner, actorId];
+    let where =
+      "d.shop_id=$1 AND d.kind='sale' AND ($2::boolean OR d.actor_id=$3)";
+    if (method) {
+      args.push(method);
+      where += ` AND EXISTS (SELECT 1 FROM payment_records pr WHERE pr.shop_id=d.shop_id AND pr.document_id=d.id AND pr.kind='sale' AND pr.method=$${args.length})`;
+    }
+    if (shiftId) {
+      args.push(shiftId);
+      where += ` AND EXISTS (SELECT 1 FROM pos_sales ps WHERE ps.shop_id=d.shop_id AND ps.document_id=d.id AND ps.shift_id=$${args.length})`;
+    }
     const orderBy =
       sort === 'oldest'
         ? 'd.created_at ASC,d.id ASC'
@@ -31,9 +38,6 @@ export class SalesHistoryService {
           : sort === 'total-desc'
             ? 'd.total_minor DESC,d.created_at DESC,d.id'
             : 'd.created_at DESC,d.id';
-    const args = method
-      ? [shopId, owner, actorId, method]
-      : [shopId, owner, actorId];
     const [count] = await this.db.query(
       'SELECT count(*) FROM stock_documents d WHERE ' + where,
       args,
