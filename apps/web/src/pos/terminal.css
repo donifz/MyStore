@@ -159,21 +159,34 @@
 }
 
 @media print {
-  body * {
-    visibility: hidden;
+  #root:has(.terminal-print-receipt),
+  #root *:has(.terminal-print-receipt) {
+    display: contents !important;
   }
-  .terminal-print-receipt,
-  .terminal-print-receipt * {
-    visibility: visible;
+  #root .terminal-print-receipt,
+  #root .terminal-print-receipt * {
+    display: revert !important;
+    visibility: visible !important;
   }
-  .terminal-print-receipt {
-    position: fixed;
-    left: 0;
-    top: 0;
-    margin: 0;
-    border: none;
-    border-radius: 0;
-    padding: 2mm;
-    box-shadow: none;
+  #root .terminal-print-receipt {
+    display: block !important;
+    position: static !important;
+    margin: 0 auto !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 2mm !important;
+    box-shadow: none !important;
+    color: #000 !important;
+    background: #fff !important;
+  }
+  #root .terminal-print-receipt .terminal-receipt-row {
+    display: flex !important;
+    justify-content: space-between !important;
+  }
+  #root .terminal-print-receipt .terminal-receipt-qr {
+    display: block !important;
+  }
+  #root .no-print {
+    display: none !important;
   }
 }

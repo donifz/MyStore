@@ -36,6 +36,7 @@ import BuyerPortalPage from './customers/BuyerPortalPage';
 import ShopCustomersPage from './customers/ShopCustomersPage';
 import CreditDebtsPage from './pos/CreditDebtsPage';
 import TerminalPage from './pos/TerminalPage';
+import TerminalKioskPage from './pos/TerminalKioskPage';
 import './customers/customers.css';
 export default function App() {
   return (
@@ -64,6 +65,7 @@ export default function App() {
             element={<ResetPasswordPage />}
           />
           <Route path="/seller/login" element={<LoginPage />} />
+          <Route path="/terminal/:shopId" element={<TerminalKioskPage />} />
           <Route path="/buyer" element={<BuyerPortalPage />} />
           <Route path="/buyer/login" element={<BuyerPortalPage />} />
           <Route path="/buyer/register" element={<BuyerPortalPage />} />
