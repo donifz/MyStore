@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, Optional } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { randomUUID } from 'node:crypto';
 import { IdempotencyService } from '../common/idempotency.service';
@@ -6,6 +6,7 @@ import { SalesService, SaleLine } from './sales.service';
 import { ShiftsService } from './shifts.service';
 import { PaymentMethod } from './pos.types';
 import { LoyaltyService } from './loyalty.service';
+import { PosTerminalService } from './terminal.service';
 @Injectable()
 export class PosSalesService {
   constructor(
@@ -13,6 +14,7 @@ export class PosSalesService {
     private readonly sales: SalesService,
     private readonly shifts: ShiftsService,
     private readonly loyalty: LoyaltyService,
+    @Optional() private readonly terminal?: PosTerminalService,
   ) {}
   async sell(
     shopId: string,
@@ -122,6 +124,33 @@ export class PosSalesService {
       );
     }
     await this.shifts.lockOpen(tx, shopId, shiftId, actorId);
+    if (this.terminal) {
+      const [shopRow] = await tx.query('SELECT name FROM shops WHERE id=$1', [
+        shopId,
+      ]);
+      const variantIds = normalized.map((l) => l.variantId);
+      const variantRows: Array<{ id: string; name: string }> =
+        variantIds.length > 0
+          ? await tx.query(
+              'SELECT id, name FROM variants WHERE shop_id=$1 AND id = ANY($2)',
+              [shopId, variantIds],
+            )
+          : [];
+      const nameById = new Map(variantRows.map((v) => [v.id, v.name]));
+      await this.terminal.enqueueSaleReceiptInTx(tx, shopId, sale.id, {
+        shopName: shopRow?.name || 'Магазин',
+        method,
+        totalMinor: sale.totalMinor,
+        createdAt: new Date().toISOString(),
+        lines: normalized.map((l) => ({
+          variantId: l.variantId,
+          name: nameById.get(l.variantId) || 'Товар',
+          quantity: l.quantity,
+          unitPriceMinor: l.expectedUnitPriceMinor,
+          discountMinor: l.discountMinor ?? 0,
+        })),
+      });
+    }
     return { ...sale, shiftId, method, ...(loyalty ? { loyalty } : {}) };
   }
 }
