@@ -274,17 +274,28 @@ export default function PaymentBottomSheet({
               <PaymentIcon name="check" size={26} />
             </div>
             <h3>Продажа проведена</h3>
-            <p className="muted">{success}</p>
-            <button
-              type="button"
-              className="button primary pos-sheet-new-btn"
-              onClick={() => {
-                onClose();
-                onNewReceipt?.();
-              }}
-            >
-              Новый чек
-            </button>
+            <p className="muted">
+              {success} · Чек отправлен на терминал печати
+            </p>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="button secondary pos-sheet-new-btn"
+                onClick={() => window.print()}
+              >
+                Печать чека
+              </button>
+              <button
+                type="button"
+                className="button primary pos-sheet-new-btn"
+                onClick={() => {
+                  onClose();
+                  onNewReceipt?.();
+                }}
+              >
+                Новый чек
+              </button>
+            </div>
           </div>
         ) : (
           <>
