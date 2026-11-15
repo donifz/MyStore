@@ -1,0 +1,63 @@
+name: Build & Release Android APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - main
+    paths:
+      - 'android/**'
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    name: Build Android POS Terminal APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build APK with Gradle
+        working-directory: android
+        run: |
+          gradle wrapper
+          ./gradlew assembleRelease || ./gradlew assembleDebug
+
+      - name: Locate and Rename APK
+        run: |
+          mkdir -p release-apk
+          APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" | head -n 1)
+          if [ -n "$APK_PATH" ]; then
+            cp "$APK_PATH" release-apk/MyStore-POS-Terminal.apk
+            echo "APK ready at release-apk/MyStore-POS-Terminal.apk"
+          else
+            echo "No APK found" && exit 1
+          fi
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyStore-POS-Terminal-APK
+          path: release-apk/MyStore-POS-Terminal.apk
+
+      - name: Release APK on Tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-apk/MyStore-POS-Terminal.apk
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

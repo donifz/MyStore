@@ -273,7 +273,17 @@ export default function TerminalPage() {
           <p className="eyebrow">ККМ и печать</p>
           <h1>Терминал и ККМ</h1>
         </div>
-        <InstallApp />
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <a
+            href={`/terminal/${shopId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="button secondary"
+          >
+            Экран терминала (Киоск)
+          </a>
+          <InstallApp />
+        </div>
       </div>
 
       {error && (
