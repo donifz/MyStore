@@ -8,6 +8,46 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
 
+    <queries>
+        <package android:name="woyou.aidlservice.jiuiv5" />
+        <package android:name="com.sunmi.printerx" />
+        <package android:name="com.wiseasy.service" />
+        <package android:name="com.wiseasy.wisepos" />
+        <package android:name="com.wiseasy.printer" />
+        <package android:name="com.kozen.pos" />
+        <package android:name="com.kozen.printer" />
+        <package android:name="com.kozen.sdk" />
+        <package android:name="com.centerm.smartpos" />
+        <package android:name="com.centerm.centermposoversealib" />
+        <package android:name="com.urovo.sdk" />
+        <package android:name="com.device.service" />
+        <package android:name="com.vanstone.appsdk" />
+        <package android:name="com.aisino.pos" />
+        <package android:name="com.telpo.tps550.api" />
+        <package android:name="com.imin.printerservice" />
+        <package android:name="com.pax.neptune" />
+        <package android:name="com.newland.nsdk" />
+        <package android:name="com.ftpos.library.smartpos" />
+        <intent>
+            <action android:name="woyou.aidlservice.jiuiv5.IWoyouService" />
+        </intent>
+        <intent>
+            <action android:name="com.sunmi.printerx.PrinterSdk" />
+        </intent>
+        <intent>
+            <action android:name="com.wiseasy.service.PRINT_SERVICE" />
+        </intent>
+        <intent>
+            <action android:name="com.urovo.sdk.print" />
+        </intent>
+        <intent>
+            <action android:name="com.centerm.smartpos.service" />
+        </intent>
+        <intent>
+            <action android:name="com.imin.printerservice.IPrinterService" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
