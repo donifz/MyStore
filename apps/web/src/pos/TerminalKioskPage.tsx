@@ -13,6 +13,7 @@ declare global {
     AndroidPrinter?: {
       printEscPosReceipt?: (jsonPayload: string) => boolean;
       isAvailable?: () => boolean;
+      getDevicePrinterInfo?: () => string;
     };
   }
 }
@@ -28,6 +29,7 @@ export default function TerminalKioskPage() {
   >('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [printedNotice, setPrintedNotice] = useState(false);
+  const [printerInfo, setPrinterInfo] = useState<string | null>(null);
 
   const shop = session.user?.shops.find((s) => s.id === shopId);
 
@@ -274,9 +276,82 @@ export default function TerminalKioskPage() {
       </main>
 
       <footer className="terminal-kiosk__footer no-print">
-        <span>Встроенный принтер: {settings?.paperWidth || 58} мм</span>
+        {typeof window !== 'undefined' &&
+        window.AndroidPrinter?.getDevicePrinterInfo ? (
+          <button
+            type="button"
+            className="terminal-kiosk__exit"
+            onClick={() => {
+              try {
+                const raw = window.AndroidPrinter?.getDevicePrinterInfo?.();
+                setPrinterInfo(
+                  raw ? JSON.stringify(JSON.parse(raw), null, 2) : '{}',
+                );
+              } catch {
+                setPrinterInfo('Не удалось прочитать данные принтера');
+              }
+            }}
+          >
+            Встроенный принтер: {settings?.paperWidth || 58} мм
+          </button>
+        ) : (
+          <span>Встроенный принтер: {settings?.paperWidth || 58} мм</span>
+        )}
         <span>Только терминал</span>
       </footer>
+
+      {printerInfo && (
+        <div
+          className="no-print"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.92)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            zIndex: 50,
+          }}
+        >
+          <div
+            style={{
+              background: '#1e293b',
+              border: '1px solid #334155',
+              borderRadius: '14px',
+              padding: '1rem',
+              width: '100%',
+              maxWidth: '420px',
+              color: '#f8fafc',
+            }}
+          >
+            <h3 style={{ margin: '0 0 0.5rem', fontSize: '1rem' }}>
+              Диагностика принтера POS
+            </h3>
+            <pre
+              style={{
+                margin: '0 0 0.75rem',
+                padding: '0.75rem',
+                background: '#0f172a',
+                borderRadius: '8px',
+                fontSize: '0.75rem',
+                overflowX: 'auto',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+              }}
+            >
+              {printerInfo}
+            </pre>
+            <button
+              type="button"
+              className="terminal-kiosk__exit"
+              onClick={() => setPrinterInfo(null)}
+            >
+              Закрыть
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Hidden thermal print receipt container for window.print() fallback */}
       {currentJob && (
