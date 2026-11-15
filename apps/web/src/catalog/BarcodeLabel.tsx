@@ -117,7 +117,14 @@ export default function BarcodeLabel({
               min={1}
               max={100}
               value={copyCount}
-              onChange={(event) => setCopyCount(event.target.value)}
+              onChange={(event) => {
+                const cleaned = event.target.value
+                  .replace(/\D/g, '')
+                  .replace(/^0+(?=\d)/, '');
+                if (event.target.value !== cleaned)
+                  event.currentTarget.value = cleaned;
+                setCopyCount(cleaned);
+              }}
               onBlur={() =>
                 setCopyCount(String(normalizeLabelCopies(copyCount)))
               }

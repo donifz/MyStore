@@ -106,7 +106,13 @@ export default function ReceivingProductForm({
                 min={1}
                 max={1e9}
                 value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '');
+                  setQuantity(val ? val.replace(/^0+(?=\d)/, '') : '');
+                }}
+                onBlur={() => {
+                  if (!quantity || Number(quantity) < 1) setQuantity('1');
+                }}
               />
               <button
                 type="button"

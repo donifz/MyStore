@@ -347,12 +347,17 @@ export default function BarcodeLabelsPage() {
                       min={1}
                       max={100}
                       value={copies[product.id] ?? '1'}
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        const cleaned = event.target.value
+                          .replace(/\D/g, '')
+                          .replace(/^0+(?=\d)/, '');
+                        if (event.target.value !== cleaned)
+                          event.currentTarget.value = cleaned;
                         setCopies((current) => ({
                           ...current,
-                          [product.id]: event.target.value,
-                        }))
-                      }
+                          [product.id]: cleaned,
+                        }));
+                      }}
                       onBlur={() =>
                         setCopies((current) => ({
                           ...current,

@@ -75,9 +75,13 @@ export default function LoyaltyCheckout({
           max={maxPoints}
           step="1"
           disabled={disabled || !qrReady}
-          value={points}
+          value={String(points)}
           onChange={(e) => {
-            const num = Number(e.target.value);
+            const cleaned = e.target.value
+              .replace(/\D/g, '')
+              .replace(/^0+(?=\d)/, '');
+            if (e.target.value !== cleaned) e.currentTarget.value = cleaned;
+            const num = cleaned ? Number(cleaned) : 0;
             setPoints(Number.isSafeInteger(num) && num >= 0 ? num : 0);
           }}
         />

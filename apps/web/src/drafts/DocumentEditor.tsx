@@ -237,9 +237,16 @@ export default function DocumentEditor({
                   aria-label={'Количество ' + l.name}
                   min={1}
                   max={1e9}
-                  value={l.quantity}
+                  value={String(l.quantity)}
                   disabled={lineDisabled}
-                  onChange={(e) => setQuantity(l, Number(e.target.value))}
+                  onChange={(e) => {
+                    const cleaned = e.target.value
+                      .replace(/\D/g, '')
+                      .replace(/^0+(?=\d)/, '');
+                    if (e.target.value !== cleaned)
+                      e.currentTarget.value = cleaned;
+                    setQuantity(l, Number(cleaned));
+                  }}
                 />
                 <button
                   type="button"
@@ -719,10 +726,15 @@ export default function DocumentEditor({
                 type="number"
                 min={1}
                 max={1e9}
-                value={l.quantity}
+                value={String(l.quantity)}
                 disabled={lineDisabled}
                 onChange={(e) => {
-                  const n = Number(e.target.value);
+                  const cleaned = e.target.value
+                    .replace(/\D/g, '')
+                    .replace(/^0+(?=\d)/, '');
+                  if (e.target.value !== cleaned)
+                    e.currentTarget.value = cleaned;
+                  const n = Number(cleaned);
                   if (Number.isInteger(n) && n >= 1 && n <= 1e9)
                     setQuantity(l, n);
                 }}

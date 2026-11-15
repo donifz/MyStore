@@ -5,6 +5,11 @@ import { api, errorText } from '../api/client';
 import { hasShopPermission, type Page, type SaleSummary } from '../api/types';
 import { formatSom, formatDate } from '../api/money';
 import { useSession } from '../auth/SessionProvider';
+
+function shortCheckCode(id: string) {
+  return id.slice(0, 8).toUpperCase();
+}
+
 export default function SalesHistoryPage() {
   const { shopId } = useParams(),
     s = useSession(),
@@ -40,7 +45,10 @@ export default function SalesHistoryPage() {
         <div>
           <p className="eyebrow">История документов</p>
           <h1>Продажи и возвраты</h1>
-          <p className="muted">{owner ? 'Продажи магазина' : 'Ваши продажи'}</p>
+          <p className="muted">
+            {owner ? 'Продажи магазина' : 'Ваши продажи'}
+            {data ? ` · ${data.total} чек.` : ''}
+          </p>
         </div>
       </div>
       {error && (
@@ -48,7 +56,7 @@ export default function SalesHistoryPage() {
           {error}
         </p>
       )}
-      <div className="toolbar">
+      <div className="panel sales-filter-bar">
         <label>
           Способ оплаты
           <select
@@ -79,25 +87,54 @@ export default function SalesHistoryPage() {
           </select>
         </label>
       </div>
-      {data?.items.map((sale) => (
-        <section className="panel history-card" key={sale.id}>
-          <div>
-            <strong>{formatSom(sale.totalMinor)}</strong>
-            <p>
-              {formatDate(sale.createdAt)} ·{' '}
-              {sale.method === 'cash'
-                ? 'Наличные'
-                : sale.method === 'card'
-                  ? 'Карта'
-                  : 'Без записи оплаты'}
-            </p>
-            <small className="code">{sale.id}</small>
-          </div>
-          <Link className="button" to={sale.id}>
-            Открыть продажу
-          </Link>
-        </section>
-      ))}
+      <div className="sales-history-list">
+        {data?.items.map((sale) => {
+          const methodLabel =
+            sale.method === 'cash'
+              ? 'Наличные'
+              : sale.method === 'card'
+                ? 'Карта'
+                : 'Без записи оплаты';
+          const methodTone =
+            sale.method === 'cash'
+              ? 'green'
+              : sale.method === 'card'
+                ? 'blue'
+                : 'neutral';
+          return (
+            <section
+              className="panel history-card sale-history-card"
+              key={sale.id}
+            >
+              <div className="sale-history-card__main">
+                <div className="sale-history-card__top">
+                  <strong className="sale-history-card__amount">
+                    {formatSom(sale.totalMinor)}
+                  </strong>
+                  <span className={`admin-kit-status ${methodTone}`}>
+                    {methodLabel}
+                  </span>
+                </div>
+                <div className="sale-history-card__meta">
+                  <span>{formatDate(sale.createdAt)}</span>
+                  <span className="sale-history-card__dot" aria-hidden="true">
+                    ·
+                  </span>
+                  <span className="code" title={sale.id}>
+                    Чек #{shortCheckCode(sale.id)}
+                  </span>
+                </div>
+              </div>
+              <Link
+                className="button secondary sale-history-card__btn"
+                to={sale.id}
+              >
+                Открыть продажу <span aria-hidden="true">→</span>
+              </Link>
+            </section>
+          );
+        })}
+      </div>
       {data && !data.items.length && (
         <p className="empty-state">Продаж пока нет.</p>
       )}

@@ -70,53 +70,67 @@ export default function SaleDetailPage() {
 
       {sale && (
         <>
-          <section className="panel no-print">
-            <p className="code">{sale.id}</p>
-            <p>
-              {formatDate(sale.createdAt)} ·{' '}
-              {sale.method === 'cash'
-                ? 'Наличные'
-                : sale.method === 'card'
-                  ? 'Карта'
-                  : 'Без записи оплаты'}
-            </p>
-            {sale.lines.map((line) => (
-              <div className="line-card" key={line.id}>
-                <div className="line-name">
-                  <strong>{line.name}</strong>
-                  <small className="code">{line.barcode}</small>
-                  <small>
-                    Продано {line.quantity}, возвращено {line.returnedQuantity}
-                  </small>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <span>{formatSom(line.unitPriceMinor)} за шт.</span>
-                  {!!line.discountMinor && (
-                    <small
-                      className="muted"
-                      style={{
-                        display: 'block',
-                        fontSize: '0.85rem',
-                        color: '#007659',
-                      }}
-                    >
-                      Скидка: {formatSom(line.discountMinor)}
-                      {line.discountReason ? ` (${line.discountReason})` : ''}
-                    </small>
-                  )}
+          <section className="panel no-print sale-detail-panel">
+            <div className="sale-detail-summary">
+              <div>
+                <div className="sale-detail-summary__meta">
+                  <span className="code" title={sale.id}>
+                    Чек #{sale.id.slice(0, 8).toUpperCase()}
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <span>{formatDate(sale.createdAt)}</span>
                 </div>
               </div>
-            ))}
-            <p className="total">{formatSom(sale.totalMinor)}</p>
-            <div
-              className="actions"
-              style={{
-                marginTop: '1.25rem',
-                display: 'flex',
-                gap: '0.75rem',
-                flexWrap: 'wrap',
-              }}
-            >
+              <span
+                className={`admin-kit-status ${
+                  sale.method === 'cash'
+                    ? 'green'
+                    : sale.method === 'card'
+                      ? 'blue'
+                      : 'neutral'
+                }`}
+              >
+                {sale.method === 'cash'
+                  ? 'Наличные'
+                  : sale.method === 'card'
+                    ? 'Карта'
+                    : 'Без записи оплаты'}
+              </span>
+            </div>
+
+            <div className="sale-detail-lines">
+              {sale.lines.map((line) => (
+                <div className="line-card sale-detail-line" key={line.id}>
+                  <div className="line-name">
+                    <strong>{line.name}</strong>
+                    <div className="sale-detail-line__sub">
+                      <small className="code">{line.barcode}</small>
+                      <small className="muted">
+                        Продано {line.quantity}, возвращено{' '}
+                        {line.returnedQuantity}
+                      </small>
+                    </div>
+                  </div>
+                  <div className="sale-detail-line__price">
+                    <strong>{formatSom(line.unitPriceMinor)}</strong>
+                    <small className="muted">за шт.</small>
+                    {!!line.discountMinor && (
+                      <small className="sale-detail-line__discount">
+                        Скидка: {formatSom(line.discountMinor)}
+                        {line.discountReason ? ` (${line.discountReason})` : ''}
+                      </small>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="sale-detail-total-row">
+              <span className="muted">Итого по чеку</span>
+              <p className="total">{formatSom(sale.totalMinor)}</p>
+            </div>
+
+            <div className="actions sale-detail-actions">
               <button
                 type="button"
                 className="secondary"
@@ -126,7 +140,7 @@ export default function SaleDetailPage() {
               </button>
               {owner && (
                 <Link
-                  className="button"
+                  className="button primary"
                   to={`/seller/${shopId}/sales/${saleId}/return`}
                 >
                   Оформить возврат
