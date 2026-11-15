@@ -411,6 +411,8 @@ export async function createApp(
           req.path === '/buyer/register' ||
           req.path === '/seller' ||
           req.path.startsWith('/seller/') ||
+          req.path === '/terminal' ||
+          req.path.startsWith('/terminal/') ||
           req.path === '/platform/admin'
         ) {
           res.setHeader('Cache-Control', 'no-store');

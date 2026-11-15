@@ -33,6 +33,11 @@ describe('public Next handler boundary', () => {
       .expect(200);
     expect(login.headers['cache-control']).toBe('no-store');
     expect(login.text).toContain('rel="manifest"');
+    const terminal = await request(app.getHttpServer())
+      .get('/terminal/c20d7159-b9cd-4e63-87ad-95920e17a262')
+      .expect(200);
+    expect(terminal.headers['cache-control']).toBe('no-store');
+    expect(terminal.text).toContain('rel="manifest"');
     const manifest = await request(app.getHttpServer())
       .get('/pwa/manifest.webmanifest')
       .expect(200);
