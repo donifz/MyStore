@@ -25,14 +25,13 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Build APK with Gradle
         working-directory: android
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
         run: |
-          gradle wrapper
-          ./gradlew assembleRelease || ./gradlew assembleDebug
+          gradle wrapper --gradle-version 8.5
+          ./gradlew assembleDebug
 
       - name: Locate and Rename APK
         run: |
