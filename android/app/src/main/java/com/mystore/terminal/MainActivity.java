@@ -37,7 +37,7 @@ public class MainActivity extends Activity {
 
     private static final String PREFS_NAME = "mystore_terminal_prefs";
     private static final String KEY_SERVER_URL = "server_url";
-    private static final String DEFAULT_URL = "https://mystore.tezkur.kg/seller/login";
+    private static final String DEFAULT_URL = "https://mystore.tezkur.kg/terminal";
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override

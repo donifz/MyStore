@@ -65,6 +65,7 @@ export default function App() {
             element={<ResetPasswordPage />}
           />
           <Route path="/seller/login" element={<LoginPage />} />
+          <Route path="/terminal" element={<TerminalKioskPage />} />
           <Route path="/terminal/:shopId" element={<TerminalKioskPage />} />
           <Route path="/buyer" element={<BuyerPortalPage />} />
           <Route path="/buyer/login" element={<BuyerPortalPage />} />
