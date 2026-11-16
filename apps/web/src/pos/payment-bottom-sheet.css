@@ -946,3 +946,217 @@
   min-height: 43px;
   height: 43px;
 }
+
+/* Customer QR Card: bonuses & inline debt repayment */
+.pos-loyalty-checkout {
+  display: grid;
+  gap: 12px;
+}
+.pos-customer-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #d5e6de;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #f8fcf9 0%, #ffffff 100%);
+  box-shadow: 0 2px 10px rgb(16 40 32 / 5%);
+}
+.pos-customer-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.pos-customer-card-head > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.pos-customer-card-head strong {
+  color: #162923;
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.pos-customer-card-head span {
+  color: #536862;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.pos-customer-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #e4f7ec;
+  color: #087451;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.pos-customer-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.pos-customer-stat {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+}
+.pos-customer-stat span {
+  font-size: 11.5px;
+  font-weight: 650;
+  color: #4f645e;
+}
+.pos-customer-stat strong {
+  font-size: 16px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.pos-customer-stat--bonus {
+  background: #eef9f2;
+  border-color: #ccead9;
+}
+.pos-customer-stat--bonus strong {
+  color: #087451;
+}
+.pos-customer-stat--debt {
+  background: #fff4f2;
+  border-color: #f8cfc8;
+}
+.pos-customer-stat--debt strong {
+  color: #c62828;
+}
+.pos-customer-stat--clear {
+  background: #f3f7f5;
+  border-color: #dde7e2;
+}
+.pos-customer-stat--clear strong {
+  color: #415852;
+  font-size: 14px;
+}
+.pos-debt-repay-box {
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border-radius: 13px;
+  background: #fff9f7;
+  border: 1px solid #f4d9d4;
+}
+.pos-debt-repay-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pos-debt-repay-head strong {
+  color: #7c1d1d;
+  font-size: 13px;
+  font-weight: 750;
+}
+.pos-debt-fill-all {
+  padding: 4px 10px;
+  border: 1px solid #e6b8b0;
+  border-radius: 999px;
+  background: #fff;
+  color: #b71c1c;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.pos-debt-fill-all:hover:not(:disabled) {
+  background: #ffebee;
+}
+.pos-debt-methods {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.pos-debt-methods button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 8px;
+  border: 1px solid #d5e2dc;
+  border-radius: 10px;
+  background: #fff;
+  color: #364b45;
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.pos-debt-methods button.is-active {
+  border-color: #087451;
+  background: #e8f7ee;
+  color: #065a3e;
+}
+.pos-debt-repay-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.pos-debt-repay-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid #d1dfd8;
+  border-radius: 10px;
+  background: #fff;
+  color: #1b2825;
+  font-size: 15px;
+  font-weight: 700;
+}
+.pos-debt-repay-submit {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: #087451;
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.pos-debt-repay-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.pos-loyalty-points-wrap {
+  display: grid;
+  gap: 6px;
+}
+.pos-loyalty-points {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.pos-loyalty-points input {
+  flex: 1 1 90px;
+  min-width: 0;
+}
+.pos-loyalty-max-btn {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid #c5dfd2;
+  border-radius: 10px;
+  background: #eef8f2;
+  color: #087451;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.pos-loyalty-max-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

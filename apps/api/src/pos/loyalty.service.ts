@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
@@ -82,6 +83,66 @@ export class LoyaltyService {
       ...row,
       balancePoints: Number(row.balancePoints),
     }));
+  }
+
+  async lookupByQr(shopId: string, token: string) {
+    this.ensureEnabled();
+    if (!/^[A-Za-z0-9_-]{43}$/.test(token)) {
+      throw new BadRequestException('Некорректный QR-код покупателя');
+    }
+    const [qr] = await this.db.query(
+      `SELECT buyer_id FROM buyer_loyalty_tokens
+       WHERE token_hash=$1 AND used_at IS NULL AND expires_at>now()`,
+      [hashToken(token)],
+    );
+    if (!qr) {
+      throw new BadRequestException('QR-код истёк или уже использован');
+    }
+    const [customer] = await this.db.query(
+      `SELECT sc.id,sc.name,sc.phone,
+              COALESCE(w.balance_points,0) AS "bonusPoints"
+       FROM shop_customers sc
+       LEFT JOIN loyalty_wallets w
+         ON w.shop_id=sc.shop_id AND w.customer_id=sc.id
+       WHERE sc.shop_id=$1 AND sc.buyer_account_id=$2`,
+      [shopId, qr.buyer_id],
+    );
+    if (!customer) {
+      throw new NotFoundException('Покупатель не привязан к этому магазину');
+    }
+    const openDebts = await this.db.query(
+      `SELECT document_id AS "saleId",total_minor AS "totalMinor",
+              paid_minor AS "paidMinor",
+              (total_minor-paid_minor) AS "debtMinor",
+              due_on AS "dueOn",created_at AS "createdAt"
+       FROM credit_sales
+       WHERE shop_id=$1 AND customer_id=$2 AND total_minor>paid_minor
+       ORDER BY created_at ASC`,
+      [shopId, customer.id],
+    );
+    const mappedDebts = openDebts.map((row: any) => ({
+      saleId: row.saleId,
+      totalMinor: Number(row.totalMinor),
+      paidMinor: Number(row.paidMinor),
+      debtMinor: Number(row.debtMinor),
+      dueOn: row.dueOn,
+      createdAt:
+        row.createdAt instanceof Date
+          ? row.createdAt.toISOString()
+          : String(row.createdAt),
+    }));
+    const totalDebtMinor = mappedDebts.reduce(
+      (sum: number, item: { debtMinor: number }) => sum + item.debtMinor,
+      0,
+    );
+    return {
+      customerId: customer.id,
+      name: customer.name,
+      phone: customer.phone ?? '',
+      bonusPoints: Number(customer.bonusPoints),
+      totalDebtMinor,
+      openDebts: mappedDebts,
+    };
   }
 
   async applyToSale(
