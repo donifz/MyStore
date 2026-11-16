@@ -2,10 +2,15 @@ import { useState } from 'react';
 import BuyerInviteQr from '../customers/BuyerInviteQr';
 import { useCustomerActivationPoll } from '../customers/useCustomerActivationPoll';
 import PaymentIcon from './PaymentIcon';
-import { buyerInviteLink } from '../customers/buyerInviteLink';
+import {
+  buyerInviteLink,
+  buyerInviteSmsUrl,
+  buyerInviteWhatsAppUrl,
+} from '../customers/buyerInviteLink';
 
 type Props = {
   name: string;
+  phone?: string;
   token: string;
   expiresAt: string;
   shopId?: string;
@@ -16,6 +21,7 @@ type Props = {
 
 export default function PosBuyerInvitation({
   name,
+  phone,
   token,
   expiresAt,
   shopId,
@@ -25,6 +31,8 @@ export default function PosBuyerInvitation({
 }: Props) {
   const [feedback, setFeedback] = useState('');
   const link = buyerInviteLink(token, window.location.origin);
+  const whatsAppUrl = buyerInviteWhatsAppUrl(phone, name, link);
+  const smsUrl = buyerInviteSmsUrl(phone, name, link);
 
   useCustomerActivationPoll(shopId, customerId, onActivated);
 
@@ -59,9 +67,9 @@ export default function PosBuyerInvitation({
     <div className="credit-invite-card" role="status">
       <h3>Приглашение для {name}</h3>
       <p>
-        Покажите QR-код или отправьте ссылку. Покупатель сразу окажется в своём
-        кабинете с готовым паролем, а после перехода появится у вас в списке для
-        оформления долга.
+        Покажите QR-код или отправьте ссылку в WhatsApp / SMS. Покупатель сразу
+        окажется в своём кабинете с готовым паролем, а после перехода появится у
+        вас в списке для оформления долга.
       </p>
       <div className="credit-invite-content">
         <BuyerInviteQr value={link} />
@@ -69,6 +77,22 @@ export default function PosBuyerInvitation({
           {link}
         </div>
         <div className="credit-invite-actions">
+          {whatsAppUrl && (
+            <a
+              href={whatsAppUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="credit-invite-whatsapp"
+            >
+              <PaymentIcon name="share" size={16} />
+              WhatsApp
+            </a>
+          )}
+          {smsUrl && (
+            <a href={smsUrl} className="credit-invite-sms">
+              SMS
+            </a>
+          )}
           <button type="button" onClick={() => void copy()}>
             <PaymentIcon name="copy" size={16} />
             Копировать

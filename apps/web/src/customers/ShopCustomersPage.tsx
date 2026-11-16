@@ -117,6 +117,7 @@ export default function ShopCustomersPage({
     token: string;
     expiresAt: string;
     name: string;
+    phone?: string;
   } | null>(null);
 
   // Debt & Repayment Drawer
@@ -349,6 +350,7 @@ export default function ShopCustomersPage({
           body: { name: name.trim() || 'Покупатель', phone, address },
         },
       );
+      const createdPhone = phone;
       setName('');
       setPhone('');
       setAddress('');
@@ -366,6 +368,7 @@ export default function ShopCustomersPage({
           ...issued,
           customerId: customer.id,
           name: customer.name,
+          phone: createdPhone,
         });
       } catch {
         // Invite optional
@@ -391,6 +394,7 @@ export default function ShopCustomersPage({
         ...issued,
         customerId: customer.id,
         name: customer.name,
+        phone: customer.phone,
       });
     } catch (err) {
       setError(errorText(err));
@@ -411,6 +415,7 @@ export default function ShopCustomersPage({
         ...issued,
         customerId: customer.id,
         name: customer.name,
+        phone: customer.phone,
       });
     } catch (err) {
       setError(errorText(err));
@@ -491,6 +496,7 @@ export default function ShopCustomersPage({
           >
             <BuyerActivationPanel
               name={invitation.name}
+              phone={invitation.phone}
               token={invitation.token}
               expiresAt={invitation.expiresAt}
               shopId={shopId}
