@@ -9,6 +9,8 @@ import DocumentEditor from '../drafts/DocumentEditor';
 import CameraScanner from '../scanner/CameraScanner';
 import { useCurrentShift } from './use-current-shift';
 import PaymentBottomSheet from './PaymentBottomSheet';
+import LoyaltyCheckout from './LoyaltyCheckout';
+import PaymentIcon from './PaymentIcon';
 import {
   allocateCheckoutDiscount,
   parseCheckoutDiscount,
@@ -48,7 +50,8 @@ function Icon({
     | 'grid'
     | 'trash'
     | 'receipt'
-    | 'close';
+    | 'close'
+    | 'qr';
 }) {
   const paths: Record<typeof name, ReactNode> = {
     search: (
@@ -97,6 +100,14 @@ function Icon({
       </>
     ),
     close: <path d="M18 6 6 18M6 6l12 12" />,
+    qr: (
+      <>
+        <rect x="3" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="3" width="7" height="7" rx="1" />
+        <rect x="3" y="14" width="7" height="7" rx="1" />
+        <path d="M14 14h3v3h-3zM21 14v3M17 21h4M14 21v-2" />
+      </>
+    ),
   };
   return (
     <svg
@@ -173,6 +184,7 @@ function SaleWorkspace({
     [showCost, setShowCost] = useState(true),
     [scannerFocused, setScannerFocused] = useState(true),
     [paymentSheetOpen, setPaymentSheetOpen] = useState(false),
+    [customerCardOpen, setCustomerCardOpen] = useState(false),
     [shiftModalOpen, setShiftModalOpen] = useState(false),
     [lastReceipt, setLastReceipt] = useState<{
       shopName: string;
@@ -822,6 +834,19 @@ function SaleWorkspace({
                 Чек <span className="pos-count">{itemCount}</span>
               </h2>
               <div className="pos-cart-head-actions">
+                {loyaltyEnabled && (
+                  <button
+                    type="button"
+                    className="pos-cart-qr-btn"
+                    disabled={locked}
+                    title="Карта клиента: бонусы и долг"
+                    aria-label="Карта клиента и долг"
+                    onClick={() => setCustomerCardOpen(true)}
+                  >
+                    <Icon name="qr" />
+                    <span>Карта</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   className={`pos-cart-cost-btn${showCost ? ' active' : ''}`}
@@ -876,16 +901,91 @@ function SaleWorkspace({
           </span>
           <strong className="pos-mobile-paybar-total">{totalText}</strong>
         </div>
-        <button
-          type="button"
-          className="button primary pos-mobile-pay-btn"
-          disabled={locked || !doc.draft.lines.length || !safe}
-          onClick={() => setPaymentSheetOpen(true)}
-        >
-          <Icon name="card" />
-          <span>Оплатить — {totalText}</span>
-        </button>
+        <div className="pos-mobile-paybar-actions">
+          {loyaltyEnabled && (
+            <button
+              type="button"
+              className="button pos-mobile-qr-btn"
+              disabled={locked}
+              aria-label="Карта клиента и долг"
+              onClick={() => setCustomerCardOpen(true)}
+            >
+              <Icon name="qr" />
+              <span>Карта</span>
+            </button>
+          )}
+          <button
+            type="button"
+            className="button primary pos-mobile-pay-btn"
+            disabled={locked || !doc.draft.lines.length || !safe}
+            onClick={() => setPaymentSheetOpen(true)}
+          >
+            <Icon name="card" />
+            <span>Оплатить — {totalText}</span>
+          </button>
+        </div>
       </div>
+
+      {customerCardOpen && (
+        <div className="pos-sheet-option-backdrop" role="presentation">
+          <section
+            className="pos-sheet-option-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Карта клиента"
+          >
+            <div className="pos-sheet-option-handle" aria-hidden="true" />
+            <div className="pos-sheet-option-head">
+              <span className="pos-sheet-option-title">
+                <span className="option-graphic">
+                  <PaymentIcon name="qr" size={22} />
+                </span>
+                <strong>Карта клиента</strong>
+              </span>
+              <button
+                type="button"
+                className="pos-sheet-close"
+                aria-label="Закрыть карту клиента"
+                onClick={() => setCustomerCardOpen(false)}
+              >
+                <PaymentIcon name="close" size={21} />
+              </button>
+            </div>
+            <div className="pos-sheet-option-scroll">
+              <p className="pos-option-subtitle">
+                Сканируйте QR покупателя, чтобы увидеть долг и бонусы, погасить
+                долг или списать баллы.
+              </p>
+              <LoyaltyCheckout
+                shopId={shopId}
+                shiftId={active?.id}
+                token={loyaltyToken}
+                setToken={setLoyaltyToken}
+                points={redeemPoints}
+                setPoints={setRedeemPoints}
+                totalMinor={safe ? Number(afterCheckoutDiscount) : 0}
+                disabled={locked}
+              />
+            </div>
+            <div className="pos-sheet-option-actions">
+              <button
+                type="button"
+                className="pos-sheet-option-cancel"
+                onClick={() => setCustomerCardOpen(false)}
+              >
+                Закрыть
+              </button>
+              <button
+                type="button"
+                className="pos-sheet-option-apply"
+                onClick={() => setCustomerCardOpen(false)}
+              >
+                Готово
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {shiftModalOpen && (
         <ShiftQuickModal
