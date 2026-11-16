@@ -927,9 +927,14 @@ function SaleWorkspace({
       </div>
 
       {customerCardOpen && (
-        <div className="pos-sheet-option-backdrop" role="presentation">
+        <div className="pos-sheet-option-layer">
+          <div
+            className="pos-sheet-option-backdrop"
+            aria-hidden="true"
+            onClick={() => setCustomerCardOpen(false)}
+          />
           <section
-            className="pos-sheet-option-modal"
+            className="pos-sheet-option-dialog"
             role="dialog"
             aria-modal="true"
             aria-label="Карта клиента"
