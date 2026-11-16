@@ -259,6 +259,12 @@
   text-decoration: none;
 }
 
+.credit-invite-actions a.credit-invite-whatsapp {
+  background: #e9f9ef;
+  border-color: #9be0b5;
+  color: #0b6e35;
+}
+
 .credit-invite-link {
   width: 100%;
   padding: 10px;

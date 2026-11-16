@@ -74,6 +74,7 @@ export default function CreditFields({
   const [busy, setBusy] = useState(false);
   const [invitation, setInvitation] = useState<{
     name: string;
+    phone?: string;
     token: string;
     expiresAt: string;
   } | null>(null);
@@ -81,6 +82,7 @@ export default function CreditFields({
   const [verifiedEnrollment, setVerifiedEnrollment] = useState('');
   const [existingInvitation, setExistingInvitation] = useState<{
     name: string;
+    phone?: string;
     token: string;
     expiresAt: string;
   } | null>(null);
@@ -191,7 +193,11 @@ export default function CreditFields({
             `/shops/${shopId}/customers/${customer.id}/invite`,
             { method: 'POST', body: {} },
           );
-          setInvitation({ ...issued, name: customer.name });
+          setInvitation({
+            ...issued,
+            name: customer.name,
+            phone: createdPhone,
+          });
         } catch (err) {
           setError(
             'Клиент создан, но приглашение не выдано: ' + errorText(err),
@@ -215,7 +221,11 @@ export default function CreditFields({
         `/shops/${shopId}/customers/${customer.id}/invite`,
         { method: 'POST', body: {} },
       );
-      setExistingInvitation({ ...result, name: customer.name });
+      setExistingInvitation({
+        ...result,
+        name: customer.name,
+        phone: customer.phone,
+      });
     } catch (err) {
       setError(errorText(err));
       setRevision((n) => n + 1);
@@ -416,6 +426,7 @@ export default function CreditFields({
           {existingInvitation && (
             <PosBuyerInvitation
               name={existingInvitation.name}
+              phone={existingInvitation.phone}
               token={existingInvitation.token}
               expiresAt={existingInvitation.expiresAt}
               shopId={shopId}
@@ -512,6 +523,7 @@ export default function CreditFields({
           {invitation && (
             <PosBuyerInvitation
               name={invitation.name}
+              phone={invitation.phone}
               token={invitation.token}
               expiresAt={invitation.expiresAt}
               shopId={shopId}
