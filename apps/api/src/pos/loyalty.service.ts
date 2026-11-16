@@ -4,7 +4,6 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
-  NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
@@ -91,24 +90,35 @@ export class LoyaltyService {
       throw new BadRequestException('Некорректный QR-код покупателя');
     }
     const [qr] = await this.db.query(
-      `SELECT buyer_id FROM buyer_loyalty_tokens
-       WHERE token_hash=$1 AND used_at IS NULL AND expires_at>now()`,
+      `SELECT t.buyer_id, b.phone_e164, b.display_name
+       FROM buyer_loyalty_tokens t
+       JOIN buyer_accounts b ON b.id=t.buyer_id
+       WHERE t.token_hash=$1 AND t.used_at IS NULL AND t.expires_at>now()`,
       [hashToken(token)],
     );
     if (!qr) {
       throw new BadRequestException('QR-код истёк или уже использован');
     }
     const [customer] = await this.db.query(
-      `SELECT sc.id,sc.name,sc.phone,
+      `SELECT sc.id, sc.display_name AS name, sc.phone_e164 AS phone,
               COALESCE(w.balance_points,0) AS "bonusPoints"
        FROM shop_customers sc
        LEFT JOIN loyalty_wallets w
          ON w.shop_id=sc.shop_id AND w.customer_id=sc.id
-       WHERE sc.shop_id=$1 AND sc.buyer_account_id=$2`,
-      [shopId, qr.buyer_id],
+       WHERE sc.shop_id=$1 AND (sc.buyer_account_id=$2 OR sc.phone_e164=$3)
+       ORDER BY (sc.buyer_account_id=$2) DESC
+       LIMIT 1`,
+      [shopId, qr.buyer_id, qr.phone_e164],
     );
     if (!customer) {
-      throw new NotFoundException('Покупатель не привязан к этому магазину');
+      return {
+        customerId: '',
+        name: qr.display_name || 'Покупатель',
+        phone: qr.phone_e164 ?? '',
+        bonusPoints: 0,
+        totalDebtMinor: 0,
+        openDebts: [],
+      };
     }
     const openDebts = await this.db.query(
       `SELECT document_id AS "saleId",total_minor AS "totalMinor",
@@ -125,7 +135,10 @@ export class LoyaltyService {
       totalMinor: Number(row.totalMinor),
       paidMinor: Number(row.paidMinor),
       debtMinor: Number(row.debtMinor),
-      dueOn: row.dueOn,
+      dueOn:
+        row.dueOn instanceof Date
+          ? row.dueOn.toISOString().slice(0, 10)
+          : String(row.dueOn),
       createdAt:
         row.createdAt instanceof Date
           ? row.createdAt.toISOString()
@@ -137,8 +150,8 @@ export class LoyaltyService {
     );
     return {
       customerId: customer.id,
-      name: customer.name,
-      phone: customer.phone ?? '',
+      name: customer.name || qr.display_name || 'Покупатель',
+      phone: customer.phone ?? qr.phone_e164 ?? '',
       bonusPoints: Number(customer.bonusPoints),
       totalDebtMinor,
       openDebts: mappedDebts,
