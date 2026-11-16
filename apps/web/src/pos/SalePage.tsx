@@ -771,6 +771,7 @@ function SaleWorkspace({
               method={paymentMethod}
               setMethod={setMethod}
               shopId={shopId}
+              shiftId={active?.id}
               creditMode={creditSalesEnabled && creditMode}
               setCreditMode={
                 creditSalesEnabled ? setCreditMode : () => undefined
@@ -906,6 +907,7 @@ function SaleWorkspace({
         method={paymentMethod}
         setMethod={setMethod}
         shopId={shopId}
+        shiftId={active?.id}
         creditMode={creditSalesEnabled && creditMode}
         setCreditMode={creditSalesEnabled ? setCreditMode : () => undefined}
         creditCustomerId={creditCustomerId}

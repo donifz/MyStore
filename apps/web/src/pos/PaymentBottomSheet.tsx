@@ -19,6 +19,7 @@ export type PaymentBottomSheetProps = {
   embedded?: boolean;
   onClose: () => void;
   shopId: string;
+  shiftId?: string;
   creditMode: boolean;
   setCreditMode: (value: boolean) => void;
   creditCustomerId: string;
@@ -68,6 +69,7 @@ export default function PaymentBottomSheet({
   method,
   setMethod,
   shopId,
+  shiftId,
   creditMode,
   setCreditMode,
   creditCustomerId,
@@ -400,15 +402,15 @@ export default function PaymentBottomSheet({
                     }}
                   >
                     <span className="pos-option-icon" aria-hidden="true">
-                      <PaymentIcon name="gift" />
+                      <PaymentIcon name="qr" />
                     </span>
-                    <strong>Бонусы</strong>
+                    <strong>Карта клиента</strong>
                     <span className="pos-option-detail">
                       {redeemPoints > 0
                         ? '−' + formatSom(redeemPoints * 100)
                         : selectedCustomerPoints > 0
                           ? 'Доступно: ' + selectedCustomerPoints
-                          : ''}
+                          : 'Бонусы и долг'}
                     </span>
                     <span className="pos-option-chevron" aria-hidden="true">
                       <PaymentIcon name="chevron" size={18} />
@@ -769,7 +771,7 @@ export default function PaymentBottomSheet({
                 ? 'Продажа в долг'
                 : activePanel === 'customer'
                   ? 'Покупатель'
-                  : 'Бонусы'
+                  : 'Карта клиента'
             }
           >
             <div className="pos-sheet-option-handle" aria-hidden="true" />
@@ -790,7 +792,7 @@ export default function PaymentBottomSheet({
                         ? 'coins'
                         : activePanel === 'customer'
                           ? 'user'
-                          : 'gift'
+                          : 'qr'
                     }
                     size={22}
                   />
@@ -800,7 +802,7 @@ export default function PaymentBottomSheet({
                     ? 'Продажа в долг'
                     : activePanel === 'customer'
                       ? 'Покупатель'
-                      : 'Бонусы'}
+                      : 'Карта клиента'}
                 </strong>
               </span>
               <button
@@ -855,10 +857,12 @@ export default function PaymentBottomSheet({
               ) : (
                 <>
                   <p className="pos-option-subtitle">
-                    Сканируйте QR подтверждённого покупателя, чтобы списать
-                    бонусы.
+                    Сканируйте QR покупателя, чтобы увидеть долг и бонусы,
+                    погасить долг или списать баллы.
                   </p>
                   <LoyaltyCheckout
+                    shopId={shopId}
+                    shiftId={shiftId}
                     token={loyaltyToken}
                     setToken={setLoyaltyToken}
                     points={redeemPoints}
@@ -904,7 +908,9 @@ export default function PaymentBottomSheet({
                 {activePanel === 'customer'
                   ? 'Выбрать клиента'
                   : activePanel === 'bonus'
-                    ? 'Применить бонусы'
+                    ? redeemPoints > 0
+                      ? 'Применить бонусы'
+                      : 'Готово'
                     : 'Применить'}
               </button>
             </div>
