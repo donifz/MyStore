@@ -2,8 +2,12 @@ package com.mystore.terminal;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.print.PrintAttributes;
 import android.print.PrintDocumentAdapter;
@@ -11,6 +15,7 @@ import android.print.PrintManager;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
+import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
@@ -43,6 +48,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         String savedUrl = prefs.getString(KEY_SERVER_URL, DEFAULT_URL);
@@ -192,6 +198,78 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public boolean isAvailable() {
             return true;
+        }
+
+        @JavascriptInterface
+        public String getDevicePrinterInfo() {
+            JSONObject info = new JSONObject();
+            try {
+                info.put("manufacturer", Build.MANUFACTURER);
+                info.put("brand", Build.BRAND);
+                info.put("model", Build.MODEL);
+                info.put("device", Build.DEVICE);
+                info.put("hardware", Build.HARDWARE);
+
+                PackageManager pm = getPackageManager();
+                String[] knownPackages = new String[] {
+                        "woyou.aidlservice.jiuiv5",
+                        "com.sunmi.printerx",
+                        "com.wiseasy.service",
+                        "com.wiseasy.wisepos",
+                        "com.wiseasy.printer",
+                        "com.kozen.pos",
+                        "com.kozen.printer",
+                        "com.kozen.sdk",
+                        "com.centerm.smartpos",
+                        "com.centerm.centermposoversealib",
+                        "com.urovo.sdk",
+                        "com.device.service",
+                        "com.vanstone.appsdk",
+                        "com.aisino.pos",
+                        "com.telpo.tps550.api",
+                        "com.imin.printerservice",
+                        "com.pax.neptune",
+                        "com.newland.nsdk",
+                        "com.ftpos.library.smartpos"
+                };
+
+                JSONArray foundPackages = new JSONArray();
+                for (String pkg : knownPackages) {
+                    try {
+                        pm.getPackageInfo(pkg, 0);
+                        foundPackages.put(pkg);
+                    } catch (PackageManager.NameNotFoundException ignored) {
+                    }
+                }
+                info.put("foundPackages", foundPackages);
+
+                String[] knownActions = new String[] {
+                        "woyou.aidlservice.jiuiv5.IWoyouService",
+                        "com.sunmi.printerx.PrinterSdk",
+                        "com.wiseasy.service.PRINT_SERVICE",
+                        "com.urovo.sdk.print",
+                        "com.centerm.smartpos.service",
+                        "com.imin.printerservice.IPrinterService"
+                };
+                JSONArray foundServices = new JSONArray();
+                for (String action : knownActions) {
+                    java.util.List<ResolveInfo> resolved = pm.queryIntentServices(new Intent(action), 0);
+                    if (resolved != null && !resolved.isEmpty()) {
+                        for (ResolveInfo ri : resolved) {
+                            if (ri.serviceInfo != null) {
+                                foundServices.put(ri.serviceInfo.packageName + "/" + ri.serviceInfo.name);
+                            }
+                        }
+                    }
+                }
+                info.put("foundServices", foundServices);
+            } catch (Exception e) {
+                try {
+                    info.put("error", e.getMessage());
+                } catch (Exception ignored) {
+                }
+            }
+            return info.toString();
         }
 
         @JavascriptInterface
