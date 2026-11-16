@@ -7985,6 +7985,29 @@ fieldset {
     font-weight: 700;
     white-space: nowrap;
   }
+  .pos-mobile-paybar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pos-mobile-qr-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid #bfe0cf;
+    border-radius: 11px;
+    background: #eef8f2;
+    color: #087451;
+    font-size: 13.5px;
+    font-weight: 750;
+    white-space: nowrap;
+  }
+  .pos-mobile-qr-btn:disabled {
+    opacity: 0.5;
+  }
   .pos-payment.sheet-open {
     left: 0;
     right: 0;
@@ -8013,6 +8036,29 @@ fieldset {
     align-items: baseline;
     justify-content: space-between;
   }
+  .pos-mobile-paybar-actions {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
+  }
+}
+.pos-cart-qr-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid #c5dfd2;
+  border-radius: 9px;
+  background: #eef8f2;
+  color: #087451;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.pos-cart-qr-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Shop Home Dashboard (Главная страница магазина) */
