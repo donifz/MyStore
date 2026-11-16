@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, errorText } from '../api/client';
+import { ApiError, api, errorText } from '../api/client';
 import { formatSom, parseSom } from '../api/money';
 import CameraScanner from '../scanner/CameraScanner';
 import PaymentIcon from './PaymentIcon';
@@ -85,7 +85,15 @@ export default function LoyaltyCheckout({
         setProfile(res);
       } catch (err) {
         setProfile(null);
-        setLookupError(errorText(err));
+        if (err instanceof ApiError && err.status >= 500) {
+          setLookupError(
+            err.message && err.message !== 'Ошибка сервера'
+              ? `${err.message} (${err.status})`
+              : `${errorText(err)} (код ${err.status})`,
+          );
+        } else {
+          setLookupError(errorText(err));
+        }
       } finally {
         setLookupLoading(false);
       }
