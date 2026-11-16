@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, errorText } from '../api/client';
 import { formatSom, parseSom } from '../api/money';
 import CameraScanner from '../scanner/CameraScanner';
@@ -46,6 +46,8 @@ export default function LoyaltyCheckout({
   onDebtRepaid,
 }: Props) {
   const [scanning, setScanning] = useState(false);
+  const [tsdArmed, setTsdArmed] = useState(true);
+  const codeInputRef = useRef<HTMLInputElement>(null);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [lookupError, setLookupError] = useState('');
   const [profile, setProfile] = useState<CustomerQrProfile | null>(null);
@@ -156,21 +158,73 @@ export default function LoyaltyCheckout({
     }
   }
 
+  function armTsdScanner() {
+    setScanning(false);
+    setTsdArmed(true);
+    requestAnimationFrame(() => {
+      codeInputRef.current?.focus();
+      codeInputRef.current?.select();
+    });
+  }
+
+  const initials = profile
+    ? profile.name
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase() ?? '')
+        .join('')
+    : '';
+
   return (
     <div className="pos-loyalty-checkout">
-      <div className="pos-loyalty-qr-row">
-        <button
-          type="button"
-          className="pos-loyalty-scan"
-          disabled={disabled}
-          onClick={() => setScanning((current) => !current)}
+      <div className="pos-loyalty-scanner-card">
+        <div className="pos-loyalty-scanner-status">
+          <span
+            className={`pos-loyalty-status-pill${
+              qrReady ? ' is-success' : tsdArmed && !scanning ? ' is-armed' : ''
+            }`}
+          >
+            <span className="pos-loyalty-status-dot" aria-hidden="true" />
+            {qrReady
+              ? 'Карта клиента считана'
+              : scanning
+                ? 'Камера активна — наведите на QR'
+                : tsdArmed
+                  ? 'ТСД / USB-сканер готов'
+                  : 'Выберите способ сканирования'}
+          </span>
+        </div>
+
+        <div className="pos-loyalty-scan-actions">
+          <button
+            type="button"
+            className={`pos-loyalty-scan${scanning ? ' is-active' : ''}`}
+            disabled={disabled}
+            onClick={() => {
+              setScanning((current) => !current);
+              setTsdArmed(false);
+            }}
+          >
+            <PaymentIcon name={scanning ? 'close' : 'qr'} size={18} />
+            <span>{scanning ? 'Закрыть камеру' : 'Сканировать QR'}</span>
+          </button>
+          <button
+            type="button"
+            className={`pos-loyalty-tsd${tsdArmed && !scanning ? ' is-active' : ''}`}
+            disabled={disabled}
+            onClick={armTsdScanner}
+          >
+            <PaymentIcon name="scanner" size={18} />
+            <span>Сканер / ТСД</span>
+          </button>
+        </div>
+
+        <div
+          className={`pos-loyalty-code-row${tsdArmed && !scanning ? ' is-armed' : ''}`}
         >
-          <PaymentIcon name={scanning ? 'close' : 'qr'} size={18} />
-          {scanning ? 'Закрыть камеру' : 'Сканировать QR'}
-        </button>
-        <label className="pos-loyalty-code">
-          <span className="sr-only">Код карты покупателя</span>
           <input
+            ref={codeInputRef}
             aria-label="Код карты покупателя"
             type="text"
             autoFocus
@@ -178,14 +232,33 @@ export default function LoyaltyCheckout({
             disabled={disabled}
             maxLength={43}
             value={token}
+            onFocus={() => setTsdArmed(true)}
+            onBlur={() => setTsdArmed(false)}
             onChange={(e) => {
               setRepaySuccess('');
               setRepayError('');
               setToken(e.target.value.trim());
             }}
-            placeholder="Сканер или код карты"
+            placeholder="Поднесите к ТСД или введите код карты"
           />
-        </label>
+          {token && (
+            <button
+              type="button"
+              className="pos-loyalty-code-clear"
+              aria-label="Очистить код"
+              disabled={disabled}
+              onClick={() => {
+                setRepaySuccess('');
+                setRepayError('');
+                setToken('');
+                setPoints(0);
+                armTsdScanner();
+              }}
+            >
+              <PaymentIcon name="close" size={15} />
+            </button>
+          )}
+        </div>
       </div>
 
       {scanning && (
@@ -222,9 +295,16 @@ export default function LoyaltyCheckout({
       {profile && (
         <div className="pos-customer-card" aria-label="Карта покупателя">
           <div className="pos-customer-card-head">
-            <div>
-              <strong>{profile.name}</strong>
-              {profile.phone && <span>{profile.phone}</span>}
+            <div className="pos-customer-identity">
+              {initials && (
+                <span className="pos-customer-avatar" aria-hidden="true">
+                  {initials}
+                </span>
+              )}
+              <div>
+                <strong>{profile.name}</strong>
+                {profile.phone && <span>{profile.phone}</span>}
+              </div>
             </div>
             <span className="pos-customer-verified">
               <PaymentIcon name="check" size={14} />
@@ -337,10 +417,16 @@ export default function LoyaltyCheckout({
         </div>
       )}
 
-      <div className="pos-loyalty-points-wrap">
-        <label className="pos-loyalty-points">
-          <span>Списать баллов</span>
+      <div className="pos-loyalty-points-card">
+        <div className="pos-loyalty-points-head">
+          <label htmlFor="pos-loyalty-points-input">Списать баллов</label>
+          <span className="pos-loyalty-points-rate">
+            {points > 0 ? `−${formatSom(points * 100)}` : '1 балл = 1 сом'}
+          </span>
+        </div>
+        <div className="pos-loyalty-points-row">
           <input
+            id="pos-loyalty-points-input"
             aria-label="Списать баллов"
             inputMode="numeric"
             type="number"
@@ -366,9 +452,11 @@ export default function LoyaltyCheckout({
           >
             Макс. {availableBonusPoints}
           </button>
-        </label>
+        </div>
         <small className="pos-loyalty-hint">
-          Только подтверждённый покупатель · 1 балл = 1 сом · до 20% чека
+          {!qrReady
+            ? 'Отсканируйте карту клиента, чтобы списать баллы · до 20% чека'
+            : 'Только подтверждённый покупатель · до 20% чека'}
         </small>
       </div>
     </div>
