@@ -19,7 +19,8 @@ type PaymentIconName =
   | 'coins'
   | 'search'
   | 'wallet'
-  | 'percent';
+  | 'percent'
+  | 'scanner';
 
 const paths: Record<PaymentIconName, ReactNode> = {
   cash: (
@@ -126,6 +127,14 @@ const paths: Record<PaymentIconName, ReactNode> = {
     <>
       <path d="M12 16V3m0 0-4 4m4-4 4 4" />
       <path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
+    </>
+  ),
+  scanner: (
+    <>
+      <path d="M8.5 3.5 7 2M12 3V1.5M15.5 3.5 17 2" />
+      <rect x="6.5" y="5.5" width="11" height="16.5" rx="2.2" />
+      <rect x="9" y="8" width="6" height="5.5" rx="0.8" />
+      <circle cx="12" cy="17" r="1.2" />
     </>
   ),
 };
