@@ -1217,7 +1217,7 @@ export function ShopHome() {
           <div className="shop-home-card-header">
             <h2>Остатки на складе</h2>
             <Link
-              to={`${base}/products?stock=attention`}
+              to={`${base}/products?stock=attention&sort=stock-asc`}
               className="shop-home-link"
             >
               Смотреть все →

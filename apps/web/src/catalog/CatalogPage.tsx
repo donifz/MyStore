@@ -25,7 +25,19 @@ export default function CatalogPage() {
     [archived, setArchived] = useState(
       () => searchParams.get('archived') === 'true',
     ),
-    [sort, setSort] = useState(() => searchParams.get('sort') || 'newest'),
+    [sort, setSort] = useState(() => {
+      const s = searchParams.get('sort');
+      if (s) return s;
+      const rawStock = searchParams.get('stock');
+      if (
+        rawStock === 'attention' ||
+        rawStock === 'low' ||
+        rawStock === 'out'
+      ) {
+        return 'stock-asc';
+      }
+      return 'newest';
+    }),
     [stockFilter, setStockFilter] = useState<StockFilter>(() => {
       const raw = searchParams.get('stock');
       return raw === 'in_stock' ||
@@ -339,8 +351,17 @@ export default function CatalogPage() {
             <select
               value={stockFilter}
               onChange={(e) => {
-                setStockFilter(e.target.value as StockFilter);
+                const nextStock = e.target.value as StockFilter;
+                setStockFilter(nextStock);
                 setPage(1);
+                if (
+                  (nextStock === 'attention' ||
+                    nextStock === 'low' ||
+                    nextStock === 'out') &&
+                  sort === 'newest'
+                ) {
+                  setSort('stock-asc');
+                }
               }}
             >
               <option value="all">Все остатки</option>

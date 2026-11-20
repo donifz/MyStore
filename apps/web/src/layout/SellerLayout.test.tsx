@@ -131,7 +131,9 @@ it('renders store dashboard with KPIs, low stock, recent sales and period select
     true,
   );
   expect(hrefs).toContain(`/seller/${shop}/products?sort=popular`);
-  expect(hrefs).toContain(`/seller/${shop}/products?stock=attention`);
+  expect(
+    hrefs.some((h) => h?.includes(`/seller/${shop}/products?stock=attention`)),
+  ).toBe(true);
 
   const user = userEvent.setup();
   await user.click(screen.getByRole('button', { name: 'Сегодня' }));
