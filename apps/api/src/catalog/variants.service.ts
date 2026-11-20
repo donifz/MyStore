@@ -101,7 +101,7 @@ export class VariantsService {
     pageSize: number,
     showCost: boolean,
     archived = false,
-    stock?: 'all' | 'in_stock' | 'low' | 'out',
+    stock?: 'all' | 'in_stock' | 'low' | 'out' | 'attention',
     options: {
       category?: string;
       sort?:
@@ -125,7 +125,9 @@ export class VariantsService {
           ? ' AND (COALESCE(b.physical,0) - COALESCE(b.reserved,0)) BETWEEN 1 AND 5'
           : stock === 'out'
             ? ' AND (COALESCE(b.physical,0) - COALESCE(b.reserved,0)) <= 0'
-            : '';
+            : stock === 'attention'
+              ? ' AND (COALESCE(b.physical,0) - COALESCE(b.reserved,0)) <= 5'
+              : '';
     const visibilityClause =
       options.visibility === 'published'
         ? ' AND v.published = true'
