@@ -8387,6 +8387,21 @@ fieldset {
   font-size: 13px;
 }
 
+.shop-home-row-link {
+  text-decoration: none;
+  color: inherit;
+  border-radius: 8px;
+  padding-left: 6px;
+  padding-right: 6px;
+  margin-left: -6px;
+  margin-right: -6px;
+  transition: background-color 0.15s ease;
+}
+
+.shop-home-row-link:hover {
+  background-color: #f8fafc;
+}
+
 .shop-home-recent-sale-row:last-child {
   border-bottom: 0;
 }

@@ -10,7 +10,7 @@ import BarcodeLabel from './BarcodeLabel';
 import ProductThumb from './ProductThumb';
 import CameraScanner from '../scanner/CameraScanner';
 
-type StockFilter = 'all' | 'in_stock' | 'low' | 'out';
+type StockFilter = 'all' | 'in_stock' | 'low' | 'out' | 'attention';
 type VisibilityFilter = 'all' | 'published' | 'hidden' | 'no_photo';
 
 export default function CatalogPage() {
@@ -28,7 +28,12 @@ export default function CatalogPage() {
     [sort, setSort] = useState(() => searchParams.get('sort') || 'newest'),
     [stockFilter, setStockFilter] = useState<StockFilter>(() => {
       const raw = searchParams.get('stock');
-      return raw === 'in_stock' || raw === 'low' || raw === 'out' ? raw : 'all';
+      return raw === 'in_stock' ||
+        raw === 'low' ||
+        raw === 'out' ||
+        raw === 'attention'
+        ? raw
+        : 'all';
     }),
     [category, setCategory] = useState(
       () => searchParams.get('category') ?? '',
@@ -339,6 +344,9 @@ export default function CatalogPage() {
             >
               <option value="all">Все остатки</option>
               <option value="in_stock">В наличии (&gt; 0)</option>
+              <option value="attention">
+                Мало или нет в наличии (0–5 шт.)
+              </option>
               <option value="low">Мало на складе (1–5 шт.)</option>
               <option value="out">Нет в наличии (0 шт.)</option>
             </select>

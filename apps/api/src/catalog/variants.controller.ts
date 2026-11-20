@@ -81,8 +81,8 @@ class ListQuery {
   @Type(() => Number) @IsInt() @Min(1) @Max(1000000) page = 1;
   @Type(() => Number) @IsInt() @Min(1) @Max(100) pageSize = 25;
   @IsOptional() @IsIn(['true', 'false']) archived?: string;
-  @IsOptional() @IsIn(['all', 'in_stock', 'low', 'out']) stock?:
-    'all' | 'in_stock' | 'low' | 'out';
+  @IsOptional() @IsIn(['all', 'in_stock', 'low', 'out', 'attention']) stock?:
+    'all' | 'in_stock' | 'low' | 'out' | 'attention';
   @IsOptional() @IsString() @MaxLength(80) category?: string;
   @IsOptional()
   @IsIn([
