@@ -125,6 +125,14 @@ it('renders store dashboard with KPIs, low stock, recent sales and period select
   expect(screen.getByRole('link', { name: /Новая приёмка/ })).toBeTruthy();
   expect(screen.getByRole('link', { name: /Создать товар/ })).toBeTruthy();
 
+  const seeAllLinks = screen.getAllByRole('link', { name: /Смотреть все/ });
+  const hrefs = seeAllLinks.map((el) => el.getAttribute('href'));
+  expect(hrefs.some((h) => h?.includes(`/seller/${shop}/sales?from=`))).toBe(
+    true,
+  );
+  expect(hrefs).toContain(`/seller/${shop}/products?sort=popular`);
+  expect(hrefs).toContain(`/seller/${shop}/products?stock=low`);
+
   const user = userEvent.setup();
   await user.click(screen.getByRole('button', { name: 'Сегодня' }));
   expect(requestedUrls.some((u) => u.includes('/reports/summary'))).toBe(true);
