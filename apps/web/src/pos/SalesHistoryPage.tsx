@@ -5,6 +5,7 @@ import { api, errorText } from '../api/client';
 import { hasShopPermission, type Page, type SaleSummary } from '../api/types';
 import { formatSom, formatDate } from '../api/money';
 import { useSession } from '../auth/SessionProvider';
+import { shopDate } from '../layout/dashboard-period';
 
 function shortCheckCode(id: string) {
   return id.slice(0, 8).toUpperCase();
@@ -159,6 +160,85 @@ export default function SalesHistoryPage() {
             <option value="credit">В долг</option>
           </select>
         </label>
+        <div
+          className="sales-quick-periods"
+          style={{
+            display: 'flex',
+            gap: '6px',
+            alignItems: 'center',
+            width: '100%',
+            marginBottom: '4px',
+            flexWrap: 'wrap',
+          }}
+        >
+          <span className="muted" style={{ fontSize: '13px' }}>
+            Быстрый период:
+          </span>
+          <button
+            type="button"
+            className={`button ${fromDate === shopDate(new Date(), 0) && toDate === shopDate(new Date(), 0) ? 'primary' : 'secondary'}`}
+            style={{ fontSize: '12px', padding: '4px 10px' }}
+            onClick={() => {
+              const today = shopDate(new Date(), 0);
+              setFromDate(today);
+              setToDate(today);
+              setPage(1);
+            }}
+          >
+            Сегодня
+          </button>
+          <button
+            type="button"
+            className={`button ${fromDate === shopDate(new Date(), 1) && toDate === shopDate(new Date(), 1) ? 'primary' : 'secondary'}`}
+            style={{ fontSize: '12px', padding: '4px 10px' }}
+            onClick={() => {
+              const yest = shopDate(new Date(), 1);
+              setFromDate(yest);
+              setToDate(yest);
+              setPage(1);
+            }}
+          >
+            Вчера
+          </button>
+          <button
+            type="button"
+            className={`button ${fromDate === shopDate(new Date(), 6) && toDate === shopDate(new Date(), 0) ? 'primary' : 'secondary'}`}
+            style={{ fontSize: '12px', padding: '4px 10px' }}
+            onClick={() => {
+              setFromDate(shopDate(new Date(), 6));
+              setToDate(shopDate(new Date(), 0));
+              setPage(1);
+            }}
+          >
+            7 дней
+          </button>
+          <button
+            type="button"
+            className={`button ${fromDate === shopDate(new Date(), 29) && toDate === shopDate(new Date(), 0) ? 'primary' : 'secondary'}`}
+            style={{ fontSize: '12px', padding: '4px 10px' }}
+            onClick={() => {
+              setFromDate(shopDate(new Date(), 29));
+              setToDate(shopDate(new Date(), 0));
+              setPage(1);
+            }}
+          >
+            30 дней
+          </button>
+          {(fromDate || toDate) && (
+            <button
+              type="button"
+              className="button secondary"
+              style={{ fontSize: '12px', padding: '4px 10px', opacity: 0.8 }}
+              onClick={() => {
+                setFromDate('');
+                setToDate('');
+                setPage(1);
+              }}
+            >
+              За всё время
+            </button>
+          )}
+        </div>
         <label>
           Период с
           <input

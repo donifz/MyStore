@@ -159,7 +159,8 @@ export default function CatalogPage() {
       .then((r) => {
         if (alive) {
           setData(r);
-          if (r.facets?.length) setCategories(r.facets);
+          const facetList = r.facets ?? (r as any).categories;
+          if (facetList?.length) setCategories(facetList);
         }
       })
       .catch((e) => {
@@ -394,6 +395,8 @@ export default function CatalogPage() {
             >
               <option value="newest">Сначала новые</option>
               <option value="oldest">Сначала старые</option>
+              <option value="stock-asc">По остатку: сначала мало</option>
+              <option value="stock-desc">По остатку: сначала много</option>
               <option value="name">Название А–Я</option>
               <option value="name-desc">Название Я–А</option>
               <option value="price-asc">Сначала дешевле</option>
@@ -497,14 +500,14 @@ export default function CatalogPage() {
                     <span
                       className={
                         'stock ' +
-                        (v.available
+                        (v.available !== undefined && v.available > 0
                           ? v.available <= 5
                             ? 'low'
                             : ''
                           : 'empty')
                       }
                     >
-                      {v.available} шт.
+                      {v.available ?? 0} шт.
                     </span>
                   </td>
                   <td>{v.reserved} шт.</td>
