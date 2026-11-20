@@ -459,10 +459,6 @@ export function ShopHome() {
           : customFrom || todayDate;
   const salesToDate = period === 'custom' ? customTo || todayDate : todayDate;
   const salesSeeAllHref = `${base}/sales?from=${salesFromDate}&to=${salesToDate}`;
-  const lowStockFilter =
-    lowStockItems.length > 0 && (lowStockItems[0].available ?? 0) <= 0
-      ? 'out'
-      : 'low';
 
   const averageCheckMinor =
     receiptsCount > 0 && summary?.revenueMinor
@@ -983,7 +979,11 @@ export function ShopHome() {
           {sales.length > 0 ? (
             <div className="shop-home-list">
               {sales.map((sale) => (
-                <div className="shop-home-recent-sale-row" key={sale.id}>
+                <Link
+                  to={`${base}/sales/${sale.id}`}
+                  className="shop-home-recent-sale-row shop-home-row-link"
+                  key={sale.id}
+                >
                   <span className="shop-home-sale-time">
                     {new Date(sale.createdAt).toLocaleString('ru-KG', {
                       day: '2-digit',
@@ -996,9 +996,7 @@ export function ShopHome() {
                     <ReceiptIcon />
                   </div>
                   <div className="shop-home-sale-meta">
-                    <Link to={`${base}/sales/${sale.id}`}>
-                      <strong>Чек #{sale.id.slice(0, 6)}</strong>
-                    </Link>
+                    <strong>Чек #{sale.id.slice(0, 6)}</strong>
                     <small>
                       {sale.method === 'card'
                         ? 'Оплата картой'
@@ -1010,7 +1008,7 @@ export function ShopHome() {
                   <strong className="shop-home-sale-sum">
                     {formatSom(sale.totalMinor)}
                   </strong>
-                </div>
+                </Link>
               ))}
             </div>
           ) : (
@@ -1039,8 +1037,15 @@ export function ShopHome() {
             <div className="shop-home-list">
               {topProductsList.map((item, idx) => {
                 const variant = variantMap.get(item.id);
+                const productHref = canCatalog
+                  ? `${base}/products/${item.id}/edit`
+                  : `${base}/products?q=${encodeURIComponent(variant?.barcode || item.name)}`;
                 return (
-                  <div className="shop-home-top-product-row" key={item.id}>
+                  <Link
+                    to={productHref}
+                    className="shop-home-top-product-row shop-home-row-link"
+                    key={item.id}
+                  >
                     <span className="shop-home-rank-badge">{idx + 1}</span>
                     <ProductThumb
                       photoUrl={variant?.photoUrls?.[0] || variant?.photoUrl}
@@ -1057,7 +1062,7 @@ export function ShopHome() {
                     <strong className="shop-home-product-sum">
                       {formatSom(item.revenueMinor)}
                     </strong>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
@@ -1071,7 +1076,7 @@ export function ShopHome() {
           <div className="shop-home-card-header">
             <h2>Остатки на складе</h2>
             <Link
-              to={`${base}/products?stock=${lowStockFilter}`}
+              to={`${base}/products?stock=attention`}
               className="shop-home-link"
             >
               Смотреть все →
@@ -1080,19 +1085,28 @@ export function ShopHome() {
 
           {lowStockItems.length > 0 ? (
             <div className="shop-home-list">
-              {lowStockItems.slice(0, 4).map((item) => (
-                <div className="shop-home-stock-alert-row" key={item.id}>
-                  <span className="shop-home-alert-icon" aria-hidden="true">
-                    <WarningTriangleIcon />
-                  </span>
-                  <div className="shop-home-product-meta">
-                    <strong>{item.name}</strong>
-                    <small className="shop-home-stock-warning-text">
-                      Остаток: {item.available ?? 0} шт.
-                    </small>
-                  </div>
-                </div>
-              ))}
+              {lowStockItems.slice(0, 4).map((item) => {
+                const itemHref = canCatalog
+                  ? `${base}/products/${item.id}/edit`
+                  : `${base}/products?q=${encodeURIComponent(item.barcode || item.name)}`;
+                return (
+                  <Link
+                    to={itemHref}
+                    className="shop-home-stock-alert-row shop-home-row-link"
+                    key={item.id}
+                  >
+                    <span className="shop-home-alert-icon" aria-hidden="true">
+                      <WarningTriangleIcon />
+                    </span>
+                    <div className="shop-home-product-meta">
+                      <strong>{item.name}</strong>
+                      <small className="shop-home-stock-warning-text">
+                        Остаток: {item.available ?? 0} шт.
+                      </small>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           ) : (
             <p className="muted">Все товары в достаточном количестве.</p>
