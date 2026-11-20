@@ -351,6 +351,8 @@ export function ShopHome() {
     useState<FinancialSummary | null>(null);
   const [variants, setVariants] = useState<Variant[]>([]);
   const [lowStock, setLowStock] = useState<Variant[]>([]);
+  const [topWarehouseStock, setTopWarehouseStock] = useState<Variant[]>([]);
+  const [topTab, setTopTab] = useState<'sales' | 'warehouse'>('sales');
 
   const [sales, setSales] = useState<SaleSummary[]>([]);
   const [salesTotal, setSalesTotal] = useState(0);
@@ -363,22 +365,25 @@ export function ShopHome() {
     setSummary(null);
     setPreviousSummary(null);
     setLowStock([]);
+    setTopWarehouseStock([]);
 
     const tasks: Promise<unknown>[] = [
-      Promise.all([
-        api<Page<Variant>>(
-          `/shops/${shop.id}/variants?page=1&pageSize=10&stock=out`,
-        ),
-        api<Page<Variant>>(
-          `/shops/${shop.id}/variants?page=1&pageSize=10&stock=low`,
-        ),
-      ]).then(([empty, low]) => {
+      api<Page<Variant>>(
+        `/shops/${shop.id}/variants?page=1&pageSize=6&stock=attention&sort=stock-asc`,
+      ).then((page) => {
         if (alive) {
           setLowStock(
-            [...empty.items, ...low.items]
+            page.items
               .filter((item) => !item.archived)
               .sort((a, b) => (a.available ?? 0) - (b.available ?? 0)),
           );
+        }
+      }),
+      api<Page<Variant>>(
+        `/shops/${shop.id}/variants?page=1&pageSize=6&stock=in_stock&sort=stock-desc`,
+      ).then((page) => {
+        if (alive) {
+          setTopWarehouseStock(page.items.filter((item) => !item.archived));
         }
       }),
       api<Page<Variant>>(`/shops/${shop.id}/variants?page=1&pageSize=100`).then(
@@ -477,6 +482,22 @@ export function ShopHome() {
       const count = point?.salesCount ?? 0;
       return {
         label: `${String(hour).padStart(2, '0')}:00`,
+        val: chartMetric === 'revenue' ? net / 100 : count,
+        tooltipVal: chartMetric === 'revenue' ? formatSom(net) : `${count} шт.`,
+      };
+    });
+  } else if (summary && (period === 'week' || period === 'month')) {
+    const numDays = period === 'week' ? 7 : 30;
+    const seriesMap = new Map(
+      (summary.dailySeries ?? []).map((s) => [s.day, s]),
+    );
+    chartPoints = Array.from({ length: numDays }, (_, i) => {
+      const dayStr = shopDate(new Date(), numDays - 1 - i);
+      const pt = seriesMap.get(dayStr);
+      const net = pt?.netMinor ?? 0;
+      const count = pt?.salesCount ?? 0;
+      return {
+        label: formatDayShort(dayStr),
         val: chartMetric === 'revenue' ? net / 100 : count,
         tooltipVal: chartMetric === 'revenue' ? formatSom(net) : `${count} шт.`,
       };
@@ -592,7 +613,11 @@ export function ShopHome() {
                 onClick={() => setShowDatePicker((v) => !v)}
                 aria-expanded={showDatePicker}
               >
-                <span aria-hidden="true">📅</span> Диапазон дат ▾
+                <span aria-hidden="true">📅</span>{' '}
+                {period === 'custom' && customFrom && customTo
+                  ? `${formatDayShort(customFrom)} — ${formatDayShort(customTo)}`
+                  : 'Диапазон дат'}{' '}
+                ▾
               </button>
 
               {showDatePicker && (
@@ -601,6 +626,49 @@ export function ShopHome() {
                   role="dialog"
                   aria-label="Выбор диапазона дат"
                 >
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '6px',
+                      flexWrap: 'wrap',
+                      marginBottom: '4px',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      className="button secondary small"
+                      style={{ fontSize: '11.5px', padding: '3px 8px' }}
+                      onClick={() => {
+                        const yest = shopDate(new Date(), 1);
+                        setCustomFrom(yest);
+                        setCustomTo(yest);
+                      }}
+                    >
+                      Вчера
+                    </button>
+                    <button
+                      type="button"
+                      className="button secondary small"
+                      style={{ fontSize: '11.5px', padding: '3px 8px' }}
+                      onClick={() => {
+                        setCustomFrom(shopDate(new Date(), 6));
+                        setCustomTo(shopDate(new Date(), 0));
+                      }}
+                    >
+                      7 дней
+                    </button>
+                    <button
+                      type="button"
+                      className="button secondary small"
+                      style={{ fontSize: '11.5px', padding: '3px 8px' }}
+                      onClick={() => {
+                        setCustomFrom(shopDate(new Date(), 29));
+                        setCustomTo(shopDate(new Date(), 0));
+                      }}
+                    >
+                      30 дней
+                    </button>
+                  </div>
                   <div className="shop-home-date-inputs">
                     <label>
                       <span>С:</span>
@@ -1023,51 +1091,124 @@ export function ShopHome() {
         <section className="shop-home-card">
           <div className="shop-home-card-header">
             <h2>
-              {period === 'today' ? 'Топ товаров за сегодня' : 'Топ товаров'}
+              {topTab === 'sales'
+                ? period === 'today'
+                  ? 'Лидеры продаж'
+                  : 'Лидеры продаж'
+                : 'Топ на складе'}
             </h2>
             <Link
-              to={`${base}/products?sort=popular`}
+              to={
+                topTab === 'sales'
+                  ? `${base}/products?sort=popular`
+                  : `${base}/products?sort=stock-desc`
+              }
               className="shop-home-link"
             >
               Смотреть все →
             </Link>
           </div>
 
-          {topProductsList.length > 0 ? (
+          <div
+            className="shop-home-chart-toggle"
+            role="group"
+            aria-label="Режим топа"
+            style={{ marginBottom: '10px' }}
+          >
+            <button
+              type="button"
+              className={topTab === 'sales' ? 'active' : ''}
+              onClick={() => setTopTab('sales')}
+            >
+              Продажи
+            </button>
+            <button
+              type="button"
+              className={topTab === 'warehouse' ? 'active' : ''}
+              onClick={() => setTopTab('warehouse')}
+            >
+              Остатки
+            </button>
+          </div>
+
+          {topTab === 'sales' ? (
+            topProductsList.length > 0 ? (
+              <div className="shop-home-list">
+                {topProductsList.map((item, idx) => {
+                  const variant = variantMap.get(item.id);
+                  const productHref = canCatalog
+                    ? `${base}/products/${item.id}/edit`
+                    : `${base}/products?q=${encodeURIComponent(variant?.barcode || item.name)}`;
+                  return (
+                    <Link
+                      to={productHref}
+                      className="shop-home-top-product-row shop-home-row-link"
+                      key={item.id}
+                    >
+                      <span className="shop-home-rank-badge">{idx + 1}</span>
+                      <ProductThumb
+                        photoUrl={variant?.photoUrls?.[0] || variant?.photoUrl}
+                        photoUrls={variant?.photoUrls}
+                      />
+                      <div className="shop-home-product-meta">
+                        <strong>{item.name}</strong>
+                        <small>
+                          {item.quantitySold > 0
+                            ? `Продано: ${item.quantitySold} шт.`
+                            : `В наличии: ${variant?.available ?? 0} шт.`}
+                        </small>
+                      </div>
+                      <strong className="shop-home-product-sum">
+                        {formatSom(item.revenueMinor)}
+                      </strong>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="muted">За выбранный период продаж товаров нет.</p>
+            )
+          ) : topWarehouseStock.length > 0 ? (
             <div className="shop-home-list">
-              {topProductsList.map((item, idx) => {
-                const variant = variantMap.get(item.id);
+              {topWarehouseStock.slice(0, 4).map((v, idx) => {
                 const productHref = canCatalog
-                  ? `${base}/products/${item.id}/edit`
-                  : `${base}/products?q=${encodeURIComponent(variant?.barcode || item.name)}`;
+                  ? `${base}/products/${v.id}/edit`
+                  : `${base}/products?q=${encodeURIComponent(v.barcode || v.name)}`;
+                const stockTotalMinor = (v.available ?? 0) * v.salePriceMinor;
                 return (
                   <Link
                     to={productHref}
                     className="shop-home-top-product-row shop-home-row-link"
-                    key={item.id}
+                    key={v.id}
                   >
-                    <span className="shop-home-rank-badge">{idx + 1}</span>
+                    <span
+                      className="shop-home-rank-badge"
+                      style={{ background: '#e0f2fe', color: '#0369a1' }}
+                    >
+                      {idx + 1}
+                    </span>
                     <ProductThumb
-                      photoUrl={variant?.photoUrls?.[0] || variant?.photoUrl}
-                      photoUrls={variant?.photoUrls}
+                      photoUrl={v.photoUrls?.[0] || v.photoUrl}
+                      photoUrls={v.photoUrls}
                     />
                     <div className="shop-home-product-meta">
-                      <strong>{item.name}</strong>
-                      <small>
-                        {item.quantitySold > 0
-                          ? `Продано: ${item.quantitySold} шт.`
-                          : `В наличии: ${variant?.available ?? 0} шт.`}
+                      <strong>{v.name}</strong>
+                      <small style={{ color: '#0369a1', fontWeight: 600 }}>
+                        В наличии: {v.available ?? 0} шт.
                       </small>
                     </div>
-                    <strong className="shop-home-product-sum">
-                      {formatSom(item.revenueMinor)}
+                    <strong
+                      className="shop-home-product-sum"
+                      title="Розничная стоимость запаса"
+                    >
+                      {formatSom(stockTotalMinor)}
                     </strong>
                   </Link>
                 );
               })}
             </div>
           ) : (
-            <p className="muted">За выбранный период продаж товаров нет.</p>
+            <p className="muted">Товаров с остатком на складе нет.</p>
           )}
         </section>
 
@@ -1188,6 +1329,176 @@ export function ShopHome() {
           </div>
         </section>
       </div>
+
+      {/* Row 4: Analytics, Inventory Valuation and Categories */}
+      {canReports && summary && (
+        <div className="shop-home-bottom-grid" style={{ marginTop: '16px' }}>
+          {/* Card 1: Warehouse Valuation */}
+          <section className="shop-home-card">
+            <div className="shop-home-card-header">
+              <h2>Состояние склада</h2>
+              <Link
+                to={`${base}/products?stock=attention&sort=stock-asc`}
+                className="shop-home-link"
+              >
+                Дефицит →
+              </Link>
+            </div>
+            <div className="shop-home-inventory-stats">
+              <div className="shop-home-stat-row">
+                <span className="muted">Розничная стоимость склада</span>
+                <strong>{formatSom(summary.stockRetailValueMinor ?? 0)}</strong>
+              </div>
+              <div className="shop-home-stat-row">
+                <span className="muted">Себестоимость склада</span>
+                <span>{formatSom(summary.stockValueMinor ?? 0)}</span>
+              </div>
+              <div className="shop-home-stat-row">
+                <span className="muted">Ожидаемая валовая прибыль</span>
+                <span style={{ color: '#16a34a', fontWeight: 600 }}>
+                  {formatSom(
+                    Math.max(
+                      0,
+                      (summary.stockRetailValueMinor ?? 0) -
+                        (summary.stockValueMinor ?? 0),
+                    ),
+                  )}
+                </span>
+              </div>
+              <div
+                className="shop-home-stat-row"
+                style={{ borderTop: '1px solid #f3f4f6', paddingTop: '8px' }}
+              >
+                <span className="muted">Всего товаров на складе</span>
+                <strong>
+                  {summary.physicalUnits ?? 0} шт. (
+                  {summary.stockedVariantsCount ?? 0} поз.)
+                </strong>
+              </div>
+              <div className="shop-home-stat-row">
+                <span className="muted">Требуют дозаказа (0–5 шт.)</span>
+                <span
+                  style={{
+                    color: summary.lowStockCount ? '#dc2626' : '#16a34a',
+                    fontWeight: 600,
+                  }}
+                >
+                  {summary.lowStockCount ?? 0} поз.
+                </span>
+              </div>
+            </div>
+          </section>
+
+          {/* Card 2: Sales by Category */}
+          <section className="shop-home-card">
+            <div className="shop-home-card-header">
+              <h2>Продажи по категориям</h2>
+              <Link
+                to={`${base}/catalog/categories`}
+                className="shop-home-link"
+              >
+                Категории →
+              </Link>
+            </div>
+            {summary.categoryShare && summary.categoryShare.length > 0 ? (
+              <div className="shop-home-categories-list">
+                {summary.categoryShare.slice(0, 4).map((cat) => {
+                  const totalRev = summary.revenueMinor || 1;
+                  const pct = Math.min(
+                    100,
+                    Math.round((cat.revenueMinor / totalRev) * 100),
+                  );
+                  return (
+                    <Link
+                      to={`${base}/products?category=${encodeURIComponent(cat.category)}`}
+                      className="shop-home-category-row shop-home-row-link"
+                      key={cat.category}
+                    >
+                      <div className="shop-home-category-info">
+                        <span className="shop-home-category-name">
+                          {cat.category}
+                        </span>
+                        <span className="shop-home-category-meta">
+                          {cat.quantitySold} шт. · {pct}%
+                        </span>
+                        <strong className="shop-home-category-sum">
+                          {formatSom(cat.revenueMinor)}
+                        </strong>
+                      </div>
+                      <div
+                        className="shop-home-category-progress"
+                        aria-hidden="true"
+                      >
+                        <div
+                          className="shop-home-category-bar"
+                          style={{ width: `${Math.max(4, pct)}%` }}
+                        />
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="muted">
+                За выбранный период продаж по категориям нет.
+              </p>
+            )}
+          </section>
+
+          {/* Card 3: Cash & Payment Breakdown */}
+          <section className="shop-home-card">
+            <div className="shop-home-card-header">
+              <h2>Движение кассы</h2>
+              <Link to={`${base}/shifts`} className="shop-home-link">
+                Смены →
+              </Link>
+            </div>
+            <div className="shop-home-cash-breakdown">
+              <div className="shop-home-stat-row">
+                <span className="muted">Оплата наличными</span>
+                <strong style={{ color: '#16a34a' }}>
+                  {formatSom(summary.cashReceivedMinor ?? 0)}
+                </strong>
+              </div>
+              <div className="shop-home-stat-row">
+                <span className="muted">Оплата картой</span>
+                <strong style={{ color: '#0284c7' }}>
+                  {formatSom(summary.cardReceivedMinor ?? 0)}
+                </strong>
+              </div>
+              <div className="shop-home-stat-row">
+                <span className="muted">Расходы кассы</span>
+                <span style={{ color: '#dc2626', fontWeight: 600 }}>
+                  -{formatSom(summary.cashExpensesMinor ?? 0)}
+                </span>
+              </div>
+              <div
+                className="shop-home-stat-row"
+                style={{ borderTop: '1px solid #f3f4f6', paddingTop: '8px' }}
+              >
+                <span className="muted">Расхождение по сменам</span>
+                <span
+                  style={{
+                    color:
+                      (summary.cashDiscrepancyMinor ?? 0) === 0
+                        ? '#16a34a'
+                        : '#dc2626',
+                    fontWeight: 600,
+                  }}
+                >
+                  {(summary.cashDiscrepancyMinor ?? 0) === 0
+                    ? '0 сом (в норме)'
+                    : formatSom(summary.cashDiscrepancyMinor)}
+                </span>
+              </div>
+              <div className="shop-home-stat-row">
+                <span className="muted">Закрытых смен</span>
+                <span>{summary.closedShifts ?? 0} смен</span>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

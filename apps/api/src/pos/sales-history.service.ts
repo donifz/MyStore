@@ -44,20 +44,33 @@ export class SalesHistoryService {
         `(d.id::text ILIKE $${pIdx} OR EXISTS (SELECT 1 FROM sale_lines sl WHERE sl.shop_id=d.shop_id AND sl.document_id=d.id AND (sl.name ILIKE $${pIdx} OR sl.barcode ILIKE $${pIdx})))`,
       );
     }
-    if (filters.from) {
-      const fromIso = /^\d{4}-\d{2}-\d{2}$/.test(filters.from)
-        ? `${filters.from}T00:00:00+06:00`
-        : filters.from;
+    let rawFrom = filters.from;
+    let rawTo = filters.to;
+    if (
+      rawFrom &&
+      rawTo &&
+      /^\d{4}-\d{2}-\d{2}$/.test(rawFrom) &&
+      /^\d{4}-\d{2}-\d{2}$/.test(rawTo) &&
+      rawFrom > rawTo
+    ) {
+      const tmp = rawFrom;
+      rawFrom = rawTo;
+      rawTo = tmp;
+    }
+    if (rawFrom) {
+      const fromIso = /^\d{4}-\d{2}-\d{2}$/.test(rawFrom)
+        ? `${rawFrom}T00:00:00+06:00`
+        : rawFrom;
       const fromDate = new Date(fromIso);
       if (!Number.isNaN(fromDate.getTime())) {
         args.push(fromDate.toISOString());
         clauses.push(`d.created_at >= $${args.length}`);
       }
     }
-    if (filters.to) {
-      const toIso = /^\d{4}-\d{2}-\d{2}$/.test(filters.to)
-        ? `${filters.to}T23:59:59.999+06:00`
-        : filters.to;
+    if (rawTo) {
+      const toIso = /^\d{4}-\d{2}-\d{2}$/.test(rawTo)
+        ? `${rawTo}T23:59:59.999+06:00`
+        : rawTo;
       const toDate = new Date(toIso);
       if (!Number.isNaN(toDate.getTime())) {
         args.push(toDate.toISOString());

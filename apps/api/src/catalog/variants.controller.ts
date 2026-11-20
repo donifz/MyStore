@@ -93,6 +93,8 @@ class ListQuery {
     'price-asc',
     'price-desc',
     'popular',
+    'stock-asc',
+    'stock-desc',
   ])
   sort?:
     | 'newest'
@@ -101,7 +103,9 @@ class ListQuery {
     | 'name-desc'
     | 'price-asc'
     | 'price-desc'
-    | 'popular';
+    | 'popular'
+    | 'stock-asc'
+    | 'stock-desc';
   @IsOptional() @IsIn(['true', 'false']) facets?: string;
   @IsOptional() @IsIn(['all', 'published', 'hidden', 'no_photo']) visibility?:
     'all' | 'published' | 'hidden' | 'no_photo';

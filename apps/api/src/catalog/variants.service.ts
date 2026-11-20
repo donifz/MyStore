@@ -111,7 +111,9 @@ export class VariantsService {
         | 'name-desc'
         | 'price-asc'
         | 'price-desc'
-        | 'popular';
+        | 'popular'
+        | 'stock-asc'
+        | 'stock-desc';
       facets?: boolean;
       visibility?: 'all' | 'published' | 'hidden' | 'no_photo';
     } = {},
@@ -158,7 +160,11 @@ export class VariantsService {
               ? 'v.sale_price_minor ASC,v.id ASC'
               : options.sort === 'price-desc'
                 ? 'v.sale_price_minor DESC,v.id ASC'
-                : 'v.name ASC,v.id ASC';
+                : options.sort === 'stock-asc'
+                  ? '(COALESCE(b.physical,0) - COALESCE(b.reserved,0)) ASC, v.name ASC, v.id ASC'
+                  : options.sort === 'stock-desc'
+                    ? '(COALESCE(b.physical,0) - COALESCE(b.reserved,0)) DESC, v.name ASC, v.id ASC'
+                    : 'v.name ASC,v.id ASC';
     let filter =
       'v.shop_id=$1 AND v.archived=$2 AND (v.name ILIKE $3 OR v.barcode ILIKE $3 OR v.short_barcode ILIKE $3 OR v.sku ILIKE $3)' +
       stockClause +
@@ -241,7 +247,7 @@ export class VariantsService {
       total: Number(count.count),
       page,
       pageSize,
-      ...(facets ? { categories: facets } : {}),
+      ...(facets ? { facets, categories: facets } : {}),
     };
   }
   async createVariant(
