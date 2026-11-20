@@ -113,6 +113,7 @@ export class VariantsService {
         | 'price-desc'
         | 'popular';
       facets?: boolean;
+      visibility?: 'all' | 'published' | 'hidden' | 'no_photo';
     } = {},
   ) {
     const trimmedQ = q.trim();
@@ -124,6 +125,14 @@ export class VariantsService {
           ? ' AND (COALESCE(b.physical,0) - COALESCE(b.reserved,0)) BETWEEN 1 AND 5'
           : stock === 'out'
             ? ' AND (COALESCE(b.physical,0) - COALESCE(b.reserved,0)) <= 0'
+            : '';
+    const visibilityClause =
+      options.visibility === 'published'
+        ? ' AND v.published = true'
+        : options.visibility === 'hidden'
+          ? ' AND v.published = false'
+          : options.visibility === 'no_photo'
+            ? ' AND v.photo_data IS NULL'
             : '';
     const params: unknown[] = [shopId, archived, pattern];
     let categoryClause = '';
@@ -151,6 +160,7 @@ export class VariantsService {
     let filter =
       'v.shop_id=$1 AND v.archived=$2 AND (v.name ILIKE $3 OR v.barcode ILIKE $3 OR v.short_barcode ILIKE $3 OR v.sku ILIKE $3)' +
       stockClause +
+      visibilityClause +
       categoryClause;
     const from =
       'FROM variants v LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id' +
@@ -160,6 +170,7 @@ export class VariantsService {
       const exactFilter =
         'v.shop_id=$1 AND v.archived=$2 AND (LOWER(v.barcode)=LOWER($3) OR LOWER(v.short_barcode)=LOWER($3))' +
         stockClause +
+        visibilityClause +
         categoryClause;
       const exactParams: unknown[] = [shopId, archived, trimmedQ];
       if (options.category) exactParams.push(options.category);

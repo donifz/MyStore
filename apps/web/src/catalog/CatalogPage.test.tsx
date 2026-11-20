@@ -271,3 +271,72 @@ it('renders barcode scanner icon button and maintains focus on search input', as
   ).toBeNull();
   expect(document.activeElement).toBe(searchInput);
 });
+
+it('filters catalog by visibility and initializes filters from URL query params', async () => {
+  const calls: string[] = [];
+  vi.stubGlobal('fetch', async (url: string) => {
+    calls.push(url);
+    const body = url.endsWith('/me')
+      ? {
+          userId: 'owner',
+          email: 'owner@test.tld',
+          csrfToken: 'csrf',
+          shops: [{ id: shop, name: 'Магазин', role: 'owner' }],
+        }
+      : url.includes('/variants')
+        ? {
+            items: [
+              {
+                id: 'v1',
+                name: 'Конструктор',
+                barcode: '00999',
+                salePriceMinor: 25000,
+                physical: 3,
+                reserved: 0,
+                available: 3,
+              },
+            ],
+            total: 1,
+            page: 1,
+            pageSize: 25,
+            facets: [{ name: 'Игрушки', count: 5 }],
+          }
+        : {};
+    return new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  });
+
+  const app = await import('../App');
+  render(
+    <MemoryRouter
+      initialEntries={['/seller/' + shop + '/products?stock=low&sort=popular']}
+    >
+      <app.default />
+    </MemoryRouter>,
+  );
+
+  await screen.findByText('Конструктор');
+  expect(
+    calls.some(
+      (u) =>
+        u.includes('/variants') &&
+        u.includes('stock=low') &&
+        u.includes('sort=popular'),
+    ),
+  ).toBe(true);
+
+  const u = userEvent.setup();
+  await u.selectOptions(screen.getByLabelText('Категория'), 'Игрушки');
+  await u.selectOptions(screen.getByLabelText('Витрина и фото'), 'no_photo');
+  await vi.waitFor(() =>
+    expect(
+      calls.some(
+        (x) =>
+          x.includes('category=%D0%98%D0%B3%D1%80%D1%83%D1%88%D0%BA%D0%B8') &&
+          x.includes('visibility=no_photo'),
+      ),
+    ).toBe(true),
+  );
+});

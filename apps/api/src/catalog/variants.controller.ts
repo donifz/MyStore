@@ -103,6 +103,8 @@ class ListQuery {
     | 'price-desc'
     | 'popular';
   @IsOptional() @IsIn(['true', 'false']) facets?: string;
+  @IsOptional() @IsIn(['all', 'published', 'hidden', 'no_photo']) visibility?:
+    'all' | 'published' | 'hidden' | 'no_photo';
 }
 @Controller('shops/:shopId/variants')
 @UseGuards(AuthGuard)
@@ -133,6 +135,7 @@ export class VariantsController {
         category: query.category?.trim() || undefined,
         sort: query.sort,
         facets: query.facets === 'true',
+        visibility: query.visibility,
       },
     );
   }
