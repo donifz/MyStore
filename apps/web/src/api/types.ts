@@ -68,6 +68,7 @@ export type Page<T> = {
   total: number;
   page: number;
   pageSize: number;
+  facets?: { name: string; count: number }[];
 };
 export type Shift = {
   id: string;
@@ -107,6 +108,8 @@ export type SaleSummary = {
   createdAt: string;
   shiftId: string | null;
   method: 'cash' | 'card' | null;
+  hasReturns?: boolean;
+  isCredit?: boolean;
 };
 export type SaleDetail = SaleSummary & {
   lines: {

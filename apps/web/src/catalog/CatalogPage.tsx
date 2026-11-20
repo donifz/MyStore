@@ -1,6 +1,6 @@
 import Pagination from '../components/Pagination';
 import { useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
 import { Page, Variant } from '../api/types';
 import { formatSom } from '../api/money';
@@ -10,16 +10,38 @@ import BarcodeLabel from './BarcodeLabel';
 import ProductThumb from './ProductThumb';
 import CameraScanner from '../scanner/CameraScanner';
 
+type StockFilter = 'all' | 'in_stock' | 'low' | 'out';
+type VisibilityFilter = 'all' | 'published' | 'hidden' | 'no_photo';
+
 export default function CatalogPage() {
   const { shopId } = useParams(),
     session = useSession(),
-    [q, setQ] = useState(''),
-    [page, setPage] = useState(1),
-    [archived, setArchived] = useState(false),
-    [sort, setSort] = useState('newest'),
-    [stockFilter, setStockFilter] = useState<
-      'all' | 'in_stock' | 'low' | 'out'
-    >('all'),
+    [searchParams, setSearchParams] = useSearchParams(),
+    [q, setQ] = useState(() => searchParams.get('q') ?? ''),
+    [page, setPage] = useState(() => {
+      const p = Number(searchParams.get('page'));
+      return Number.isFinite(p) && p >= 1 ? p : 1;
+    }),
+    [archived, setArchived] = useState(
+      () => searchParams.get('archived') === 'true',
+    ),
+    [sort, setSort] = useState(() => searchParams.get('sort') || 'newest'),
+    [stockFilter, setStockFilter] = useState<StockFilter>(() => {
+      const raw = searchParams.get('stock');
+      return raw === 'in_stock' || raw === 'low' || raw === 'out' ? raw : 'all';
+    }),
+    [category, setCategory] = useState(
+      () => searchParams.get('category') ?? '',
+    ),
+    [visibility, setVisibility] = useState<VisibilityFilter>(() => {
+      const raw = searchParams.get('visibility');
+      return raw === 'published' || raw === 'hidden' || raw === 'no_photo'
+        ? raw
+        : 'all';
+    }),
+    [categories, setCategories] = useState<{ name: string; count: number }[]>(
+      [],
+    ),
     [data, setData] = useState<Page<Variant> | null>(null),
     [error, setError] = useState(''),
     [loading, setLoading] = useState(false),
@@ -28,6 +50,27 @@ export default function CatalogPage() {
     [cameraScannerOpen, setCameraScannerOpen] = useState(false),
     searchInputRef = useRef<HTMLInputElement>(null);
   const role = session.user?.shops.find((x) => x.id === shopId)?.role;
+
+  useEffect(() => {
+    const next = new URLSearchParams();
+    if (q.trim()) next.set('q', q.trim());
+    if (archived) next.set('archived', 'true');
+    if (stockFilter !== 'all') next.set('stock', stockFilter);
+    if (category) next.set('category', category);
+    if (visibility !== 'all') next.set('visibility', visibility);
+    if (sort !== 'newest') next.set('sort', sort);
+    if (page > 1) next.set('page', String(page));
+    setSearchParams(next, { replace: true });
+  }, [
+    q,
+    archived,
+    stockFilter,
+    category,
+    visibility,
+    sort,
+    page,
+    setSearchParams,
+  ]);
 
   useEffect(() => {
     searchInputRef.current?.focus({ preventScroll: true });
@@ -100,11 +143,19 @@ export default function CatalogPage() {
     setLoading(true);
     setError('');
     const stockParam = stockFilter !== 'all' ? `&stock=${stockFilter}` : '';
+    const categoryParam = category
+      ? `&category=${encodeURIComponent(category)}`
+      : '';
+    const visibilityParam =
+      visibility !== 'all' ? `&visibility=${visibility}` : '';
     api<Page<Variant>>(
-      `/shops/${shopId}/variants?q=${encodeURIComponent(q)}&page=${page}&archived=${archived}&sort=${sort}${stockParam}`,
+      `/shops/${shopId}/variants?q=${encodeURIComponent(q)}&page=${page}&archived=${archived}&sort=${sort}&facets=true${stockParam}${categoryParam}${visibilityParam}`,
     )
       .then((r) => {
-        if (alive) setData(r);
+        if (alive) {
+          setData(r);
+          if (r.facets?.length) setCategories(r.facets);
+        }
       })
       .catch((e) => {
         if (alive) setError(errorText(e));
@@ -115,7 +166,7 @@ export default function CatalogPage() {
     return () => {
       alive = false;
     };
-  }, [shopId, q, page, archived, stockFilter, sort]);
+  }, [shopId, q, page, archived, stockFilter, category, visibility, sort]);
   return (
     <>
       <div className="page-heading">
@@ -282,9 +333,7 @@ export default function CatalogPage() {
             <select
               value={stockFilter}
               onChange={(e) => {
-                setStockFilter(
-                  e.target.value as 'all' | 'in_stock' | 'low' | 'out',
-                );
+                setStockFilter(e.target.value as StockFilter);
                 setPage(1);
               }}
             >
@@ -292,6 +341,38 @@ export default function CatalogPage() {
               <option value="in_stock">В наличии (&gt; 0)</option>
               <option value="low">Мало на складе (1–5 шт.)</option>
               <option value="out">Нет в наличии (0 шт.)</option>
+            </select>
+          </label>
+          <label>
+            Категория
+            <select
+              value={category}
+              onChange={(e) => {
+                setCategory(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">Все категории</option>
+              {categories.map((c) => (
+                <option key={c.name} value={c.name}>
+                  {c.name} ({c.count})
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Витрина и фото
+            <select
+              value={visibility}
+              onChange={(e) => {
+                setVisibility(e.target.value as VisibilityFilter);
+                setPage(1);
+              }}
+            >
+              <option value="all">Все карточки</option>
+              <option value="published">На витрине</option>
+              <option value="hidden">Скрытые</option>
+              <option value="no_photo">Без фото</option>
             </select>
           </label>
           <label>
@@ -312,6 +393,29 @@ export default function CatalogPage() {
               <option value="popular">Часто продаются</option>
             </select>
           </label>
+          {(q.trim() ||
+            archived ||
+            stockFilter !== 'all' ||
+            category ||
+            visibility !== 'all' ||
+            sort !== 'newest') && (
+            <button
+              type="button"
+              className="button secondary"
+              style={{ alignSelf: 'flex-end' }}
+              onClick={() => {
+                setQ('');
+                setArchived(false);
+                setStockFilter('all');
+                setCategory('');
+                setVisibility('all');
+                setSort('newest');
+                setPage(1);
+              }}
+            >
+              Сбросить
+            </button>
+          )}
           <span
             className="muted"
             style={{ marginLeft: 'auto', alignSelf: 'center' }}

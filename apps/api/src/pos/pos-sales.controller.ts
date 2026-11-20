@@ -19,6 +19,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  MaxLength,
   Matches,
   IsUUID,
   Max,
@@ -53,6 +54,11 @@ class PageQuery {
   @IsIn(['newest', 'oldest', 'total-asc', 'total-desc'])
   sort = 'newest';
   @IsOptional() @IsIn(['cash', 'card']) method?: 'cash' | 'card';
+  @IsOptional() @IsString() @MaxLength(128) q?: string;
+  @IsOptional() @IsString() @MaxLength(64) from?: string;
+  @IsOptional() @IsString() @MaxLength(64) to?: string;
+  @IsOptional() @IsIn(['all', 'returned', 'credit']) status?:
+    'all' | 'returned' | 'credit';
 }
 @Controller('shops/:shopId/pos/sales')
 @UseGuards(AuthGuard)
@@ -95,6 +101,12 @@ export class PosSalesController {
       q.pageSize,
       q.sort,
       q.method,
+      {
+        q: q.q,
+        from: q.from,
+        to: q.to,
+        status: q.status,
+      },
     );
   }
   @Get(':id') async get(

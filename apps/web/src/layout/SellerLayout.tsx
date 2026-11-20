@@ -448,6 +448,22 @@ export function ShopHome() {
 
   const base = `/seller/${shop.id}`;
 
+  const todayDate = shopDate();
+  const salesFromDate =
+    period === 'today'
+      ? todayDate
+      : period === 'week'
+        ? shopDate(new Date(), 6)
+        : period === 'month'
+          ? shopDate(new Date(), 29)
+          : customFrom || todayDate;
+  const salesToDate = period === 'custom' ? customTo || todayDate : todayDate;
+  const salesSeeAllHref = `${base}/sales?from=${salesFromDate}&to=${salesToDate}`;
+  const lowStockFilter =
+    lowStockItems.length > 0 && (lowStockItems[0].available ?? 0) <= 0
+      ? 'out'
+      : 'low';
+
   const averageCheckMinor =
     receiptsCount > 0 && summary?.revenueMinor
       ? Math.round(summary.revenueMinor / receiptsCount)
@@ -959,7 +975,7 @@ export function ShopHome() {
         <section className="shop-home-card shop-home-sales-card">
           <div className="shop-home-card-header">
             <h2>Последние продажи</h2>
-            <Link to={`${base}/sales`} className="shop-home-link">
+            <Link to={salesSeeAllHref} className="shop-home-link">
               Смотреть все →
             </Link>
           </div>
@@ -980,7 +996,9 @@ export function ShopHome() {
                     <ReceiptIcon />
                   </div>
                   <div className="shop-home-sale-meta">
-                    <strong>Чек #{sale.id.slice(0, 6)}</strong>
+                    <Link to={`${base}/sales/${sale.id}`}>
+                      <strong>Чек #{sale.id.slice(0, 6)}</strong>
+                    </Link>
                     <small>
                       {sale.method === 'card'
                         ? 'Оплата картой'
@@ -1009,7 +1027,10 @@ export function ShopHome() {
             <h2>
               {period === 'today' ? 'Топ товаров за сегодня' : 'Топ товаров'}
             </h2>
-            <Link to={`${base}/products`} className="shop-home-link">
+            <Link
+              to={`${base}/products?sort=popular`}
+              className="shop-home-link"
+            >
               Смотреть все →
             </Link>
           </div>
@@ -1049,7 +1070,10 @@ export function ShopHome() {
         <section className="shop-home-card">
           <div className="shop-home-card-header">
             <h2>Остатки на складе</h2>
-            <Link to={`${base}/inventory`} className="shop-home-link">
+            <Link
+              to={`${base}/products?stock=${lowStockFilter}`}
+              className="shop-home-link"
+            >
               Смотреть все →
             </Link>
           </div>
