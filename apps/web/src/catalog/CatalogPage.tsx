@@ -51,6 +51,12 @@ export default function CatalogPage() {
     searchInputRef = useRef<HTMLInputElement>(null);
   const role = session.user?.shops.find((x) => x.id === shopId)?.role;
 
+  const searchParamsString = searchParams.toString();
+  const searchParamsRef = useRef(searchParamsString);
+  searchParamsRef.current = searchParamsString;
+  const setSearchParamsRef = useRef(setSearchParams);
+  setSearchParamsRef.current = setSearchParams;
+
   useEffect(() => {
     const next = new URLSearchParams();
     if (q.trim()) next.set('q', q.trim());
@@ -60,17 +66,11 @@ export default function CatalogPage() {
     if (visibility !== 'all') next.set('visibility', visibility);
     if (sort !== 'newest') next.set('sort', sort);
     if (page > 1) next.set('page', String(page));
-    setSearchParams(next, { replace: true });
-  }, [
-    q,
-    archived,
-    stockFilter,
-    category,
-    visibility,
-    sort,
-    page,
-    setSearchParams,
-  ]);
+    const nextStr = next.toString();
+    if (nextStr !== searchParamsRef.current) {
+      setSearchParamsRef.current(next, { replace: true });
+    }
+  }, [q, archived, stockFilter, category, visibility, sort, page]);
 
   useEffect(() => {
     searchInputRef.current?.focus({ preventScroll: true });

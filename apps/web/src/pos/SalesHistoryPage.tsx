@@ -1,5 +1,5 @@
 import Pagination from '../components/Pagination';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
 import { hasShopPermission, type Page, type SaleSummary } from '../api/types';
@@ -37,6 +37,12 @@ export default function SalesHistoryPage() {
   const owner =
     hasShopPermission(shop, 'return') || hasShopPermission(shop, 'reports');
 
+  const searchParamsString = searchParams.toString();
+  const searchParamsRef = useRef(searchParamsString);
+  searchParamsRef.current = searchParamsString;
+  const setSearchParamsRef = useRef(setSearchParams);
+  setSearchParamsRef.current = setSearchParams;
+
   useEffect(() => {
     const next = new URLSearchParams();
     if (q.trim()) next.set('q', q.trim());
@@ -46,8 +52,11 @@ export default function SalesHistoryPage() {
     if (toDate) next.set('to', toDate);
     if (sort !== 'newest') next.set('sort', sort);
     if (page > 1) next.set('page', String(page));
-    setSearchParams(next, { replace: true });
-  }, [q, method, status, fromDate, toDate, sort, page, setSearchParams]);
+    const nextStr = next.toString();
+    if (nextStr !== searchParamsRef.current) {
+      setSearchParamsRef.current(next, { replace: true });
+    }
+  }, [q, method, status, fromDate, toDate, sort, page]);
 
   useEffect(() => {
     let alive = true;
