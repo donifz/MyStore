@@ -26,6 +26,7 @@ import {
 } from 'class-validator';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { ShopAccessService } from '../shops/shop-access.service';
+import { ShopEventsService } from '../shops/shop-events.service';
 import { ReturnsService } from './returns.service';
 import { PaymentMethod, ReturnInput } from './pos.types';
 class ReturnLineDto {
@@ -52,6 +53,7 @@ export class ReturnsController {
   constructor(
     private readonly access: ShopAccessService,
     private readonly returns: ReturnsService,
+    private readonly events: ShopEventsService,
   ) {}
   @Post() async create(
     @Param('shopId', ParseUUIDPipe) shop: string,
@@ -60,6 +62,9 @@ export class ReturnsController {
     @Body() dto: ReturnDto,
   ) {
     await this.access.requireMembership(req.userId, shop, 'return');
-    return this.returns.return(shop, req.userId, key, dto);
+    const result = await this.returns.return(shop, req.userId, key, dto);
+    this.events.emit(shop, 'sale.updated');
+    this.events.emit(shop, 'inventory.updated');
+    return result;
   }
 }

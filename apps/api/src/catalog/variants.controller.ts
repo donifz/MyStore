@@ -30,6 +30,7 @@ import {
 import { Type } from 'class-transformer';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { ShopAccessService } from '../shops/shop-access.service';
+import { ShopEventsService } from '../shops/shop-events.service';
 import { VariantsService } from './variants.service';
 export class VariantFieldsDto {
   @IsString() @MinLength(1) @MaxLength(200) @Matches(/\S/) name!: string;
@@ -116,6 +117,7 @@ export class VariantsController {
   constructor(
     private readonly access: ShopAccessService,
     private readonly variants: VariantsService,
+    private readonly events: ShopEventsService,
   ) {}
   @Get() async list(
     @Param('shopId', ParseUUIDPipe) shopId: string,
@@ -150,7 +152,14 @@ export class VariantsController {
     @Headers('idempotency-key') key: string,
   ) {
     await this.access.requireMembership(req.userId, shopId, 'catalog');
-    return this.variants.createVariant(shopId, body, req.userId, key);
+    const result = await this.variants.createVariant(
+      shopId,
+      body,
+      req.userId,
+      key,
+    );
+    this.events.emit(shopId, 'catalog.updated');
+    return result;
   }
   @Get('by-barcode') async barcode(
     @Param('shopId', ParseUUIDPipe) shopId: string,
@@ -172,7 +181,9 @@ export class VariantsController {
     @Req() req: UserRequest,
   ) {
     await this.access.requireMembership(req.userId, shopId, 'catalog');
-    return this.variants.archiveVariant(shopId, id, req.userId);
+    const result = await this.variants.archiveVariant(shopId, id, req.userId);
+    this.events.emit(shopId, 'catalog.updated');
+    return result;
   }
   @Put(':variantId/unarchive') async unarchive(
     @Param('shopId', ParseUUIDPipe) shopId: string,
@@ -180,7 +191,9 @@ export class VariantsController {
     @Req() req: UserRequest,
   ) {
     await this.access.requireMembership(req.userId, shopId, 'catalog');
-    return this.variants.unarchiveVariant(shopId, id, req.userId);
+    const result = await this.variants.unarchiveVariant(shopId, id, req.userId);
+    this.events.emit(shopId, 'catalog.updated');
+    return result;
   }
   @Get(':variantId/variants') async getVariantsGroup(
     @Param('shopId', ParseUUIDPipe) shopId: string,
@@ -197,12 +210,14 @@ export class VariantsController {
     @Body() body: ReplaceAlbumDto,
   ) {
     await this.access.requireMembership(req.userId, shopId, 'catalog');
-    return this.variants.replacePhotoAlbum(
+    const result = await this.variants.replacePhotoAlbum(
       shopId,
       id,
       body.photoDataUrls,
       req.userId,
     );
+    this.events.emit(shopId, 'catalog.updated');
+    return result;
   }
   @Put(':variantId') async update(
     @Param('shopId', ParseUUIDPipe) shopId: string,
@@ -211,7 +226,14 @@ export class VariantsController {
     @Body() body: EditVariantDto,
   ) {
     await this.access.requireMembership(req.userId, shopId, 'catalog');
-    return this.variants.updateVariant(shopId, id, body, req.userId);
+    const result = await this.variants.updateVariant(
+      shopId,
+      id,
+      body,
+      req.userId,
+    );
+    this.events.emit(shopId, 'catalog.updated');
+    return result;
   }
   @Get(':variantId') async get(
     @Param('shopId', ParseUUIDPipe) shopId: string,

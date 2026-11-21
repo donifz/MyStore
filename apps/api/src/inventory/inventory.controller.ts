@@ -26,6 +26,7 @@ import {
 import { Type } from 'class-transformer';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { ShopAccessService } from '../shops/shop-access.service';
+import { ShopEventsService } from '../shops/shop-events.service';
 import { ReceivingService } from './receiving.service';
 import { StockService } from './stock.service';
 import { StockOperationsService } from './stock-operations.service';
@@ -66,6 +67,7 @@ export class InventoryController {
     private readonly receiving: ReceivingService,
     private readonly stock: StockService,
     private readonly operations: StockOperationsService,
+    private readonly events: ShopEventsService,
   ) {}
   @Post('receivings') async receive(
     @Param('shopId', ParseUUIDPipe) shopId: string,
@@ -74,7 +76,10 @@ export class InventoryController {
     @Body() body: ReceiveDto,
   ) {
     await this.access.requireMembership(req.userId, shopId, 'receive');
-    return this.receiving.receive(shopId, req.userId, key, body);
+    const result = await this.receiving.receive(shopId, req.userId, key, body);
+    this.events.emit(shopId, 'receiving.updated');
+    this.events.emit(shopId, 'inventory.updated');
+    return result;
   }
   @Get('receivings') async receivings(
     @Param('shopId', ParseUUIDPipe) shopId: string,
@@ -98,7 +103,9 @@ export class InventoryController {
     @Body() body: CountDto,
   ) {
     await this.access.requireMembership(req.userId, shop, 'receive');
-    return this.operations.count(shop, req.userId, key, body);
+    const result = await this.operations.count(shop, req.userId, key, body);
+    this.events.emit(shop, 'inventory.updated');
+    return result;
   }
   @Post('inventory/writeoffs') async writeoff(
     @Param('shopId', ParseUUIDPipe) shop: string,
@@ -107,7 +114,9 @@ export class InventoryController {
     @Body() body: RemoveDto,
   ) {
     await this.access.requireMembership(req.userId, shop, 'receive');
-    return this.operations.writeoff(shop, req.userId, key, body);
+    const result = await this.operations.writeoff(shop, req.userId, key, body);
+    this.events.emit(shop, 'inventory.updated');
+    return result;
   }
   @Get('inventory/defects/:variantId') async defects(
     @Param('shopId', ParseUUIDPipe) shop: string,
@@ -124,7 +133,9 @@ export class InventoryController {
     @Body() body: RemoveDto,
   ) {
     await this.access.requireMembership(req.userId, shop, 'receive');
-    return this.operations.dispose(shop, req.userId, key, body);
+    const result = await this.operations.dispose(shop, req.userId, key, body);
+    this.events.emit(shop, 'inventory.updated');
+    return result;
   }
   @Get('stock/:variantId') async balance(
     @Param('shopId', ParseUUIDPipe) shopId: string,

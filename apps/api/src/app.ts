@@ -14,6 +14,8 @@ import { WebAuthController } from './auth/web-auth.controller';
 import { AuthController } from './auth/auth.controller';
 import { ShopAccessService } from './shops/shop-access.service';
 import { ShopsController } from './shops/shops.controller';
+import { ShopEventsService } from './shops/shop-events.service';
+import { ShopEventsController } from './shops/shop-events.controller';
 import { VariantsService } from './catalog/variants.service';
 import { VariantsController } from './catalog/variants.controller';
 import { StockService } from './inventory/stock.service';
@@ -163,6 +165,7 @@ export async function createApp(
       AuthController,
       WebAuthController,
       ShopsController,
+      ShopEventsController,
       VariantsController,
       InventoryController,
       SalesController,
@@ -210,6 +213,7 @@ export async function createApp(
       AuthService,
       AuthGuard,
       ShopAccessService,
+      ShopEventsService,
       VariantsService,
       StockService,
       ReceivingService,

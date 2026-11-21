@@ -24,6 +24,7 @@ export async function api<T>(
     method: options.method ?? 'GET',
     signal: options.signal,
     credentials: 'same-origin',
+    cache: 'no-store',
     headers: {
       'content-type': 'application/json',
       'x-csrf-token': csrf,
