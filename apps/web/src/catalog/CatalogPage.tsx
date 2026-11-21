@@ -308,6 +308,39 @@ export default function CatalogPage() {
     setBulkPrintOpen(false);
   }
 
+  const [printQueueNote, setPrintQueueNote] = useState('');
+
+  async function sendLabelsToPrinter(
+    items: Array<{ product: Variant; copies: number }>,
+    labelSize: LabelSize = '30x20',
+  ) {
+    if (!shopId || !items.length) return;
+    setPrintQueueNote('Отправка в очередь…');
+    try {
+      await api(`/shops/${shopId}/print-jobs`, {
+        method: 'POST',
+        body: {
+          kind: 'label',
+          payload: {
+            labelSize,
+            items: items.map(({ product, copies }) => ({
+              variantId: product.id,
+              name: product.name,
+              barcode: product.shortBarcode || product.barcode,
+              priceMinor: product.salePriceMinor,
+              size: product.size,
+              color: product.color,
+              copies,
+            })),
+          },
+        },
+      });
+      setPrintQueueNote('Отправлено на принтер ноутбука');
+    } catch (err) {
+      setPrintQueueNote(errorText(err));
+    }
+  }
+
   function stepPrintCopies(productId: string, delta: number) {
     setPrintCopies((current) => {
       const currentCount = normalizeLabelCopies(current[productId] ?? '1');
@@ -969,6 +1002,33 @@ export default function CatalogPage() {
                 }).catch(() => undefined);
               }}
             />
+            <div
+              className="no-print"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                marginTop: '0.75rem',
+                flexWrap: 'wrap',
+              }}
+            >
+              <button
+                type="button"
+                className="secondary"
+                onClick={() =>
+                  void sendLabelsToPrinter([
+                    { product: barcodeProduct, copies: 1 },
+                  ])
+                }
+              >
+                На принтер ноутбука
+              </button>
+              {printQueueNote && (
+                <span className="muted" role="status">
+                  {printQueueNote}
+                </span>
+              )}
+            </div>
           </section>
         </div>
       )}
@@ -1176,6 +1236,24 @@ export default function CatalogPage() {
               </button>
               <button
                 type="button"
+                className="secondary"
+                disabled={!canBulkPrint}
+                onClick={() =>
+                  void sendLabelsToPrinter(
+                    selectedList.map((product) => ({
+                      product,
+                      copies: normalizeLabelCopies(
+                        printCopies[product.id] ?? '1',
+                      ),
+                    })),
+                    bulkLabelSize,
+                  )
+                }
+              >
+                На принтер ноутбука
+              </button>
+              <button
+                type="button"
                 className="primary"
                 disabled={!canBulkPrint}
                 onClick={() => window.print()}
@@ -1183,6 +1261,15 @@ export default function CatalogPage() {
                 Печать ({totalLabelsToPrint})
               </button>
             </div>
+            {printQueueNote && (
+              <p
+                className="muted no-print"
+                role="status"
+                style={{ marginTop: '0.5rem' }}
+              >
+                {printQueueNote}
+              </p>
+            )}
             <LabelPrintPage size={bulkLabelSize} />
             <div className="catalog-bulk-print-sheet" aria-hidden="true">
               {selectedList.map((product) => (

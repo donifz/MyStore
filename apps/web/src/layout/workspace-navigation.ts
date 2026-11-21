@@ -28,7 +28,8 @@ const sections: PlatformSection[] = [
 ];
 const shopRoutes: { pattern: RegExp; roles: Role[] }[] = [
   {
-    pattern: /^(?:pos|shift|terminal|labels|operations|customers|debts)$/,
+    pattern:
+      /^(?:pos|shift|terminal|labels|print-station|operations|customers|debts)$/,
     roles: all,
   },
   { pattern: /^orders(?:\/[^/]+)?$/, roles: all },
@@ -175,6 +176,7 @@ export function workspaceMenu(
     ),
     item('Заказы', 'orders', /^orders(?:\/.*)?$/),
     item('Печать этикеток', 'labels', /^labels$/),
+    item('Станция печати', 'print-station', /^print-station$/),
     ...(hasShopPermission(shop, 'reports')
       ? [item('Отчёты', 'reports', /^reports$/)]
       : []),

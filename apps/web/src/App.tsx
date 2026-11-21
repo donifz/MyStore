@@ -37,6 +37,7 @@ import ShopCustomersPage from './customers/ShopCustomersPage';
 import CreditDebtsPage from './pos/CreditDebtsPage';
 import TerminalPage from './pos/TerminalPage';
 import TerminalKioskPage from './pos/TerminalKioskPage';
+import PrintStationPage from './pos/PrintStationPage';
 import './customers/customers.css';
 export default function App() {
   return (
@@ -95,6 +96,7 @@ export default function App() {
             <Route path="products" element={<CatalogPage />} />
             <Route path="products/capture" element={<CapturePage />} />
             <Route path="labels" element={<BarcodeLabelsPage />} />
+            <Route path="print-station" element={<PrintStationPage />} />
             <Route path="categories" element={<CategoriesPage />} />
             <Route path="products/new" element={<CreateVariantPage />} />
           </Route>

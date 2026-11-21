@@ -62,6 +62,7 @@ export type PaymentBottomSheetProps = {
   error?: string;
   success?: string;
   onNewReceipt?: () => void;
+  onSendReceiptToPrinter?: () => Promise<void>;
 };
 
 export default function PaymentBottomSheet({
@@ -112,8 +113,10 @@ export default function PaymentBottomSheet({
   error,
   success,
   onNewReceipt,
+  onSendReceiptToPrinter,
 }: PaymentBottomSheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
+  const [receiptQueueNote, setReceiptQueueNote] = useState('');
   const [activePanel, setActivePanel] = useState<
     'bonus' | 'credit' | 'customer' | null
   >(null);
@@ -293,10 +296,31 @@ export default function PaymentBottomSheet({
               >
                 Печать чека
               </button>
+              {onSendReceiptToPrinter && (
+                <button
+                  type="button"
+                  className="button secondary pos-sheet-new-btn"
+                  onClick={() => {
+                    setReceiptQueueNote('Отправка…');
+                    void onSendReceiptToPrinter()
+                      .then(() =>
+                        setReceiptQueueNote(
+                          'Чек отправлен на принтер ноутбука',
+                        ),
+                      )
+                      .catch(() =>
+                        setReceiptQueueNote('Не удалось отправить чек'),
+                      );
+                  }}
+                >
+                  На принтер ноутбука
+                </button>
+              )}
               <button
                 type="button"
                 className="button primary pos-sheet-new-btn"
                 onClick={() => {
+                  setReceiptQueueNote('');
                   onClose();
                   onNewReceipt?.();
                 }}
@@ -304,6 +328,15 @@ export default function PaymentBottomSheet({
                 Новый чек
               </button>
             </div>
+            {receiptQueueNote && (
+              <p
+                className="muted"
+                role="status"
+                style={{ marginTop: '0.5rem' }}
+              >
+                {receiptQueueNote}
+              </p>
+            )}
           </div>
         ) : (
           <>

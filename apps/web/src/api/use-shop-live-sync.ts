@@ -4,7 +4,8 @@ export type ShopLiveEventType =
   | 'inventory.updated'
   | 'catalog.updated'
   | 'receiving.updated'
-  | 'sale.updated';
+  | 'sale.updated'
+  | 'print-job';
 
 export function useShopLiveSync(
   shopId: string | undefined,

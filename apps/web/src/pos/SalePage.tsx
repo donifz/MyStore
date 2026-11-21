@@ -393,6 +393,14 @@ function SaleWorkspace({
     if (shouldKeepScannerFocus()) scanInput.current?.focus();
   }
 
+  async function sendReceiptToPrinter() {
+    if (!lastReceipt) return;
+    await api(`/shops/${shopId}/print-jobs`, {
+      method: 'POST',
+      body: { kind: 'receipt', payload: lastReceipt },
+    });
+  }
+
   async function submit() {
     if (doc.draft.submission) {
       await doc.send(`/shops/${shopId}/pos/sales`, doc.draft.submission.body);
@@ -855,6 +863,9 @@ function SaleWorkspace({
               error={doc.error}
               success={doc.success}
               onNewReceipt={startNewReceipt}
+              onSendReceiptToPrinter={
+                lastReceipt ? sendReceiptToPrinter : undefined
+              }
             />
           </aside>
 
@@ -1089,6 +1100,7 @@ function SaleWorkspace({
         error={doc.error}
         success={doc.success}
         onNewReceipt={startNewReceipt}
+        onSendReceiptToPrinter={lastReceipt ? sendReceiptToPrinter : undefined}
       />
       {doc.success && lastReceipt && (
         <div className="sale-receipt-print" aria-hidden="true">
