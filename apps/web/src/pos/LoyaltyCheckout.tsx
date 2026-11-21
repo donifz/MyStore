@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, api, errorText } from '../api/client';
 import { formatSom, parseSom } from '../api/money';
 import CameraScanner from '../scanner/CameraScanner';
+import { shouldKeepScannerFocus } from '../scanner/scan-focus';
 import PaymentIcon from './PaymentIcon';
 
 type OpenDebt = {
@@ -13,7 +14,7 @@ type OpenDebt = {
   createdAt: string;
 };
 
-type CustomerQrProfile = {
+export type CustomerQrProfile = {
   customerId: string;
   name: string;
   phone: string;
@@ -32,6 +33,7 @@ type Props = {
   totalMinor: number;
   disabled: boolean;
   onDebtRepaid?: () => void;
+  onProfileLoaded?: (profile: CustomerQrProfile | null) => void;
 };
 
 export default function LoyaltyCheckout({
@@ -44,9 +46,10 @@ export default function LoyaltyCheckout({
   totalMinor,
   disabled,
   onDebtRepaid,
+  onProfileLoaded,
 }: Props) {
   const [scanning, setScanning] = useState(false);
-  const [tsdArmed, setTsdArmed] = useState(true);
+  const [tsdArmed, setTsdArmed] = useState(() => shouldKeepScannerFocus());
   const codeInputRef = useRef<HTMLInputElement>(null);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [lookupError, setLookupError] = useState('');
@@ -70,6 +73,7 @@ export default function LoyaltyCheckout({
       if (!shopId || !/^[A-Za-z0-9_-]{43}$/.test(qrToken)) {
         setProfile(null);
         setLookupError('');
+        onProfileLoaded?.(null);
         return;
       }
       setLookupLoading(true);
@@ -83,8 +87,10 @@ export default function LoyaltyCheckout({
           },
         );
         setProfile(res);
+        onProfileLoaded?.(res);
       } catch (err) {
         setProfile(null);
+        onProfileLoaded?.(null);
         if (err instanceof ApiError && err.status >= 500) {
           setLookupError(
             err.message && err.message !== 'Ошибка сервера'
@@ -98,17 +104,18 @@ export default function LoyaltyCheckout({
         setLookupLoading(false);
       }
     },
-    [shopId],
+    [shopId, onProfileLoaded],
   );
 
   useEffect(() => {
     if (!qrReady) {
       setProfile(null);
       setLookupError('');
+      onProfileLoaded?.(null);
       return;
     }
     void fetchProfile(token);
-  }, [qrReady, token, fetchProfile]);
+  }, [qrReady, token, fetchProfile, onProfileLoaded]);
 
   async function handleRepayDebt() {
     if (!profile || profile.totalDebtMinor <= 0 || repayBusy) return;
@@ -235,7 +242,7 @@ export default function LoyaltyCheckout({
             ref={codeInputRef}
             aria-label="Код карты покупателя"
             type="text"
-            autoFocus
+            autoFocus={shouldKeepScannerFocus()}
             autoComplete="off"
             disabled={disabled}
             maxLength={43}
