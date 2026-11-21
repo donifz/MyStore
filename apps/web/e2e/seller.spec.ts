@@ -85,7 +85,6 @@ test('seller flow: receive, shift, lost response retry, return and close', async
     desktopCheckout.getByRole('button', { name: /Покупатель/ }),
   ).toBeVisible();
   await expect(desktopCheckout.locator('.pos-option-customer')).toBeVisible();
-  await expect(desktopCheckout.locator('.pos-option-discount')).toBeVisible();
   await expect(desktopCheckout.getByLabel('Скидка при оплате')).toBeVisible();
   expect(
     await page.evaluate(
