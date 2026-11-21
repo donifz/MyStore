@@ -86,7 +86,7 @@ it('foreign shop URL never loads foreign catalog', async () => {
   expect(calls.some((x) => x.includes('/shops/foreign/'))).toBe(false);
 });
 it('lets a cashier preview and print a product barcode label', async () => {
-  server();
+  const calls = server();
   const app = await import('../App');
   const print = vi.spyOn(window, 'print').mockImplementation(() => {});
   render(
@@ -101,6 +101,12 @@ it('lets a cashier preview and print a product barcode label', async () => {
   expect(screen.getAllByText('00123')).toHaveLength(2);
   await u.click(screen.getByRole('button', { name: 'Печать этикетки' }));
   expect(print).toHaveBeenCalledOnce();
+  expect(
+    calls.some(
+      (x) => x.startsWith('POST ') && x.endsWith('/variants/label-prints'),
+    ),
+  ).toBe(true);
+  expect(screen.getByRole('button', { name: /Штрихкод\s*1/ })).toBeTruthy();
 });
 it('creation does not silently receive stock', async () => {
   const calls = server('owner');
