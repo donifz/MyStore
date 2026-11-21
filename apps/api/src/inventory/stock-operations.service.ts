@@ -215,4 +215,77 @@ export class StockOperationsService {
       },
     );
   }
+
+  async revalueCost(
+    shop: string,
+    actor: string,
+    key: string,
+    input: { variantId: string; unitCostMinor: number; reason: string },
+  ) {
+    const reason = validReason(input.reason);
+    const variantId = input.variantId.toLowerCase();
+    const newUnitCostMinor = safeMoney(BigInt(input.unitCostMinor));
+    return this.ops.execute(
+      shop,
+      key,
+      {
+        kind: 'cost_revaluation',
+        actor,
+        variantId,
+        unitCostMinor: newUnitCostMinor,
+        reason,
+      },
+      async (tx) => {
+        const row = (await this.stock.lock(tx, shop, [variantId])).get(
+          variantId,
+        )!;
+        const physical = BigInt(row.physical);
+        if (physical <= 0n) {
+          throw new ConflictException('Cannot revalue zero stock');
+        }
+        const previousValueMinor = BigInt(row.stock_value_minor);
+        const previousUnitCostMinor =
+          (2n * previousValueMinor + physical) / (2n * physical);
+        const newValueMinor = safeMoney(physical * BigInt(newUnitCostMinor));
+        const deltaValueMinor = BigInt(newValueMinor) - previousValueMinor;
+        const docTotal = safeMoney(
+          deltaValueMinor < 0n ? -deltaValueMinor : deltaValueMinor,
+        );
+        const id = randomUUID();
+        await tx.query(
+          "INSERT INTO stock_documents(id,shop_id,actor_id,kind,total_minor) VALUES($1,$2,$3,'cost_revaluation',$4)",
+          [id, shop, actor, docTotal],
+        );
+        await tx.query(
+          'INSERT INTO cost_revaluations(document_id,shop_id,variant_id,physical_quantity,previous_unit_cost_minor,new_unit_cost_minor,previous_value_minor,new_value_minor,delta_value_minor,reason) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
+          [
+            id,
+            shop,
+            variantId,
+            Number(physical),
+            Number(previousUnitCostMinor),
+            newUnitCostMinor,
+            Number(previousValueMinor),
+            newValueMinor,
+            Number(deltaValueMinor),
+            reason,
+          ],
+        );
+        await tx.query(
+          'UPDATE stock_balances SET stock_value_minor=$3 WHERE shop_id=$1 AND variant_id=$2',
+          [shop, variantId, newValueMinor],
+        );
+        return {
+          id,
+          kind: 'cost_revaluation',
+          physical: Number(physical),
+          previousUnitCostMinor: Number(previousUnitCostMinor),
+          newUnitCostMinor,
+          previousValueMinor: Number(previousValueMinor),
+          newValueMinor,
+          deltaValueMinor: Number(deltaValueMinor),
+        };
+      },
+    );
+  }
 }
