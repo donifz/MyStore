@@ -59,6 +59,11 @@ class RemoveDto {
   @IsInt() @Min(1) @Max(1000000000) quantity!: number;
   @IsString() @MaxLength(500) reason!: string;
 }
+class RevalueCostDto {
+  @IsUUID() variantId!: string;
+  @IsInt() @Min(0) @Max(Number.MAX_SAFE_INTEGER) unitCostMinor!: number;
+  @IsString() @MaxLength(500) reason!: string;
+}
 @Controller('shops/:shopId')
 @UseGuards(AuthGuard)
 export class InventoryController {
@@ -135,6 +140,23 @@ export class InventoryController {
     await this.access.requireMembership(req.userId, shop, 'receive');
     const result = await this.operations.dispose(shop, req.userId, key, body);
     this.events.emit(shop, 'inventory.updated');
+    return result;
+  }
+  @Post('inventory/revaluations') async revalueCost(
+    @Param('shopId', ParseUUIDPipe) shop: string,
+    @Req() req: UserRequest,
+    @Headers('idempotency-key') key: string,
+    @Body() body: RevalueCostDto,
+  ) {
+    await this.access.requireMembership(req.userId, shop, 'receive');
+    const result = await this.operations.revalueCost(
+      shop,
+      req.userId,
+      key,
+      body,
+    );
+    this.events.emit(shop, 'inventory.updated');
+    this.events.emit(shop, 'catalog.updated');
     return result;
   }
   @Get('stock/:variantId') async balance(
