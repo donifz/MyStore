@@ -147,7 +147,10 @@ it('separates buyer selection from bonus and credit and keeps recognizable icons
     const button = screen.getByRole('button', { name: new RegExp(name) });
     expect(button.querySelector('svg')).toBeTruthy();
   }
-  expect(screen.getAllByText('Дон').length).toBeGreaterThanOrEqual(1);
+  expect(screen.getByText('Дон')).toBeTruthy();
+  expect(
+    container.querySelector('.pos-option-credit')?.textContent,
+  ).not.toContain('Дон');
   expect(container.querySelector('.pos-heading-icon svg')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: /Покупатель/ }));
   const customer = screen.getByRole('dialog', { name: 'Покупатель' });
