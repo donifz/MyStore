@@ -827,6 +827,8 @@ function SaleWorkspace({
               loyaltyEnabled={loyaltyEnabled && !creditMode}
               loyaltyToken={loyaltyToken}
               setLoyaltyToken={setLoyaltyToken}
+              loyaltyCustomerName={loyaltyCustomer?.name}
+              onLoyaltyProfileLoaded={handleLoyaltyProfile}
               redeemPoints={redeemPoints}
               setRedeemPoints={setRedeemPoints}
               originalTotalMinor={safe ? Number(afterCheckoutDiscount) : 0}
@@ -1059,6 +1061,8 @@ function SaleWorkspace({
         loyaltyEnabled={loyaltyEnabled && !creditMode}
         loyaltyToken={loyaltyToken}
         setLoyaltyToken={setLoyaltyToken}
+        loyaltyCustomerName={loyaltyCustomer?.name}
+        onLoyaltyProfileLoaded={handleLoyaltyProfile}
         redeemPoints={redeemPoints}
         setRedeemPoints={setRedeemPoints}
         originalTotalMinor={safe ? Number(afterCheckoutDiscount) : 0}

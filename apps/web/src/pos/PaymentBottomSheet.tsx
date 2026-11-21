@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
 import { formatSom } from '../api/money';
 import CreditFields from './CreditFields';
-import LoyaltyCheckout from './LoyaltyCheckout';
+import LoyaltyCheckout, { type CustomerQrProfile } from './LoyaltyCheckout';
 import PaymentIcon from './PaymentIcon';
 import type { CheckoutDiscountMode } from './checkout-discount';
 import './payment-bottom-sheet.css';
@@ -33,6 +33,8 @@ export type PaymentBottomSheetProps = {
   loyaltyEnabled: boolean;
   loyaltyToken: string;
   setLoyaltyToken: (value: string) => void;
+  loyaltyCustomerName?: string;
+  onLoyaltyProfileLoaded?: (profile: CustomerQrProfile | null) => void;
   redeemPoints: number;
   setRedeemPoints: (value: number) => void;
   originalTotalMinor: number;
@@ -83,6 +85,8 @@ export default function PaymentBottomSheet({
   loyaltyEnabled,
   loyaltyToken,
   setLoyaltyToken,
+  loyaltyCustomerName,
+  onLoyaltyProfileLoaded,
   redeemPoints,
   setRedeemPoints,
   originalTotalMinor,
@@ -404,7 +408,11 @@ export default function PaymentBottomSheet({
                     <span className="pos-option-icon" aria-hidden="true">
                       <PaymentIcon name="qr" />
                     </span>
-                    <strong>Карта клиента</strong>
+                    <strong>
+                      {loyaltyCustomerName
+                        ? `Карта · ${loyaltyCustomerName.split(' ')[0]}`
+                        : 'Карта клиента'}
+                    </strong>
                     <span className="pos-option-detail">
                       {redeemPoints > 0
                         ? '−' + formatSom(redeemPoints * 100)
@@ -869,6 +877,7 @@ export default function PaymentBottomSheet({
                     setPoints={setRedeemPoints}
                     totalMinor={originalTotalMinor}
                     disabled={paymentPending}
+                    onProfileLoaded={onLoyaltyProfileLoaded}
                   />
                 </>
               )}
