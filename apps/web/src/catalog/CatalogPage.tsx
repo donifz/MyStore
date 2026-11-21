@@ -16,6 +16,7 @@ import BarcodeLabel, {
 import { encodeCode128B } from './code128';
 import ProductThumb from './ProductThumb';
 import CameraScanner from '../scanner/CameraScanner';
+import { shouldKeepScannerFocus } from '../scanner/scan-focus';
 
 type StockFilter = 'all' | 'in_stock' | 'low' | 'out' | 'attention';
 type VisibilityFilter = 'all' | 'published' | 'hidden' | 'no_photo';
@@ -77,7 +78,9 @@ export default function CatalogPage() {
     [printCopies, setPrintCopies] = useState<Record<string, string>>({}),
     [bulkPrintOpen, setBulkPrintOpen] = useState(false),
     [bulkLabelSize, setBulkLabelSize] = useState<LabelSize>('30x20'),
-    [scannerFocused, setScannerFocused] = useState(true),
+    [scannerFocused, setScannerFocused] = useState(() =>
+      shouldKeepScannerFocus(),
+    ),
     [cameraScannerOpen, setCameraScannerOpen] = useState(false),
     searchInputRef = useRef<HTMLInputElement>(null);
   const role = session.user?.shops.find((x) => x.id === shopId)?.role;
@@ -104,6 +107,7 @@ export default function CatalogPage() {
   }, [q, archived, stockFilter, category, visibility, sort, page]);
 
   useEffect(() => {
+    if (!shouldKeepScannerFocus()) return;
     searchInputRef.current?.focus({ preventScroll: true });
 
     const keepFocus = () => {
@@ -346,7 +350,7 @@ export default function CatalogPage() {
                   id="catalog-search-input"
                   ref={searchInputRef}
                   type="search"
-                  autoFocus
+                  autoFocus={shouldKeepScannerFocus()}
                   autoComplete="off"
                   value={q}
                   placeholder="Название или штрихкод"
@@ -712,8 +716,20 @@ export default function CatalogPage() {
                   </td>
                   <td>{v.reserved} шт.</td>
                   <td className="no-print">
-                    <button type="button" onClick={() => setBarcodeProduct(v)}>
-                      Штрихкод
+                    <button
+                      type="button"
+                      className="catalog-barcode-btn"
+                      onClick={() => setBarcodeProduct(v)}
+                    >
+                      <span>Штрихкод</span>
+                      {(v.labelPrintCount ?? 0) > 0 && (
+                        <span
+                          className="catalog-barcode-count-badge"
+                          title={`Напечатано этикеток: ${v.labelPrintCount}`}
+                        >
+                          {v.labelPrintCount}
+                        </span>
+                      )}
                     </button>
                   </td>
                 </tr>
@@ -761,7 +777,32 @@ export default function CatalogPage() {
                 ×
               </button>
             </div>
-            <BarcodeLabel product={barcodeProduct} />
+            <BarcodeLabel
+              product={barcodeProduct}
+              onPrint={(copies) => {
+                const printedId = barcodeProduct.id;
+                setData((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        items: prev.items.map((item) =>
+                          item.id === printedId
+                            ? {
+                                ...item,
+                                labelPrintCount:
+                                  (item.labelPrintCount ?? 0) + copies,
+                              }
+                            : item,
+                        ),
+                      }
+                    : prev,
+                );
+                void api(`/shops/${shopId}/variants/label-prints`, {
+                  method: 'POST',
+                  body: { items: [{ variantId: printedId, copies }] },
+                }).catch(() => undefined);
+              }}
+            />
           </section>
         </div>
       )}

@@ -427,6 +427,8 @@ it('applies last purchase cost suggestion and opens receiving history details', 
             variantId: 'known-1',
             name: 'Кофе в зёрнах',
             barcode: '460111',
+            salePriceMinor: 85000,
+            photoUrl: '/api/shops/' + shop + '/variants/known-1/photo',
             quantity: 2,
             unitCostMinor: 62000,
             valueMinor: 124000,
@@ -463,6 +465,16 @@ it('applies last purchase cost suggestion and opens receiving history details', 
   await screen.findByText('Накладная ТТН-101');
   expect(screen.getByText(/Утренняя поставка/)).toBeTruthy();
   expect(screen.getAllByText('1 240,00 сом')).toHaveLength(2);
+  expect(screen.getByText('850,00 сом')).toBeTruthy();
+
+  await u.click(screen.getByRole('button', { name: 'Печать' }));
+  const printDialog = await screen.findByRole('dialog', {
+    name: 'Этикетка: Кофе в зёрнах',
+  });
+  expect(
+    (within(printDialog).getByLabelText('Количество копий') as HTMLInputElement)
+      .value,
+  ).toBe('2');
 });
 it('a receiving document with an uncertain result cannot scan or create another product', async () => {
   start();
@@ -532,11 +544,8 @@ it('supports mobile receiving bottom sheet, product creation stepper, and confir
   ).toBeNull();
   expect(screen.getAllByText('Принтер').length).toBeGreaterThan(0);
 
-  // Open confirmation sheet via mobile bar
-  const mobileSubmit = screen.getAllByRole('button', {
-    name: 'Провести приёмку',
-  })[1];
-  await u.click(mobileSubmit);
+  // Open confirmation sheet via document details chip
+  await u.click(screen.getByRole('button', { name: 'Реквизиты накладной' }));
 
   const confirmDialog = await screen.findByRole('dialog', {
     name: 'Подтверждение приёмки',

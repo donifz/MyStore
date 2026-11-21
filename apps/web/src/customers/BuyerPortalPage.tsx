@@ -94,6 +94,24 @@ type BuyerRepayment = {
   createdAt: string;
 };
 
+type BuyerPurchase = {
+  saleId: string;
+  shopId: string;
+  shopName: string;
+  totalMinor: number;
+  createdAt: string;
+  method: 'cash' | 'card' | null;
+  isCredit: boolean;
+  earnedPoints: number;
+  spentPoints: number;
+  lines: {
+    name: string;
+    quantity: number;
+    unitPriceMinor: number;
+    discountMinor: number;
+  }[];
+};
+
 type BuyerAccount = {
   id: string;
   phone: string;
@@ -142,6 +160,7 @@ export default function BuyerPortalPage() {
   const [account, setAccount] = useState<BuyerAccount | null>(null);
   const [debts, setDebts] = useState<BuyerDebt[]>([]);
   const [repayments, setRepayments] = useState<BuyerRepayment[]>([]);
+  const [purchases, setPurchases] = useState<BuyerPurchase[]>([]);
   const [debtsError, setDebtsError] = useState('');
   const [loyaltyEnabled, setLoyaltyEnabled] = useState(false);
   const [loyaltyWallets, setLoyaltyWallets] = useState<
@@ -422,6 +441,24 @@ export default function BuyerPortalPage() {
       })
       .catch(() => {
         if (live) setRepayments([]);
+      });
+    return () => {
+      live = false;
+    };
+  }, [account?.id, account?.shops.length]);
+
+  useEffect(() => {
+    if (!account) {
+      setPurchases([]);
+      return;
+    }
+    let live = true;
+    void buyerApi<BuyerPurchase[]>('loyalty/purchases')
+      .then((rows) => {
+        if (live) setPurchases(Array.isArray(rows) ? rows : []);
+      })
+      .catch(() => {
+        if (live) setPurchases([]);
       });
     return () => {
       live = false;
@@ -907,8 +944,116 @@ export default function BuyerPortalPage() {
 
             {/* Main Sections Grid */}
             <div className="buyer-layout-grid">
-              {/* Left Column: Debts & Repayments */}
+              {/* Left Column: Purchases, Debts & Repayments */}
               <div>
+                <section
+                  className="buyer-panel"
+                  style={{ marginBottom: '20px' }}
+                >
+                  <div className="buyer-panel-head">
+                    <h2>
+                      <NavIcon name="bag" size={20} />
+                      Мои покупки
+                    </h2>
+                    <span className="muted">{purchases.length} чек.</span>
+                  </div>
+
+                  {!purchases.length && (
+                    <p className="muted">
+                      Покупок на кассе с картой или в долг пока нет.
+                    </p>
+                  )}
+
+                  {purchases.map((purchase) => (
+                    <div
+                      key={purchase.saleId}
+                      className="buyer-debt-item"
+                      style={{ marginBottom: '12px' }}
+                    >
+                      <div className="buyer-debt-top">
+                        <div>
+                          <div className="buyer-debt-shop">
+                            {purchase.shopName}
+                          </div>
+                          <div className="buyer-debt-id">
+                            Чек #{purchase.saleId.slice(0, 8).toUpperCase()} ·{' '}
+                            {new Date(purchase.createdAt).toLocaleString(
+                              'ru-KG',
+                              {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              },
+                            )}
+                          </div>
+                        </div>
+                        <span className="buyer-debt-amount">
+                          {formatSom(purchase.totalMinor)}
+                        </span>
+                      </div>
+
+                      {purchase.lines.length > 0 && (
+                        <ul
+                          style={{
+                            margin: '8px 0',
+                            paddingLeft: '16px',
+                            fontSize: '13px',
+                            color: '#334155',
+                          }}
+                        >
+                          {purchase.lines.map((line, index) => (
+                            <li key={index}>
+                              {line.name} × {line.quantity} —{' '}
+                              {formatSom(
+                                line.quantity *
+                                  (line.unitPriceMinor - line.discountMinor),
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+
+                      <div className="buyer-debt-meta">
+                        <span>
+                          {purchase.isCredit
+                            ? 'В долг'
+                            : purchase.method === 'card'
+                              ? 'Карта / QR'
+                              : purchase.method === 'cash'
+                                ? 'Наличные'
+                                : 'Оплата'}
+                        </span>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            gap: '8px',
+                            flexWrap: 'wrap',
+                          }}
+                        >
+                          {purchase.earnedPoints > 0 && (
+                            <span
+                              className="buyer-due-badge"
+                              style={{
+                                background: '#e8f5ee',
+                                color: '#176b4a',
+                              }}
+                            >
+                              +{purchase.earnedPoints} б.
+                            </span>
+                          )}
+                          {purchase.spentPoints > 0 && (
+                            <span className="buyer-due-badge">
+                              −{purchase.spentPoints} б.
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </section>
+
                 <section className="buyer-panel">
                   <div className="buyer-panel-head">
                     <h2>

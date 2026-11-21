@@ -200,7 +200,7 @@ export class VariantsService {
       params,
     );
     const rows = await this.db.query(
-      'SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.created_at,v.category,v.attributes,(v.photo_data IS NOT NULL) has_photo,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.stock_value_minor,0) stock_value_minor,' +
+      'SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.created_at,v.category,v.attributes,v.label_print_count,(v.photo_data IS NOT NULL) has_photo,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.stock_value_minor,0) stock_value_minor,' +
         LAST_PURCHASE_MINOR_SQL +
         ' ' +
         from +
@@ -233,6 +233,7 @@ export class VariantsService {
         salePriceMinor: Number(r.sale_price_minor),
         createdAt: r.created_at,
         category: r.category ?? '',
+        labelPrintCount: Number(r.label_print_count ?? 0),
         ...(r.has_photo
           ? { photoUrl: `/api/shops/${r.shop_id}/variants/${r.id}/photo` }
           : {}),
@@ -549,5 +550,19 @@ export class VariantsService {
         : {}),
       ...(showCost ? { stockValueMinor: Number(row.stock_value_minor) } : {}),
     };
+  }
+  async recordLabelPrints(
+    shopId: string,
+    items: { variantId: string; copies: number }[],
+  ) {
+    await this.db.transaction(async (tx) => {
+      for (const item of items) {
+        await tx.query(
+          'UPDATE variants SET label_print_count = label_print_count + $3 WHERE shop_id=$1 AND id=$2',
+          [shopId, item.variantId, item.copies],
+        );
+      }
+    });
+    return { updated: items.length };
   }
 }

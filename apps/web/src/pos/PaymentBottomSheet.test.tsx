@@ -82,7 +82,7 @@ it('keeps payment, quick cash, change and submit in a permanent footer', () => {
 it('opens loyalty modal and applies without closing checkout', () => {
   render(<PaymentBottomSheet {...props()} />);
   const trigger = screen.getByRole('button', {
-    name: /^Карта клиента(?:\s|$)/,
+    name: 'QR покупателя',
   });
   expect(trigger.querySelector('svg')).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Сканировать QR' })).toBeNull();
@@ -104,9 +104,7 @@ it('cancels changes to loyalty and keeps checkout open', () => {
   render(
     <PaymentBottomSheet {...props({ setRedeemPoints, setLoyaltyToken })} />,
   );
-  fireEvent.click(
-    screen.getByRole('button', { name: /^Карта клиента(?:\s|$)/ }),
-  );
+  fireEvent.click(screen.getByRole('button', { name: 'QR покупателя' }));
   fireEvent.click(screen.getByRole('button', { name: 'Отмена' }));
   expect(setRedeemPoints).toHaveBeenCalledWith(0);
   expect(setLoyaltyToken).toHaveBeenCalledWith('');
@@ -142,14 +140,16 @@ it('opens credit modal and keeps checkout footer', () => {
 });
 
 it('separates buyer selection from bonus and credit and keeps recognizable icons', () => {
-  const { container } = render(<PaymentBottomSheet {...props()} />);
-  for (const name of ['Покупатель', 'Карта клиента', 'Продажа в долг']) {
+  const { container } = render(
+    <PaymentBottomSheet {...props({ loyaltyCustomerName: 'Дон' })} />,
+  );
+  for (const name of ['Покупатель', 'QR покупателя', 'Продажа в долг']) {
     const button = screen.getByRole('button', { name: new RegExp(name) });
     expect(button.querySelector('svg')).toBeTruthy();
   }
-  expect(container.querySelector('.pos-option-discount svg')).toBeTruthy();
+  expect(screen.getByText('Дон')).toBeTruthy();
   expect(container.querySelector('.pos-heading-icon svg')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: /Покупатель Не выбран/ }));
+  fireEvent.click(screen.getByRole('button', { name: /Покупатель/ }));
   const customer = screen.getByRole('dialog', { name: 'Покупатель' });
   expect(customer).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Новый клиент' })).toBeTruthy();

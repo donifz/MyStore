@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import CameraScanner from './CameraScanner';
+import { shouldKeepScannerFocus } from './scan-focus';
 export default function ScanField({
   onScan,
   disabled = false,
@@ -10,13 +11,13 @@ export default function ScanField({
   onManualAdd?: () => void;
 }) {
   const [code, setCode] = useState(''),
-    [isFocused, setIsFocused] = useState(true),
+    [isFocused, setIsFocused] = useState(() => shouldKeepScannerFocus()),
     input = useRef<HTMLInputElement>(null),
     [camera, setCamera] = useState(false),
     inputId = useId();
 
   useEffect(() => {
-    if (disabled || camera) return;
+    if (!shouldKeepScannerFocus() || disabled || camera) return;
     const keepFocus = () => {
       if (!disabled && !camera) {
         const active = document.activeElement;
@@ -109,7 +110,7 @@ export default function ScanField({
           <input
             id={inputId}
             ref={input}
-            autoFocus
+            autoFocus={shouldKeepScannerFocus()}
             autoComplete="off"
             value={code}
             disabled={disabled}
@@ -183,22 +184,6 @@ export default function ScanField({
         </button>
       </div>
       <div className="scan-field-foot">
-        <div className="scan-field-hints">
-          <p className="muted">
-            USB-сканер вводит код как клавиатура. Один скан — одна единица.
-          </p>
-          <div className="scan-field-shortcuts" aria-hidden="true">
-            <span>
-              <kbd>Enter</kbd> — добавить товар
-            </span>
-            <span>
-              <kbd>+</kbd> — увеличить количество
-            </span>
-            <span>
-              <kbd>−</kbd> — уменьшить количество
-            </span>
-          </div>
-        </div>
         {onManualAdd && (
           <button
             type="button"

@@ -13,6 +13,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  ArrayMinSize,
   IsArray,
   IsBoolean,
   IsIn,
@@ -26,12 +27,26 @@ import {
   Min,
   MinLength,
   Matches,
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { ShopAccessService } from '../shops/shop-access.service';
 import { ShopEventsService } from '../shops/shop-events.service';
 import { VariantsService } from './variants.service';
+
+class LabelPrintItemDto {
+  @IsUUID() variantId!: string;
+  @Type(() => Number) @IsInt() @Min(1) @Max(1000) copies!: number;
+}
+class LabelPrintsDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(200)
+  @ValidateNested({ each: true })
+  @Type(() => LabelPrintItemDto)
+  items!: LabelPrintItemDto[];
+}
 export class VariantFieldsDto {
   @IsString() @MinLength(1) @MaxLength(200) @Matches(/\S/) name!: string;
   @IsOptional()
@@ -174,6 +189,14 @@ export class VariantsController {
     const variant = await this.variants.findByBarcode(shopId, query.code, true);
     if (!variant) throw new NotFoundException();
     return variant;
+  }
+  @Post('label-prints') async recordLabelPrints(
+    @Param('shopId', ParseUUIDPipe) shopId: string,
+    @Req() req: UserRequest,
+    @Body() body: LabelPrintsDto,
+  ) {
+    await this.access.requireMembership(req.userId, shopId, 'read');
+    return this.variants.recordLabelPrints(shopId, body.items);
   }
   @Put(':variantId/archive') async archive(
     @Param('shopId', ParseUUIDPipe) shopId: string,

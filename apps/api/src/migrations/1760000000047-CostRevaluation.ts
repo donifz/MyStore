@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CostRevaluation1760000000046 implements MigrationInterface {
+export class CostRevaluation1760000000047 implements MigrationInterface {
   async up(q: QueryRunner) {
     await q.query(`
       ALTER TABLE stock_documents DROP CONSTRAINT stock_documents_kind_check;

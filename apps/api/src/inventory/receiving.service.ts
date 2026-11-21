@@ -184,7 +184,7 @@ export class ReceivingService {
     );
     if (!doc) throw new NotFoundException('Receiving document not found');
     const lines = await this.db.query(
-      `SELECT m.variant_id "variantId",v.name,v.barcode,m.quantity,m.value_minor "valueMinor"
+      `SELECT m.variant_id "variantId",v.name,v.barcode,v.short_barcode "shortBarcode",v.sku,v.sale_price_minor "salePriceMinor",(v.photo_data IS NOT NULL) "hasPhoto",m.quantity,m.value_minor "valueMinor"
        FROM stock_movements m JOIN variants v ON v.shop_id=m.shop_id AND v.id=m.variant_id
        WHERE m.shop_id=$1 AND m.document_id=$2 ORDER BY v.name,v.id`,
       [shopId, id],
@@ -199,6 +199,12 @@ export class ReceivingService {
           variantId: l.variantId,
           name: l.name,
           barcode: l.barcode,
+          ...(l.shortBarcode ? { shortBarcode: l.shortBarcode } : {}),
+          ...(l.sku ? { sku: l.sku } : {}),
+          salePriceMinor: Number(l.salePriceMinor ?? 0),
+          ...(l.hasPhoto
+            ? { photoUrl: `/api/shops/${shopId}/variants/${l.variantId}/photo` }
+            : {}),
           quantity: qty,
           valueMinor: val,
           unitCostMinor: qty > 0 ? Math.round(val / qty) : 0,

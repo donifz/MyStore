@@ -50,6 +50,7 @@ export type Variant = {
   stockValueMinor?: number;
   lastPurchaseMinor?: number;
   attributes?: Record<string, any>;
+  labelPrintCount?: number;
   createdAt?: string;
 };
 export type CustomAttributeType = 'string' | 'number' | 'select';
