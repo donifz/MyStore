@@ -716,8 +716,20 @@ export default function CatalogPage() {
                   </td>
                   <td>{v.reserved} шт.</td>
                   <td className="no-print">
-                    <button type="button" onClick={() => setBarcodeProduct(v)}>
-                      Штрихкод
+                    <button
+                      type="button"
+                      className="catalog-barcode-btn"
+                      onClick={() => setBarcodeProduct(v)}
+                    >
+                      <span>Штрихкод</span>
+                      {(v.labelPrintCount ?? 0) > 0 && (
+                        <span
+                          className="catalog-barcode-count-badge"
+                          title={`Напечатано этикеток: ${v.labelPrintCount}`}
+                        >
+                          {v.labelPrintCount}
+                        </span>
+                      )}
                     </button>
                   </td>
                 </tr>
@@ -765,7 +777,32 @@ export default function CatalogPage() {
                 ×
               </button>
             </div>
-            <BarcodeLabel product={barcodeProduct} />
+            <BarcodeLabel
+              product={barcodeProduct}
+              onPrint={(copies) => {
+                const printedId = barcodeProduct.id;
+                setData((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        items: prev.items.map((item) =>
+                          item.id === printedId
+                            ? {
+                                ...item,
+                                labelPrintCount:
+                                  (item.labelPrintCount ?? 0) + copies,
+                              }
+                            : item,
+                        ),
+                      }
+                    : prev,
+                );
+                void api(`/shops/${shopId}/variants/label-prints`, {
+                  method: 'POST',
+                  body: { items: [{ variantId: printedId, copies }] },
+                }).catch(() => undefined);
+              }}
+            />
           </section>
         </div>
       )}

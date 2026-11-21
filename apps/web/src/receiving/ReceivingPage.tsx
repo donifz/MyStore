@@ -9,6 +9,8 @@ import DocumentEditor from '../drafts/DocumentEditor';
 import { useCurrentShift } from '../pos/use-current-shift';
 import ReceivingConfirmationSheet from './ReceivingConfirmationSheet';
 import { validateReceivingDraft } from './receiving-validation';
+import ProductThumb from '../catalog/ProductThumb';
+import BarcodeLabel from '../catalog/BarcodeLabel';
 
 function declinedPositions(n: number) {
   const mod10 = n % 10;
@@ -65,6 +67,7 @@ function ReceivingWorkspace({
     [history, setHistory] = useState<any[]>([]),
     [historyTick, setHistoryTick] = useState(0),
     [selectedReceipt, setSelectedReceipt] = useState<any | null>(null),
+    [printLine, setPrintLine] = useState<any | null>(null),
     [detailError, setDetailError] = useState('');
   useEffect(() => {
     void api<any[]>(`/shops/${shopId}/receivings`)
@@ -475,24 +478,92 @@ function ReceivingWorkspace({
                     <th>Товар</th>
                     <th>Количество</th>
                     <th>Закупочная цена</th>
+                    <th>Цена продажи</th>
                     <th>Сумма</th>
+                    <th className="no-print">Действие</th>
                   </tr>
                 </thead>
                 <tbody>
                   {selectedReceipt.lines?.map((line: any) => (
                     <tr key={line.variantId}>
                       <td>
-                        <strong>{line.name}</strong>
-                        <small className="code">{line.barcode}</small>
+                        <div className="catalog-product-cell">
+                          <ProductThumb
+                            photoUrl={line.photoUrl}
+                            name={line.name}
+                          />
+                          <div className="catalog-product-info">
+                            <strong>{line.name}</strong>
+                            <small className="code">{line.barcode}</small>
+                          </div>
+                        </div>
                       </td>
                       <td>{line.quantity} шт.</td>
                       <td>{formatSom(Number(line.unitCostMinor))}</td>
+                      <td>
+                        {line.salePriceMinor != null
+                          ? formatSom(Number(line.salePriceMinor))
+                          : '—'}
+                      </td>
                       <td>{formatSom(Number(line.valueMinor))}</td>
+                      <td className="no-print">
+                        <button
+                          type="button"
+                          onClick={() => setPrintLine(line)}
+                        >
+                          Печать
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+        {printLine && (
+          <div
+            className="barcode-dialog-backdrop"
+            role="presentation"
+            onClick={() => setPrintLine(null)}
+          >
+            <section
+              className="barcode-dialog panel"
+              role="dialog"
+              aria-modal="true"
+              aria-label={`Этикетка: ${printLine.name}`}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="barcode-dialog-heading">
+                <h2>Печать этикетки</h2>
+                <button
+                  type="button"
+                  aria-label="Закрыть"
+                  onClick={() => setPrintLine(null)}
+                >
+                  ×
+                </button>
+              </div>
+              <BarcodeLabel
+                product={{
+                  id: printLine.variantId,
+                  name: printLine.name,
+                  barcode: printLine.barcode,
+                  shortBarcode: printLine.shortBarcode,
+                  sku: printLine.sku,
+                  salePriceMinor: Number(printLine.salePriceMinor ?? 0),
+                }}
+                copies={Number(printLine.quantity) || 1}
+                onPrint={(copies) => {
+                  void api(`/shops/${shopId}/variants/label-prints`, {
+                    method: 'POST',
+                    body: {
+                      items: [{ variantId: printLine.variantId, copies }],
+                    },
+                  }).catch(() => undefined);
+                }}
+              />
+            </section>
           </div>
         )}
         {!history.length ? (
