@@ -7,6 +7,7 @@ import { useSession } from '../auth/SessionProvider';
 import { AdminStatus } from '../platform/AdminKit';
 import { useResource } from '../storefront/use-resource';
 import BarcodeLabel from './BarcodeLabel';
+import CostRevaluationCard from './CostRevaluationCard';
 import EditProductPhotos from './EditProductPhotos';
 import type { CategoryNode } from './PhotoAssistant';
 import ProductStockAdjuster from './ProductStockAdjuster';
@@ -83,11 +84,16 @@ export default function EditVariantPage() {
       available: number;
       reserved: number;
     } | null>(null),
+    [costOverride, setCostOverride] = useState<{
+      unitCostMinor: number;
+      stockValueMinor: number;
+    } | null>(null),
     [syncedData, setSyncedData] = useState<Variant | null>(null);
 
   useEffect(() => {
     setPhotoOverride(null);
     setStockOverride(null);
+    setCostOverride(null);
     setActiveTab('main');
     setBarcodeDialogOpen(false);
     setStockAdjustDialogOpen(false);
@@ -234,10 +240,9 @@ export default function EditVariantPage() {
   const liveSaleMinor = r.data
     ? (previewMinor(price) ?? r.data.salePriceMinor)
     : null;
-  const purchaseMinor =
-    canViewCost && r.data?.lastPurchaseMinor !== undefined
-      ? r.data.lastPurchaseMinor
-      : undefined;
+  const purchaseMinor = canViewCost
+    ? (costOverride?.unitCostMinor ?? r.data?.lastPurchaseMinor)
+    : undefined;
   const profitMinor =
     liveSaleMinor !== null && purchaseMinor !== undefined
       ? liveSaleMinor - purchaseMinor
@@ -883,7 +888,7 @@ export default function EditVariantPage() {
                       physicalCount={physicalCount}
                       reservedCount={reservedCount}
                       availableCount={availableCount}
-                      defaultUnitCostMinor={r.data?.lastPurchaseMinor}
+                      defaultUnitCostMinor={purchaseMinor}
                       canViewCost={canViewCost}
                       onStockUpdated={(newStock) => {
                         setStockOverride(newStock);
@@ -892,6 +897,24 @@ export default function EditVariantPage() {
                   </div>
                 )}
               </section>
+
+              {allowed && canViewCost && shopId && id && (
+                <CostRevaluationCard
+                  shopId={shopId}
+                  variantId={id}
+                  physicalCount={physicalCount}
+                  currentUnitCostMinor={purchaseMinor}
+                  currentStockValueMinor={
+                    costOverride?.stockValueMinor ?? r.data?.stockValueMinor
+                  }
+                  onRevalued={({ newUnitCostMinor, newValueMinor }) => {
+                    setCostOverride({
+                      unitCostMinor: newUnitCostMinor,
+                      stockValueMinor: newValueMinor,
+                    });
+                  }}
+                />
+              )}
 
               <section className="admin-kit-card">
                 <div className="admin-kit-card-head">

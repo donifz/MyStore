@@ -11,6 +11,10 @@ import { CategoriesService } from './categories.service';
 import { normalizeProductPhoto } from './product-photo';
 import { stageProduct } from '../platform/product-publication';
 import { IdempotencyService } from '../common/idempotency.service';
+
+const LAST_PURCHASE_MINOR_SQL =
+  "(SELECT unit_cost_minor FROM (SELECT ROUND(m.value_minor::numeric / NULLIF(m.quantity, 0))::bigint AS unit_cost_minor, d.created_at, m.id::text AS sort_id FROM stock_movements m JOIN stock_documents d ON d.shop_id=m.shop_id AND d.id=m.document_id WHERE m.shop_id=v.shop_id AND m.variant_id=v.id AND d.kind='receiving' AND m.quantity > 0 UNION ALL SELECT cr.new_unit_cost_minor AS unit_cost_minor, d.created_at, d.id::text AS sort_id FROM cost_revaluations cr JOIN stock_documents d ON d.shop_id=cr.shop_id AND d.id=cr.document_id WHERE cr.shop_id=v.shop_id AND cr.variant_id=v.id) cost_hist ORDER BY created_at DESC, sort_id DESC LIMIT 1) last_purchase_minor";
+
 export type VariantInput = {
   name: string;
   barcode?: string;
@@ -196,7 +200,9 @@ export class VariantsService {
       params,
     );
     const rows = await this.db.query(
-      "SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.created_at,v.category,v.attributes,v.label_print_count,(v.photo_data IS NOT NULL) has_photo,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.stock_value_minor,0) stock_value_minor,(SELECT ROUND(m.value_minor::numeric / NULLIF(m.quantity, 0))::bigint FROM stock_movements m JOIN stock_documents d ON d.shop_id=m.shop_id AND d.id=m.document_id WHERE m.shop_id=v.shop_id AND m.variant_id=v.id AND d.kind='receiving' AND m.quantity > 0 ORDER BY d.created_at DESC, m.id DESC LIMIT 1) last_purchase_minor " +
+      'SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.created_at,v.category,v.attributes,v.label_print_count,(v.photo_data IS NOT NULL) has_photo,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.stock_value_minor,0) stock_value_minor,' +
+        LAST_PURCHASE_MINOR_SQL +
+        ' ' +
         from +
         filter +
         (popular
@@ -427,11 +433,7 @@ export class VariantsService {
     const [row] = await this.db.query(
       `SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.sale_price_minor,v.description,v.category,v.subcategory,v.published,v.attributes,(v.photo_data IS NOT NULL) has_photo,
               COALESCE(b.physical,0) physical,COALESCE(b.stock_value_minor,0) stock_value_minor,
-              (SELECT ROUND(m.value_minor::numeric / NULLIF(m.quantity, 0))::bigint
-               FROM stock_movements m
-               JOIN stock_documents d ON d.shop_id=m.shop_id AND d.id=m.document_id
-               WHERE m.shop_id=v.shop_id AND m.variant_id=v.id AND d.kind='receiving' AND m.quantity > 0
-               ORDER BY d.created_at DESC, m.id DESC LIMIT 1) last_purchase_minor
+              ${LAST_PURCHASE_MINOR_SQL}
        FROM variants v
        LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id
        WHERE v.shop_id=$1 AND (v.barcode=$2 OR v.short_barcode=$2)`,
@@ -530,7 +532,9 @@ export class VariantsService {
   }
   async getById(shopId: string, id: string, showCost = false) {
     const [row] = await this.db.query(
-      "SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.created_at,v.description,v.category,v.subcategory,v.published,v.attributes,(v.photo_data IS NOT NULL) has_photo,cardinality(v.photo_album) photo_count,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.physical,0)-COALESCE(b.reserved,0) available,(SELECT ROUND(m.value_minor::numeric / NULLIF(m.quantity, 0))::bigint FROM stock_movements m JOIN stock_documents d ON d.shop_id=m.shop_id AND d.id=m.document_id WHERE m.shop_id=v.shop_id AND m.variant_id=v.id AND d.kind='receiving' AND m.quantity > 0 ORDER BY d.created_at DESC, m.id DESC LIMIT 1) last_purchase_minor,CASE WHEN EXISTS(SELECT 1 FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='pending') THEN 'pending' WHEN EXISTS(SELECT 1 FROM product_publications p WHERE p.variant_id=v.id) THEN 'approved' ELSE 'unpublished' END publication_status,(SELECT reason FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='rejected' AND r.decided_by IS NOT NULL ORDER BY r.decided_at DESC LIMIT 1) rejection_reason FROM variants v LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id WHERE v.shop_id=$1 AND v.id=$2",
+      'SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.created_at,v.description,v.category,v.subcategory,v.published,v.attributes,(v.photo_data IS NOT NULL) has_photo,cardinality(v.photo_album) photo_count,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.physical,0)-COALESCE(b.reserved,0) available,COALESCE(b.stock_value_minor,0) stock_value_minor,' +
+        LAST_PURCHASE_MINOR_SQL +
+        ",CASE WHEN EXISTS(SELECT 1 FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='pending') THEN 'pending' WHEN EXISTS(SELECT 1 FROM product_publications p WHERE p.variant_id=v.id) THEN 'approved' ELSE 'unpublished' END publication_status,(SELECT reason FROM product_publication_revisions r WHERE r.variant_id=v.id AND r.status='rejected' AND r.decided_by IS NOT NULL ORDER BY r.decided_at DESC LIMIT 1) rejection_reason FROM variants v LEFT JOIN stock_balances b ON b.shop_id=v.shop_id AND b.variant_id=v.id WHERE v.shop_id=$1 AND v.id=$2",
       [shopId, id],
     );
     if (!row) throw new NotFoundException();
@@ -544,6 +548,7 @@ export class VariantsService {
       row.last_purchase_minor !== undefined
         ? { lastPurchaseMinor: Number(row.last_purchase_minor) }
         : {}),
+      ...(showCost ? { stockValueMinor: Number(row.stock_value_minor) } : {}),
     };
   }
   async recordLabelPrints(
