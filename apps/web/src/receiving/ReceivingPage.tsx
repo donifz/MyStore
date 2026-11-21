@@ -384,7 +384,7 @@ function ReceivingWorkspace({
             !!doc.productCreation ||
             !doc.draft.lines.length
           }
-          onClick={() => setConfirmOpen(true)}
+          onClick={() => void submit()}
         >
           <svg
             className="receiving-btn-icon"

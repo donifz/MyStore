@@ -7,6 +7,7 @@ import { formatSom, parseSom } from '../api/money';
 import { useDocument } from '../drafts/use-document';
 import DocumentEditor from '../drafts/DocumentEditor';
 import CameraScanner from '../scanner/CameraScanner';
+import { shouldKeepScannerFocus } from '../scanner/scan-focus';
 import { useCurrentShift } from './use-current-shift';
 import PaymentBottomSheet from './PaymentBottomSheet';
 import LoyaltyCheckout from './LoyaltyCheckout';
@@ -182,7 +183,9 @@ function SaleWorkspace({
     ),
     [camera, setCamera] = useState(false),
     [showCost, setShowCost] = useState(true),
-    [scannerFocused, setScannerFocused] = useState(true),
+    [scannerFocused, setScannerFocused] = useState(() =>
+      shouldKeepScannerFocus(),
+    ),
     [paymentSheetOpen, setPaymentSheetOpen] = useState(false),
     [customerCardOpen, setCustomerCardOpen] = useState(false),
     [shiftModalOpen, setShiftModalOpen] = useState(false),
@@ -242,11 +245,12 @@ function SaleWorkspace({
     if (doc.success) {
       setReceived('');
       setQuery('');
-      scanInput.current?.focus();
+      if (shouldKeepScannerFocus()) scanInput.current?.focus();
     }
   }, [doc.success]);
 
   useEffect(() => {
+    if (!shouldKeepScannerFocus()) return;
     const keepFocus = () => {
       if (shiftModalOpen || paymentSheetOpen || camera) return;
       const active = document.activeElement;
@@ -587,7 +591,7 @@ function SaleWorkspace({
               <input
                 ref={scanInput}
                 type="search"
-                autoFocus
+                autoFocus={shouldKeepScannerFocus()}
                 autoComplete="off"
                 aria-label="Сканировать штрихкод"
                 value={query}
