@@ -147,7 +147,7 @@ it('separates buyer selection from bonus and credit and keeps recognizable icons
     const button = screen.getByRole('button', { name: new RegExp(name) });
     expect(button.querySelector('svg')).toBeTruthy();
   }
-  expect(screen.getByText('Дон')).toBeTruthy();
+  expect(screen.getAllByText('Дон').length).toBeGreaterThanOrEqual(1);
   expect(container.querySelector('.pos-heading-icon svg')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: /Покупатель/ }));
   const customer = screen.getByRole('dialog', { name: 'Покупатель' });
@@ -196,4 +196,31 @@ it('shows money received and checkout discount beside each other without auto di
   expect(container.querySelector('.pos-summary-due')?.textContent).toContain(
     '750,00 сом',
   );
+});
+
+it('shows active checkmark badge, buyer name, and debt amount on Продажа в долг tile when creditMode is true', () => {
+  const { container } = render(
+    <PaymentBottomSheet
+      {...props({
+        creditMode: true,
+        creditCustomerId: 'cust-1',
+        loyaltyCustomerName: 'Дон',
+        creditDebtMinor: 100000,
+      })}
+    />,
+  );
+  const creditTile = container.querySelector('.pos-option-credit');
+  expect(creditTile?.classList.contains('is-active')).toBe(true);
+  expect(
+    creditTile?.querySelector('.pos-option-check-badge')?.textContent,
+  ).toBe('✓');
+  expect(creditTile?.querySelector('.pos-option-buyer')?.textContent).toBe(
+    'Дон',
+  );
+  expect(creditTile?.querySelector('.pos-option-debt')?.textContent).toContain(
+    'Долг: 1',
+  );
+  expect(
+    screen.getByRole('button', { name: 'Убрать продажу в долг' }),
+  ).toBeTruthy();
 });

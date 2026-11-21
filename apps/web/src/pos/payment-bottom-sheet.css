@@ -150,6 +150,43 @@
   background: #f8f6ff;
   border-color: #ece5ff;
 }
+.pos-sheet-drawer .pos-option-credit.is-active {
+  background: #f4efff;
+  border-color: #6b42c3;
+  box-shadow: 0 0 0 1px rgba(107, 66, 195, 0.14);
+}
+.pos-sheet-drawer .pos-option-check-badge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  background: #12805b;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(18, 128, 91, 0.28);
+  pointer-events: none;
+}
+.pos-sheet-drawer .pos-option-state {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pos-sheet-drawer .pos-option-buyer {
+  color: #117554;
+  font-weight: 700;
+}
+.pos-sheet-drawer .pos-option-debt {
+  color: #6b42c3;
+  font-weight: 700;
+}
 .pos-sheet-drawer .pos-option-trigger {
   display: flex;
   width: 100%;

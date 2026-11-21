@@ -387,7 +387,14 @@ export default function PaymentBottomSheet({
               </section>
 
               {creditSalesEnabled && (
-                <section className="pos-payment-option pos-option-credit">
+                <section
+                  className={`pos-payment-option pos-option-credit${creditMode ? ' is-active' : ''}`}
+                >
+                  {creditMode && (
+                    <span className="pos-option-check-badge" aria-hidden="true">
+                      ✓
+                    </span>
+                  )}
                   <button
                     type="button"
                     className="pos-option-trigger"
@@ -413,13 +420,28 @@ export default function PaymentBottomSheet({
                     </span>
                     <strong>Продажа в долг</strong>
                     <span className="pos-option-state">
-                      {creditMode
-                        ? creditDebtMinor === null
-                          ? 'Выбрано'
-                          : formatSom(creditDebtMinor)
-                        : selectedCustomerDebt > 0
-                          ? 'Долг: ' + formatSom(selectedCustomerDebt)
-                          : ''}
+                      {creditMode ? (
+                        <>
+                          {(selectedCustomerName || loyaltyCustomerName) && (
+                            <span className="pos-option-buyer">
+                              {selectedCustomerName || loyaltyCustomerName}
+                            </span>
+                          )}
+                          <span className="pos-option-debt">
+                            {creditDebtMinor === null
+                              ? 'Долг: расчёт…'
+                              : 'Долг: ' + formatSom(creditDebtMinor)}
+                          </span>
+                        </>
+                      ) : selectedCustomerName || loyaltyCustomerName ? (
+                        <span className="pos-option-buyer">
+                          {selectedCustomerName || loyaltyCustomerName}
+                        </span>
+                      ) : selectedCustomerDebt > 0 ? (
+                        'Долг: ' + formatSom(selectedCustomerDebt)
+                      ) : (
+                        ''
+                      )}
                     </span>
                     <span className="pos-option-chevron" aria-hidden="true">
                       <PaymentIcon name="chevron" size={18} />
@@ -785,7 +807,9 @@ export default function PaymentBottomSheet({
               {activePanel === 'credit' ? (
                 <CreditFields
                   selectionOnly
-                  selectedCustomerName={selectedCustomerName}
+                  selectedCustomerName={
+                    selectedCustomerName || loyaltyCustomerName
+                  }
                   onOpenCustomer={() => openCustomer(true)}
                   shopId={shopId}
                   enabled
