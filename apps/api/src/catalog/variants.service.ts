@@ -196,7 +196,7 @@ export class VariantsService {
       params,
     );
     const rows = await this.db.query(
-      "SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.created_at,v.category,v.attributes,(v.photo_data IS NOT NULL) has_photo,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.stock_value_minor,0) stock_value_minor,(SELECT ROUND(m.value_minor::numeric / NULLIF(m.quantity, 0))::bigint FROM stock_movements m JOIN stock_documents d ON d.shop_id=m.shop_id AND d.id=m.document_id WHERE m.shop_id=v.shop_id AND m.variant_id=v.id AND d.kind='receiving' AND m.quantity > 0 ORDER BY d.created_at DESC, m.id DESC LIMIT 1) last_purchase_minor " +
+      "SELECT v.id,v.shop_id,v.sku,v.name,v.barcode,v.short_barcode,v.size,v.color,v.archived,v.parent_id,v.sale_price_minor,v.created_at,v.category,v.attributes,v.label_print_count,(v.photo_data IS NOT NULL) has_photo,COALESCE(b.physical,0) physical,COALESCE(b.reserved,0) reserved,COALESCE(b.stock_value_minor,0) stock_value_minor,(SELECT ROUND(m.value_minor::numeric / NULLIF(m.quantity, 0))::bigint FROM stock_movements m JOIN stock_documents d ON d.shop_id=m.shop_id AND d.id=m.document_id WHERE m.shop_id=v.shop_id AND m.variant_id=v.id AND d.kind='receiving' AND m.quantity > 0 ORDER BY d.created_at DESC, m.id DESC LIMIT 1) last_purchase_minor " +
         from +
         filter +
         (popular
@@ -227,6 +227,7 @@ export class VariantsService {
         salePriceMinor: Number(r.sale_price_minor),
         createdAt: r.created_at,
         category: r.category ?? '',
+        labelPrintCount: Number(r.label_print_count ?? 0),
         ...(r.has_photo
           ? { photoUrl: `/api/shops/${r.shop_id}/variants/${r.id}/photo` }
           : {}),
@@ -544,5 +545,19 @@ export class VariantsService {
         ? { lastPurchaseMinor: Number(row.last_purchase_minor) }
         : {}),
     };
+  }
+  async recordLabelPrints(
+    shopId: string,
+    items: { variantId: string; copies: number }[],
+  ) {
+    await this.db.transaction(async (tx) => {
+      for (const item of items) {
+        await tx.query(
+          'UPDATE variants SET label_print_count = label_print_count + $3 WHERE shop_id=$1 AND id=$2',
+          [shopId, item.variantId, item.copies],
+        );
+      }
+    });
+    return { updated: items.length };
   }
 }

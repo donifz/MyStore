@@ -31,6 +31,7 @@ export default function BarcodeLabel({
   copies = 1,
   hidePrintButton = false,
   size,
+  onPrint,
 }: {
   product: Pick<
     Variant,
@@ -39,6 +40,7 @@ export default function BarcodeLabel({
   copies?: number;
   hidePrintButton?: boolean;
   size?: LabelSize;
+  onPrint?: (copies: number) => void;
 }) {
   const [copyCount, setCopyCount] = useState(
     String(normalizeLabelCopies(copies)),
@@ -134,7 +136,10 @@ export default function BarcodeLabel({
             type="button"
             className="primary"
             disabled={!barcode}
-            onClick={() => window.print()}
+            onClick={() => {
+              onPrint?.(numberOfCopies);
+              window.print();
+            }}
           >
             Печать этикетки
           </button>
