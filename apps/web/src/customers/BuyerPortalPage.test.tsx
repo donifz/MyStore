@@ -222,3 +222,67 @@ it('keeps generated initial password hidden until buyer clicks reveal button', a
     '••••••••••••',
   );
 });
+
+it('displays buyer in-store purchases with items and bonus points', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => {
+      if (url.endsWith('/me')) {
+        return new Response(JSON.stringify(mockAccount), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      if (url.endsWith('/loyalty/purchases')) {
+        return new Response(
+          JSON.stringify([
+            {
+              saleId: 'abcd1234-1111-4111-8111-111111111111',
+              shopId: 'shop-1',
+              shopName: 'Юный инженер',
+              totalMinor: 120000,
+              createdAt: '2026-11-21T10:00:00.000Z',
+              method: 'card',
+              isCredit: false,
+              earnedPoints: 12,
+              spentPoints: 0,
+              lines: [
+                {
+                  name: 'Конструктор',
+                  quantity: 2,
+                  unitPriceMinor: 60000,
+                  discountMinor: 0,
+                },
+              ],
+            },
+          ]),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
+      }
+      if (url.endsWith('/debts') || url.endsWith('/repayments')) {
+        return new Response(JSON.stringify([]), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      if (url.endsWith('/telegram/config') || url.endsWith('/loyalty/config')) {
+        return new Response(JSON.stringify({ enabled: false }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({}), { status: 200 });
+    }),
+  );
+
+  render(
+    <MemoryRouter>
+      <BuyerPortalPage />
+    </MemoryRouter>,
+  );
+
+  expect(await screen.findByText('Мои покупки')).toBeTruthy();
+  expect(await screen.findByText('Юный инженер')).toBeTruthy();
+  expect(screen.getByText(/Конструктор × 2/)).toBeTruthy();
+  expect(screen.getByText('+12 б.')).toBeTruthy();
+});

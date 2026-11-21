@@ -84,6 +84,94 @@ export class LoyaltyService {
     }));
   }
 
+  async purchases(buyerId: string) {
+    const rows = await this.db.query(
+      `WITH buyer_sales AS (
+         SELECT DISTINCT sc.shop_id, ll.sale_id
+         FROM shop_customers sc
+         JOIN loyalty_ledger ll
+           ON ll.shop_id = sc.shop_id AND ll.customer_id = sc.id
+         WHERE sc.buyer_account_id = $1
+         UNION
+         SELECT DISTINCT sc.shop_id, cs.document_id AS sale_id
+         FROM shop_customers sc
+         JOIN credit_sales cs
+           ON cs.shop_id = sc.shop_id AND cs.customer_id = sc.id
+         WHERE sc.buyer_account_id = $1
+       )
+       SELECT
+         d.id AS "saleId",
+         d.shop_id AS "shopId",
+         s.name AS "shopName",
+         d.total_minor AS "totalMinor",
+         d.created_at AS "createdAt",
+         pr.method AS "method",
+         (cs.document_id IS NOT NULL) AS "isCredit",
+         COALESCE((
+           SELECT SUM(ll.points)
+           FROM loyalty_ledger ll
+           JOIN shop_customers sc ON sc.id = ll.customer_id AND sc.shop_id = ll.shop_id
+           WHERE ll.shop_id = d.shop_id AND ll.sale_id = d.id
+             AND sc.buyer_account_id = $1 AND ll.kind = 'earned'
+         ), 0) AS "earnedPoints",
+         COALESCE((
+           SELECT SUM(ll.points)
+           FROM loyalty_ledger ll
+           JOIN shop_customers sc ON sc.id = ll.customer_id AND sc.shop_id = ll.shop_id
+           WHERE ll.shop_id = d.shop_id AND ll.sale_id = d.id
+             AND sc.buyer_account_id = $1 AND ll.kind = 'redeemed'
+         ), 0) AS "spentPoints"
+       FROM buyer_sales bs
+       JOIN stock_documents d
+         ON d.shop_id = bs.shop_id AND d.id = bs.sale_id AND d.kind = 'sale'
+       JOIN shops s ON s.id = d.shop_id
+       LEFT JOIN payment_records pr
+         ON pr.shop_id = d.shop_id AND pr.document_id = d.id AND pr.kind = 'sale'
+       LEFT JOIN credit_sales cs
+         ON cs.shop_id = d.shop_id AND cs.document_id = d.id
+       ORDER BY d.created_at DESC
+       LIMIT 50`,
+      [buyerId],
+    );
+    if (!rows.length) return [];
+    const saleIds = rows.map((r: any) => r.saleId);
+    const lineRows = await this.db.query(
+      `SELECT document_id AS "saleId", name, quantity,
+              unit_price_minor AS "unitPriceMinor",
+              COALESCE(discount_minor, 0) AS "discountMinor"
+       FROM sale_lines
+       WHERE document_id = ANY($1)
+       ORDER BY id`,
+      [saleIds],
+    );
+    const linesBySale = new Map<string, any[]>();
+    for (const line of lineRows) {
+      const list = linesBySale.get(line.saleId) ?? [];
+      list.push({
+        name: line.name,
+        quantity: Number(line.quantity),
+        unitPriceMinor: Number(line.unitPriceMinor),
+        discountMinor: Number(line.discountMinor ?? 0),
+      });
+      linesBySale.set(line.saleId, list);
+    }
+    return rows.map((row: any) => ({
+      saleId: row.saleId,
+      shopId: row.shopId,
+      shopName: row.shopName,
+      totalMinor: Number(row.totalMinor),
+      createdAt:
+        row.createdAt instanceof Date
+          ? row.createdAt.toISOString()
+          : String(row.createdAt),
+      method: row.method ?? null,
+      isCredit: Boolean(row.isCredit),
+      earnedPoints: Number(row.earnedPoints ?? 0),
+      spentPoints: Number(row.spentPoints ?? 0),
+      lines: linesBySale.get(row.saleId) ?? [],
+    }));
+  }
+
   async lookupByQr(shopId: string, token: string) {
     this.ensureEnabled();
     if (!/^[A-Za-z0-9_-]{43}$/.test(token)) {
