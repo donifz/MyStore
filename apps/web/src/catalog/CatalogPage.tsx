@@ -16,6 +16,7 @@ import BarcodeLabel, {
 import { encodeCode128B } from './code128';
 import ProductThumb from './ProductThumb';
 import CameraScanner from '../scanner/CameraScanner';
+import { shouldKeepScannerFocus } from '../scanner/scan-focus';
 
 type StockFilter = 'all' | 'in_stock' | 'low' | 'out' | 'attention';
 type VisibilityFilter = 'all' | 'published' | 'hidden' | 'no_photo';
@@ -77,7 +78,9 @@ export default function CatalogPage() {
     [printCopies, setPrintCopies] = useState<Record<string, string>>({}),
     [bulkPrintOpen, setBulkPrintOpen] = useState(false),
     [bulkLabelSize, setBulkLabelSize] = useState<LabelSize>('30x20'),
-    [scannerFocused, setScannerFocused] = useState(true),
+    [scannerFocused, setScannerFocused] = useState(() =>
+      shouldKeepScannerFocus(),
+    ),
     [cameraScannerOpen, setCameraScannerOpen] = useState(false),
     searchInputRef = useRef<HTMLInputElement>(null);
   const role = session.user?.shops.find((x) => x.id === shopId)?.role;
@@ -104,6 +107,7 @@ export default function CatalogPage() {
   }, [q, archived, stockFilter, category, visibility, sort, page]);
 
   useEffect(() => {
+    if (!shouldKeepScannerFocus()) return;
     searchInputRef.current?.focus({ preventScroll: true });
 
     const keepFocus = () => {
@@ -346,7 +350,7 @@ export default function CatalogPage() {
                   id="catalog-search-input"
                   ref={searchInputRef}
                   type="search"
-                  autoFocus
+                  autoFocus={shouldKeepScannerFocus()}
                   autoComplete="off"
                   value={q}
                   placeholder="Название или штрихкод"

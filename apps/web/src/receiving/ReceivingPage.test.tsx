@@ -532,11 +532,8 @@ it('supports mobile receiving bottom sheet, product creation stepper, and confir
   ).toBeNull();
   expect(screen.getAllByText('Принтер').length).toBeGreaterThan(0);
 
-  // Open confirmation sheet via mobile bar
-  const mobileSubmit = screen.getAllByRole('button', {
-    name: 'Провести приёмку',
-  })[1];
-  await u.click(mobileSubmit);
+  // Open confirmation sheet via document details chip
+  await u.click(screen.getByRole('button', { name: 'Реквизиты накладной' }));
 
   const confirmDialog = await screen.findByRole('dialog', {
     name: 'Подтверждение приёмки',
