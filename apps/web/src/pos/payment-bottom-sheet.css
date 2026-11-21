@@ -157,18 +157,18 @@
 }
 .pos-sheet-drawer .pos-option-check-badge {
   position: absolute;
-  top: -7px;
-  right: -7px;
+  top: 6px;
+  right: 6px;
   z-index: 2;
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   border: 2px solid #ffffff;
   border-radius: 999px;
   background: #12805b;
   color: #ffffff;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   line-height: 1;
   box-shadow: 0 2px 6px rgba(18, 128, 91, 0.28);
@@ -594,11 +594,11 @@
   position: relative;
 }
 .pos-option-credit:has(.pos-option-clear) .pos-option-trigger {
-  padding-right: 44px;
+  padding-right: 60px;
 }
 .pos-option-clear {
   position: absolute;
-  right: 12px;
+  right: 32px;
   top: 50%;
   transform: translateY(-50%);
   border: 0;
