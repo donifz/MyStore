@@ -241,7 +241,9 @@ it('renders barcode scanner icon button and maintains focus on search input', as
 
   const searchInput = screen.getByLabelText('Поиск') as HTMLInputElement;
   expect(searchInput).toBeTruthy();
-  expect(searchInput.getAttribute('placeholder')).toBe('Название или штрихкод');
+  expect(searchInput.getAttribute('placeholder')).toBe(
+    'Поиск по названию или штрихкоду',
+  );
 
   const scannerBtn = screen.getByRole('button', { name: 'Фокус для сканера' });
   expect(scannerBtn).toBeTruthy();
@@ -423,4 +425,73 @@ it('lets user select multiple products and print labels via bulk modal with +/- 
   expect(
     screen.queryByRole('region', { name: 'Массовые действия' }),
   ).toBeNull();
+});
+
+it('renders compact mobile cards with price and stock and opens filter sheet on mobile', async () => {
+  const originalMatchMedia = window.matchMedia;
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: query.includes('max-width: 767px'),
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
+
+  try {
+    server('owner', [
+      {
+        id: 'v1',
+        name: 'Тонкая сигарета',
+        barcode: '00000970',
+        salePriceMinor: 15000,
+        physical: 12,
+        reserved: 0,
+        available: 12,
+        createdAt: '2026-11-05T09:30:00.000Z',
+      },
+      {
+        id: 'v2',
+        name: 'Дрель красная',
+        barcode: '00000787',
+        salePriceMinor: 450000,
+        physical: 0,
+        reserved: 0,
+        available: 0,
+        createdAt: '2026-11-05T09:35:00.000Z',
+      },
+    ]);
+    const app = await import('../App');
+    const { container } = render(
+      <MemoryRouter initialEntries={['/seller/' + shop + '/products']}>
+        <app.default />
+      </MemoryRouter>,
+    );
+
+    const u = userEvent.setup();
+    await screen.findByText('Тонкая сигарета');
+
+    expect(container.querySelector('.table-wrap')).toBeNull();
+    const cards = container.querySelectorAll('.catalog-mobile-card');
+    expect(cards).toHaveLength(2);
+    expect(cards[0].textContent).toContain('150,00 сом');
+    expect(cards[0].textContent).toContain('12 шт.');
+    expect(
+      cards[1].querySelector('.catalog-mobile-stock.empty')?.textContent,
+    ).toBe('0 шт.');
+
+    await u.click(screen.getByRole('button', { name: /Фильтры/ }));
+    expect(
+      screen.getByRole('dialog', { name: 'Фильтры каталога' }),
+    ).toBeTruthy();
+
+    await u.click(screen.getByRole('button', { name: /Показать/ }));
+    expect(
+      screen.queryByRole('dialog', { name: 'Фильтры каталога' }),
+    ).toBeNull();
+  } finally {
+    window.matchMedia = originalMatchMedia;
+  }
 });
