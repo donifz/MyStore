@@ -21,7 +21,30 @@ import { shouldKeepScannerFocus } from '../scanner/scan-focus';
 type StockFilter = 'all' | 'in_stock' | 'low' | 'out' | 'attention';
 type VisibilityFilter = 'all' | 'published' | 'hidden' | 'no_photo';
 
+function useIsMobileCatalog() {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 767px)').matches
+      : false,
+  );
+  useEffect(() => {
+    if (
+      typeof window === 'undefined' ||
+      typeof window.matchMedia !== 'function'
+    ) {
+      return;
+    }
+    const mql = window.matchMedia('(max-width: 767px)');
+    const onChange = (event: MediaQueryListEvent) => setIsMobile(event.matches);
+    setIsMobile(mql.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+  return isMobile;
+}
+
 export default function CatalogPage() {
+  const isMobile = useIsMobileCatalog();
   const { shopId } = useParams(),
     session = useSession(),
     [searchParams, setSearchParams] = useSearchParams(),
@@ -82,6 +105,7 @@ export default function CatalogPage() {
       shouldKeepScannerFocus(),
     ),
     [cameraScannerOpen, setCameraScannerOpen] = useState(false),
+    [filtersOpen, setFiltersOpen] = useState(false),
     searchInputRef = useRef<HTMLInputElement>(null);
   const role = session.user?.shops.find((x) => x.id === shopId)?.role;
 
@@ -308,25 +332,36 @@ export default function CatalogPage() {
   );
   const canBulkPrint =
     selectedList.length > 0 && selectedList.every(isValidCode128);
+  const activeFilterCount =
+    (stockFilter !== 'all' ? 1 : 0) +
+    (category ? 1 : 0) +
+    (visibility !== 'all' ? 1 : 0) +
+    (sort !== 'newest' ? 1 : 0);
 
   return (
     <>
-      <div className="page-heading">
+      <div className="page-heading catalog-page-heading">
         <div>
           <p className="eyebrow">Каталог магазина</p>
-          <h1>Товары</h1>
+          <div className="catalog-title-row">
+            <h1>Товары</h1>
+            <span className="catalog-count-pill">{data?.total ?? 0}</span>
+          </div>
           <p className="muted">Цены и доступные остатки</p>
         </div>
         {role !== 'cashier' && (
           <div className="order-actions">
-            <Link className="primary button" to="new">
+            <Link className="primary button catalog-add-btn" to="new">
               Добавить товар
             </Link>
           </div>
         )}
       </div>
-      <section className="panel">
-        <div className="toolbar" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
+      <section className="panel catalog-panel">
+        <div
+          className="toolbar catalog-toolbar"
+          style={{ flexWrap: 'wrap', gap: '0.75rem' }}
+        >
           <div className="catalog-search-wrap">
             <label className="search-label" htmlFor="catalog-search-input">
               Поиск
@@ -353,7 +388,7 @@ export default function CatalogPage() {
                   autoFocus={shouldKeepScannerFocus()}
                   autoComplete="off"
                   value={q}
-                  placeholder="Название или штрихкод"
+                  placeholder="Поиск по названию или штрихкоду"
                   aria-label="Поиск"
                   onFocus={() => setScannerFocused(true)}
                   onBlur={() => setScannerFocused(false)}
@@ -439,148 +474,217 @@ export default function CatalogPage() {
               </button>
             </div>
           </div>
-          <div
-            className="filter-group"
-            role="tablist"
-            aria-label="Статус товаров"
-            style={{ display: 'inline-flex', gap: '0.5rem' }}
-          >
+          <div className="catalog-mobile-controls-row">
+            <div
+              className="filter-group catalog-status-tabs"
+              role="tablist"
+              aria-label="Статус товаров"
+              style={{ display: 'inline-flex', gap: '0.5rem' }}
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={!archived}
+                className={`button ${!archived ? 'primary' : 'secondary'}`}
+                onClick={() => {
+                  setArchived(false);
+                  setPage(1);
+                }}
+              >
+                Активные
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={archived}
+                className={`button ${archived ? 'primary' : 'secondary'}`}
+                onClick={() => {
+                  setArchived(true);
+                  setPage(1);
+                }}
+              >
+                В архиве
+              </button>
+            </div>
             <button
               type="button"
-              role="tab"
-              aria-selected={!archived}
-              className={`button ${!archived ? 'primary' : 'secondary'}`}
-              onClick={() => {
-                setArchived(false);
-                setPage(1);
-              }}
+              className={`catalog-filters-trigger${activeFilterCount > 0 ? ' has-active' : ''}`}
+              aria-expanded={filtersOpen}
+              aria-controls="catalog-filters-sheet"
+              onClick={() => setFiltersOpen(true)}
             >
-              Активные
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={archived}
-              className={`button ${archived ? 'primary' : 'secondary'}`}
-              onClick={() => {
-                setArchived(true);
-                setPage(1);
-              }}
-            >
-              В архиве
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                width="16"
+                height="16"
+              >
+                <line x1="4" y1="6" x2="20" y2="6" />
+                <line x1="7" y1="12" x2="17" y2="12" />
+                <line x1="10" y1="18" x2="14" y2="18" />
+              </svg>
+              <span>Фильтры</span>
+              {activeFilterCount > 0 && (
+                <span className="catalog-filters-badge">
+                  {activeFilterCount}
+                </span>
+              )}
             </button>
           </div>
-          <label>
-            Наличие
-            <select
-              value={stockFilter}
-              onChange={(e) => {
-                const nextStock = e.target.value as StockFilter;
-                setStockFilter(nextStock);
-                setPage(1);
-                if (
-                  (nextStock === 'attention' ||
-                    nextStock === 'low' ||
-                    nextStock === 'out') &&
-                  sort === 'newest'
-                ) {
-                  setSort('stock-asc');
-                }
-              }}
+          <div
+            className={`catalog-filters-drawer${filtersOpen ? ' is-open' : ''}`}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setFiltersOpen(false);
+            }}
+          >
+            <div
+              id="catalog-filters-sheet"
+              className="catalog-filters-sheet"
+              role={filtersOpen ? 'dialog' : undefined}
+              aria-modal={filtersOpen ? true : undefined}
+              aria-label="Фильтры каталога"
             >
-              <option value="all">Все остатки</option>
-              <option value="in_stock">В наличии (&gt; 0)</option>
-              <option value="attention">
-                Мало или нет в наличии (0–5 шт.)
-              </option>
-              <option value="low">Мало на складе (1–5 шт.)</option>
-              <option value="out">Нет в наличии (0 шт.)</option>
-            </select>
-          </label>
-          <label>
-            Категория
-            <select
-              value={category}
-              onChange={(e) => {
-                setCategory(e.target.value);
-                setPage(1);
-              }}
-            >
-              <option value="">Все категории</option>
-              {categories.map((c) => (
-                <option key={c.name} value={c.name}>
-                  {c.name} ({c.count})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Витрина и фото
-            <select
-              value={visibility}
-              onChange={(e) => {
-                setVisibility(e.target.value as VisibilityFilter);
-                setPage(1);
-              }}
-            >
-              <option value="all">Все карточки</option>
-              <option value="published">На витрине</option>
-              <option value="hidden">Скрытые</option>
-              <option value="no_photo">Без фото</option>
-            </select>
-          </label>
-          <label>
-            Сортировка
-            <select
-              value={sort}
-              onChange={(event) => {
-                setSort(event.target.value);
-                setPage(1);
-              }}
-            >
-              <option value="newest">Сначала новые</option>
-              <option value="oldest">Сначала старые</option>
-              <option value="stock-asc">По остатку: сначала мало</option>
-              <option value="stock-desc">По остатку: сначала много</option>
-              <option value="name">Название А–Я</option>
-              <option value="name-desc">Название Я–А</option>
-              <option value="price-asc">Сначала дешевле</option>
-              <option value="price-desc">Сначала дороже</option>
-              <option value="popular">Часто продаются</option>
-            </select>
-          </label>
-          {(q.trim() ||
-            archived ||
-            stockFilter !== 'all' ||
-            category ||
-            visibility !== 'all' ||
-            sort !== 'newest') && (
-            <button
-              type="button"
-              className="button secondary"
-              style={{ alignSelf: 'flex-end' }}
-              onClick={() => {
-                setQ('');
-                setArchived(false);
-                setStockFilter('all');
-                setCategory('');
-                setVisibility('all');
-                setSort('newest');
-                setPage(1);
-              }}
-            >
-              Сбросить
-            </button>
-          )}
+              <div className="catalog-filters-sheet-head">
+                <strong>Фильтры</strong>
+                <button
+                  type="button"
+                  className="catalog-filters-close"
+                  aria-label="Закрыть фильтры"
+                  onClick={() => setFiltersOpen(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="catalog-filters-fields">
+                <label>
+                  Наличие
+                  <select
+                    value={stockFilter}
+                    onChange={(e) => {
+                      const nextStock = e.target.value as StockFilter;
+                      setStockFilter(nextStock);
+                      setPage(1);
+                      if (
+                        (nextStock === 'attention' ||
+                          nextStock === 'low' ||
+                          nextStock === 'out') &&
+                        sort === 'newest'
+                      ) {
+                        setSort('stock-asc');
+                      }
+                    }}
+                  >
+                    <option value="all">Все остатки</option>
+                    <option value="in_stock">В наличии (&gt; 0)</option>
+                    <option value="attention">
+                      Мало или нет в наличии (0–5 шт.)
+                    </option>
+                    <option value="low">Мало на складе (1–5 шт.)</option>
+                    <option value="out">Нет в наличии (0 шт.)</option>
+                  </select>
+                </label>
+                <label>
+                  Категория
+                  <select
+                    value={category}
+                    onChange={(e) => {
+                      setCategory(e.target.value);
+                      setPage(1);
+                    }}
+                  >
+                    <option value="">Все категории</option>
+                    {categories.map((c) => (
+                      <option key={c.name} value={c.name}>
+                        {c.name} ({c.count})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Витрина и фото
+                  <select
+                    value={visibility}
+                    onChange={(e) => {
+                      setVisibility(e.target.value as VisibilityFilter);
+                      setPage(1);
+                    }}
+                  >
+                    <option value="all">Все карточки</option>
+                    <option value="published">На витрине</option>
+                    <option value="hidden">Скрытые</option>
+                    <option value="no_photo">Без фото</option>
+                  </select>
+                </label>
+                <label>
+                  Сортировка
+                  <select
+                    value={sort}
+                    onChange={(event) => {
+                      setSort(event.target.value);
+                      setPage(1);
+                    }}
+                  >
+                    <option value="newest">Сначала новые</option>
+                    <option value="oldest">Сначала старые</option>
+                    <option value="stock-asc">По остатку: сначала мало</option>
+                    <option value="stock-desc">
+                      По остатку: сначала много
+                    </option>
+                    <option value="name">Название А–Я</option>
+                    <option value="name-desc">Название Я–А</option>
+                    <option value="price-asc">Сначала дешевле</option>
+                    <option value="price-desc">Сначала дороже</option>
+                    <option value="popular">Часто продаются</option>
+                  </select>
+                </label>
+              </div>
+              <div className="catalog-filters-sheet-actions">
+                {(q.trim() ||
+                  archived ||
+                  stockFilter !== 'all' ||
+                  category ||
+                  visibility !== 'all' ||
+                  sort !== 'newest') && (
+                  <button
+                    type="button"
+                    className="button secondary"
+                    onClick={() => {
+                      setQ('');
+                      setArchived(false);
+                      setStockFilter('all');
+                      setCategory('');
+                      setVisibility('all');
+                      setSort('newest');
+                      setPage(1);
+                    }}
+                  >
+                    Сбросить
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="button primary catalog-filters-apply"
+                  onClick={() => setFiltersOpen(false)}
+                >
+                  Показать ({data?.total ?? 0})
+                </button>
+              </div>
+            </div>
+          </div>
           <span
-            className="muted"
+            className="muted catalog-desktop-total"
             style={{ marginLeft: 'auto', alignSelf: 'center' }}
           >
             {data?.total ?? 0} товаров
           </span>
           <button
             type="button"
-            className="secondary no-print"
+            className="secondary no-print catalog-desktop-refresh"
             disabled={loading}
             onClick={() => setRefreshTick((tick) => tick + 1)}
           >
@@ -620,123 +724,185 @@ export default function CatalogPage() {
             </div>
           </div>
         )}
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th className="catalog-select-col no-print">
-                  <input
-                    type="checkbox"
-                    className="catalog-select-checkbox"
-                    aria-label="Выбрать все товары на странице"
-                    checked={allPageSelected}
-                    disabled={!pageItems.length}
-                    onChange={toggleAllOnPage}
-                  />
-                </th>
-                <th>Товар</th>
-                <th>Добавлен</th>
-                {role !== 'cashier' && <th>Закупочная</th>}
-                <th>Цена</th>
-                <th>Доступно</th>
-                <th>Резерв</th>
-                <th className="no-print">Этикетка</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data?.items.map((v) => (
-                <tr
-                  key={v.id}
-                  className={
-                    selectedProducts[v.id] ? 'catalog-row--selected' : ''
-                  }
-                >
-                  <td className="catalog-select-col no-print">
+        {isMobile ? (
+          <div className="catalog-mobile-list">
+            {data?.items.map((v) => (
+              <article
+                key={v.id}
+                className={`catalog-mobile-card${selectedProducts[v.id] ? ' is-selected' : ''}`}
+              >
+                <input
+                  type="checkbox"
+                  className="catalog-select-checkbox catalog-mobile-checkbox no-print"
+                  aria-label={`Отметить ${v.name}`}
+                  checked={Boolean(selectedProducts[v.id])}
+                  onChange={() => toggleProductSelection(v)}
+                />
+                <ProductThumb photoUrl={v.photoUrl} name={v.name} />
+                <div className="catalog-mobile-card-main">
+                  <div className="catalog-mobile-card-title">
+                    {role !== 'cashier' ? (
+                      <Link to={v.id + '/edit'}>
+                        <strong>{v.name}</strong>
+                      </Link>
+                    ) : (
+                      <strong>{v.name}</strong>
+                    )}
+                    {(v.size || v.color) && (
+                      <span className="muted">
+                        {' '}
+                        ({[v.size, v.color].filter(Boolean).join(', ')})
+                      </span>
+                    )}
+                  </div>
+                  <div className="catalog-mobile-card-meta">
+                    <small className="code">{v.barcode}</small>
+                    {v.archived && (
+                      <span className="status-pill status-archived">
+                        В архиве
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="catalog-mobile-card-right">
+                  <strong className="catalog-mobile-card-price">
+                    {formatSom(v.salePriceMinor)}
+                  </strong>
+                  <span
+                    className={
+                      'stock catalog-mobile-stock ' +
+                      (v.available !== undefined && v.available > 0
+                        ? v.available <= 5
+                          ? 'low'
+                          : ''
+                        : 'empty')
+                    }
+                  >
+                    {v.available ?? 0} шт.
+                  </span>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th className="catalog-select-col no-print">
                     <input
                       type="checkbox"
                       className="catalog-select-checkbox"
-                      aria-label={`Выбрать ${v.name}`}
-                      checked={Boolean(selectedProducts[v.id])}
-                      onChange={() => toggleProductSelection(v)}
+                      aria-label="Выбрать все товары на странице"
+                      checked={allPageSelected}
+                      disabled={!pageItems.length}
+                      onChange={toggleAllOnPage}
                     />
-                  </td>
-                  <td>
-                    <div className="catalog-product-cell">
-                      <ProductThumb photoUrl={v.photoUrl} name={v.name} />
-                      <div className="catalog-product-info">
-                        <div className="catalog-product-title">
-                          {role !== 'cashier' ? (
-                            <Link to={v.id + '/edit'}>
-                              <strong>{v.name}</strong>
-                            </Link>
-                          ) : (
-                            <strong>{v.name}</strong>
-                          )}
-                          {(v.size || v.color) && (
-                            <span className="muted">
-                              {' '}
-                              ({[v.size, v.color].filter(Boolean).join(', ')})
-                            </span>
-                          )}
-                          {v.archived && (
-                            <span
-                              className="status-pill status-archived"
-                              style={{ marginLeft: '0.5rem' }}
-                            >
-                              В архиве
-                            </span>
-                          )}
-                        </div>
-                        <small className="code">{v.barcode}</small>
-                      </div>
-                    </div>
-                  </td>
-                  <td>{v.createdAt ? formatDate(v.createdAt) : '—'}</td>
-                  {role !== 'cashier' && (
-                    <td>
-                      {v.lastPurchaseMinor !== undefined
-                        ? formatSom(v.lastPurchaseMinor)
-                        : '—'}
-                    </td>
-                  )}
-                  <td>{formatSom(v.salePriceMinor)}</td>
-                  <td>
-                    <span
-                      className={
-                        'stock ' +
-                        (v.available !== undefined && v.available > 0
-                          ? v.available <= 5
-                            ? 'low'
-                            : ''
-                          : 'empty')
-                      }
-                    >
-                      {v.available ?? 0} шт.
-                    </span>
-                  </td>
-                  <td>{v.reserved} шт.</td>
-                  <td className="no-print">
-                    <button
-                      type="button"
-                      className="catalog-barcode-btn"
-                      onClick={() => setBarcodeProduct(v)}
-                    >
-                      <span>Штрихкод</span>
-                      {(v.labelPrintCount ?? 0) > 0 && (
-                        <span
-                          className="catalog-barcode-count-badge"
-                          title={`Напечатано этикеток: ${v.labelPrintCount}`}
-                        >
-                          {v.labelPrintCount}
-                        </span>
-                      )}
-                    </button>
-                  </td>
+                  </th>
+                  <th>Товар</th>
+                  <th>Добавлен</th>
+                  {role !== 'cashier' && <th>Закупочная</th>}
+                  <th>Цена</th>
+                  <th>Доступно</th>
+                  <th>Резерв</th>
+                  <th className="no-print">Этикетка</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {data?.items.map((v) => (
+                  <tr
+                    key={v.id}
+                    className={
+                      selectedProducts[v.id] ? 'catalog-row--selected' : ''
+                    }
+                  >
+                    <td className="catalog-select-col no-print">
+                      <input
+                        type="checkbox"
+                        className="catalog-select-checkbox"
+                        aria-label={`Выбрать ${v.name}`}
+                        checked={Boolean(selectedProducts[v.id])}
+                        onChange={() => toggleProductSelection(v)}
+                      />
+                    </td>
+                    <td>
+                      <div className="catalog-product-cell">
+                        <ProductThumb photoUrl={v.photoUrl} name={v.name} />
+                        <div className="catalog-product-info">
+                          <div className="catalog-product-title">
+                            {role !== 'cashier' ? (
+                              <Link to={v.id + '/edit'}>
+                                <strong>{v.name}</strong>
+                              </Link>
+                            ) : (
+                              <strong>{v.name}</strong>
+                            )}
+                            {(v.size || v.color) && (
+                              <span className="muted">
+                                {' '}
+                                ({[v.size, v.color].filter(Boolean).join(', ')})
+                              </span>
+                            )}
+                            {v.archived && (
+                              <span
+                                className="status-pill status-archived"
+                                style={{ marginLeft: '0.5rem' }}
+                              >
+                                В архиве
+                              </span>
+                            )}
+                          </div>
+                          <small className="code">{v.barcode}</small>
+                        </div>
+                      </div>
+                    </td>
+                    <td>{v.createdAt ? formatDate(v.createdAt) : '—'}</td>
+                    {role !== 'cashier' && (
+                      <td>
+                        {v.lastPurchaseMinor !== undefined
+                          ? formatSom(v.lastPurchaseMinor)
+                          : '—'}
+                      </td>
+                    )}
+                    <td>{formatSom(v.salePriceMinor)}</td>
+                    <td>
+                      <span
+                        className={
+                          'stock ' +
+                          (v.available !== undefined && v.available > 0
+                            ? v.available <= 5
+                              ? 'low'
+                              : ''
+                            : 'empty')
+                        }
+                      >
+                        {v.available ?? 0} шт.
+                      </span>
+                    </td>
+                    <td>{v.reserved} шт.</td>
+                    <td className="no-print">
+                      <button
+                        type="button"
+                        className="catalog-barcode-btn"
+                        onClick={() => setBarcodeProduct(v)}
+                      >
+                        <span>Штрихкод</span>
+                        {(v.labelPrintCount ?? 0) > 0 && (
+                          <span
+                            className="catalog-barcode-count-badge"
+                            title={`Напечатано этикеток: ${v.labelPrintCount}`}
+                          >
+                            {v.labelPrintCount}
+                          </span>
+                        )}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
         {!loading && !error && !data?.items.length && (
           <p className="empty-state">
             {archived
