@@ -626,6 +626,126 @@ td:first-child {
   align-items: end;
   gap: 20px;
 }
+.catalog-select-col {
+  width: 40px;
+  text-align: center;
+  vertical-align: middle;
+}
+.catalog-select-checkbox {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  min-height: 18px;
+  margin: 0;
+  vertical-align: middle;
+  cursor: pointer;
+}
+.catalog-row--selected {
+  background: #f0f6ff;
+}
+.catalog-bulk-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+.catalog-bulk-bar__count {
+  font-size: 14px;
+}
+.catalog-bulk-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.catalog-bulk-print-dialog {
+  width: min(100%, 640px);
+  max-width: min(100%, 640px);
+}
+.catalog-bulk-print-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.catalog-bulk-print-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.catalog-bulk-print-list {
+  display: grid;
+  gap: 10px;
+  max-height: 45vh;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+.catalog-bulk-print-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+}
+.catalog-bulk-print-item__info {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.catalog-bulk-print-item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 13px;
+}
+.catalog-bulk-print-item__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.catalog-qty-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.catalog-qty-stepper button {
+  min-width: 34px;
+  min-height: 34px;
+  padding: 4px 10px;
+  line-height: 1;
+}
+.catalog-qty-stepper input {
+  width: 60px;
+  min-height: 34px;
+  text-align: center;
+  padding: 4px 6px;
+}
+.catalog-bulk-print-item__remove {
+  min-width: 34px;
+  min-height: 34px;
+  padding: 4px 10px;
+}
+.catalog-bulk-print-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+.catalog-bulk-print-sheet {
+  display: none;
+}
 .stock {
   background: #edf7f1;
   color: #1a5e3a;

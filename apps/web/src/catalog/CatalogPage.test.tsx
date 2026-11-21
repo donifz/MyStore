@@ -340,3 +340,81 @@ it('filters catalog by visibility and initializes filters from URL query params'
     ).toBe(true),
   );
 });
+
+it('lets user select multiple products and print labels via bulk modal with +/- steppers', async () => {
+  server('owner', [
+    {
+      id: 'v1',
+      name: 'Рюкзак',
+      barcode: '00123',
+      salePriceMinor: 15000,
+      physical: 10,
+      reserved: 0,
+      available: 10,
+      createdAt: '2026-11-05T09:30:00.000Z',
+    },
+    {
+      id: 'v2',
+      name: 'Пенал',
+      barcode: '00456',
+      salePriceMinor: 5000,
+      physical: 4,
+      reserved: 0,
+      available: 4,
+      createdAt: '2026-11-05T09:35:00.000Z',
+    },
+  ]);
+  const app = await import('../App');
+  const print = vi.spyOn(window, 'print').mockImplementation(() => {});
+  const { container } = render(
+    <MemoryRouter initialEntries={['/seller/' + shop + '/products']}>
+      <app.default />
+    </MemoryRouter>,
+  );
+
+  const u = userEvent.setup();
+  await screen.findByText('Рюкзак');
+  expect(
+    screen.queryByRole('region', { name: 'Массовые действия' }),
+  ).toBeNull();
+
+  await u.click(screen.getByLabelText('Выбрать все товары на странице'));
+  const bulkBar = screen.getByRole('region', { name: 'Массовые действия' });
+  expect(bulkBar.textContent).toContain('Выбрано: 2');
+
+  await u.click(screen.getByRole('button', { name: 'Печать этикеток' }));
+  const dialog = screen.getByRole('dialog', { name: 'Печать этикеток' });
+  expect(dialog).toBeTruthy();
+
+  await u.click(screen.getByLabelText('Увеличить количество для Рюкзак'));
+  await u.click(screen.getByLabelText('Увеличить количество для Рюкзак'));
+  await u.click(screen.getByLabelText('Уменьшить количество для Рюкзак'));
+  expect(
+    (
+      screen.getByLabelText(
+        'Количество этикеток для Рюкзак',
+      ) as HTMLInputElement
+    ).value,
+  ).toBe('2');
+
+  expect(
+    container.querySelectorAll('.catalog-bulk-print-sheet .barcode-label'),
+  ).toHaveLength(3);
+
+  await u.click(screen.getByRole('button', { name: 'Печать (3)' }));
+  expect(print).toHaveBeenCalledOnce();
+
+  await u.click(screen.getByLabelText('Убрать Пенал из печати'));
+  expect(
+    container.querySelectorAll('.catalog-bulk-print-sheet .barcode-label'),
+  ).toHaveLength(2);
+  expect(screen.getByRole('button', { name: 'Печать (2)' })).toBeTruthy();
+
+  await u.click(screen.getByRole('button', { name: 'Отмена' }));
+  expect(screen.queryByRole('dialog', { name: 'Печать этикеток' })).toBeNull();
+
+  await u.click(screen.getByRole('button', { name: 'Снять выделение' }));
+  expect(
+    screen.queryByRole('region', { name: 'Массовые действия' }),
+  ).toBeNull();
+});

@@ -6,7 +6,13 @@ import { Page, Variant } from '../api/types';
 import { formatSom } from '../api/money';
 import { formatDate } from '../api/money';
 import { useSession } from '../auth/SessionProvider';
-import BarcodeLabel from './BarcodeLabel';
+import BarcodeLabel, {
+  isSmallLabelBarcodeDense,
+  LabelPrintPage,
+  LabelSize,
+  normalizeLabelCopies,
+} from './BarcodeLabel';
+import { encodeCode128B } from './code128';
 import ProductThumb from './ProductThumb';
 import CameraScanner from '../scanner/CameraScanner';
 
@@ -63,6 +69,12 @@ export default function CatalogPage() {
     [error, setError] = useState(''),
     [loading, setLoading] = useState(false),
     [barcodeProduct, setBarcodeProduct] = useState<Variant | null>(null),
+    [selectedProducts, setSelectedProducts] = useState<Record<string, Variant>>(
+      {},
+    ),
+    [printCopies, setPrintCopies] = useState<Record<string, string>>({}),
+    [bulkPrintOpen, setBulkPrintOpen] = useState(false),
+    [bulkLabelSize, setBulkLabelSize] = useState<LabelSize>('30x20'),
     [scannerFocused, setScannerFocused] = useState(true),
     [cameraScannerOpen, setCameraScannerOpen] = useState(false),
     searchInputRef = useRef<HTMLInputElement>(null);
@@ -93,7 +105,7 @@ export default function CatalogPage() {
     searchInputRef.current?.focus({ preventScroll: true });
 
     const keepFocus = () => {
-      if (barcodeProduct || cameraScannerOpen) return;
+      if (barcodeProduct || cameraScannerOpen || bulkPrintOpen) return;
       const active = document.activeElement;
       if (
         active &&
@@ -121,7 +133,7 @@ export default function CatalogPage() {
     };
 
     const handleGlobalClick = (event: MouseEvent) => {
-      if (barcodeProduct || cameraScannerOpen) return;
+      if (barcodeProduct || cameraScannerOpen || bulkPrintOpen) return;
       const target = event.target as HTMLElement | null;
       if (!target) return;
       if (
@@ -153,7 +165,7 @@ export default function CatalogPage() {
       window.removeEventListener('focus', handleWindowFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [barcodeProduct, cameraScannerOpen]);
+  }, [barcodeProduct, cameraScannerOpen, bulkPrintOpen]);
 
   useEffect(() => {
     let alive = true;
@@ -185,6 +197,92 @@ export default function CatalogPage() {
       alive = false;
     };
   }, [shopId, q, page, archived, stockFilter, category, visibility, sort]);
+  const selectedList = Object.values(selectedProducts);
+  const pageItems = data?.items ?? [];
+  const allPageSelected =
+    pageItems.length > 0 &&
+    pageItems.every((item) => Boolean(selectedProducts[item.id]));
+
+  function toggleProductSelection(product: Variant) {
+    setSelectedProducts((current) => {
+      if (current[product.id]) {
+        const next = { ...current };
+        delete next[product.id];
+        return next;
+      }
+      return { ...current, [product.id]: product };
+    });
+    setPrintCopies((current) =>
+      current[product.id] ? current : { ...current, [product.id]: '1' },
+    );
+  }
+
+  function toggleAllOnPage() {
+    if (!pageItems.length) return;
+    if (allPageSelected) {
+      setSelectedProducts((current) => {
+        const next = { ...current };
+        for (const item of pageItems) delete next[item.id];
+        return next;
+      });
+      return;
+    }
+    setSelectedProducts((current) => {
+      const next = { ...current };
+      for (const item of pageItems) next[item.id] = item;
+      return next;
+    });
+    setPrintCopies((current) => {
+      const next = { ...current };
+      for (const item of pageItems) {
+        if (!next[item.id]) next[item.id] = '1';
+      }
+      return next;
+    });
+  }
+
+  function removeSelectedProduct(productId: string) {
+    setSelectedProducts((current) => {
+      const next = { ...current };
+      delete next[productId];
+      if (Object.keys(next).length === 0) {
+        setBulkPrintOpen(false);
+      }
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelectedProducts({});
+    setPrintCopies({});
+    setBulkPrintOpen(false);
+  }
+
+  function stepPrintCopies(productId: string, delta: number) {
+    setPrintCopies((current) => {
+      const currentCount = normalizeLabelCopies(current[productId] ?? '1');
+      const nextCount = Math.max(1, Math.min(100, currentCount + delta));
+      return { ...current, [productId]: String(nextCount) };
+    });
+  }
+
+  function isValidCode128(product: Variant) {
+    try {
+      encodeCode128B(product.shortBarcode || product.barcode);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const totalLabelsToPrint = selectedList.reduce(
+    (sum, product) =>
+      sum + normalizeLabelCopies(printCopies[product.id] ?? '1'),
+    0,
+  );
+  const canBulkPrint =
+    selectedList.length > 0 && selectedList.every(isValidCode128);
+
   return (
     <>
       <div className="page-heading">
@@ -461,10 +559,47 @@ export default function CatalogPage() {
           </p>
         )}
         {loading && <p aria-live="polite">Загрузка…</p>}
+        {selectedList.length > 0 && (
+          <div
+            className="catalog-bulk-bar no-print"
+            role="region"
+            aria-label="Массовые действия"
+          >
+            <span className="catalog-bulk-bar__count">
+              Выбрано: <strong>{selectedList.length}</strong>
+            </span>
+            <div className="catalog-bulk-bar__actions">
+              <button
+                type="button"
+                className="primary"
+                onClick={() => setBulkPrintOpen(true)}
+              >
+                Печать этикеток
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                onClick={clearSelection}
+              >
+                Снять выделение
+              </button>
+            </div>
+          </div>
+        )}
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
+                <th className="catalog-select-col no-print">
+                  <input
+                    type="checkbox"
+                    className="catalog-select-checkbox"
+                    aria-label="Выбрать все товары на странице"
+                    checked={allPageSelected}
+                    disabled={!pageItems.length}
+                    onChange={toggleAllOnPage}
+                  />
+                </th>
                 <th>Товар</th>
                 <th>Добавлен</th>
                 {role !== 'cashier' && <th>Закупочная</th>}
@@ -476,7 +611,21 @@ export default function CatalogPage() {
             </thead>
             <tbody>
               {data?.items.map((v) => (
-                <tr key={v.id}>
+                <tr
+                  key={v.id}
+                  className={
+                    selectedProducts[v.id] ? 'catalog-row--selected' : ''
+                  }
+                >
+                  <td className="catalog-select-col no-print">
+                    <input
+                      type="checkbox"
+                      className="catalog-select-checkbox"
+                      aria-label={`Выбрать ${v.name}`}
+                      checked={Boolean(selectedProducts[v.id])}
+                      onChange={() => toggleProductSelection(v)}
+                    />
+                  </td>
                   <td>
                     <div className="catalog-product-cell">
                       <ProductThumb photoUrl={v.photoUrl} name={v.name} />
@@ -629,6 +778,190 @@ export default function CatalogPage() {
               }}
             />
           </div>
+        </div>
+      )}
+      {bulkPrintOpen && (
+        <div
+          className="barcode-dialog-backdrop"
+          role="presentation"
+          onClick={() => setBulkPrintOpen(false)}
+        >
+          <section
+            className="barcode-dialog catalog-bulk-print-dialog panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Печать этикеток"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="barcode-dialog-heading no-print">
+              <h2>Печать этикеток</h2>
+              <button
+                type="button"
+                aria-label="Закрыть"
+                onClick={() => setBulkPrintOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="catalog-bulk-print-controls no-print">
+              <label>
+                Размер этикетки
+                <select
+                  aria-label="Размер этикетки"
+                  value={bulkLabelSize}
+                  onChange={(event) =>
+                    setBulkLabelSize(event.target.value as LabelSize)
+                  }
+                >
+                  <option value="30x20">30 × 20 мм</option>
+                  <option value="58x40">58 × 40 мм</option>
+                </select>
+              </label>
+              <span className="muted">
+                Всего этикеток: <strong>{totalLabelsToPrint}</strong>
+              </span>
+            </div>
+            <div className="catalog-bulk-print-list no-print">
+              {selectedList.map((product) => {
+                const count = normalizeLabelCopies(
+                  printCopies[product.id] ?? '1',
+                );
+                const valid = isValidCode128(product);
+                return (
+                  <div className="catalog-bulk-print-item" key={product.id}>
+                    <div className="catalog-bulk-print-item__info">
+                      <strong>{product.name}</strong>
+                      {(product.size || product.color) && (
+                        <span className="muted">
+                          {' '}
+                          (
+                          {[product.size, product.color]
+                            .filter(Boolean)
+                            .join(', ')}
+                          )
+                        </span>
+                      )}
+                      <div className="catalog-bulk-print-item__meta">
+                        <small className="code">
+                          {product.shortBarcode || product.barcode}
+                        </small>
+                        <span className="muted">
+                          {formatSom(product.salePriceMinor)}
+                        </span>
+                      </div>
+                      {!valid && (
+                        <p className="error" style={{ margin: '4px 0 0' }}>
+                          Штрихкод не поддерживается для Code 128
+                        </p>
+                      )}
+                    </div>
+                    <div className="catalog-bulk-print-item__controls">
+                      <div className="catalog-qty-stepper">
+                        <button
+                          type="button"
+                          className="secondary"
+                          aria-label={`Уменьшить количество для ${product.name}`}
+                          disabled={count <= 1}
+                          onClick={() => stepPrintCopies(product.id, -1)}
+                        >
+                          −
+                        </button>
+                        <input
+                          type="number"
+                          min={1}
+                          max={100}
+                          aria-label={`Количество этикеток для ${product.name}`}
+                          value={printCopies[product.id] ?? '1'}
+                          onChange={(event) => {
+                            const cleaned = event.target.value
+                              .replace(/\D/g, '')
+                              .replace(/^0+(?=\d)/, '');
+                            if (event.target.value !== cleaned) {
+                              event.currentTarget.value = cleaned;
+                            }
+                            setPrintCopies((current) => ({
+                              ...current,
+                              [product.id]: cleaned,
+                            }));
+                          }}
+                          onBlur={() =>
+                            setPrintCopies((current) => ({
+                              ...current,
+                              [product.id]: String(
+                                normalizeLabelCopies(
+                                  current[product.id] ?? '1',
+                                ),
+                              ),
+                            }))
+                          }
+                        />
+                        <button
+                          type="button"
+                          className="secondary"
+                          aria-label={`Увеличить количество для ${product.name}`}
+                          disabled={count >= 100}
+                          onClick={() => stepPrintCopies(product.id, 1)}
+                        >
+                          +
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        className="secondary catalog-bulk-print-item__remove"
+                        aria-label={`Убрать ${product.name} из печати`}
+                        onClick={() => removeSelectedProduct(product.id)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {bulkLabelSize === '30x20' &&
+              selectedList.some((product) =>
+                isSmallLabelBarcodeDense(
+                  product.shortBarcode || product.barcode,
+                ),
+              ) && (
+                <p className="barcode-size-warning no-print">
+                  Длинный штрихкод может плохо считываться на наклейке 30 × 20
+                  мм. Используйте короткий код или этикетку 58 × 40 мм.
+                </p>
+              )}
+            <div className="catalog-bulk-print-footer no-print">
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setBulkPrintOpen(false)}
+              >
+                Отмена
+              </button>
+              <button
+                type="button"
+                className="primary"
+                disabled={!canBulkPrint}
+                onClick={() => window.print()}
+              >
+                Печать ({totalLabelsToPrint})
+              </button>
+            </div>
+            <LabelPrintPage size={bulkLabelSize} />
+            <div className="catalog-bulk-print-sheet" aria-hidden="true">
+              {selectedList.map((product) => (
+                <div className="selected-label" key={product.id}>
+                  <BarcodeLabel
+                    product={product}
+                    copies={normalizeLabelCopies(
+                      printCopies[product.id] ?? '1',
+                    )}
+                    hidePrintButton
+                    size={bulkLabelSize}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
         </div>
       )}
     </>
