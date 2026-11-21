@@ -35,6 +35,11 @@ export class BuyerLoyaltyController {
     return this.loyalty.wallets(req.buyerId);
   }
 
+  @Get('purchases')
+  purchases(@Req() req: BuyerRequest) {
+    return this.loyalty.purchases(req.buyerId);
+  }
+
   @Post('qr')
   qr(@Req() req: BuyerRequest) {
     return this.loyalty.issueQr(req.buyerId);
