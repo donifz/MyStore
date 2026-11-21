@@ -348,8 +348,13 @@ export default function PaymentBottomSheet({
                   {loyaltyEnabled && (
                     <button
                       type="button"
-                      className="pos-method pos-method-qr"
+                      className={`pos-method pos-method-qr${loyaltyToken || loyaltyCustomerName ? ' selected' : ''}`}
                       aria-label="QR покупателя"
+                      title={
+                        loyaltyCustomerName
+                          ? `Карта: ${loyaltyCustomerName}`
+                          : 'Карта клиента (QR)'
+                      }
                       disabled={paymentPending}
                       onClick={openBonus}
                     >
@@ -373,59 +378,13 @@ export default function PaymentBottomSheet({
                   </span>
                   <strong>Покупатель</strong>
                   <span className="pos-option-detail">
-                    {selectedCustomerName || 'Не выбран'}
+                    {selectedCustomerName || loyaltyCustomerName || 'Не выбран'}
                   </span>
                   <span className="pos-option-chevron" aria-hidden="true">
                     <PaymentIcon name="chevron" size={18} />
                   </span>
                 </button>
               </section>
-              <section className="pos-payment-option pos-option-discount">
-                <div className="pos-option-trigger">
-                  <span className="pos-option-icon" aria-hidden="true">
-                    <PaymentIcon name="tag" />
-                  </span>
-                  <strong>Скидка</strong>
-                  <span className="pos-option-detail">
-                    {checkoutDiscountMinor
-                      ? '− ' + formatSom(checkoutDiscountMinor)
-                      : '0,00 сом (0%)'}
-                  </span>
-                </div>
-              </section>
-
-              {loyaltyEnabled && !creditMode && (
-                <section className="pos-payment-option pos-option-bonus">
-                  <button
-                    type="button"
-                    className="pos-option-trigger"
-                    disabled={paymentPending}
-                    aria-haspopup="dialog"
-                    onClick={() => {
-                      openBonus();
-                    }}
-                  >
-                    <span className="pos-option-icon" aria-hidden="true">
-                      <PaymentIcon name="qr" />
-                    </span>
-                    <strong>
-                      {loyaltyCustomerName
-                        ? `Карта · ${loyaltyCustomerName.split(' ')[0]}`
-                        : 'Карта клиента'}
-                    </strong>
-                    <span className="pos-option-detail">
-                      {redeemPoints > 0
-                        ? '−' + formatSom(redeemPoints * 100)
-                        : selectedCustomerPoints > 0
-                          ? 'Доступно: ' + selectedCustomerPoints
-                          : 'Бонусы и долг'}
-                    </span>
-                    <span className="pos-option-chevron" aria-hidden="true">
-                      <PaymentIcon name="chevron" size={18} />
-                    </span>
-                  </button>
-                </section>
-              )}
 
               {creditSalesEnabled && (
                 <section className="pos-payment-option pos-option-credit">
