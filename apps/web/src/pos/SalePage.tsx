@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { api } from '../api/client';
 import type { Page, Variant } from '../api/types';
 import { useParams } from 'react-router-dom';
@@ -10,7 +17,7 @@ import CameraScanner from '../scanner/CameraScanner';
 import { shouldKeepScannerFocus } from '../scanner/scan-focus';
 import { useCurrentShift } from './use-current-shift';
 import PaymentBottomSheet from './PaymentBottomSheet';
-import LoyaltyCheckout from './LoyaltyCheckout';
+import LoyaltyCheckout, { type CustomerQrProfile } from './LoyaltyCheckout';
 import PaymentIcon from './PaymentIcon';
 import {
   allocateCheckoutDiscount,
@@ -175,6 +182,9 @@ function SaleWorkspace({
     [creditMode, setCreditMode] = useState(false),
     [loyaltyToken, setLoyaltyToken] = useState(''),
     [redeemPoints, setRedeemPoints] = useState(0),
+    [loyaltyCustomer, setLoyaltyCustomer] = useState<CustomerQrProfile | null>(
+      null,
+    ),
     [creditCustomerId, setCreditCustomerId] = useState(''),
     [creditCustomerEligible, setCreditCustomerEligible] = useState(false),
     [creditPaidText, setCreditPaidText] = useState('0'),
@@ -245,6 +255,9 @@ function SaleWorkspace({
     if (doc.success) {
       setReceived('');
       setQuery('');
+      setLoyaltyToken('');
+      setRedeemPoints(0);
+      setLoyaltyCustomer(null);
       if (shouldKeepScannerFocus()) scanInput.current?.focus();
     }
   }, [doc.success]);
@@ -351,6 +364,16 @@ function SaleWorkspace({
   const itemCount = doc.draft.lines.reduce((n, l) => n + l.quantity, 0);
   const inCart = new Map(doc.draft.lines.map((l) => [l.id, l.quantity]));
 
+  const handleLoyaltyProfile = useCallback(
+    (profile: CustomerQrProfile | null) => {
+      setLoyaltyCustomer(profile);
+      if (profile?.customerId) {
+        setCreditCustomerId((current) => current || profile.customerId);
+      }
+    },
+    [],
+  );
+
   function startNewReceipt() {
     void doc.change([]);
     doc.setError('');
@@ -360,12 +383,13 @@ function SaleWorkspace({
     setCreditMode(false);
     setLoyaltyToken('');
     setRedeemPoints(0);
+    setLoyaltyCustomer(null);
     setCreditCustomerId('');
     setCreditCustomerEligible(false);
     setCreditPaidText('0');
     setQuery('');
     setPaymentSheetOpen(false);
-    scanInput.current?.focus();
+    if (shouldKeepScannerFocus()) scanInput.current?.focus();
   }
 
   async function submit() {
@@ -848,7 +872,11 @@ function SaleWorkspace({
                     onClick={() => setCustomerCardOpen(true)}
                   >
                     <Icon name="qr" />
-                    <span>Карта</span>
+                    <span>
+                      {loyaltyCustomer
+                        ? `Карта · ${loyaltyCustomer.name.split(' ')[0]}`
+                        : 'Карта'}
+                    </span>
                   </button>
                 )}
                 <button
@@ -974,6 +1002,7 @@ function SaleWorkspace({
                 setPoints={setRedeemPoints}
                 totalMinor={safe ? Number(afterCheckoutDiscount) : 0}
                 disabled={locked}
+                onProfileLoaded={handleLoyaltyProfile}
               />
             </div>
             <div className="pos-sheet-option-actions">
