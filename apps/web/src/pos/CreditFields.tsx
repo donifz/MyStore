@@ -115,6 +115,12 @@ export default function CreditFields({
     };
   }, [shopId, enabled, query, revision]);
 
+  useEffect(() => {
+    if (enabled && customerId) {
+      onCustomerEligible(true);
+    }
+  }, [enabled, customerId, onCustomerEligible]);
+
   const selected = customers.find((customer) => customer.id === customerId);
 
   async function chooseCustomer(customer: Customer) {

@@ -369,6 +369,7 @@ function SaleWorkspace({
       setLoyaltyCustomer(profile);
       if (profile?.customerId) {
         setCreditCustomerId((current) => current || profile.customerId);
+        setCreditCustomerEligible(true);
       }
     },
     [],

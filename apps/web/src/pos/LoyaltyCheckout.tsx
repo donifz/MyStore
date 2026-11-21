@@ -97,6 +97,12 @@ export default function LoyaltyCheckout({
               ? `${err.message} (${err.status})`
               : `${errorText(err)} (код ${err.status})`,
           );
+        } else if (
+          err instanceof ApiError &&
+          err.status === 400 &&
+          err.message
+        ) {
+          setLookupError(err.message);
         } else {
           setLookupError(errorText(err));
         }
