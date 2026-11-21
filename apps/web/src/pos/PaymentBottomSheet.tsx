@@ -433,10 +433,6 @@ export default function PaymentBottomSheet({
                               : 'Долг: ' + formatSom(creditDebtMinor)}
                           </span>
                         </>
-                      ) : selectedCustomerName || loyaltyCustomerName ? (
-                        <span className="pos-option-buyer">
-                          {selectedCustomerName || loyaltyCustomerName}
-                        </span>
                       ) : selectedCustomerDebt > 0 ? (
                         'Долг: ' + formatSom(selectedCustomerDebt)
                       ) : (

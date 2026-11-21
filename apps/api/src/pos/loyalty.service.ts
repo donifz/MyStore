@@ -59,7 +59,7 @@ export class LoyaltyService {
       );
       const [row] = await tx.query(
         `INSERT INTO buyer_loyalty_tokens(token_hash,buyer_id,expires_at)
-         VALUES ($1,$2,now()+interval '2 minutes') RETURNING expires_at`,
+         VALUES ($1,$2,now()+interval '10 minutes') RETURNING expires_at`,
         [hashToken(token), buyerId],
       );
       return { token, expiresAt: row.expires_at.toISOString() };
