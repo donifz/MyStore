@@ -282,7 +282,14 @@ export default function LoyaltyCheckout({
           onScan={(value) => {
             setRepaySuccess('');
             setRepayError('');
-            setToken(/^[A-Za-z0-9_-]{43}$/.test(value) ? value : '');
+            const trimmed = value.trim();
+            if (/^[A-Za-z0-9_-]{43}$/.test(trimmed)) {
+              setLookupError('');
+              setToken(trimmed);
+            } else {
+              setToken('');
+              setLookupError('Некорректный QR-код карты покупателя');
+            }
             setScanning(false);
           }}
         />
