@@ -2,6 +2,7 @@ import Pagination from '../components/Pagination';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { api, errorText } from '../api/client';
+import { useShopLiveSync } from '../api/use-shop-live-sync';
 import { Page, Variant } from '../api/types';
 import { formatSom } from '../api/money';
 import { formatDate } from '../api/money';
@@ -68,6 +69,7 @@ export default function CatalogPage() {
     [data, setData] = useState<Page<Variant> | null>(null),
     [error, setError] = useState(''),
     [loading, setLoading] = useState(false),
+    [refreshTick, setRefreshTick] = useState(0),
     [barcodeProduct, setBarcodeProduct] = useState<Variant | null>(null),
     [selectedProducts, setSelectedProducts] = useState<Record<string, Variant>>(
       {},
@@ -196,7 +198,27 @@ export default function CatalogPage() {
     return () => {
       alive = false;
     };
-  }, [shopId, q, page, archived, stockFilter, category, visibility, sort]);
+  }, [
+    shopId,
+    q,
+    page,
+    archived,
+    stockFilter,
+    category,
+    visibility,
+    sort,
+    refreshTick,
+  ]);
+  useShopLiveSync(
+    shopId,
+    [
+      'inventory.updated',
+      'catalog.updated',
+      'receiving.updated',
+      'sale.updated',
+    ],
+    () => setRefreshTick((tick) => tick + 1),
+  );
   const selectedList = Object.values(selectedProducts);
   const pageItems = data?.items ?? [];
   const allPageSelected =
@@ -552,6 +574,14 @@ export default function CatalogPage() {
           >
             {data?.total ?? 0} товаров
           </span>
+          <button
+            type="button"
+            className="secondary no-print"
+            disabled={loading}
+            onClick={() => setRefreshTick((tick) => tick + 1)}
+          >
+            Обновить
+          </button>
         </div>
         {error && (
           <p role="alert" className="error">

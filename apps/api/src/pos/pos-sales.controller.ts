@@ -28,6 +28,7 @@ import {
 } from 'class-validator';
 import { AuthGuard, UserRequest } from '../auth/auth.guard';
 import { ShopAccessService } from '../shops/shop-access.service';
+import { ShopEventsService } from '../shops/shop-events.service';
 import { SaleLineDto } from './sales.controller';
 import { PosSalesService } from './pos-sales.service';
 import { SalesHistoryService } from './sales-history.service';
@@ -67,6 +68,7 @@ export class PosSalesController {
     private readonly access: ShopAccessService,
     private readonly sales: PosSalesService,
     private readonly history: SalesHistoryService,
+    private readonly events: ShopEventsService,
   ) {}
   @Post() async sell(
     @Param('shopId', ParseUUIDPipe) shop: string,
@@ -75,7 +77,7 @@ export class PosSalesController {
     @Body() dto: PosSaleDto,
   ) {
     await this.access.requireMembership(req.userId, shop, 'sell');
-    return this.sales.sell(
+    const result = await this.sales.sell(
       shop,
       req.userId,
       key,
@@ -86,6 +88,9 @@ export class PosSalesController {
         ? { token: dto.loyaltyToken, redeemPoints: dto.redeemPoints ?? 0 }
         : undefined,
     );
+    this.events.emit(shop, 'sale.updated');
+    this.events.emit(shop, 'inventory.updated');
+    return result;
   }
   @Get() async list(
     @Param('shopId', ParseUUIDPipe) shop: string,

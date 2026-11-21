@@ -2,6 +2,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useSession } from '../auth/SessionProvider';
 import { parseSom, formatSom } from '../api/money';
 import { api, errorText } from '../api/client';
+import { useShopLiveSync } from '../api/use-shop-live-sync';
 import { useEffect, useRef, useState } from 'react';
 import { useDocument } from '../drafts/use-document';
 import DocumentEditor from '../drafts/DocumentEditor';
@@ -62,13 +63,19 @@ function ReceivingWorkspace({
     [comment, setComment] = useState(doc.draft.submission?.body?.comment ?? ''),
     [confirmOpen, setConfirmOpen] = useState(false),
     [history, setHistory] = useState<any[]>([]),
+    [historyTick, setHistoryTick] = useState(0),
     [selectedReceipt, setSelectedReceipt] = useState<any | null>(null),
     [detailError, setDetailError] = useState('');
   useEffect(() => {
     void api<any[]>(`/shops/${shopId}/receivings`)
       .then((items) => setHistory(Array.isArray(items) ? items : []))
       .catch(() => undefined);
-  }, [shopId, doc.success]);
+  }, [shopId, doc.success, historyTick]);
+  useShopLiveSync(
+    shopId,
+    ['receiving.updated', 'inventory.updated', 'catalog.updated'],
+    () => setHistoryTick((tick) => tick + 1),
+  );
   async function openDetail(id: string) {
     setDetailError('');
     try {
