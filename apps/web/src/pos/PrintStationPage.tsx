@@ -8,6 +8,11 @@ import BarcodeLabel, {
   LabelSize,
   normalizeLabelCopies,
 } from '../catalog/BarcodeLabel';
+import {
+  buildMacInstallerCommand,
+  buildWindowsInstallerBat,
+  downloadTextFile,
+} from './print-agent-installer';
 
 export type PrintJob = {
   id: string;
@@ -42,6 +47,7 @@ export default function PrintStationPage() {
   const [error, setError] = useState('');
   const [autoPrint, setAutoPrint] = useState(false);
   const [agentOnline, setAgentOnline] = useState(false);
+  const [agentNotice, setAgentNotice] = useState('');
   const [activeJob, setActiveJob] = useState<PrintJob | null>(null);
   const [tick, setTick] = useState(0);
   const busyJobRef = useRef(false);
@@ -222,12 +228,75 @@ export default function PrintStationPage() {
               </span>
             </strong>
             <p className="muted" style={{ margin: '4px 0 0' }}>
-              Для прямой тихой печати на USB-термопринтер без диалоговых окон
-              запустите на ноутбуке: <code>node scripts/print-agent.mjs</code>
+              {agentOnline
+                ? 'Печать идёт напрямую на термопринтер без диалоговых окон.'
+                : 'Установите агент 1 раз на ноутбук — затем его можно запускать кнопкой прямо отсюда.'}
             </p>
           </div>
           <span className="catalog-count-pill">В очереди: {pendingCount}</span>
         </div>
+        {!agentOnline && (
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '0.5rem',
+              marginTop: '0.75rem',
+            }}
+          >
+            <button
+              type="button"
+              className="primary button"
+              onClick={() => {
+                setAgentNotice(
+                  'Пробую запустить агента… Если он ещё не установлен, скачайте установщик ниже и запустите его 1 раз.',
+                );
+                window.location.href = 'mystore-print://start';
+                window.setTimeout(() => {
+                  void fetch(`${LOCAL_AGENT_URL}/health`)
+                    .then((res) => {
+                      if (res.ok) {
+                        setAgentOnline(true);
+                        setAgentNotice('');
+                      }
+                    })
+                    .catch(() => undefined);
+                }, 1500);
+              }}
+            >
+              Запустить агента
+            </button>
+            <button
+              type="button"
+              className="secondary button"
+              onClick={() =>
+                downloadTextFile(
+                  'mystore-print-agent.bat',
+                  buildWindowsInstallerBat(),
+                )
+              }
+            >
+              Скачать установщик (Windows)
+            </button>
+            <button
+              type="button"
+              className="secondary button"
+              onClick={() =>
+                downloadTextFile(
+                  'mystore-print-agent.command',
+                  buildMacInstallerCommand(),
+                )
+              }
+            >
+              Скачать для Mac / Linux
+            </button>
+          </div>
+        )}
+        {agentNotice && !agentOnline && (
+          <p className="muted" role="status" style={{ margin: '0.5rem 0 0' }}>
+            {agentNotice}
+          </p>
+        )}
       </section>
 
       {error && (
