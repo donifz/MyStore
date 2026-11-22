@@ -117,6 +117,8 @@ import { ShopTelegramService } from './shops/shop-telegram.service';
 import { ShopTelegramController } from './shops/shop-telegram.controller';
 import { PosTerminalService } from './pos/terminal.service';
 import { PosTerminalController } from './pos/terminal.controller';
+import { PrintJobsService } from './pos/print-jobs.service';
+import { PrintJobsController } from './pos/print-jobs.controller';
 const STOREFRONT_EXACT_PATHS = new Set([
   '/',
   '/catalog',
@@ -195,6 +197,7 @@ export async function createApp(
       ShopCustomersController,
       ShopCustomAttributesController,
       ShopTelegramController,
+      PrintJobsController,
     ],
     providers: [
       ShopCustomAttributesService,
@@ -223,6 +226,7 @@ export async function createApp(
       ShiftsService,
       PosSalesService,
       PosTerminalService,
+      PrintJobsService,
       CreditSalesService,
       CreditRepaymentsService,
       LoyaltyService,

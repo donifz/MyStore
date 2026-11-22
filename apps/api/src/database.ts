@@ -48,6 +48,7 @@ import { PlatformHeroSlidesEnhancements1760000000044 } from './migrations/176000
 import { PosTerminalQueue1760000000045 } from './migrations/1760000000045-PosTerminalQueue';
 import { VariantLabelPrintCount1760000000046 } from './migrations/1760000000046-VariantLabelPrintCount';
 import { CostRevaluation1760000000047 } from './migrations/1760000000047-CostRevaluation';
+import { PrintJobs1760000000048 } from './migrations/1760000000048-PrintJobs';
 export const DATABASE = Symbol('DATABASE');
 export function buildDataSource(url: string) {
   return new DataSource({
@@ -103,6 +104,7 @@ export function buildDataSource(url: string) {
       PosTerminalQueue1760000000045,
       VariantLabelPrintCount1760000000046,
       CostRevaluation1760000000047,
+      PrintJobs1760000000048,
     ],
   });
 }
