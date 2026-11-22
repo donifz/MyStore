@@ -86,6 +86,15 @@ describe('PrintStationPage', () => {
 
     await screen.findByText('Кофе арабика × 2');
     expect(screen.getByText('Ожидает печати')).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: 'Запустить агента' }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: 'Скачать установщик (Windows)' }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: 'Скачать для Mac / Linux' }),
+    ).toBeTruthy();
 
     const u = userEvent.setup();
     await u.click(screen.getByRole('button', { name: 'Печатать' }));
