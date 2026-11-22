@@ -121,12 +121,12 @@ export default function PrintStationPage() {
           }
         } else {
           await new Promise<void>((resolve) => {
-            window.requestAnimationFrame(() => {
+            window.setTimeout(() => {
               window.requestAnimationFrame(() => {
                 window.print();
                 resolve();
               });
-            });
+            }, 100);
           });
         }
 
@@ -324,81 +324,118 @@ export default function PrintStationPage() {
         )}
       </section>
 
-      {activeJob && (
-        <div className="print-only" aria-hidden="true">
-          {activeJob.kind === 'label' ? (
-            <>
-              <LabelPrintPage
-                size={
-                  activeJob.payload?.labelSize === '58x40' ? '58x40' : '30x20'
-                }
-              />
-              <div className="catalog-bulk-print-sheet">
-                {(Array.isArray(activeJob.payload?.items)
-                  ? activeJob.payload.items
-                  : [activeJob.payload]
-                ).map((item: any, idx: number) => {
-                  const copies = normalizeLabelCopies(String(item.copies ?? 1));
-                  const size: LabelSize =
-                    activeJob.payload?.labelSize === '58x40'
-                      ? '58x40'
-                      : '30x20';
-                  const barcode = String(
-                    item.shortBarcode || item.barcode || '',
-                  );
-                  return (
-                    <div className="selected-label" key={idx}>
-                      <BarcodeLabel
-                        product={{
-                          id: String(item.variantId || idx),
-                          name: String(item.name || ''),
-                          barcode,
-                          shortBarcode: item.shortBarcode,
-                          salePriceMinor: Number(item.priceMinor || 0),
-                          sku: item.sku ?? null,
-                        }}
-                        copies={copies}
-                        hidePrintButton
-                        size={size}
-                      />
-                    </div>
-                  );
-                })}
+      {activeJob &&
+        (activeJob.kind === 'label' ? (
+          <>
+            <LabelPrintPage
+              size={
+                activeJob.payload?.labelSize === '58x40' ? '58x40' : '30x20'
+              }
+            />
+            <div className="catalog-bulk-print-sheet" aria-hidden="true">
+              {(Array.isArray(activeJob.payload?.items)
+                ? activeJob.payload.items
+                : [activeJob.payload]
+              ).map((item: any, idx: number) => {
+                const copies = normalizeLabelCopies(String(item.copies ?? 1));
+                const size: LabelSize =
+                  activeJob.payload?.labelSize === '58x40' ? '58x40' : '30x20';
+                const barcode = String(item.shortBarcode || item.barcode || '');
+                return (
+                  <div className="selected-label" key={idx}>
+                    <BarcodeLabel
+                      product={{
+                        id: String(item.variantId || idx),
+                        name: String(item.name || ''),
+                        barcode,
+                        shortBarcode: item.shortBarcode,
+                        salePriceMinor: Number(item.priceMinor || 0),
+                        sku: item.sku ?? null,
+                      }}
+                      copies={copies}
+                      hidePrintButton
+                      size={size}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <>
+            <style>
+              {'@media print { @page { size: 80mm auto; margin: 0; } }'}
+            </style>
+            <div className="sale-receipt-print" aria-hidden="true">
+              <div style={{ textAlign: 'center', fontWeight: 700 }}>
+                {String(activeJob.payload?.shopName || 'Чек')}
               </div>
-            </>
-          ) : (
-            <div className="pos-receipt">
-              <h3>{String(activeJob.payload?.shopName || 'Чек')}</h3>
-              <p>{String(activeJob.payload?.createdAt || '')}</p>
-              <hr />
+              {activeJob.payload?.createdAt && (
+                <div style={{ textAlign: 'center', marginTop: '2px' }}>
+                  {new Date(String(activeJob.payload.createdAt)).toLocaleString(
+                    'ru-RU',
+                  )}
+                </div>
+              )}
+              <div className="receipt-divider" />
               {(Array.isArray(activeJob.payload?.lines)
                 ? activeJob.payload.lines
                 : []
-              ).map((line: any, i: number) => (
-                <div
-                  key={i}
-                  style={{ display: 'flex', justifyContent: 'space-between' }}
-                >
-                  <span>
-                    {line.name} × {line.quantity}
-                  </span>
-                  <span>
-                    {formatSom(
-                      (Number(line.unitPriceMinor || 0) -
-                        Number(line.discountMinor || 0)) *
-                        Number(line.quantity || 1),
-                    )}
-                  </span>
-                </div>
-              ))}
-              <hr />
-              <strong>
-                Итого: {formatSom(Number(activeJob.payload?.totalMinor || 0))}
-              </strong>
+              ).map((line: any, i: number) => {
+                const qty = Number(line.quantity || 1);
+                const unit =
+                  Number(line.unitPriceMinor || 0) -
+                  Number(line.discountMinor || 0);
+                return (
+                  <div key={i} style={{ marginBottom: '4px' }}>
+                    <div>
+                      {i + 1}. {String(line.name || '')}
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <span>
+                        {qty} × {formatSom(unit)}
+                      </span>
+                      <span>{formatSom(qty * unit)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="receipt-divider" />
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontWeight: 700,
+                }}
+              >
+                <span>ИТОГО:</span>
+                <span>
+                  {formatSom(Number(activeJob.payload?.totalMinor || 0))}
+                </span>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <span>Оплата:</span>
+                <span>
+                  {activeJob.payload?.method === 'card'
+                    ? 'Безналичные / QR'
+                    : 'Наличные'}
+                </span>
+              </div>
+              <div className="receipt-divider" />
+              <div style={{ textAlign: 'center' }}>Спасибо за покупку!</div>
             </div>
-          )}
-        </div>
-      )}
+          </>
+        ))}
     </>
   );
 }
