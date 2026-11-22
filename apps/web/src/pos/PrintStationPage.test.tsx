@@ -73,7 +73,7 @@ describe('PrintStationPage', () => {
     vi.stubGlobal('fetch', fetchMock);
     const printSpy = vi.spyOn(window, 'print').mockImplementation(() => {});
 
-    render(
+    const { container } = render(
       <MemoryRouter initialEntries={['/seller/shop-1/print-station']}>
         <Routes>
           <Route
@@ -91,6 +91,10 @@ describe('PrintStationPage', () => {
     await u.click(screen.getByRole('button', { name: 'Печатать' }));
 
     await waitFor(() => expect(printSpy).toHaveBeenCalledOnce());
+    expect(
+      container.querySelector('.catalog-bulk-print-sheet .barcode-preview'),
+    ).toBeTruthy();
+    expect(container.querySelector('.print-only')).toBeNull();
     await screen.findByText('Напечатано');
   });
 });
