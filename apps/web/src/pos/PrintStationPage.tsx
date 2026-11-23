@@ -10,6 +10,7 @@ import BarcodeLabel, {
 } from '../catalog/BarcodeLabel';
 import {
   buildMacInstallerCommand,
+  buildMacTerminalCommand,
   buildWindowsInstallerBat,
   downloadTextFile,
 } from './print-agent-installer';
@@ -248,6 +249,26 @@ export default function PrintStationPage() {
               type="button"
               className="primary button"
               onClick={() => {
+                const isMacOrLinux =
+                  typeof navigator !== 'undefined' &&
+                  /Mac|Linux/i.test(navigator.userAgent) &&
+                  !/Win/i.test(navigator.userAgent);
+                if (isMacOrLinux) {
+                  const cmd = buildMacTerminalCommand();
+                  void navigator.clipboard
+                    ?.writeText(cmd)
+                    .then(() => {
+                      setAgentNotice(
+                        'Команда скопирована! Откройте «Терминал» на Mac, вставьте (⌘V) и нажмите Enter.',
+                      );
+                    })
+                    .catch(() => {
+                      setAgentNotice(
+                        'Откройте «Терминал» и выполните: bash ~/Downloads/mystore-print-agent.command',
+                      );
+                    });
+                  return;
+                }
                 setAgentNotice(
                   'Пробую запустить агента… Если он ещё не установлен, скачайте установщик ниже и запустите его 1 раз.',
                 );
@@ -277,6 +298,27 @@ export default function PrintStationPage() {
               }
             >
               Скачать установщик (Windows)
+            </button>
+            <button
+              type="button"
+              className="secondary button"
+              onClick={() => {
+                void navigator.clipboard
+                  ?.writeText(buildMacTerminalCommand())
+                  .then(() =>
+                    setAgentNotice(
+                      'Команда скопирована! Откройте «Терминал» на Mac, вставьте (⌘V) и нажмите Enter.',
+                    ),
+                  )
+                  .catch(() =>
+                    downloadTextFile(
+                      'mystore-print-agent.command',
+                      buildMacInstallerCommand(),
+                    ),
+                  );
+              }}
+            >
+              Копировать команду (Mac / Linux)
             </button>
             <button
               type="button"
