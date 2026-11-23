@@ -182,11 +182,17 @@ export function buildWindowsInstallerBat(): string {
   ].join('\r\n');
 }
 
+export function buildMacTerminalCommand(): string {
+  const b64 = toBase64Utf8(PRINT_AGENT_JS);
+  return `PATH="/opt/homebrew/bin:/usr/local/bin:$PATH" bash -c 'mkdir -p "$HOME/.mystore-print-agent" && node -e "require(\\"fs\\").writeFileSync(process.env.HOME+\\"/.mystore-print-agent/print-agent.mjs\\", Buffer.from(\\"${b64}\\",\\"base64\\"))" && node "$HOME/.mystore-print-agent/print-agent.mjs"'`;
+}
+
 export function buildMacInstallerCommand(): string {
   const b64 = toBase64Utf8(PRINT_AGENT_JS);
   return [
     '#!/usr/bin/env bash',
     'set -e',
+    'export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"',
     'DIR="$HOME/.mystore-print-agent"',
     'mkdir -p "$DIR"',
     'if ! command -v node >/dev/null 2>&1; then',
@@ -194,7 +200,7 @@ export function buildMacInstallerCommand(): string {
     '  open "https://nodejs.org/" 2>/dev/null || xdg-open "https://nodejs.org/" 2>/dev/null || true',
     '  exit 1',
     'fi',
-    `echo "${b64}" | base64 --decode > "$DIR/print-agent.mjs" 2>/dev/null || echo "${b64}" | base64 -D > "$DIR/print-agent.mjs"`,
+    `node -e 'require("fs").writeFileSync(process.argv[1], Buffer.from(process.argv[2], "base64"))' "$DIR/print-agent.mjs" "${b64}"`,
     'echo "Starting MyStore Print Agent..."',
     'node "$DIR/print-agent.mjs"',
   ].join('\n');
