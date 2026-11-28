@@ -622,7 +622,9 @@ test('orders pages do not show hardcoded mock orders and link to buyer cabinet',
   await expect(page.getByRole('main')).not.toContainText('38472');
   await expect(page.getByRole('main')).not.toContainText('Мир игрушек');
   await expect(
-    page.getByRole('link', { name: 'Личный кабинет', exact: true }),
+    page
+      .getByRole('main')
+      .getByRole('link', { name: 'Личный кабинет', exact: true }),
   ).toHaveAttribute('href', '/buyer');
 
   await page.goto('/orders/missing-order');
