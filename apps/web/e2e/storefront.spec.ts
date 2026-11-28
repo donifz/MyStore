@@ -18,7 +18,9 @@ test('buyer submits a partner application without creating a login', async ({
   await page.getByLabel('Адрес').fill('Центр');
   await page.getByLabel('Категория бизнеса').selectOption('toys');
   await page.getByLabel('Согласен с условиями подключения').check();
-  await page.getByRole('button', { name: 'Отправить заявку' }).click();
+  await page
+    .getByRole('button', { name: 'Попробовать 30 дней бесплатно' })
+    .click();
   await expect(page.getByRole('status')).toContainText('Заявка отправлена.');
   await expect(page.getByRole('link', { name: 'Войти в кабинет' })).toHaveCount(
     0,

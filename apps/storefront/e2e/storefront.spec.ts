@@ -395,6 +395,21 @@ test('partner form submits the same data and announces success', async ({
     });
   });
   await page.goto('/partner');
+  await expect(page.getByText('30 дней бесплатно · Без карты')).toBeVisible();
+  await expect(
+    page.getByRole('heading', {
+      name: 'Касса, учёт и витрина в одном месте',
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page.getByText('Касса, чеки и USB-сканер')).toBeVisible();
+  await expect(page.getByText('Остатки, смены и чистая прибыль')).toBeVisible();
+  await expect(page.getByText('Готовая онлайн-витрина магазина')).toBeVisible();
+  await expect(
+    page.getByText('Заявка за 1 минуту → ссылка на вход в WhatsApp'),
+  ).toBeVisible();
+  await expect(page.getByText('С WhatsApp')).toBeVisible();
+  await expect(page.getByText('Необязательно')).toBeVisible();
   await page.getByLabel('Название магазина').fill('Мастерская');
   await page.getByLabel('Email', { exact: true }).fill('example@example.test');
   await page.getByLabel('Телефон', { exact: true }).fill('+996700123456');
@@ -410,7 +425,9 @@ test('partner form submits the same data and announces success', async ({
   await shopTypeSelect.selectOption('home');
   await expect(shopTypeSelect).toHaveValue('home');
   await page.getByLabel('Согласен с условиями подключения').check();
-  await page.getByRole('button', { name: 'Отправить заявку' }).click();
+  await page
+    .getByRole('button', { name: 'Попробовать 30 дней бесплатно' })
+    .click();
   await expect
     .poll(() => submitted)
     .toEqual({
@@ -696,6 +713,9 @@ test('shops directory displays hero, quick filters, rich store cards, and partne
     await expect(
       page.locator('.sf-partner-cta-card a[href="/partner"]'),
     ).toBeVisible();
+    await expect(page.locator('.sf-partner-cta-card__note')).toHaveText(
+      'Пробный период 30 дней бесплатно · Без привязки карты',
+    );
 
     const storeCards = page.locator(
       '.sf-store-list-grid .sf-store-card--modern',

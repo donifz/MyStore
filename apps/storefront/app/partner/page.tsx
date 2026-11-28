@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 export function generateMetadata() {
   return metadata(
     'Стать партнёром — MyStore',
-    'Отправьте заявку на подключение магазина к MyStore.',
+    'Касса, учёт и онлайн-витрина магазина: 30 дней бесплатно без привязки карты.',
     '/partner',
     true,
   );

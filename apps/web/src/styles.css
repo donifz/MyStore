@@ -1970,43 +1970,150 @@ fieldset {
 }
 .partner-grid {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 70px;
-  padding: 40px 0;
-  align-items: start;
+  grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr);
+  gap: 36px;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 28px 0 40px;
+  align-items: center;
+}
+.partner-intro {
+  display: grid;
+  gap: 18px;
+  align-content: center;
+  padding: 32px;
+  background: linear-gradient(155deg, #f8fbff 0%, #eef5ff 58%, #edf9f1 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 22px;
+}
+.partner-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
 }
 .partner-intro h1 {
-  font-size: 50px;
-  line-height: 1.15;
-  letter-spacing: -2px;
-  margin: 20px 0;
+  font-size: clamp(28px, 3.6vw, 42px);
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  margin: 0;
 }
-.partner-intro > p {
-  max-width: 430px;
-  color: #738369;
+.partner-lead {
+  max-width: 44ch;
+  color: #526277;
+  font-size: 16px;
+  line-height: 1.45;
+  margin: 0;
 }
-.partner-intro ul {
+.partner-perks {
   list-style: none;
   padding: 0;
-  margin: 30px 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
 }
-.partner-intro li {
-  padding: 15px 0;
-  border-bottom: 1px solid #e6e9dd;
+.partner-perks li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.3;
 }
-.partner-intro li::before {
-  content: '↗';
-  margin-right: 15px;
-  color: #729452;
+.partner-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #15803d;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.partner-flow {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #526277;
 }
 .partner-form {
-  padding: 36px;
-  border-color: #dfe5d5;
-  border-radius: 18px;
+  padding: 28px;
+  border-color: #e2e8f0;
+  border-radius: 22px;
+  box-shadow: 0 6px 20px -2px rgba(15, 23, 42, 0.06);
 }
 .partner-form h2 {
   font-size: 24px;
-  margin-bottom: 30px;
+  margin: 0 0 18px;
+}
+.partner-form fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+.partner-form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.partner-field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.partner-field label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+.partner-field input,
+.partner-field select {
+  width: 100%;
+  margin: 0;
+}
+.partner-field-hint {
+  font-size: 12px;
+  line-height: 1.3;
+  color: #64748b;
+}
+.partner-agree {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0;
+  font-size: 14px;
+}
+.partner-agree input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin: 0;
+}
+.partner-login,
+.partner-done-note {
+  margin: 14px 0 0;
+  font-size: 14px;
+  color: #526277;
+  text-align: center;
 }
 @media (max-width: 1000px) {
   .product-grid {
@@ -2025,10 +2132,12 @@ fieldset {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .partner-grid {
-    gap: 30px;
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 16px 0 28px;
   }
   .partner-intro h1 {
-    font-size: 38px;
+    font-size: clamp(26px, 4.5vw, 34px);
   }
 }
 @media (max-width: 600px) {
@@ -2113,8 +2222,14 @@ fieldset {
     grid-template-columns: 1fr;
     padding: 12px 0;
   }
+  .partner-intro {
+    padding: 22px 18px;
+  }
   .partner-form {
-    padding: 24px;
+    padding: 22px 18px;
+  }
+  .partner-form-row {
+    grid-template-columns: 1fr;
   }
   .market-title h1 {
     font-size: 32px;
