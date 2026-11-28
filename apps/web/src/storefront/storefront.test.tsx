@@ -82,13 +82,27 @@ it('shows confirmation after a partner application without requesting a password
   mock([{ code: 'toys', name: 'Игрушки' }]);
   open('/partner');
   const u = userEvent.setup();
+  await screen.findByRole('heading', {
+    name: 'Касса, учёт и витрина в одном месте',
+  });
+  expect(screen.getByText('30 дней бесплатно · Без карты').isConnected).toBe(
+    true,
+  );
+  expect(screen.getByText('С WhatsApp').isConnected).toBe(true);
+  expect(screen.getByText('Необязательно').isConnected).toBe(true);
+  expect(
+    screen.getByText('Заявка за 1 минуту → ссылка на вход в WhatsApp')
+      .isConnected,
+  ).toBe(true);
   await u.type(await screen.findByLabelText('Название магазина'), 'Дом');
   await u.type(screen.getByLabelText('Email'), 'new@example.test');
   await u.type(screen.getByLabelText('Телефон'), '+996700123456');
   await u.type(screen.getByLabelText('Город'), 'Ош');
   await u.selectOptions(screen.getByLabelText('Категория бизнеса'), 'toys');
   await u.click(screen.getByLabelText('Согласен с условиями подключения'));
-  await u.click(screen.getByRole('button', { name: 'Отправить заявку' }));
+  await u.click(
+    screen.getByRole('button', { name: 'Попробовать 30 дней бесплатно' }),
+  );
   await screen.findByText(
     'Заявка отправлена. Мы свяжемся с вами после проверки.',
   );
