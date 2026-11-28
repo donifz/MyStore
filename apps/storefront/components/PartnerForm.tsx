@@ -1,12 +1,19 @@
 'use client';
 import { FormEvent, useEffect, useState } from 'react';
-import { Button, Input, Checkbox, Alert } from './ui';
+import { Button, Input, Select, Checkbox, Alert } from './ui';
 
 import { api, ApiError, errorText } from '../../web/src/api/client';
 import {
   formatKyrgyzPhoneInput,
   KYRGYZ_PHONE_PATTERN,
 } from '../../web/src/customers/kyrgyzPhoneMask';
+
+const PARTNER_PERKS = [
+  'Касса, чеки и USB-сканер',
+  'Остатки, смены и чистая прибыль',
+  'Готовая онлайн-витрина магазина',
+];
+
 export default function PartnerPage() {
   const [name, setName] = useState(''),
     [email, setEmail] = useState(''),
@@ -57,24 +64,23 @@ export default function PartnerPage() {
   return (
     <section className="sf-partner-grid">
       <div className="sf-partner-intro">
-        <p className="sf-eyebrow">Ваш магазин на MyStore</p>
-        <h1>
-          Один товар.
-          <br />
-          Два канала продаж.
-        </h1>
-        <p>
-          Ведите товары и продажи в кабинете. Ваша витрина покажет покупателям
-          те же цены и доступное количество.
+        <span className="sf-partner-badge">30 дней бесплатно · Без карты</span>
+        <h1>Касса, учёт и витрина в одном месте</h1>
+        <p className="sf-partner-lead">
+          Продажи, склад и онлайн-каталог магазина в одном кабинете.
         </p>
-        <ul>
-          <li>Свой каталог на площадке</li>
-          <li>Приёмка и касса со сканером</li>
-          <li>Общие остатки без повторного ввода</li>
+        <ul className="sf-partner-perks">
+          {PARTNER_PERKS.map((perk) => (
+            <li key={perk}>
+              <span className="sf-partner-check" aria-hidden="true">
+                ✓
+              </span>
+              <span>{perk}</span>
+            </li>
+          ))}
         </ul>
-        <p className="sf-muted">
-          Отправьте заявку. Администратор свяжется с вами и после одобрения
-          пришлёт ссылку для активации кабинета.
+        <p className="sf-partner-flow">
+          Заявка за 1 минуту → ссылка на вход в WhatsApp
         </p>
       </div>
       <div className="sf-panel sf-partner-form">
@@ -84,7 +90,7 @@ export default function PartnerPage() {
             <Alert variant="success">
               Заявка отправлена. Мы свяжемся с вами после проверки.
             </Alert>
-            <p>
+            <p className="sf-partner-done-note">
               Кабинет станет доступен после одобрения и активации по ссылке.
             </p>
           </>
@@ -100,50 +106,55 @@ export default function PartnerPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
-              <Input
-                id="partner-email"
-                label="Email"
-                required
-                type="email"
-                maxLength={254}
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <Input
-                id="partner-phone"
-                label="Телефон"
-                required
-                type="tel"
-                maxLength={32}
-                pattern={KYRGYZ_PHONE_PATTERN}
-                title="Номер Кыргызстана: +996 700 123 456"
-                autoComplete="tel"
-                placeholder="+996 700 123 456"
-                value={phone}
-                onChange={(e) =>
-                  setPhone(formatKyrgyzPhoneInput(e.target.value))
-                }
-              />
-              <Input
-                id="partner-city"
-                label="Город"
-                required
-                maxLength={80}
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-              />
-              <Input
-                id="partner-address"
-                label="Адрес"
-                maxLength={250}
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-              />
-              <label htmlFor="partner-category">Категория бизнеса</label>
-              <select
+              <div className="sf-partner-row">
+                <Input
+                  id="partner-phone"
+                  label="Телефон"
+                  hint="С WhatsApp"
+                  required
+                  type="tel"
+                  maxLength={32}
+                  pattern={KYRGYZ_PHONE_PATTERN}
+                  title="Номер Кыргызстана: +996 700 123 456"
+                  autoComplete="tel"
+                  placeholder="+996 700 123 456"
+                  value={phone}
+                  onChange={(e) =>
+                    setPhone(formatKyrgyzPhoneInput(e.target.value))
+                  }
+                />
+                <Input
+                  id="partner-email"
+                  label="Email"
+                  required
+                  type="email"
+                  maxLength={254}
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="sf-partner-row">
+                <Input
+                  id="partner-city"
+                  label="Город"
+                  required
+                  maxLength={80}
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                />
+                <Input
+                  id="partner-address"
+                  label="Адрес"
+                  hint="Необязательно"
+                  maxLength={250}
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+              </div>
+              <Select
                 id="partner-category"
-                className="sf-input"
+                label="Категория бизнеса"
                 required
                 value={shopType}
                 onChange={(event) => setShopType(event.target.value)}
@@ -156,7 +167,7 @@ export default function PartnerPage() {
                     {type.name}
                   </option>
                 ))}
-              </select>
+              </Select>
               <Checkbox
                 label={
                   <span>
@@ -177,10 +188,10 @@ export default function PartnerPage() {
               />
               {error && <Alert variant="error">{error}</Alert>}
               <Button type="submit" className="sf-full" loading={busy}>
-                {busy ? 'Отправка…' : 'Отправить заявку'}
+                {busy ? 'Отправка…' : 'Попробовать 30 дней бесплатно'}
               </Button>
             </fieldset>
-            <p>
+            <p className="sf-partner-login">
               Уже есть аккаунт? <a href="/seller/login">Войти</a>
             </p>
           </form>

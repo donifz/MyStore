@@ -418,7 +418,7 @@ export default async function Stores({
               Стать продавцом <Icon name="arrow" width={18} height={18} />
             </Link>
             <small className="sf-partner-cta-card__note">
-              Подключение бесплатно · Без абонентской платы
+              Пробный период 30 дней бесплатно · Без привязки карты
             </small>
           </div>
         </section>
