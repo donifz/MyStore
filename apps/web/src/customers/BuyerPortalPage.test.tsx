@@ -67,6 +67,17 @@ it('renders auth form when user is not signed in', async () => {
   expect(
     await screen.findByRole('heading', { name: 'Создать аккаунт' }),
   ).toBeTruthy();
+  expect(
+    screen.queryByText(/Один кабинет для покупок в магазинах MyStore/),
+  ).toBeNull();
+  const mobileNav = screen.getByRole('navigation', {
+    name: 'Мобильная навигация',
+  });
+  expect(mobileNav.querySelector('a[href="/shops"]')?.textContent?.trim()).toBe(
+    'Магазины',
+  );
+  expect(mobileNav.querySelector('a[href="/orders"]')).toBeNull();
+  expect(screen.queryByRole('link', { name: 'Заказы' })).toBeNull();
   expect(screen.getByLabelText('Ваше имя')).toBeTruthy();
   expect(screen.getByLabelText('Номер телефона')).toBeTruthy();
   expect(screen.getByLabelText('Пароль')).toBeTruthy();
