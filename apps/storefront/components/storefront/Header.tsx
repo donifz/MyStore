@@ -63,14 +63,6 @@ export default async function Header() {
             >
               <Icon name="heart" />
             </Link>
-            <Link
-              href="/orders"
-              className="sf-header-icon-btn"
-              aria-label="Заказы"
-              title="Мои заказы"
-            >
-              <Icon name="box" />
-            </Link>
             <CartLink />
             <a
               href="/buyer"

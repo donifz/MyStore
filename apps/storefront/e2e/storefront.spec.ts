@@ -192,6 +192,14 @@ test('navigation and cart survive mobile layout', async ({ page }) => {
   await expect(page.getByLabel('Ваше имя')).toBeVisible();
   await page.getByLabel('Количество Керамическая чашка').fill('2');
   await expect(page.getByText(/480/).first()).toBeVisible();
+  await expect(page.getByText('Интерактивный робот')).toHaveCount(0);
+  const cartLine = page.locator('.sf-cart-line').first();
+  const imgBox = (await cartLine.locator('.sf-cart-image').boundingBox())!;
+  const copyBox = (await cartLine.locator('.sf-cart-item-copy').boundingBox())!;
+  const qtyBox = (await cartLine.locator('.sf-quantity').boundingBox())!;
+  const priceBox = (await cartLine.locator('> .sf-price').boundingBox())!;
+  expect(imgBox.x + imgBox.width).toBeLessThanOrEqual(copyBox.x + 1);
+  expect(qtyBox.x + qtyBox.width).toBeLessThanOrEqual(priceBox.x + 1);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -738,11 +746,23 @@ test('shops directory omits hero, collapses filters on mobile, shows store cards
       '.sf-store-list-grid .sf-store-card--modern',
     );
     if ((await storeCards.count()) > 0) {
-      await expect(storeCards.first()).toBeVisible();
-      await expect(
-        storeCards.first().locator('.sf-home-store-card__cta'),
-      ).toBeVisible();
+      const firstCard = storeCards.first();
+      await expect(firstCard).toBeVisible();
+      const cta = firstCard.locator('.sf-home-store-card__cta');
+      await expect(cta).toBeVisible();
+      const cardBox = (await firstCard.boundingBox())!;
+      const linkBox = (await firstCard
+        .locator('.sf-store-card-link')
+        .boundingBox())!;
+      const ctaBox = (await cta.boundingBox())!;
+      expect(Math.abs(cardBox.width - linkBox.width)).toBeLessThanOrEqual(4);
+      expect(ctaBox.y + ctaBox.height).toBeLessThanOrEqual(
+        cardBox.y + cardBox.height + 1,
+      );
     }
+    await expect(
+      page.locator('header').getByRole('link', { name: 'Заказы' }),
+    ).toHaveCount(0);
 
     expect(
       await page.evaluate(

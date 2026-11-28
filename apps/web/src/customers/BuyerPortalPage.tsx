@@ -21,6 +21,7 @@ type NavIconName =
   | 'bag'
   | 'home'
   | 'box'
+  | 'shop'
   | 'grid'
   | 'star'
   | 'flame'
@@ -32,6 +33,7 @@ const NAV_ICON_PATHS: Record<NavIconName, string> = {
   bag: 'M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z M3 6h18 M16 10a4 4 0 0 1-8 0',
   home: 'm3 10 9-7 9 7v11h-7v-7h-4v7H3Z',
   box: 'm3 6 9-4 9 4v12l-9 4-9-4Z m0-12 9 4 9-4 M12 10v12',
+  shop: 'M3 9 5 4h14l2 5 M4 9v11h16V9 M9 20v-6h6v6',
   grid: 'M3 3h7v7H3Z M14 3h7v7h-7Z M14 14h7v7h-7Z M3 14h7v7H3Z',
   star: 'm12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z',
   flame:
@@ -691,14 +693,6 @@ export default function BuyerPortalPage() {
               title="Избранное"
             >
               <NavIcon name="heart" size={19} />
-            </a>
-            <a
-              href="/orders"
-              className="buyer-header-icon-btn"
-              aria-label="Заказы"
-              title="Мои заказы"
-            >
-              <NavIcon name="box" size={19} />
             </a>
             <a
               href="/cart"
@@ -1370,10 +1364,6 @@ export default function BuyerPortalPage() {
                   со своим номером и подтвердите привязку.
                 </div>
               )}
-              <p className="muted">
-                Один кабинет для покупок в магазинах MyStore. Вход по номеру
-                Кыргызстана и паролю.
-              </p>
             </div>
 
             <form onSubmit={(e) => void submit(e)} className="buyer-auth-form">
@@ -1628,9 +1618,9 @@ export default function BuyerPortalPage() {
           <NavIcon name="cart" size={20} />
           <span>Корзина</span>
         </a>
-        <a href="/orders">
-          <NavIcon name="box" size={20} />
-          <span>Заказы</span>
+        <a href="/shops">
+          <NavIcon name="shop" size={20} />
+          <span>Магазины</span>
         </a>
         <a href="/buyer" aria-current="page">
           <NavIcon name="user" size={20} />
