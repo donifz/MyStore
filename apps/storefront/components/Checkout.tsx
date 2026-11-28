@@ -39,55 +39,6 @@ const statusLabels: Record<string, string> = {
   expired: 'Срок подтверждения истёк',
 };
 
-const CART_RECOMMENDATIONS = [
-  {
-    id: '11111111-1111-4111-8111-111111111109',
-    name: 'Интерактивный робот',
-    salePriceMinor: 399000,
-    category: 'Робототехника',
-    slug: 'mir-igrushek',
-  },
-  {
-    id: '11111111-1111-4111-8111-111111111111',
-    name: 'Конструктор Marble Run (110 деталей)',
-    salePriceMinor: 219000,
-    category: 'Конструкторы',
-    slug: 'mir-igrushek',
-  },
-  {
-    id: '11111111-1111-4111-8111-111111111110',
-    name: 'Набор Arduino (37 датчиков)',
-    salePriceMinor: 279000,
-    category: 'Робототехника',
-    slug: 'mir-igrushek',
-  },
-  {
-    id: '11111111-1111-4111-8111-111111111116',
-    name: 'Набор для опытов «Юный химик»',
-    salePriceMinor: 149000,
-    category: 'Развивающие',
-    slug: 'mir-igrushek',
-  },
-  {
-    id: '11111111-1111-4111-8111-111111111117',
-    name: 'Кубик Рубика 3×3',
-    salePriceMinor: 49000,
-    category: 'Развивающие',
-    slug: 'mir-igrushek',
-  },
-];
-
-function getCartSubtitle(name: string, checkoutMode = false): string {
-  const n = name.toLowerCase();
-  if (n.includes('мишк'))
-    return checkoutMode ? 'Коричневый, 30 см' : 'Мягкая игрушка, 30 см';
-  if (n.includes('машинк'))
-    return checkoutMode ? 'С пультом, 1:16' : 'Радиоуправляемая, масштаб 1:16';
-  if (n.includes('конструктор'))
-    return checkoutMode ? 'Для детей от 6 лет' : 'Развивающий набор, 6+';
-  return 'Товар в наличии';
-}
-
 export default function Checkout({
   initialStep = 'cart',
 }: {
@@ -528,44 +479,6 @@ function MarketplaceCheckout({
               </div>
             </div>
           </div>
-
-          <section className="sf-cart-recs-card">
-            <div className="sf-section-heading">
-              <h2>Вам может понравиться</h2>
-              <Link href="/#catalog" className="sf-recs-all-link">
-                Смотреть все ›
-              </Link>
-            </div>
-            <div className="sf-cart-recs-grid">
-              {CART_RECOMMENDATIONS.map((rec) => (
-                <article key={rec.id} className="sf-mini-rec-card">
-                  <div className="sf-mini-rec-media">
-                    <Link href={`/shop/${rec.slug}/products/${rec.id}`}>
-                      <ProductPhoto alt={rec.name} category={rec.category} />
-                    </Link>
-                    <span className="sf-mini-rec-fav" aria-hidden="true">
-                      <Icon name="heart" width={15} height={15} />
-                    </span>
-                  </div>
-                  <h3>
-                    <Link href={`/shop/${rec.slug}/products/${rec.id}`}>
-                      {rec.name}
-                    </Link>
-                  </h3>
-                  <div className="sf-mini-rec-bottom">
-                    <Price minor={rec.salePriceMinor} />
-                    <Link
-                      href={`/shop/${rec.slug}/products/${rec.id}`}
-                      className="sf-icon-cart-btn sf-button sf-button--primary"
-                      aria-label="В корзину"
-                    >
-                      <Icon name="cart" width={16} height={16} />
-                    </Link>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
         </section>
       )}
 
@@ -665,9 +578,6 @@ function MarketplaceCheckout({
                             >
                               {l.name}
                             </Link>
-                            <small className="sf-cart-subtitle">
-                              {getCartSubtitle(l.name, false)}
-                            </small>
                             <span className="sf-cart-stock-pill">
                               В наличии
                             </span>
@@ -755,47 +665,6 @@ function MarketplaceCheckout({
                   </section>
                 );
               })}
-
-              <section className="sf-cart-recs-card">
-                <div className="sf-section-heading">
-                  <h2>Вам может понравиться</h2>
-                  <Link href="/#catalog" className="sf-recs-all-link">
-                    Смотреть все ›
-                  </Link>
-                </div>
-                <div className="sf-cart-recs-grid">
-                  {CART_RECOMMENDATIONS.map((rec) => (
-                    <article key={rec.id} className="sf-mini-rec-card">
-                      <div className="sf-mini-rec-media">
-                        <Link href={`/shop/${rec.slug}/products/${rec.id}`}>
-                          <ProductPhoto
-                            alt={rec.name}
-                            category={rec.category}
-                          />
-                        </Link>
-                        <span className="sf-mini-rec-fav" aria-hidden="true">
-                          <Icon name="heart" width={15} height={15} />
-                        </span>
-                      </div>
-                      <h3>
-                        <Link href={`/shop/${rec.slug}/products/${rec.id}`}>
-                          {rec.name}
-                        </Link>
-                      </h3>
-                      <div className="sf-mini-rec-bottom">
-                        <Price minor={rec.salePriceMinor} />
-                        <Link
-                          href={`/shop/${rec.slug}/products/${rec.id}`}
-                          className="sf-icon-cart-btn sf-button sf-button--primary"
-                          aria-label="В корзину"
-                        >
-                          <Icon name="cart" width={16} height={16} />
-                        </Link>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </section>
             </div>
 
             <aside className="sf-cart-sidebar">
@@ -1217,7 +1086,6 @@ function MarketplaceCheckout({
                       </div>
                       <div className="sf-co-item-body">
                         <strong>{l.name}</strong>
-                        <small>{getCartSubtitle(l.name, true)}</small>
                         <div className="sf-co-mini-stepper">
                           <button
                             type="button"
