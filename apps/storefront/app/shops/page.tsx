@@ -9,6 +9,7 @@ import {
   pluralizeStores,
 } from '../../lib/public-api';
 import StoreCard from '../../components/storefront/StoreCard';
+import CollapsibleFilters from '../../components/storefront/CollapsibleFilters';
 import Icon, { CategoryIllustration } from '../../components/storefront/Icon';
 import {
   Input,
@@ -90,7 +91,10 @@ export default async function Stores({
 
   const activeTab = city ? 'nearby' : category ? 'popular' : 'all';
 
-  const hasActiveFilters = Boolean(q || city || district || category);
+  const activeFilterCount = [q, city, district, category].filter(
+    Boolean,
+  ).length;
+  const hasActiveFilters = activeFilterCount > 0;
   const nonce = (await headers()).get('x-nonce') || undefined;
 
   return (
@@ -112,78 +116,35 @@ export default async function Stores({
         <span>Магазины</span>
       </nav>
 
-      {/* Hero Section */}
-      <section
-        className="sf-shops-hero sf-panel"
-        aria-label="О каталоге магазинов"
-      >
-        <div className="sf-shops-hero__copy">
-          <div className="sf-shops-hero__badge-row">
-            <span className="sf-hero-tag">КАТАЛОГ МАГАЗИНОВ</span>
-            <span className="sf-stores-open-pill">
-              {pluralizeStores(stores.total)}
-            </span>
-          </div>
-          <h1>
-            Магазины вашего города.
-            <br />
-            <em>Честные остатки прямо из кассы</em>
-          </h1>
-          <p className="sf-shops-hero__desc">
-            Знакомьтесь с проверенными локальными продавцами Кыргызстана,
-            смотрите витрины с реальным наличием и выбирайте удобный самовывоз
-            или доставку.
-          </p>
-          <div className="sf-shops-hero__badges">
-            <div className="sf-shops-hero__badge">
-              <span className="sf-shops-hero__badge-icon" aria-hidden="true">
-                <Icon name="shield" width={14} height={14} />
-              </span>
-              <span>Проверенные продавцы</span>
-            </div>
-            <div className="sf-shops-hero__badge">
-              <span className="sf-shops-hero__badge-icon" aria-hidden="true">
-                <Icon name="box" width={14} height={14} />
-              </span>
-              <span>Синхронизация с кассой</span>
-            </div>
-            <div className="sf-shops-hero__badge">
-              <span className="sf-shops-hero__badge-icon" aria-hidden="true">
-                <Icon name="truck" width={14} height={14} />
-              </span>
-              <span>Самовывоз и доставка</span>
-            </div>
-            <div className="sf-shops-hero__badge">
-              <span className="sf-shops-hero__badge-icon" aria-hidden="true">
-                <Icon name="phone" width={14} height={14} />
-              </span>
-              <span>Прямой контакт по WhatsApp</span>
-            </div>
-          </div>
+      {/* Results Header with Tabs */}
+      <div className="sf-shops-page-head">
+        <div className="sf-shops-results-title-group">
+          <h1>{city ? `Магазины · ${city}` : 'Магазины'}</h1>
+          <span className="sf-shops-count-badge">
+            {pluralizeStores(stores.total)}
+          </span>
         </div>
-
-        <div className="sf-shops-hero__aside" aria-hidden="true">
-          <div className="sf-shops-hero__stat-card">
-            <span className="sf-shops-hero__stat-num">{stores.total}</span>
-            <span className="sf-shops-hero__stat-label">
-              {pluralizeStores(stores.total)} в каталоге
-            </span>
-            <div className="sf-shops-hero__stat-indicator">
-              <span className="sf-home-store-status__dot" />
-              <span>Актуально сейчас</span>
-            </div>
-          </div>
-          <div className="sf-shops-hero__feature-card">
-            <span className="sf-shops-hero__feature-icon">
-              <Icon name="shop" width={22} height={22} />
-            </span>
-            <div>
-              <strong>Локальный бизнес</strong>
-              <small>Покупайте у магазинов вашего города</small>
-            </div>
-          </div>
+        <div className="sf-orders-filter-tabs" role="navigation">
+          <Link
+            href="/shops"
+            className={`sf-orders-tab-pill ${activeTab === 'all' ? 'sf-orders-tab-pill--active' : ''}`}
+          >
+            Все
+          </Link>
+          <Link
+            href="/shops?city=Ош"
+            className={`sf-orders-tab-pill ${activeTab === 'nearby' ? 'sf-orders-tab-pill--active' : ''}`}
+          >
+            Рядом
+          </Link>
+          <Link
+            href="/shops?category=Конструкторы"
+            className={`sf-orders-tab-pill ${activeTab === 'popular' ? 'sf-orders-tab-pill--active' : ''}`}
+          >
+            Популярные
+          </Link>
         </div>
-      </section>
+      </div>
 
       {/* Quick City Selector Bar */}
       {cities.length > 0 && (
@@ -257,103 +218,82 @@ export default async function Stores({
         </div>
       )}
 
-      {/* Search and Filter Form */}
-      <form action="/shops" className="sf-shops-search-bar" role="search">
-        <div className="sf-shops-search-input-wrap">
-          <span className="sf-shops-search-icon" aria-hidden="true">
-            <Icon name="search" width={18} height={18} />
-          </span>
-          <Input
-            id="shop-search"
-            label="Поиск магазина"
-            name="q"
-            defaultValue={q}
-            placeholder="Поиск магазина по названию..."
-            maxLength={128}
-          />
-        </div>
-        <Select id="shop-city" label="Город" name="city" defaultValue={city}>
-          <option value="">Все города</option>
-          {cities.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </Select>
-        <Select
-          id="shop-district"
-          label="Район"
-          name="district"
-          defaultValue={district}
-        >
-          <option value="">Все районы</option>
-          {[
-            ...new Set(
-              filters.locations
-                .filter((l) => (!city || l.city === city) && l.district)
-                .map((l) => l.district),
-            ),
-          ].map((d) => (
-            <option key={d} value={d}>
-              {d}
-            </option>
-          ))}
-        </Select>
-        <Select
-          id="shop-category"
-          label="Категория"
-          name="category"
-          defaultValue={category}
-        >
-          <option value="">Все категории</option>
-          {filters.categories.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </Select>
-        <div className="sf-shops-search-actions">
-          <Button type="submit">Найти</Button>
-          {hasActiveFilters && (
-            <Link
-              href="/shops"
-              className="sf-shops-reset-link"
-              title="Сбросить все фильтры"
+      {/* Collapsible Search and Filter Form */}
+      <div className="sf-shops-filters">
+        <CollapsibleFilters activeCount={activeFilterCount}>
+          <form action="/shops" className="sf-shops-search-bar" role="search">
+            <div className="sf-shops-search-input-wrap">
+              <span className="sf-shops-search-icon" aria-hidden="true">
+                <Icon name="search" width={18} height={18} />
+              </span>
+              <Input
+                id="shop-search"
+                label="Поиск магазина"
+                name="q"
+                defaultValue={q}
+                placeholder="Поиск магазина по названию..."
+                maxLength={128}
+              />
+            </div>
+            <Select
+              id="shop-city"
+              label="Город"
+              name="city"
+              defaultValue={city}
             >
-              Сброс
-            </Link>
-          )}
-        </div>
-      </form>
-
-      {/* Results Header with Tabs */}
-      <div className="sf-shops-page-head">
-        <div className="sf-shops-results-title-group">
-          <h1>{city ? `Магазины · ${city}` : 'Магазины'}</h1>
-          <span className="sf-shops-count-badge">
-            {pluralizeStores(stores.total)}
-          </span>
-        </div>
-        <div className="sf-orders-filter-tabs" role="navigation">
-          <Link
-            href="/shops"
-            className={`sf-orders-tab-pill ${activeTab === 'all' ? 'sf-orders-tab-pill--active' : ''}`}
-          >
-            Все
-          </Link>
-          <Link
-            href="/shops?city=Ош"
-            className={`sf-orders-tab-pill ${activeTab === 'nearby' ? 'sf-orders-tab-pill--active' : ''}`}
-          >
-            Рядом
-          </Link>
-          <Link
-            href="/shops?category=Конструкторы"
-            className={`sf-orders-tab-pill ${activeTab === 'popular' ? 'sf-orders-tab-pill--active' : ''}`}
-          >
-            Популярные
-          </Link>
-        </div>
+              <option value="">Все города</option>
+              {cities.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </Select>
+            <Select
+              id="shop-district"
+              label="Район"
+              name="district"
+              defaultValue={district}
+            >
+              <option value="">Все районы</option>
+              {[
+                ...new Set(
+                  filters.locations
+                    .filter((l) => (!city || l.city === city) && l.district)
+                    .map((l) => l.district),
+                ),
+              ].map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </Select>
+            <Select
+              id="shop-category"
+              label="Категория"
+              name="category"
+              defaultValue={category}
+            >
+              <option value="">Все категории</option>
+              {filters.categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </Select>
+            <div className="sf-shops-search-actions">
+              <Button type="submit">Найти</Button>
+              {hasActiveFilters && (
+                <Link
+                  href="/shops"
+                  className="sf-shops-reset-link"
+                  title="Сбросить все фильтры"
+                >
+                  Сброс
+                </Link>
+              )}
+            </div>
+          </form>
+        </CollapsibleFilters>
       </div>
 
       {/* Store Grid or Empty State */}

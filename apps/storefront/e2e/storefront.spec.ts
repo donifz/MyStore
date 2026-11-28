@@ -622,7 +622,9 @@ test('orders pages do not show hardcoded mock orders and link to buyer cabinet',
   await expect(page.getByRole('main')).not.toContainText('38472');
   await expect(page.getByRole('main')).not.toContainText('Мир игрушек');
   await expect(
-    page.getByRole('link', { name: 'Личный кабинет', exact: true }),
+    page
+      .getByRole('main')
+      .getByRole('link', { name: 'Личный кабинет', exact: true }),
   ).toHaveAttribute('href', '/buyer');
 
   await page.goto('/orders/missing-order');
@@ -698,17 +700,25 @@ test('catalog category strips scroll cleanly, avoid fake counts/ratings, and kee
   await expect(sellerStats).toContainText('Пока нет отзывов');
 });
 
-test('shops directory displays hero, quick filters, rich store cards, and partner CTA without overflow', async ({
+test('shops directory omits hero, collapses filters on mobile, shows store cards, CTA, and footer without overflow', async ({
   page,
 }) => {
   for (const width of [320, 390, 768, 1200]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/shops');
 
-    await expect(page.locator('.sf-shops-hero')).toBeVisible();
-    await expect(page.locator('.sf-shops-hero h1')).toContainText(
-      'Магазины вашего города',
+    await expect(page.locator('.sf-shops-hero')).toHaveCount(0);
+    await expect(page.locator('.sf-shops-page-head h1')).toContainText(
+      'Магазины',
     );
+    const filters = page.locator('.sf-shops-filters details');
+    await expect(filters).toHaveJSProperty('open', width >= 1100);
+    if (width < 1100) {
+      await expect(page.getByLabel('Поиск магазина')).toBeHidden();
+      await filters.locator('summary').click();
+    }
+    await expect(page.getByLabel('Поиск магазина')).toBeVisible();
+
     await expect(page.locator('.sf-partner-cta-card')).toBeVisible();
     await expect(
       page.locator('.sf-partner-cta-card a[href="/partner"]'),
@@ -716,6 +726,13 @@ test('shops directory displays hero, quick filters, rich store cards, and partne
     await expect(page.locator('.sf-partner-cta-card__note')).toHaveText(
       'Пробный период 30 дней бесплатно · Без привязки карты',
     );
+    await expect(page.locator('.sf-footer')).toBeVisible();
+    await expect(
+      page.locator('.sf-footer').getByRole('link', {
+        name: 'Стать партнёром',
+        exact: true,
+      }),
+    ).toHaveAttribute('href', '/partner');
 
     const storeCards = page.locator(
       '.sf-store-list-grid .sf-store-card--modern',
